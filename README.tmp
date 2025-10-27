@@ -19,7 +19,7 @@ This app runs on Next.js 14 with Supabase, Stripe, SMTP (Gmail Workspace), and G
 1. Create a new Web Service from your GitHub repo.
 2. Environment
    - Runtime: Node 18.x or 22.x
-   - Build command: `pnpm install --frozen-lockfile && pnpm build`
+   - Build command: `./render-build.sh`
    - Start command: `pnpm start`
 3. Environment variables (Render → Environment)
    - Public (sent to browser):
