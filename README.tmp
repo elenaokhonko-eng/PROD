@@ -44,10 +44,11 @@ Note: Render provides the `PORT` env var automatically; `next start` will bind t
 
 ### Database migrations
 
-Apply the SQL in `src/scripts/` to your Supabase/Postgres project in order:
+Apply the SQL in `scripts/` to your Supabase/Postgres project in order:
 
-- `src/scripts/014_add_case_collaborators_status.sql` (if not already applied)
-- `src/scripts/016_update_evidence_rls.sql` (tightens evidence policies for collaborators)
+- `scripts/007_create_router_sessions.sql` (required for the router flow)
+- `scripts/014_add_case_collaborators_status.sql` (if not already applied)
+- `scripts/016_update_evidence_rls.sql` (tightens evidence policies for collaborators)
 
 You can run these via Supabase SQL editor or the Supabase CLI. Ensure Row Level Security (RLS) remains enabled.
 
