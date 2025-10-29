@@ -63,7 +63,8 @@ export async function POST(request: NextRequest) {
     if (firstName) userMetadata.first_name = firstName
     if (lastName) userMetadata.last_name = lastName
 
-    const emailRedirectTo = buildAppUrl("/app")
+    const nextPath = sessionToken ? "/onboarding" : "/app"
+    const emailRedirectTo = buildAppUrl(`/auth/callback?next=${nextPath}`)
 
     const { data, error } = await supabase.auth.signUp({
       email,

@@ -12,7 +12,7 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import type { RouterSession } from "@/lib/router-session"
-import { getSessionToken, clearSessionToken } from "@/lib/router-session"
+import { getSessionToken, clearSessionToken, persistConvertedRouterSessionToken } from "@/lib/router-session"
 import { User, Heart } from "lucide-react"
 import { trackClientEvent } from "@/lib/analytics/client"
 
@@ -166,13 +166,7 @@ export default function SignUpPage() {
 
       if (isFromRouter && sessionToken) {
         if (sessionLinked) {
-          if (typeof window !== "undefined") {
-            try {
-              sessionStorage.setItem("converted_router_session_token", sessionToken)
-            } catch {
-              // Ignore storage errors (e.g., Safari private mode)
-            }
-          }
+          persistConvertedRouterSessionToken(sessionToken)
 
           await trackClientEvent({
             eventName: "router_conversion_complete",

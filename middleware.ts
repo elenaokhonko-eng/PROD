@@ -1,7 +1,25 @@
 import { updateSession } from "@/lib/supabase/middleware"
 import type { NextRequest } from "next/server"
 
+const blockedPathPatterns: RegExp[] = [
+  /\.env/i,
+  /^\/?\.git/i,
+  /wp-(?:includes|admin)/i,
+  /xmlrpc\.php/i,
+  /wlwmanifest\.xml/i,
+  /config\.(?:js|json)/i,
+]
+
+const blockedUserAgents: RegExp[] = [/aiohttp/i, /cms-checker/i]
+
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  const userAgent = request.headers.get("user-agent") ?? ""
+
+  if (blockedPathPatterns.some((pattern) => pattern.test(pathname)) || blockedUserAgents.some((pattern) => pattern.test(userAgent))) {
+    return new Response("Not found", { status: 404 })
+  }
+
   return await updateSession(request)
 }
 

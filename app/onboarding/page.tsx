@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, CheckCircle, ArrowRight, User, Bell, FileText, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { trackClientEvent } from "@/lib/analytics/client"
-import { updateRouterSession } from "@/lib/router-session"
+import { updateRouterSession, consumeConvertedRouterSessionToken } from "@/lib/router-session"
 import type { RouterSession } from "@/lib/router-session"
 
 export default function OnboardingPage() {
@@ -98,14 +98,9 @@ export default function OnboardingPage() {
       }
 
       let sessionLoaded = false
-      if (typeof window !== "undefined") {
-        const storedToken = sessionStorage.getItem("converted_router_session_token")
-        if (storedToken) {
-          sessionLoaded = await retrieveSessionByToken(storedToken)
-          if (sessionLoaded) {
-            sessionStorage.removeItem("converted_router_session_token")
-          }
-        }
+      const convertedToken = consumeConvertedRouterSessionToken()
+      if (convertedToken) {
+        sessionLoaded = await retrieveSessionByToken(convertedToken)
       }
 
       if (!sessionLoaded) {

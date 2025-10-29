@@ -16,7 +16,11 @@ export interface RouterSession {
   converted_to_user_id?: string
   converted_to_case_id?: string | null
   converted_at?: string | null
+  status?: "ACTIVE" | "CONVERTED" | "EXPIRED"
 }
+
+const ROUTER_SESSION_TOKEN_KEY = "router_session_token"
+const CONVERTED_ROUTER_SESSION_TOKEN_KEY = "converted_router_session_token"
 
 export function generateSessionToken(): string {
   return `router_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
@@ -24,17 +28,68 @@ export function generateSessionToken(): string {
 
 export function getSessionToken(): string | null {
   if (typeof window === "undefined") return null
-  return localStorage.getItem("router_session_token")
+  return localStorage.getItem(ROUTER_SESSION_TOKEN_KEY)
 }
 
 export function setSessionToken(token: string): void {
   if (typeof window === "undefined") return
-  localStorage.setItem("router_session_token", token)
+  localStorage.setItem(ROUTER_SESSION_TOKEN_KEY, token)
 }
 
 export function clearSessionToken(): void {
   if (typeof window === "undefined") return
-  localStorage.removeItem("router_session_token")
+  localStorage.removeItem(ROUTER_SESSION_TOKEN_KEY)
+}
+
+export function persistConvertedRouterSessionToken(token: string) {
+  if (typeof window === "undefined") return
+  try {
+    sessionStorage.setItem(CONVERTED_ROUTER_SESSION_TOKEN_KEY, token)
+  } catch {
+    // Ignore sessionStorage failures (e.g., Safari private mode)
+  }
+
+  try {
+    localStorage.setItem(CONVERTED_ROUTER_SESSION_TOKEN_KEY, token)
+  } catch {
+    // Ignore localStorage failures (e.g., storage disabled)
+  }
+}
+
+export function consumeConvertedRouterSessionToken(): string | null {
+  if (typeof window === "undefined") return null
+
+  let token: string | null = null
+
+  try {
+    token = sessionStorage.getItem(CONVERTED_ROUTER_SESSION_TOKEN_KEY)
+  } catch {
+    token = null
+  }
+
+  if (!token) {
+    try {
+      token = localStorage.getItem(CONVERTED_ROUTER_SESSION_TOKEN_KEY)
+    } catch {
+      token = null
+    }
+  }
+
+  try {
+    sessionStorage.removeItem(CONVERTED_ROUTER_SESSION_TOKEN_KEY)
+  } catch {
+    // Ignore
+  }
+
+  if (token) {
+    try {
+      localStorage.removeItem(CONVERTED_ROUTER_SESSION_TOKEN_KEY)
+    } catch {
+      // Ignore
+    }
+  }
+
+  return token
 }
 
 export async function createRouterSession(): Promise<RouterSession | null> {
@@ -127,11 +182,7 @@ export async function convertRouterSessionToUser(
     const { session: data } = (await res.json()) as { session: RouterSession }
 
     if (typeof window !== "undefined") {
-      try {
-        sessionStorage.setItem("converted_router_session_token", sessionToken)
-      } catch {
-        // Ignore storage errors (e.g., Safari private mode)
-      }
+      persistConvertedRouterSessionToken(sessionToken)
     }
 
     await trackClientEvent({

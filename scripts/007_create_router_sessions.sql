@@ -11,7 +11,9 @@ CREATE TABLE router_sessions (
   eligibility_assessment JSONB,
   recommended_path TEXT,
   converted_to_case_id UUID REFERENCES cases(id) ON DELETE SET NULL,
+  converted_to_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   converted_at TIMESTAMP WITH TIME ZONE,
+  status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'CONVERTED', 'EXPIRED')),
   ip_address INET,
   user_agent TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -21,4 +23,5 @@ CREATE TABLE router_sessions (
 -- Add indexes for router session queries
 CREATE INDEX idx_router_sessions_session_token ON router_sessions(session_token);
 CREATE INDEX idx_router_sessions_converted_to_case_id ON router_sessions(converted_to_case_id);
+CREATE INDEX idx_router_sessions_converted_to_user_id ON router_sessions(converted_to_user_id);
 CREATE INDEX idx_router_sessions_created_at ON router_sessions(created_at);
