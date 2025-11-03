@@ -18,6 +18,7 @@ if (!API_KEY) {
   throw new Error("GOOGLE_GENERATIVE_AI_API_KEY environment variable not set.")
 }
 
+console.log("[debug] Gemini key prefix:", API_KEY.slice(0, 6))
 const genAI = new GoogleGenerativeAI({ apiKey: API_KEY })
 const modelName = "gemini-2.5-flash"
 const log = logger.withContext({ module: "router-classify", model: modelName })
