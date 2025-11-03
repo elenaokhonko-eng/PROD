@@ -56,6 +56,39 @@ export function persistConvertedRouterSessionToken(token: string) {
   }
 }
 
+export function getConvertedRouterSessionToken(): string | null {
+  if (typeof window === "undefined") return null
+
+  try {
+    const token = sessionStorage.getItem(CONVERTED_ROUTER_SESSION_TOKEN_KEY)
+    if (token) return token
+  } catch {
+    // Ignore sessionStorage failures
+  }
+
+  try {
+    return localStorage.getItem(CONVERTED_ROUTER_SESSION_TOKEN_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function clearConvertedRouterSessionToken(): void {
+  if (typeof window === "undefined") return
+
+  try {
+    sessionStorage.removeItem(CONVERTED_ROUTER_SESSION_TOKEN_KEY)
+  } catch {
+    // Ignore
+  }
+
+  try {
+    localStorage.removeItem(CONVERTED_ROUTER_SESSION_TOKEN_KEY)
+  } catch {
+    // Ignore
+  }
+}
+
 export function consumeConvertedRouterSessionToken(): string | null {
   if (typeof window === "undefined") return null
 

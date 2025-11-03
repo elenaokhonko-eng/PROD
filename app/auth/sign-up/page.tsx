@@ -196,7 +196,7 @@ export default function SignUpPage() {
         console.warn("[signup] Welcome email was not sent for user:", userId)
       }
 
-      router.push("/onboarding")
+      router.push("/auth/sign-up-success")
     } catch (error: unknown) {
       console.error("[signup] Unexpected signup error:", error)
       setError(error instanceof Error ? error.message : "An error occurred")

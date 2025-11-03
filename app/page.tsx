@@ -213,7 +213,7 @@ export default function LandingPage() {
               <CardTitle className="text-2xl">Share Your Dispute</CardTitle>
               <CardDescription className="leading-relaxed">
                 Describe what happened in your own words. Include details like dates, amounts, and what the institution
-                did or didn't do.
+                did or didn&apos;t do.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -372,7 +372,7 @@ export default function LandingPage() {
               ) : (
                 <Card className="p-6 bg-accent/20 border-accent max-w-md mx-auto">
                   <CardContent className="p-0 text-center space-y-2">
-                    <h3 className="font-semibold text-lg">You're on the list!</h3>
+                    <h3 className="font-semibold text-lg">You&apos;re on the list!</h3>
                     <p className="text-sm text-muted-foreground">
                       We’ll send a welcome email with your free month when we go live.
                     </p>

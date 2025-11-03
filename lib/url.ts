@@ -16,6 +16,7 @@ const safeOrigin = (value: string | undefined | null): string | null => {
 
 export const getAppBaseUrl = () => {
   const envOrigin =
+    safeOrigin(process.env.NEXT_PUBLIC_SITE_URL) ??
     safeOrigin(process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL) ??
     safeOrigin(process.env.NEXT_PUBLIC_APP_URL)
 
