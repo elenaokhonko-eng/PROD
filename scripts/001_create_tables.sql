@@ -4,6 +4,9 @@
 CREATE TABLE IF NOT EXISTS waitlist (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT UNIQUE NOT NULL,
+  name TEXT,
+  first_name TEXT,
+  last_name TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   source TEXT DEFAULT 'landing_page'
 );
