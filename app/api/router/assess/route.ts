@@ -8,7 +8,7 @@ if (!API_KEY) {
   throw new Error("GOOGLE_GENERATIVE_AI_API_KEY environment variable not set.")
 }
 
-const genAI = new GoogleGenerativeAI({ apiKey: API_KEY })
+const genAI = new GoogleGenerativeAI(API_KEY)
 const modelName = "gemini-2.5-flash"
 
 function scrub<T>(obj: T): T {

@@ -9,7 +9,7 @@ if (!API_KEY) {
   throw new Error("GOOGLE_GENERATIVE_AI_API_KEY environment variable not set.")
 }
 
-const genAI = new GoogleGenerativeAI({ apiKey: API_KEY })
+const genAI = new GoogleGenerativeAI(API_KEY)
 const GEMINI_MODEL_NAME = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-1.5-pro-latest"
 const STORAGE_BUCKET = process.env.SUPABASE_CASE_PACK_BUCKET ?? "evidence"
 
