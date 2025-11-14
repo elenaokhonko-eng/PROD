@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Mic, MicOff, Loader2, ArrowRight, FileText } from "lucide-react"
 import Link from "next/link"
 import { createRouterSession, getSessionToken, updateRouterSession } from "@/lib/router-session"
+import { marketingNavLinks } from "@/lib/navigation"
 
 export default function RouterPage() {
   const [isRecording, setIsRecording] = useState(false)
@@ -105,14 +106,21 @@ export default function RouterPage() {
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">GB</span>
               </div>
               <span className="font-semibold text-lg">GuideBuoy AI</span>
             </Link>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 md:justify-end">
+              <nav className="flex flex-wrap items-center gap-4 text-sm font-medium text-muted-foreground">
+                {marketingNavLinks.map((item) => (
+                  <Link key={item.href} href={item.href} className="transition-colors hover:text-foreground">
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
               <Badge variant="secondary" className="hidden sm:inline-flex">
                 Free Dispute Check
               </Badge>

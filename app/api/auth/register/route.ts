@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { render } from "@react-email/render"
+import type { User } from "@supabase/supabase-js"
+
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
@@ -26,6 +28,7 @@ const registerSchema = z.object({
   lastName: z.string().max(120).optional(),
   consent: consentSchema,
   sendWelcomeEmail: z.boolean().optional(),
+  preverifiedUserId: z.string().min(1).optional(),
 })
 
 type RouterSessionRow = Record<string, unknown>
@@ -38,6 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient()
+    const supabaseServiceRole = createServiceClient()
     let parsed
     try {
       parsed = registerSchema.parse(await request.json())
@@ -57,38 +61,96 @@ export async function POST(request: NextRequest) {
       lastName,
       consent,
       sendWelcomeEmail = true,
+      preverifiedUserId,
     } = parsed
 
     const userMetadata: Record<string, unknown> = { role: role || "victim" }
     if (firstName) userMetadata.first_name = firstName
     if (lastName) userMetadata.last_name = lastName
 
-    const nextPath = sessionToken ? "/onboarding" : "/app"
-    const emailRedirectTo = buildAppUrl(`/auth/callback?next=${nextPath}`)
+    let registeredUser: User | null = null
+    let newUserId: string | null = null
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo,
-        data: userMetadata,
-      },
-    })
+    if (preverifiedUserId) {
+      const {
+        data: existingUserResponse,
+        error: existingUserError,
+      } = await supabaseServiceRole.auth.admin.getUserById(preverifiedUserId)
 
-    if (error) {
-      console.error("[Auth Register] Signup error:", error)
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      if (existingUserError) {
+        console.error("[Auth Register] Failed to load preverified user:", existingUserError)
+        return NextResponse.json({ error: "Verified email session expired. Please restart signup." }, { status: 400 })
+      }
+
+      const existingUser = existingUserResponse.user
+
+      if (!existingUser) {
+        console.error("[Auth Register] No user returned for preverified user id:", preverifiedUserId)
+        return NextResponse.json({ error: "Verified email session expired. Please restart signup." }, { status: 400 })
+      }
+
+      if (!existingUser.email || existingUser.email.toLowerCase() !== email.toLowerCase()) {
+        console.error("[Auth Register] Email mismatch for preverified user:", {
+          expected: email,
+          actual: existingUser.email,
+        })
+        return NextResponse.json({ error: "Email verification mismatch. Please restart signup." }, { status: 400 })
+      }
+
+      const {
+        data: updatedUserResponse,
+        error: updateError,
+      } = await supabaseServiceRole.auth.admin.updateUserById(preverifiedUserId, {
+        password,
+        email_confirm: true,
+        user_metadata: {
+          ...(existingUser.user_metadata || {}),
+          ...userMetadata,
+        },
+      })
+
+      if (updateError) {
+        console.error("[Auth Register] Failed to update preverified user:", updateError)
+        return NextResponse.json({ error: "Unable to finalize your account. Please try again." }, { status: 500 })
+      }
+
+      registeredUser = updatedUserResponse.user ?? existingUser
+      newUserId = registeredUser?.id ?? preverifiedUserId
+      console.log("[Auth Register] Preverified user confirmed. User ID:", newUserId)
+    } else {
+      const nextPath = sessionToken ? "/onboarding" : "/app"
+      const emailRedirectTo = buildAppUrl(`/auth/callback?next=${encodeURIComponent(nextPath)}`)
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo,
+          data: userMetadata,
+        },
+      })
+
+      if (error) {
+        console.error("[Auth Register] Signup error:", error)
+        return NextResponse.json({ error: error.message }, { status: 400 })
+      }
+
+      registeredUser = data.user ?? null
+      newUserId = registeredUser?.id ?? null
+
+      if (!newUserId) {
+        console.error("[Auth Register] Signup returned without user data:", data)
+        return NextResponse.json({ error: "Registration failed" }, { status: 500 })
+      }
+
+      console.log("[Auth Register] Supabase user created successfully. User ID:", newUserId)
     }
 
-    let newUserId = data.user?.id
-    if (!newUserId) {
-      console.error("[Auth Register] Signup returned without user data:", data)
+    if (!newUserId || !registeredUser) {
+      console.error("[Auth Register] Unable to determine user after signup flow.")
       return NextResponse.json({ error: "Registration failed" }, { status: 500 })
     }
 
-    console.log("[Auth Register] Supabase user created successfully. User ID:", newUserId)
-
-    const supabaseServiceRole = createServiceClient()
     const maxRetries = 3
     const initialDelayMs = 2000
     const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -97,41 +159,43 @@ export async function POST(request: NextRequest) {
 
     // Verify the user is visible via the admin API before attempting FK operations.
     const adminCheckAttempts = 5
-    let adminUserVisible = false
+    let adminUserVisible = Boolean(preverifiedUserId)
     let ensuredUserId = newUserId
 
-    for (let attempt = 1; attempt <= adminCheckAttempts; attempt++) {
-      try {
-        const {
-          data: adminUser,
-          error: adminError,
-        } = await supabaseServiceRole.auth.admin.getUserById(newUserId)
-        if (adminError) {
-          console.warn(
-            `[Auth Register] Admin visibility check attempt ${attempt}/${adminCheckAttempts} failed for user ${newUserId}:`,
-            adminError,
+    if (!adminUserVisible) {
+      for (let attempt = 1; attempt <= adminCheckAttempts; attempt++) {
+        try {
+          const {
+            data: adminUser,
+            error: adminError,
+          } = await supabaseServiceRole.auth.admin.getUserById(newUserId)
+          if (adminError) {
+            console.warn(
+              `[Auth Register] Admin visibility check attempt ${attempt}/${adminCheckAttempts} failed for user ${newUserId}:`,
+              adminError,
+            )
+          } else if (!adminUser?.user) {
+            console.warn(
+              `[Auth Register] Admin visibility check attempt ${attempt}/${adminCheckAttempts} returned no user for ${newUserId}`,
+            )
+          } else {
+            adminUserVisible = true
+            console.log(
+              `[Auth Register] Admin visibility confirmed for user ${newUserId} on attempt ${attempt}. Last sign-in:`,
+              adminUser.user.last_sign_in_at,
+            )
+            break
+          }
+        } catch (adminCheckError) {
+          console.error(
+            `[Auth Register] Admin visibility check attempt ${attempt}/${adminCheckAttempts} threw for user ${newUserId}:`,
+            adminCheckError,
           )
-        } else if (!adminUser?.user) {
-          console.warn(
-            `[Auth Register] Admin visibility check attempt ${attempt}/${adminCheckAttempts} returned no user for ${newUserId}`,
-          )
-        } else {
-          adminUserVisible = true
-          console.log(
-            `[Auth Register] Admin visibility confirmed for user ${newUserId} on attempt ${attempt}. Last sign-in:`,
-            adminUser.user.last_sign_in_at,
-          )
-          break
         }
-      } catch (adminCheckError) {
-        console.error(
-          `[Auth Register] Admin visibility check attempt ${attempt}/${adminCheckAttempts} threw for user ${newUserId}:`,
-          adminCheckError,
-        )
-      }
 
-      if (attempt < adminCheckAttempts) {
-        await delay(initialDelayMs * 2 ** (attempt - 1))
+        if (attempt < adminCheckAttempts) {
+          await delay(initialDelayMs * 2 ** (attempt - 1))
+        }
       }
     }
 
@@ -366,7 +430,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      user: data.user,
+      user: registeredUser,
       sessionLinked: routerSessionLinked,
       routerSession: routerSessionData,
       sessionLinkError,

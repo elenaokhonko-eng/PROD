@@ -1,12 +1,26 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
+const decodeNextPath = (value: string | null, origin: string) => {
+  if (!value) {
+    return new URL("/app", origin)
+  }
+
+  try {
+    const decoded = decodeURIComponent(value)
+    return new URL(decoded, origin)
+  } catch {
+    return new URL(value, origin)
+  }
+}
+
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
-  const next = requestUrl.searchParams.get("next") ?? "/app"
+  const nextParam = requestUrl.searchParams.get("next")
+  const nextUrl = decodeNextPath(nextParam, requestUrl.origin)
 
-  const response = NextResponse.redirect(new URL(next, requestUrl.origin))
+  const response = NextResponse.redirect(nextUrl)
 
   if (!code) {
     return response
@@ -41,4 +55,3 @@ export async function GET(request: NextRequest) {
 
   return response
 }
-

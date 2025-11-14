@@ -2,19 +2,21 @@
 
 import type React from "react"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState, useEffect } from "react"
-import type { RouterSession } from "@/lib/router-session"
-import { getSessionToken, clearSessionToken, persistConvertedRouterSessionToken } from "@/lib/router-session"
-import { User, Heart } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Heart, User as UserIcon } from "lucide-react"
+
+import { useSupabase } from "@/components/providers/supabase-provider"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { trackClientEvent } from "@/lib/analytics/client"
+import type { RouterSession } from "@/lib/router-session"
+import { clearSessionToken, getSessionToken, persistConvertedRouterSessionToken } from "@/lib/router-session"
 
 type RegisterApiResponse = {
   success: boolean
@@ -31,7 +33,68 @@ type RegisterApiResponse = {
   error?: string
 }
 
+type StoredVerifiedUser = {
+  userId: string
+  email: string
+}
+
+type VerifiedUserState = {
+  id: string
+  email: string
+} | null
+
+const PENDING_EMAIL_KEY = "signup_pending_email"
+const VERIFIED_USER_KEY = "signup_verified_user"
+const RESEND_TIMEOUT_SECONDS = 30
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const isValidEmail = (value: string) => emailPattern.test(value.trim().toLowerCase())
+
+const readVerifiedUserFromStorage = (): StoredVerifiedUser | null => {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = window.localStorage.getItem(VERIFIED_USER_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as StoredVerifiedUser
+  } catch {
+    return null
+  }
+}
+
+const persistVerifiedUserToStorage = (payload: StoredVerifiedUser) => {
+  if (typeof window === "undefined") return
+  window.localStorage.setItem(VERIFIED_USER_KEY, JSON.stringify(payload))
+}
+
+const clearVerifiedUserStorage = () => {
+  if (typeof window === "undefined") return
+  window.localStorage.removeItem(VERIFIED_USER_KEY)
+}
+
+const persistPendingEmail = (email: string) => {
+  if (typeof window === "undefined") return
+  window.localStorage.setItem(PENDING_EMAIL_KEY, email)
+}
+
+const readPendingEmail = () => {
+  if (typeof window === "undefined") return ""
+  return window.localStorage.getItem(PENDING_EMAIL_KEY) ?? ""
+}
+
+const clearPendingEmail = () => {
+  if (typeof window === "undefined") return
+  window.localStorage.removeItem(PENDING_EMAIL_KEY)
+}
+
 export default function SignUpPage() {
+  const supabase = useSupabase()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const source = searchParams.get("source")
+  const emailParam = searchParams.get("email")
+  const verifiedParam = searchParams.get("verified")
+  const isFromRouter = source === "router"
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [role, setRole] = useState<"victim" | "helper">("victim")
@@ -39,10 +102,12 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [signupStarted, setSignupStarted] = useState(false)
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const source = searchParams.get("source")
-  const isFromRouter = source === "router"
+  const [verificationStatus, setVerificationStatus] = useState<"idle" | "sending" | "sent" | "verified" | "error">("idle")
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null)
+  const [verificationError, setVerificationError] = useState<string | null>(null)
+  const [verifiedUser, setVerifiedUser] = useState<VerifiedUserState>(null)
+  const [resendCountdown, setResendCountdown] = useState(0)
+  const [checkingVerification, setCheckingVerification] = useState(false)
 
   const pdpaConsentPurposes = [
     "Account creation and management",
@@ -51,6 +116,37 @@ export default function SignUpPage() {
     "Platform improvements and analytics",
     "Legal compliance and record keeping",
   ]
+
+  const isEmailVerified = Boolean(verifiedUser)
+
+  useEffect(() => {
+    if (emailParam) {
+      setEmail(emailParam)
+      return
+    }
+    if (!email) {
+      const stored = readPendingEmail()
+      if (stored) {
+        setEmail(stored)
+      }
+    }
+  }, [emailParam, email])
+
+  useEffect(() => {
+    if (email) {
+      persistPendingEmail(email)
+    }
+  }, [email])
+
+  useEffect(() => {
+    if (resendCountdown <= 0) return
+    const timer = window.setInterval(() => {
+      setResendCountdown((prev) => (prev <= 1 ? 0 : prev - 1))
+    }, 1000)
+    return () => {
+      window.clearInterval(timer)
+    }
+  }, [resendCountdown])
 
   useEffect(() => {
     if (isFromRouter) {
@@ -61,7 +157,6 @@ export default function SignUpPage() {
       })
     }
 
-    // Track signup start on first focus
     const handleFirstFocus = () => {
       if (!signupStarted) {
         setSignupStarted(true)
@@ -81,6 +176,65 @@ export default function SignUpPage() {
     }
   }, [signupStarted, isFromRouter, source])
 
+  useEffect(() => {
+    const hasQueryVerification = verifiedParam === "1"
+    const stored = readVerifiedUserFromStorage()
+
+    if (!hasQueryVerification && !stored) {
+      return
+    }
+
+    let active = true
+    setCheckingVerification(true)
+
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        if (!active) return
+        setCheckingVerification(false)
+        const user = data?.user
+        if (!user || !user.email) {
+          if (hasQueryVerification) {
+            setVerificationStatus("error")
+            setVerificationError("We could not confirm your email. Please try the link again.")
+          }
+          return
+        }
+
+        const normalizedUserEmail = user.email.toLowerCase()
+        const normalizedParamEmail = emailParam?.toLowerCase()
+        const storedMatches = stored?.userId === user.id
+        const shouldTrust = hasQueryVerification || storedMatches
+
+        if (!shouldTrust) {
+          return
+        }
+
+        if (hasQueryVerification && normalizedParamEmail && normalizedParamEmail !== normalizedUserEmail) {
+          setVerificationStatus("error")
+          setVerificationError("Email mismatch detected. Please request a new verification link.")
+          return
+        }
+
+        setVerifiedUser({ id: user.id, email: user.email })
+        setEmail(user.email)
+        persistPendingEmail(user.email)
+        persistVerifiedUserToStorage({ userId: user.id, email: user.email })
+        setVerificationStatus("verified")
+        setVerificationMessage("Email verified. Continue below to finish creating your account.")
+        setVerificationError(null)
+      })
+      .catch((err) => {
+        if (!active) return
+        setCheckingVerification(false)
+        console.error("[signup] Failed to check Supabase session:", err)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [supabase, verifiedParam, emailParam])
+
   const trackEvent = async (eventName: string, eventData: Record<string, unknown>) => {
     await trackClientEvent({
       eventName,
@@ -90,12 +244,112 @@ export default function SignUpPage() {
     })
   }
 
+  const resetVerificationState = () => {
+    setVerifiedUser(null)
+    setVerificationStatus("idle")
+    setVerificationMessage(null)
+    setVerificationError(null)
+    setResendCountdown(0)
+    clearVerifiedUserStorage()
+  }
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value)
+    if (!verifiedUser) {
+      setVerificationStatus("idle")
+      setVerificationMessage(null)
+      setVerificationError(null)
+      setResendCountdown(0)
+    }
+  }
+
+  const handleRequestVerification = async (event?: React.FormEvent) => {
+    event?.preventDefault()
+    if (isEmailVerified) return
+
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!isValidEmail(normalizedEmail)) {
+      setVerificationStatus("error")
+      setVerificationError("Please enter a valid email address.")
+      return
+    }
+
+    setVerificationStatus("sending")
+    setVerificationError(null)
+    setVerificationMessage(null)
+
+    try {
+      const response = await fetch("/api/auth/pre-verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail, source }),
+      })
+
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "Unable to send verification link")
+      }
+
+      persistPendingEmail(normalizedEmail)
+      setEmail(normalizedEmail)
+      setVerificationStatus("sent")
+      setVerificationMessage("Check your inbox for a confirmation link from GuideBuoy AI.")
+      setResendCountdown(RESEND_TIMEOUT_SECONDS)
+
+      await trackEvent("signup_email_verification_sent", {
+        email: normalizedEmail,
+        source: source || "direct",
+        timestamp: new Date().toISOString(),
+      })
+    } catch (requestError) {
+      console.error("[signup] Verification link error:", requestError)
+      setVerificationStatus("error")
+      setVerificationError(
+        requestError instanceof Error ? requestError.message : "Unable to send verification link right now.",
+      )
+    }
+  }
+
+  const handleResendVerification = async () => {
+    if (isEmailVerified || verificationStatus === "sending" || resendCountdown > 0 || !isValidEmail(email)) {
+      return
+    }
+    await handleRequestVerification()
+  }
+
+  const handleResetVerification = async () => {
+    resetVerificationState()
+    clearPendingEmail()
+    setEmail("")
+    setPassword("")
+    setAgreedToTerms(false)
+    setRole("victim")
+    try {
+      await supabase.auth.signOut()
+    } catch (signOutError) {
+      console.error("[signup] Failed to sign out after verification reset:", signOutError)
+    }
+
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("verified")
+    params.delete("email")
+    const nextQuery = params.toString()
+    router.replace(`/auth/sign-up${nextQuery ? `?${nextQuery}` : ""}`)
+  }
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!verifiedUser) {
+      setError("Please verify your email before creating your account.")
+      return
+    }
+
     if (!agreedToTerms) {
       setError("Please agree to the Terms and Privacy Policy")
       return
     }
+
     if (password.length < 8) {
       setError("Password must be at least 8 characters")
       return
@@ -116,11 +370,12 @@ export default function SignUpPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
+          email: verifiedUser.email,
           password,
           role,
           sessionToken,
           consent: consentPayload,
+          preverifiedUserId: verifiedUser.id,
         }),
       })
 
@@ -152,7 +407,7 @@ export default function SignUpPage() {
 
       await trackEvent("signup_complete", {
         user_id: userId,
-        email,
+        email: verifiedUser.email,
         role,
         source: source || "direct",
         timestamp: new Date().toISOString(),
@@ -196,14 +451,26 @@ export default function SignUpPage() {
         console.warn("[signup] Welcome email was not sent for user:", userId)
       }
 
+      clearPendingEmail()
+      clearVerifiedUserStorage()
+
       router.push("/auth/sign-up-success")
-    } catch (error: unknown) {
-      console.error("[signup] Unexpected signup error:", error)
-      setError(error instanceof Error ? error.message : "An error occurred")
+    } catch (requestError: unknown) {
+      console.error("[signup] Unexpected signup error:", requestError)
+      setError(requestError instanceof Error ? requestError.message : "An error occurred")
     } finally {
       setIsLoading(false)
     }
   }
+
+  const verificationButtonLabel = isEmailVerified
+    ? "Email verified"
+    : verificationStatus === "sending"
+      ? "Sending..."
+      : "Send verification link"
+
+  const canResend =
+    !isEmailVerified && verificationStatus === "sent" && resendCountdown === 0 && isValidEmail(email) && !checkingVerification
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
@@ -222,7 +489,7 @@ export default function SignUpPage() {
             {isFromRouter && (
               <div className="mb-4">
                 <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/20 text-accent-foreground text-sm font-medium">
-                  ✓ Your case assessment is ready
+                  🚢 Your case assessment is ready
                 </span>
               </div>
             )}
@@ -232,113 +499,170 @@ export default function SignUpPage() {
             <CardHeader>
               <CardTitle className="text-2xl">Create Account</CardTitle>
               <CardDescription>
-                {isFromRouter
-                  ? "Create your account to continue with your case"
-                  : "Get started with your financial dispute case"}
+                {isEmailVerified
+                  ? "Great! We confirmed your email. Finish setting up your GuideBuoy AI account."
+                  : "Start by confirming your email address so we can secure your account."}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSignUp}>
-                <div className="flex flex-col gap-6">
-                  <div className="grid gap-3">
-                    <Label>I am signing up as:</Label>
-                    <RadioGroup value={role} onValueChange={(value) => setRole(value as "victim" | "helper")}>
-                      <div className="flex items-center space-x-2 p-3 rounded-xl border border-border hover:bg-accent/5 transition-colors">
-                        <RadioGroupItem value="victim" id="victim" />
-                        <Label htmlFor="victim" className="flex items-center gap-2 cursor-pointer flex-1">
-                          <User className="h-4 w-4 text-primary" />
-                          <div>
-                            <div className="font-medium">Victim</div>
-                            <div className="text-xs text-muted-foreground">I need help with my dispute</div>
-                          </div>
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2 p-3 rounded-xl border border-border hover:bg-accent/5 transition-colors">
-                        <RadioGroupItem value="helper" id="helper" />
-                        <Label htmlFor="helper" className="flex items-center gap-2 cursor-pointer flex-1">
-                          <Heart className="h-4 w-4 text-accent" />
-                          <div>
-                            <div className="font-medium">Helper</div>
-                            <div className="text-xs text-muted-foreground">I{"'"}m helping someone with their case</div>
-                          </div>
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
+              <div className="flex flex-col gap-8">
+                <form onSubmit={handleRequestVerification} className="space-y-3">
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="m@example.com"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="rounded-xl"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">Password (minimum 8 characters)</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      required
-                      minLength={8}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="rounded-xl"
-                    />
-                  </div>
-
-                  {/* PDPA Consent */}
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium">Data Processing Consent (PDPA)</Label>
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      <p>We will process your personal data for:</p>
-                      <ul className="space-y-1 ml-4">
-                        {pdpaConsentPurposes.map((purpose, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <span className="text-xs mt-1">•</span>
-                            <span>{purpose}</span>
-                          </li>
-                        ))}
-                      </ul>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="m@example.com"
+                        required
+                        value={email}
+                        onChange={(e) => handleEmailChange(e.target.value)}
+                        disabled={isEmailVerified || verificationStatus === "sending"}
+                        className="rounded-xl flex-1"
+                      />
+                      <Button
+                        type="submit"
+                        className="rounded-full whitespace-nowrap"
+                        disabled={
+                          isEmailVerified ||
+                          verificationStatus === "sending" ||
+                          !isValidEmail(email) ||
+                          checkingVerification
+                        }
+                      >
+                        {verificationButtonLabel}
+                      </Button>
                     </div>
                   </div>
 
-                  <div className="flex items-start space-x-2">
-                    <Checkbox
-                      id="terms"
-                      checked={agreedToTerms}
-                      onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
-                    />
-                    <Label htmlFor="terms" className="text-sm leading-relaxed">
-                      I agree to the{" "}
-                      <Link href="/terms" className="underline underline-offset-4">
-                        Terms of Service
-                      </Link>{" "}
-                      and acknowledge the{" "}
-                      <Link href="/privacy" className="underline underline-offset-4">
-                        Privacy Policy
+                  {verificationMessage && <p className="text-sm text-muted-foreground">{verificationMessage}</p>}
+                  {verificationError && <p className="text-sm text-destructive">{verificationError}</p>}
+
+                  {!isEmailVerified && (
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span>Didn{"'"}t get an email?</span>
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="px-0 py-0 h-auto"
+                        disabled={!canResend}
+                        onClick={handleResendVerification}
+                      >
+                        Resend verification link
+                        {resendCountdown > 0 ? ` (${resendCountdown}s)` : ""}
+                      </Button>
+                    </div>
+                  )}
+
+                  {isEmailVerified && verifiedUser && (
+                    <div className="flex flex-col gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-medium">Verified email</p>
+                        <p className="text-foreground">{verifiedUser.email}</p>
+                      </div>
+                      <Button type="button" variant="ghost" size="sm" onClick={handleResetVerification}>
+                        Use a different email
+                      </Button>
+                    </div>
+                  )}
+                </form>
+
+                {isEmailVerified ? (
+                  <form onSubmit={handleSignUp} className="flex flex-col gap-6">
+                    <div className="grid gap-3">
+                      <Label>I am signing up as:</Label>
+                      <RadioGroup value={role} onValueChange={(value) => setRole(value as "victim" | "helper")}>
+                        <div className="flex items-center space-x-2 p-3 rounded-xl border border-border hover:bg-accent/5 transition-colors">
+                          <RadioGroupItem value="victim" id="victim" />
+                          <Label htmlFor="victim" className="flex items-center gap-2 cursor-pointer flex-1">
+                            <UserIcon className="h-4 w-4 text-primary" />
+                            <div>
+                              <div className="font-medium">Victim</div>
+                              <div className="text-xs text-muted-foreground">I need help with my dispute</div>
+                            </div>
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2 p-3 rounded-xl border border-border hover:bg-accent/5 transition-colors">
+                          <RadioGroupItem value="helper" id="helper" />
+                          <Label htmlFor="helper" className="flex items-center gap-2 cursor-pointer flex-1">
+                            <Heart className="h-4 w-4 text-accent" />
+                            <div>
+                              <div className="font-medium">Helper</div>
+                              <div className="text-xs text-muted-foreground">I{"'"}m helping someone with their case</div>
+                            </div>
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="password">Password (minimum 8 characters)</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        required
+                        minLength={8}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Data Processing Consent (PDPA)</Label>
+                      <div className="space-y-2 text-sm text-muted-foreground">
+                        <p>We will process your personal data for:</p>
+                        <ul className="space-y-1 ml-4">
+                          {pdpaConsentPurposes.map((purpose, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <span className="text-xs mt-1">•</span>
+                              <span>{purpose}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-2">
+                      <Checkbox
+                        id="terms"
+                        checked={agreedToTerms}
+                        onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                      />
+                      <Label htmlFor="terms" className="text-sm leading-relaxed">
+                        I agree to the{" "}
+                        <Link href="/terms" className="underline underline-offset-4">
+                          Terms of Service
+                        </Link>{" "}
+                        and acknowledge the{" "}
+                        <Link href="/privacy" className="underline underline-offset-4">
+                          Privacy Policy
+                        </Link>
+                      </Label>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground">Your info is encrypted and secure.</p>
+
+                    {error && <p className="text-sm text-destructive">{error}</p>}
+                    <Button type="submit" className="w-full rounded-full" disabled={isLoading || !agreedToTerms}>
+                      {isLoading ? "Creating account..." : "Create My Account"}
+                    </Button>
+
+                    <div className="mt-2 text-center text-sm">
+                      Already have an account?{" "}
+                      <Link href="/auth/login" className="underline underline-offset-4">
+                        Sign in
                       </Link>
-                    </Label>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-muted-foreground/40 p-4 text-sm text-muted-foreground">
+                    <p>Step 2 will unlock automatically once you confirm your email.</p>
+                    <p className="mt-2">Open the link we just emailed you, then return here to finish your profile.</p>
+                    {checkingVerification && <p className="mt-2 text-xs">Waiting for confirmation...</p>}
                   </div>
-
-                  <p className="text-xs text-muted-foreground">Your info is encrypted and secure.</p>
-
-                  {error && <p className="text-sm text-destructive">{error}</p>}
-                  <Button type="submit" className="w-full rounded-full" disabled={isLoading || !agreedToTerms}>
-                    {isLoading ? "Creating account..." : "Create My Account"}
-                  </Button>
-                </div>
-                <div className="mt-4 text-center text-sm">
-                  Already have an account?{" "}
-                  <Link href="/auth/login" className="underline underline-offset-4">
-                    Sign in
-                  </Link>
-                </div>
-              </form>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -346,4 +670,3 @@ export default function SignUpPage() {
     </div>
   )
 }
-
