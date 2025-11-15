@@ -20,7 +20,7 @@ export default function PrivacyPage() {
 
       <section className="space-y-3">
         <h2 className="text-xl font-medium">What we collect</h2>
-        <p>We may collect your name, contact details, dispute information, and activity logs to power the service.</p>
+        <p>We may collect your name, contact details, complaint information, and activity logs to power the service.</p>
       </section>
 
       <section className="space-y-3">

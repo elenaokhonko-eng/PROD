@@ -15,7 +15,7 @@ export default function TermsPage() {
 
       <p>
         GuideBuoy AI provides tools and content to help individuals in Singapore understand their options when dealing
-        with financial disputes. By using this website, you agree to use the service in accordance with these terms and
+        with consumer complaints. By using this website, you agree to use the service in accordance with these terms and
         all applicable laws and regulations in Singapore.
       </p>
 
@@ -24,7 +24,7 @@ export default function TermsPage() {
         <p>
           The information and AI-generated suggestions on this site are for general guidance only. They do not constitute
           legal, financial, or professional advice. You should consult a qualified professional before making decisions
-          relating to your dispute.
+          relating to your complaint.
         </p>
       </section>
 

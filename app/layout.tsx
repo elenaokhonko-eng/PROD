@@ -6,9 +6,9 @@ import "./globals.css"
 import { SupabaseProvider } from "@/components/providers/supabase-provider"
 
 export const metadata: Metadata = {
-  title: "GuideBuoy AI - Your Financial Dispute Guide",
+  title: "GuideBuoy AI - Singapore's Complaint Helper",
   description:
-    "Navigate financial disputes with confidence. AI-powered assistance for FIDReC cases against banks and insurers in Singapore.",
+    "Navigate scams and complaints with confidence. Lumi organises one report you can reuse with the Police, FIDReC, and national partners.",
   generator: "v0.app",
 }
 

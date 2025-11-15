@@ -18,15 +18,15 @@ import {
 import { marketingNavLinks } from "@/lib/navigation"
 
 export const metadata: Metadata = {
-  title: "GuideBuoy AI Product – Dispute Automation Platform",
+  title: "GuideBuoy AI Product – Complaint Automation Platform",
   description:
-    "Explore the GuideBuoy AI platform: dispute intake, AI case builder, document automation, and the FIDReC-ready workflow powering guidebuoyai.sg.",
+    "Explore the GuideBuoy AI platform: complaint intake, AI report builder, document automation, and the FIDReC-ready workflow powering guidebuoyai.sg.",
 }
 
 const productHighlights = [
   {
-    title: "AI dispute intake",
-    description: "Speech-to-text, scam classification, and eligibility scoring that capture the full story in minutes.",
+    title: "AI intake engine",
+    description: "Speech-to-text, scam classification, and structured questions that capture the full story in minutes.",
     icon: ClipboardList,
   },
   {
@@ -113,7 +113,7 @@ export default function ProductPage() {
                 ))}
               </nav>
               <Badge variant="secondary" className="hidden sm:inline-flex rounded-full">
-                Free Dispute Check
+                Free Helper Access
               </Badge>
               <Link href="/auth/login">
                 <Button variant="outline" size="sm" className="rounded-full bg-transparent">
@@ -136,9 +136,9 @@ export default function ProductPage() {
                 MVP live • Beta recruiting
               </Badge>
             </div>
-            <h1 className="text-4xl font-bold tracking-tight mb-4 text-balance">
-              Software built for financial dispute resolution
-            </h1>
+          <h1 className="text-4xl font-bold tracking-tight mb-4 text-balance">
+            Software built for Singapore’s complaint resolution network
+          </h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
               GuideBuoy AI is a web-native case platform running on Next.js, Supabase, Stripe, and Render. It combines
               AI-generated guidance with deterministic workflows so consumers can submit FIDReC-ready cases faster and
@@ -267,8 +267,8 @@ export default function ProductPage() {
               <CardTitle>Roadmap signals</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>Opening API endpoints so insurers can push decision letters directly into the GuideBuoy workspace.</p>
-              <p>Launching structured dispute analytics for regulators to monitor scam patterns (opt-in, aggregated).</p>
+              <p>Opening API endpoints so regulated partners can push decision letters directly into the GuideBuoy workspace.</p>
+              <p>Launching structured complaint analytics for regulators to monitor scam patterns (opt-in, aggregated).</p>
               <p>Extending the router to Bahasa Indonesia and Bahasa Melayu to support caregivers across ASEAN.</p>
             </CardContent>
           </Card>
@@ -277,4 +277,3 @@ export default function ProductPage() {
     </div>
   )
 }
-

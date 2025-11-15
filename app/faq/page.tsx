@@ -16,70 +16,70 @@ import { marketingNavLinks } from "@/lib/navigation"
 
 const faqData = [
   {
-    category: "Eligibility",
+    category: "Getting Started",
     questions: [
       {
-        q: "What types of disputes can GuideBuoy AI help with?",
-        a: "GuideBuoy AI helps with disputes against Singapore financial institutions including banks, insurers, and investment firms. We cover phishing/scam losses, mis-sold products, denied insurance claims, and other consumer financial disputes.",
+        q: "Who can use Singapore's Complaint Helper?",
+        a: "Any Singapore resident who experienced a scam, service failure, or unresolved complaint can use Lumi for free. Caregivers, helpers, and SMEs can also organise reports on behalf of someone else.",
       },
       {
-        q: "Am I eligible for FIDReC?",
-        a: "You're eligible if: (1) Your dispute is with a Singapore financial institution, (2) You're an individual consumer (not a business), (3) Your claim is within FIDReC's monetary limits, and (4) The incident occurred within the time limits. Our triage process will assess your eligibility.",
+        q: "Do I need to create an account before sharing my story?",
+        a: "No. You can type or record your story first. We only ask you to sign up (Singpass or email) once your unified report is ready so you can save it securely.",
       },
       {
-        q: "What are FIDReC's monetary limits?",
-        a: "FIDReC handles disputes up to S$100,000 for most financial services, and up to S$100,000 for insurance claims. Some specific limits may apply depending on the type of dispute.",
+        q: "Is Singpass required?",
+        a: "Singpass is recommended because it proves identity for our B2R partners, but you can still use email/password if you prefer.",
       },
     ],
   },
   {
-    category: "Timelines",
+    category: "Unified Report",
     questions: [
       {
-        q: "How long does the FIDReC process take?",
-        a: "The timeline varies: Financial institutions have 30 days to respond to your complaint. If unsatisfied, you have 6 months to file with FIDReC. FIDReC mediation typically takes 2-4 months, and adjudication can take 6-12 months.",
+        q: "Which agencies recognise the unified report?",
+        a: "The report is formatted for SPF e-services, ScamShield, FIDReC, and partner pilots like FIs or SMEs. When a direct API does not exist yet, you can export a PDF and send it yourself.",
       },
       {
-        q: "What if I miss a deadline?",
-        a: "Missing deadlines can affect your case. The FI must respond within 30 days, and you must file with FIDReC within 6 months of their response. Our tracker helps you monitor all important deadlines.",
+        q: "What is the dynamic evidence checklist?",
+        a: "Lumi examines your uploads and flags any missing proof (e.g., transaction confirmation, screenshots, prior police report). Each item links to an upload button so you can complete the record quickly.",
       },
       {
-        q: "Can I file with FIDReC immediately?",
-        a: "No, you must first complain directly to the financial institution and wait for their response (or 30 days to pass) before filing with FIDReC.",
+        q: "Can I edit the AI summary?",
+        a: "Yes. Module 1 of the Report Hub lets you review and edit the summary, chronology, and tagged parties before exporting anything.",
       },
     ],
   },
   {
-    category: "Pricing",
+    category: "Marketplace & Pricing",
     questions: [
       {
-        q: "What does the S$49 premium access include?",
-        a: "Premium access includes: AI-generated case documents, professional complaint letters, FIDReC forms, case tracker with deadline reminders, filing guide, and 30 days of full platform access.",
+        q: "Is the helper really free?",
+        a: "Yes. Recording your story, running the AI interview, and generating exports is 100% free. Optional marketplace services (e.g., paid specialist consults) are clearly labelled before you pay.",
       },
       {
-        q: "Is there a refund policy?",
-        a: "We offer money-back guarantees only for platform faults or technical mis-routing. We cannot refund based on case outcomes, as we provide tools and guidance, not legal representation.",
+        q: "What is the specialist consult?",
+        a: "High-value cases (> S$25k) can book a free 15‑minute triage with a specialist. If you choose a longer engagement, Stripe processes the fee and GuideBuoy remains a neutral platform.",
       },
       {
-        q: "What's the difference between Standard and Nominee Service?",
-        a: "Standard Service (S$49) provides AI tools and self-service guidance. Nominee Service (S$500 + 10% success fee) includes a qualified representative to handle your case submission and follow-up with FIDReC.",
+        q: "Do you offer pro-bono referrals?",
+        a: "Yes. You can request a warm handover to SAL-linked clinics or social services directly from Module 5 in the Report Hub.",
       },
     ],
   },
   {
-    category: "Privacy",
+    category: "Privacy & Trust",
     questions: [
       {
         q: "How is my data protected?",
-        a: "We're PDPA compliant with bank-level encryption. Your data is stored securely in Singapore, never shared without consent, and you can export or delete your data anytime.",
+        a: "We follow PDPA guidelines, encrypt data at rest/in transit, and host everything in Singapore. Logs record consent so we can participate in AI Verify pilots.",
       },
       {
-        q: "Who can see my case information?",
-        a: "Only you can access your case data. Our AI processes your information to generate documents, but no human reviews your case unless you specifically request nominee service.",
+        q: "Who can view my report?",
+        a: "Only you (and anyone you explicitly invite) can view the dashboard. Humans at GuideBuoy do not read your report unless you opt into a marketplace service.",
       },
       {
-        q: "Can I delete my account and data?",
-        a: "Yes, you can delete your account and all associated data anytime from your settings page. This action is permanent and cannot be undone.",
+        q: "Can I delete my report?",
+        a: "Yes. Module 6 includes a one-click “Delete my report” control that wipes the report, evidence, and associated telemetry permanently.",
       },
     ],
   },
@@ -141,7 +141,7 @@ export default function FAQPage() {
           <div className="text-center mb-12">
             <h1 className="text-3xl font-bold mb-4">Frequently Asked Questions</h1>
             <p className="text-muted-foreground">
-              Find answers to common questions about GuideBuoy AI and the FIDReC process
+              Find answers about Lumi, the unified report, and how our public-good helper works across agencies.
             </p>
           </div>
 

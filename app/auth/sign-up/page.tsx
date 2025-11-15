@@ -578,7 +578,7 @@ export default function SignUpPage() {
                             <UserIcon className="h-4 w-4 text-primary" />
                             <div>
                               <div className="font-medium">Victim</div>
-                              <div className="text-xs text-muted-foreground">I need help with my dispute</div>
+                              <div className="text-xs text-muted-foreground">I need help with my complaint</div>
                             </div>
                           </Label>
                         </div>

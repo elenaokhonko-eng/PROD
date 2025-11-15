@@ -7,7 +7,19 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Mic, MicOff, Loader2, ArrowRight, FileText } from "lucide-react"
+import {
+  Mic,
+  MicOff,
+  Loader2,
+  ArrowRight,
+  FileText,
+  Sparkles,
+  ShieldCheck,
+  ClipboardList,
+  Share2,
+  Building2,
+  Headphones,
+} from "lucide-react"
 import Link from "next/link"
 import { createRouterSession, getSessionToken, updateRouterSession } from "@/lib/router-session"
 import { trackClientEvent } from "@/lib/analytics/client"
@@ -25,6 +37,147 @@ export default function LandingPage() {
   const [waitlistSubmitting, setWaitlistSubmitting] = useState(false)
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false)
   const router = useRouter()
+
+  const helperFlow = [
+    {
+      stage: "Screen 1 - The Helper",
+      title: "Tell Lumi what happened",
+      description:
+        "A calm public-good landing page where you can type or record your story. No paywall, no adversarial tone - just a sanctuary to get grounded.",
+    },
+    {
+      stage: "Screen 2 - AI Co-Pilot",
+      title: "Answer Lumi's clarifying questions",
+      description:
+        "Our guided interview converts your story into the Unified Report schema: identity, chronology, loss amount, parties, and early AI analysis.",
+    },
+    {
+      stage: "Screen 3 - Free & Secure Sign-Up",
+      title: "Lock your progress with Singpass or email",
+      description:
+        "The Singpass button is the hero CTA to build trust with partners. Email sign-up remains as a fallback for helpers and SMEs.",
+    },
+    {
+      stage: "Screen 4 - Report Hub",
+      title: "Work from your AXS Machine dashboard",
+      description:
+        "Edit the factual record, complete the dynamic evidence checklist, view next steps, and keep everything synced in one workspace.",
+    },
+    {
+      stage: "Screen 5 - AXS Export & Send",
+      title: "Reuse your unified report everywhere",
+      description:
+        "Export agency-ready PDFs, partner intake packets, or trigger pilot integrations such as Send to FIDReC (API).",
+    },
+    {
+      stage: "Screen 6 - Specialist Marketplace",
+      title: "Escalate only when you need to",
+      description:
+        "Keep the helper free, but layer optional services like SAL pro-bono referrals or paid specialist consults for high-value losses.",
+    },
+  ]
+
+  const reportModules = [
+    {
+      badge: "Module 1",
+      title: "Your factual report",
+      description: "AI summary plus an editable chronology pulled from your voice or text story.",
+      details: "This is 95% of an SPF report and forms the core JSON schema.",
+      icon: Sparkles,
+    },
+    {
+      badge: "Module 2",
+      title: "Dynamic evidence checklist",
+      description: "Lumi flags what is missing (transaction proof, screenshots, prior reports, and more).",
+      details: "Each item links to an upload action so gaps close quickly.",
+      icon: ClipboardList,
+    },
+    {
+      badge: "Module 3",
+      title: "Report Once, Reuse Everywhere menu",
+      description: "One-click generation of police-ready PDFs, partner packets, SME complaints, and FIDReC payloads.",
+      details: "Active buttons for pilot partners, greyed-out buttons for future B2R leads.",
+      icon: Share2,
+    },
+    {
+      badge: "Module 4",
+      title: "Recommended next steps",
+      description: "A prioritised to-do list (Police, ScamShield, FIDReC, partner agencies) drawn from aiAnalysis.suggestedNextSteps.",
+      details: "Keeps citizens calm and organised.",
+      icon: ShieldCheck,
+    },
+    {
+      badge: "Module 5",
+      title: "Get specialist help",
+      description: "Surface pro-bono clinics for vulnerable users or paid experts for high-value losses.",
+      details: "Stripe only powers optional upsells - the core helper stays free.",
+      icon: Headphones,
+    },
+    {
+      badge: "Module 6",
+      title: "Privacy & control",
+      description: "Trusted AI controls with consent logs and one-click report deletion.",
+      details: "Designed to meet PDPA and AI Verify expectations.",
+      icon: Building2,
+    },
+  ]
+
+  const exportMenu = [
+    {
+      title: "Official reports",
+      description: "Proof-ready bundles citizens can self-file.",
+      actions: ["Export Police-Ready Report (PDF)", "Download chronology-only summary"],
+      status: "active",
+    },
+    {
+      title: "Partner channels",
+      description: "Ready-made packets for regulated institutions and pilot APIs.",
+      actions: ["Export Partner Escalation Packet (PDF)", "Send to FIDReC (API pilot)"],
+      status: "pilot",
+    },
+    {
+      title: "Business & SME",
+      description: "Templates for SMEs, SCT, and regulators.",
+      actions: ["Generate Complaint for SME (PDF)", "Generate SCT Summary (PDF)"],
+      status: "comingSoon",
+    },
+  ]
+
+  const recommendedNextSteps = [
+    {
+      priority: "High",
+      action: "File your police-ready report via the SPF e-services portal.",
+    },
+    {
+      priority: "High",
+      action: "Use your provider's 24/7 emergency hotline to pause transactions or access.",
+    },
+    {
+      priority: "Medium",
+      action: "Log this incident with ScamShield so others stay protected.",
+    },
+    {
+      priority: "After provider response",
+      action: "Escalate to FIDReC if you remain unsatisfied with the institution's outcome.",
+    },
+  ]
+
+  const marketplaceOptions = [
+    {
+      title: "Connect with a pro-bono clinic (via SAL)",
+      label: "Public-good support",
+      description: "A warm handover to social service or legal clinics for vulnerable users.",
+      cta: "Request a referral",
+      variant: "outline",
+    },
+    {
+      title: "Book a free 15-min specialist consult",
+      label: "High-value cases (> S$25k)",
+      description: "Validate losses, discuss strategy, and optionally extend to a paid hour (Stripe).",
+      cta: "Book consult",
+      variant: "default",
+    },
+  ]
 
   useEffect(() => {
     // Initialize or retrieve session
@@ -175,7 +328,7 @@ export default function LandingPage() {
                 ))}
               </nav>
               <Badge variant="secondary" className="hidden sm:inline-flex rounded-full">
-                Free Dispute Check
+                Free Helper Access
               </Badge>
               <Link href="/auth/login">
                 <Button variant="outline" size="sm" className="rounded-full bg-transparent">
@@ -192,21 +345,21 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 text-balance text-foreground">
-              Tell us what happened with your bank or insurer
+              Feeling overwhelmed by a scam or complaint? Get a clear plan, for free.
             </h1>
             <p className="text-lg text-muted-foreground mb-8 text-pretty leading-relaxed">
-              Share your story in your own words. Our AI will help determine if you have a case and guide you through
-              the next steps.
+              We&apos;re Singapore&apos;s Complaint Helper. Tell Lumi (our lighthouse AI) what happened once and she will organise
+              your facts into a unified report you can reuse for the Police, national agencies, FIDReC, and more.
             </p>
             <div className="flex items-center justify-center gap-4 mb-8 flex-wrap">
               <Badge variant="outline" className="text-sm rounded-full">
-                🔒 100% Confidential
+                Singpass-ready & trusted
               </Badge>
               <Badge variant="outline" className="text-sm rounded-full">
-                ⚡ No Sign-Up Required
+                Report Once, Reuse Everywhere
               </Badge>
               <Badge variant="outline" className="text-sm rounded-full">
-                ⏱️ Takes 2 Minutes
+                Free public-good utility
               </Badge>
             </div>
           </div>
@@ -218,10 +371,10 @@ export default function LandingPage() {
         <div className="max-w-3xl mx-auto">
           <Card className="shadow-lg rounded-xl border-border/50">
             <CardHeader>
-              <CardTitle className="text-2xl">Share Your Dispute</CardTitle>
+              <CardTitle className="text-2xl">Create your unified report</CardTitle>
               <CardDescription className="leading-relaxed">
-                Describe what happened in your own words. Include details like dates, amounts, and what the institution
-                did or didn&apos;t do.
+                Lumi listens in plain language, then turns your story into a structured JSON report that works for the
+                Police, ScamShield, FIDReC, and ecosystem partners.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -233,7 +386,7 @@ export default function LandingPage() {
                   className="flex-1 rounded-full"
                 >
                   <FileText className="h-4 w-4 mr-2" />
-                  Type It Out
+                  Type My Story
                 </Button>
                 <Button
                   variant={inputMethod === "voice" ? "default" : "outline"}
@@ -241,7 +394,7 @@ export default function LandingPage() {
                   className="flex-1 rounded-full"
                 >
                   <Mic className="h-4 w-4 mr-2" />
-                  Record Voice
+                  Record My Story (Voice-to-Report)
                 </Button>
               </div>
 
@@ -251,7 +404,7 @@ export default function LandingPage() {
                   <Textarea
                     value={narrative}
                     onChange={(e) => setNarrative(e.target.value)}
-                    placeholder="Example: In March 2024, I transferred $50,000 to what I thought was my bank's investment account. The bank's website showed the transaction was successful, but the money never arrived. When I contacted them, they said it was sent to a scammer and refused to help recover it..."
+                    placeholder="Example: In March 2024, I sent $50,000 through a payment link that looked official. The site confirmed the transfer but the money never reached the intended account. When I contacted support, they said it was a scammer and could not help."
                     rows={10}
                     className="resize-none text-base rounded-xl"
                   />
@@ -290,14 +443,15 @@ export default function LandingPage() {
               )}
 
               {/* Example Prompts */}
+              {/* Example Prompts */}
               <div className="bg-primary/5 p-4 rounded-xl border border-primary/10">
-                <p className="text-sm font-medium mb-2 text-foreground">💡 What to include:</p>
+                <p className="text-sm font-medium mb-2 text-foreground">What to include:</p>
                 <ul className="text-sm space-y-1 text-muted-foreground leading-relaxed">
-                  <li>• What type of financial product (bank account, insurance, investment, etc.)</li>
-                  <li>• When the incident happened</li>
-                  <li>• What went wrong and how much money is involved</li>
-                  <li>• What the institution has said or done about it</li>
-                  <li>• Any complaints you{"'"}ve already filed</li>
+                  <li>- Product or channel involved (account, card, plan, portal, etc.)</li>
+                  <li>- Timeline with approximate dates and amounts lost</li>
+                  <li>- Scammer or institution names, phone numbers, or links</li>
+                  <li>- What you already told any hotline or agency</li>
+                  <li>- Any reference numbers or evidence you already have</li>
                 </ul>
               </div>
 
@@ -315,7 +469,7 @@ export default function LandingPage() {
                   </>
                 ) : (
                   <>
-                    Continue
+                    Start Organizing (Free)
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </>
                 )}
@@ -330,6 +484,173 @@ export default function LandingPage() {
               </p>
             </CardContent>
           </Card>
+
+          {/* Unified Flow Overview */}
+          <section className="mt-16 space-y-8">
+            <div className="text-center space-y-3">
+              <Badge variant="secondary" className="mx-auto w-fit">
+                Unified Helper Flow
+              </Badge>
+              <h2 className="text-3xl font-semibold">How Lumi guides every citizen</h2>
+              <p className="text-muted-foreground">
+                The journey mirrors our pitch deck: a calm helper landing, an AI co-pilot interview, Singpass-ready
+                signup, and the full &quot;AXS Machine&quot; report hub.
+              </p>
+            </div>
+            <div className="grid gap-4">
+              {helperFlow.map((stage) => (
+                <Card key={stage.title} className="bg-card/60 border-border/60">
+                  <CardContent className="py-5">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{stage.stage}</p>
+                    <h3 className="text-lg font-semibold text-foreground mt-1">{stage.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-2">{stage.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+
+          {/* Report Hub Modules */}
+          <section className="mt-16 space-y-8">
+            <div className="text-center space-y-3">
+              <Badge variant="secondary" className="mx-auto w-fit">
+                Report Hub · Module Map
+              </Badge>
+              <h2 className="text-3xl font-semibold">Inside Singapore&apos;s Complaint Helper</h2>
+              <p className="text-muted-foreground">
+                Six modules make up the &quot;AXS Machine&quot; dashboard. These ship as part of the public-good
+                release, even before deeper integrations arrive.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {reportModules.map((module) => {
+                const Icon = module.icon
+                return (
+                  <Card key={module.title} className="border-border/70 h-full">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Icon className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">{module.badge}</p>
+                          <CardTitle className="text-lg">{module.title}</CardTitle>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="text-sm space-y-2 text-muted-foreground">
+                      <p>{module.description}</p>
+                      <p>{module.details}</p>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </section>
+
+          {/* Export Menu + Next Steps */}
+          <section className="mt-16 grid gap-6 lg:grid-cols-2">
+            <Card className="border-border/70 h-full">
+              <CardHeader>
+                <Badge variant="secondary" className="w-fit">
+                  Module 3 · AXS Menu
+                </Badge>
+                <CardTitle>Report Once, Reuse Everywhere</CardTitle>
+                <CardDescription>
+                  Export PDF bundles or push APIs. Pilot partners light up with an active CTA; everyone else sees the
+                  greyed-out hook to join our Intake OS beta.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {exportMenu.map((option) => (
+                  <div key={option.title} className="rounded-xl border border-border/60 p-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <p className="font-semibold text-foreground">{option.title}</p>
+                        <p className="text-sm text-muted-foreground">{option.description}</p>
+                      </div>
+                      <span
+                        className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                          option.status === "active"
+                            ? "bg-emerald-100 text-emerald-900"
+                            : option.status === "pilot"
+                              ? "bg-amber-100 text-amber-900"
+                              : "bg-border text-muted-foreground"
+                        }`}
+                      >
+                        {option.status === "active" && "Active"}
+                        {option.status === "pilot" && "Pilot integration"}
+                        {option.status === "comingSoon" && "Coming soon"}
+                      </span>
+                    </div>
+                    <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+                      {option.actions.map((action) => (
+                        <li key={action}>- {action}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card className="border-border/70 h-full">
+              <CardHeader>
+                <Badge variant="secondary" className="w-fit">
+                  Module 4 · Next Steps
+                </Badge>
+                <CardTitle>Based on your report, do this next</CardTitle>
+                <CardDescription>
+                  aiAnalysis.suggestedNextSteps powers a calm, prioritised checklist. Citizens stay in control without
+                  leaving the helper.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {recommendedNextSteps.map((step) => (
+                  <div key={step.action} className="rounded-xl border border-dashed border-border/70 p-4">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{step.priority}</p>
+                    <p className="font-medium text-foreground mt-1">{step.action}</p>
+                  </div>
+                ))}
+                <p className="text-xs text-muted-foreground">
+                  Privacy-first: each action is logged with consent so we stay PDPA and AI Verify ready.
+                </p>
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Marketplace */}
+          <section className="mt-16 space-y-6">
+            <div className="text-center space-y-3">
+              <Badge variant="secondary" className="mx-auto w-fit">
+                Module 5 · Marketplace
+              </Badge>
+              <h2 className="text-3xl font-semibold">Need more help?</h2>
+              <p className="text-muted-foreground">
+                Keep the helper free while validating the revenue thesis. Optional services sit behind Stripe and only
+                trigger when citizens ask for more.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {marketplaceOptions.map((option) => (
+                <Card key={option.title} className="border-border/70 h-full">
+                  <CardContent className="py-6 space-y-3">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{option.label}</p>
+                    <h3 className="text-xl font-semibold text-foreground">{option.title}</h3>
+                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                    <Button
+                      variant={option.variant === "outline" ? "outline" : "default"}
+                      className="rounded-full w-fit"
+                    >
+                      {option.cta}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Module 6 · Privacy & Settings: includes a one-click &ldquo;Delete my report&rdquo; button so every pilot
+              meets Trusted AI benchmarks.
+            </p>
+          </section>
 
           {/* Waitlist Section */}
           <section className="mt-16 rounded-2xl border border-primary/10 bg-primary/5 p-8">

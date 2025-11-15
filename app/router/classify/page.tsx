@@ -24,7 +24,7 @@ export default function ClassifyPage() {
         }
 
         const session = await getRouterSession(sessionToken)
-        if (!session || !session.dispute_narrative) {
+      if (!session || !session.dispute_narrative) {
           router.push("/router")
           return
         }
@@ -56,7 +56,7 @@ export default function ClassifyPage() {
           router.push("/router/questions")
         }, 2000)
       } catch (err) {
-        console.error("[v0] Error analyzing dispute:", err)
+        console.error("[v0] Error analyzing incident:", err)
         setError("Something went wrong. Please try again.")
       } finally {
         setIsAnalyzing(false)
@@ -111,7 +111,7 @@ export default function ClassifyPage() {
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-100" />
-                <p className="text-sm text-muted-foreground">Identifying dispute type...</p>
+                <p className="text-sm text-muted-foreground">Identifying report type...</p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-200" />

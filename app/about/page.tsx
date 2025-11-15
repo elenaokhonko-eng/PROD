@@ -36,7 +36,7 @@ const teamMembers: TeamMember[] = [
     experience:
       "Led PMO for US$56B AIA fixed-income portfolios, stewarded US$140M Fortune 500 transformation programmes, and previously drove CRM and product initiatives at Kraft Foods, Microsoft, and EPAM.",
     focus:
-      "Combines regulatory fluency with enterprise-grade product management to ship dispute-tech that fits Singapore’s legal and compliance framework.",
+      "Combines regulatory fluency with enterprise-grade product management to ship complaint-tech that fits Singapore’s legal and compliance framework.",
     linkedIn: "https://www.linkedin.com/in/elenaokhonko",
   },
   {
@@ -44,8 +44,8 @@ const teamMembers: TeamMember[] = [
     role: "AI Chief Product Officer (CPO)",
     bio: "Italian-based product leader who has spent the last decade shipping AI copilots for compliance and wealth-tech platforms across Europe.",
     experience:
-      "Previously led product for a Milan robo-advisor and co-authored the Responsible AI design playbook used by two EU neobanks.",
-    focus: "Owns GuideBuoy’s product vision, model governance, and the Gemini-powered dispute workflow layer.",
+      "Previously led product for a Milan robo-advisor and co-authored the Responsible AI design playbook used by two EU fintech platforms.",
+    focus: "Owns GuideBuoy’s product vision, model governance, and the Gemini-powered complaint workflow layer.",
     linkedIn: "https://www.linkedin.com/in/stepankropachev",
   },
   {
@@ -137,7 +137,7 @@ export default function AboutPage() {
                 ))}
               </nav>
               <Badge variant="secondary" className="hidden sm:inline-flex rounded-full">
-                Free Dispute Check
+                Free Helper Access
               </Badge>
               <Link href="/auth/login">
                 <Button variant="outline" size="sm" className="rounded-full bg-transparent">
@@ -155,11 +155,11 @@ export default function AboutPage() {
             <Badge variant="outline" className="mb-4 rounded-full">
               Digital-native justice for consumers
             </Badge>
-            <h1 className="text-4xl font-bold tracking-tight mb-4 text-balance">We are building Singapore’s dispute OS</h1>
+            <h1 className="text-4xl font-bold tracking-tight mb-4 text-balance">We are building Singapore&apos;s complaint OS</h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              GuideBuoy AI is a software company headquartered in Singapore. We design an end-to-end platform that
-              helps victims, caregivers, and nominees prepare, submit, and manage FIDReC cases without hiring a law firm.
-              Everything we ship is cloud-delivered, PDPA-aligned, and battle-tested with real financial dispute data.
+              GuideBuoy AI is a software company headquartered in Singapore. We design an end-to-end platform that helps
+              residents, caregivers, and nominees prepare, submit, and manage agency-ready complaints (including FIDReC
+              escalations) without hiring a law firm. Everything we ship is cloud-delivered, PDPA-aligned, and battle-tested with real consumer complaint data.
             </p>
             <div className="mt-6 flex flex-wrap gap-4">
               <div className="rounded-2xl border border-border/60 p-4">
@@ -183,7 +183,7 @@ export default function AboutPage() {
               </div>
               <div>
                 <p className="font-medium text-foreground">Business model</p>
-                <p>SaaS platform with dispute automation modules, premium case packs, and nominee services.</p>
+                <p>SaaS platform with complaint automation modules, premium case packs, and nominee services.</p>
               </div>
               <div>
                 <p className="font-medium text-foreground">Stage</p>
@@ -274,8 +274,8 @@ export default function AboutPage() {
                 Keys you see in <code>.env</code>, ensuring total parity between staging and production.
               </p>
               <p>
-                The product is purpose-built for Singaporeans navigating bank and insurer disputes, with global ambition
-                to adapt to Malaysia and Hong Kong ODR frameworks.
+                The product is purpose-built for Singaporeans navigating scams and complex complaints across multiple
+                agencies, with global ambition to adapt to Malaysia and Hong Kong ODR frameworks.
               </p>
             </CardContent>
           </Card>

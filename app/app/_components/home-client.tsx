@@ -209,11 +209,11 @@ export default function HomeClient({ initialUser }: { initialUser: User | null }
             </div>
 
             <h1 className="text-4xl lg:text-6xl font-bold text-balance mb-6 text-foreground">
-              Feeling lost in a <span className="text-primary">financial dispute?</span> Get your power back.
+              Feeling lost after a scam or complaint? <span className="text-primary">Lumi</span> can help you chart the next step.
             </h1>
 
             <p className="text-xl lg:text-2xl text-muted-foreground text-pretty mb-12 max-w-3xl mx-auto leading-relaxed">
-              Banks and insurers can be overwhelming. I{"'"}m Lumi, your AI guide. I{"'"}ll help you build a strong, clear
+              Complex agencies can be overwhelming. I{"'"}m Lumi, your AI guide. I{"'"}ll help you build a strong, clear
               FIDReC case in under 60 minutes.
             </p>
 
@@ -318,7 +318,7 @@ export default function HomeClient({ initialUser }: { initialUser: User | null }
               <span className="font-semibold text-lg">GuideBuoy AI</span>
             </div>
             <p className="text-muted-foreground text-sm">
-              Navigate financial disputes with confidence. Launching December 2024.
+              Navigate cross-agency complaints with confidence. Launching December 2024.
             </p>
           </div>
         </div>

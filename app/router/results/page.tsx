@@ -121,7 +121,7 @@ export default function ResultsPage() {
           iconColor: "text-accent",
           bgColor: "bg-accent/10",
           title: "You're Eligible for FIDReC!",
-          description: "Your case meets the criteria for formal dispute resolution through FIDReC.",
+          description: "Your case meets the criteria for formal escalation through FIDReC.",
           ctaText: "Sign Up & Build Your Case - S$99",
           ctaVariant: "default" as const,
         }
@@ -151,7 +151,7 @@ export default function ResultsPage() {
           iconColor: "text-destructive",
           bgColor: "bg-destructive/10",
           title: "Limited Options Available",
-          description: "Based on your situation, formal dispute resolution may not be the best path.",
+          description: "Based on your situation, formal escalation may not be the best path.",
           ctaText: "Explore Options",
           ctaVariant: "outline" as const,
         }

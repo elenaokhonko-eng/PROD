@@ -51,7 +51,7 @@ const comingSoonFeatures = [
   {
     id: "expert-consults",
     title: "Expert Consultations",
-    description: "Book paid consultations with financial dispute experts, with integrated payments and notes",
+    description: "Book paid consultations with specialist complaint advisors, with integrated payments and notes",
     icon: Users,
     category: "Professional Services",
     eta: "Q4 2025",
@@ -111,7 +111,7 @@ export default function ComingSoonPage() {
           <div className="text-center mb-12">
             <h1 className="text-3xl font-bold mb-4">Coming Soon</h1>
             <p className="text-muted-foreground text-lg">
-              Exciting new features in development to make your dispute resolution journey even smoother
+              Exciting new features in development to make your complaint resolution journey even smoother
             </p>
           </div>
 

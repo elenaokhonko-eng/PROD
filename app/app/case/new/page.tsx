@@ -22,7 +22,7 @@ export default async function NewCasePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                We’ll guide you through a few questions to classify the dispute and recommend next steps.
+                We’ll guide you through a few questions to classify the report and recommend next steps.
               </p>
               <Link href="/router">
                 <Button variant="default" size="lg" className="rounded-full w-full">Start Free Triage</Button>
@@ -37,4 +37,3 @@ export default async function NewCasePage() {
     </div>
   )
 }
-
