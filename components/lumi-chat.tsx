@@ -9,22 +9,20 @@ import { Textarea } from "@/components/ui/textarea"
 
 export function LumiChat() {
   const [open, setOpen] = useState(false)
-  const [feeling, setFeeling] = useState("")
-  const [share, setShare] = useState("")
+  const [note, setNote] = useState("")
   const [messages, setMessages] = useState<string[]>([])
   const [responses, setResponses] = useState<string[]>([])
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
-    const entries = [feeling.trim(), share.trim()].filter(Boolean)
-    if (!entries.length) return
-    setMessages((prev) => [...prev, ...entries])
+    const entry = note.trim()
+    if (!entry.length) return
+    setMessages((prev) => [...prev, entry])
     setResponses((prev) => [
       ...prev,
-      "I hear you. I’m here to listen. For product questions, tap Q&A to find quick answers.",
+      "I hear you. I'm here to listen. If you want quick product answers, tap Q&A and we'll guide you there.",
     ])
-    setFeeling("")
-    setShare("")
+    setNote("")
   }
 
   return (
@@ -32,10 +30,13 @@ export function LumiChat() {
       <button
         type="button"
         aria-label="Open Lumi support"
+        title={open ? "Close Lumi" : "Open Lumi"}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
         onClick={() => setOpen((prev) => !prev)}
-        className="fixed bottom-24 left-6 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center border border-primary/40 hover:scale-105 transition"
+        className="fixed bottom-24 left-6 z-50 h-16 w-16 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center border border-primary/40 hover:scale-105 transition"
       >
-        Lumi
+        <Image src="/images/lumi-avatar.png" alt="Lumi" width={48} height={48} />
       </button>
 
       {open && (
@@ -62,15 +63,9 @@ export function LumiChat() {
             </div>
             <form className="space-y-2" onSubmit={handleSubmit}>
               <Textarea
-                placeholder="I feel..."
-                value={feeling}
-                onChange={(e) => setFeeling(e.target.value)}
-                className="min-h-[60px]"
-              />
-              <Textarea
-                placeholder="What was the hardest part?"
-                value={share}
-                onChange={(e) => setShare(e.target.value)}
+                placeholder="Share what you felt or what was hardest..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
                 className="min-h-[60px]"
               />
               <Button type="submit" className="w-full rounded-full">
