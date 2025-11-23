@@ -54,6 +54,10 @@ type Metrics = {
   countryCounts: Record<string, number>
   registeredUsers: number | null
   waitlistUsers: number | null
+  complaintsPending: number | null
+  complaintsCompleted: number | null
+  reportsPending: number | null
+  reportsCompleted: number | null
   avgStoryToSignupMinutes: number | null
   avgSignupToDocsMinutes: number | null
   avgDocsToReportMinutes: number | null
@@ -108,6 +112,26 @@ async function fetchSessionPeriods(): Promise<SessionPeriodRow[]> {
   return data ?? []
 }
 
+async function fetchComplaintStatusCounts() {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase.from("mv_complaint_status_counts").select("*").maybeSingle()
+  if (error) {
+    console.error("[analytics] failed to load mv_complaint_status_counts:", error.message)
+    return { pending: null, completed: null }
+  }
+  return { pending: data?.pending ?? null, completed: data?.completed ?? null }
+}
+
+async function fetchReportStatusCounts() {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase.from("mv_report_status_counts").select("*").maybeSingle()
+  if (error) {
+    console.error("[analytics] failed to load mv_report_status_counts:", error.message)
+    return { pending: null, completed: null }
+  }
+  return { pending: data?.pending ?? null, completed: data?.completed ?? null }
+}
+
 async function fetchFunnelRow(): Promise<FunnelRow | null> {
   const supabase = createServiceClient()
   const { data, error } = await supabase.from("mv_funnel_durations").select("*").maybeSingle()
@@ -134,6 +158,8 @@ function buildMetrics(
   funnel: FunnelRow | null,
   registeredUsers: number | null,
   waitlistUsers: number | null,
+  complaintStatus: { pending: number | null; completed: number | null },
+  reportStatus: { pending: number | null; completed: number | null },
 ): Metrics {
   const uniqueSessions = sessions.length
   const totalEvents = sessions.reduce((sum, row) => sum + (row.total_events ?? 0), 0)
@@ -154,6 +180,10 @@ function buildMetrics(
     countryCounts,
     registeredUsers,
     waitlistUsers,
+    complaintsPending: complaintStatus.pending,
+    complaintsCompleted: complaintStatus.completed,
+    reportsPending: reportStatus.pending,
+    reportsCompleted: reportStatus.completed,
     avgStoryToSignupMinutes: funnel?.avg_story_to_signup_minutes ?? null,
     avgSignupToDocsMinutes: funnel?.avg_signup_to_docs_minutes ?? null,
     avgDocsToReportMinutes: funnel?.avg_docs_to_report_minutes ?? null,
@@ -167,17 +197,20 @@ function formatNumber(value: number | null) {
 }
 
 export default async function AnalyticsPage() {
-  const [sessions, countries, sessionCounts, sessionPeriods, funnel, registeredUsers, waitlistUsers] = await Promise.all([
-    fetchSessionRows(),
-    fetchCountryRows(),
-    fetchSessionCounts(),
-    fetchSessionPeriods(),
-    fetchFunnelRow(),
-    countTableRows("profiles"),
-    countTableRows("waitlist"),
-  ])
+  const [sessions, countries, sessionCounts, sessionPeriods, funnel, registeredUsers, waitlistUsers, complaintStatus, reportStatus] =
+    await Promise.all([
+      fetchSessionRows(),
+      fetchCountryRows(),
+      fetchSessionCounts(),
+      fetchSessionPeriods(),
+      fetchFunnelRow(),
+      countTableRows("profiles"),
+      countTableRows("waitlist"),
+      fetchComplaintStatusCounts(),
+      fetchReportStatusCounts(),
+    ])
 
-  const metrics = buildMetrics(sessions, countries, funnel, registeredUsers, waitlistUsers)
+  const metrics = buildMetrics(sessions, countries, funnel, registeredUsers, waitlistUsers, complaintStatus, reportStatus)
 
   return (
     <main className="min-h-screen bg-background">
@@ -256,6 +289,26 @@ export default async function AnalyticsPage() {
               <CardDescription>Users waiting for unsupported case types.</CardDescription>
             </CardHeader>
             <CardContent className="text-3xl font-bold">{formatNumber(metrics.waitlistUsers)}</CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Complaints status</CardTitle>
+              <CardDescription>Pending vs completed (mv_complaint_status_counts).</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <p className="text-lg font-semibold text-foreground">Pending: {formatNumber(metrics.complaintsPending)}</p>
+              <p className="text-lg font-semibold text-foreground">Completed: {formatNumber(metrics.complaintsCompleted)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Reports status</CardTitle>
+              <CardDescription>Pending vs completed/exported/resolved (mv_report_status_counts).</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <p className="text-lg font-semibold text-foreground">Pending: {formatNumber(metrics.reportsPending)}</p>
+              <p className="text-lg font-semibold text-foreground">Completed: {formatNumber(metrics.reportsCompleted)}</p>
+            </CardContent>
           </Card>
           <Card>
             <CardHeader>
