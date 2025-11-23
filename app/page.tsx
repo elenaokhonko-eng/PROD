@@ -65,7 +65,7 @@ export default function LandingPage() {
       stage: "Screen 6 - Specialist Marketplace",
       title: "Escalate only when you need to",
       description:
-        "Keep the helper free, but layer optional services like SAL pro-bono referrals or paid specialist consults for high-value losses.",
+        "If you need human help to make sense of your case, our marketplace can connect you to pro-bono lawyers, cybersecurity specialists, or case prep experts to organise your evidence and understand which statutory frameworks may apply.",
     },
   ]
 
