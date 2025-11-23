@@ -68,6 +68,7 @@ export default function RootLayout({
                   <Link href="https://www.facebook.com" className="hover:text-foreground">Facebook</Link>
                   <Link href="https://www.youtube.com" className="hover:text-foreground">YouTube</Link>
                   <Link href="https://www.twitter.com" className="hover:text-foreground">X</Link>
+                  <Link href="https://wa.me/6590727915" className="hover:text-foreground">WhatsApp</Link>
                 </div>
               </div>
             </div>
