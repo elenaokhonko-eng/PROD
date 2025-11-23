@@ -458,56 +458,6 @@ export default async function ProductPage() {
           ))}
         </section>
 
-        <section>
-          <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-2xl font-semibold">Product showcase</h2>
-            <span className="text-sm text-muted-foreground">Static previews of the live platform</span>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2">
-            {showcasePanels.map((panel) => (
-              <Card key={panel.title} className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle className="text-lg">{panel.title}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{panel.description}</p>
-                </CardHeader>
-                <CardContent>
-                  <div
-                    className={`rounded-2xl border border-dashed border-border/60 bg-gradient-to-br ${panel.accent} p-6 text-sm text-muted-foreground`}
-                  >
-                    <p className="font-medium text-foreground mb-2">UI snapshot</p>
-                    <p>
-                      This static panel mirrors the actual screen in our app, built with Tailwind + shadcn/ui, connected
-                      to Supabase auth and storage.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-2">
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader>
-              <CardTitle>Security & compliance</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>Supabase auth with RLS, encrypted storage buckets, and field-level audit logs.</p>
-              <p>All emails routed through verified SMTP with DKIM/SPF alignment, logged via Logflare.</p>
-              <p>Stripe + webhooks for payments, with preview keys swapped for live keys at deploy time.</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Roadmap signals</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>Opening API endpoints so regulated partners can push decision letters directly into the GuideBuoy workspace.</p>
-              <p>Launching structured complaint analytics for regulators to monitor scam patterns (opt-in, aggregated).</p>
-              <p>Extending the router to Bahasa Indonesia and Bahasa Melayu to support caregivers across ASEAN.</p>
-            </CardContent>
-          </Card>
-        </section>
       </main>
     </div>
   )
