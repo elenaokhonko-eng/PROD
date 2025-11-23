@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Sparkles,
   ClipboardList,
@@ -14,6 +14,8 @@ import {
   BarChart3,
   Gauge,
   Layers,
+  Headphones,
+  Building2,
 } from "lucide-react"
 import { marketingNavLinks } from "@/lib/navigation"
 
@@ -53,6 +55,91 @@ const productHighlights = [
     title: "Evidence vault",
     description: "Supabase storage with signed URLs, checksum validation, and PDPA-grade access controls.",
     icon: ShieldCheck,
+  },
+]
+
+const reportHubModules = [
+  {
+    badge: "Module 1",
+    title: "Your story, organised",
+    description: "We turn your voice note or typed story into a clear report you can edit anytime.",
+    details: "It stays in plain language and grows into a police-ready report when you need it.",
+    icon: Sparkles,
+  },
+  {
+    badge: "Module 2",
+    title: "Evidence checklist",
+    description: "See what proof is missing at a glance.",
+    details: "Upload screenshots, bank slips, or reference numbers right next to the list.",
+    icon: ClipboardList,
+  },
+  {
+    badge: "Module 3",
+    title: "Share once, reuse it",
+    description: "Download a police-ready PDF or a short summary for yourself.",
+    details: "When partners are live, you can send the same report to them with one tap.",
+    icon: FileText,
+  },
+  {
+    badge: "Module 4",
+    title: "Next steps you can trust",
+    description: "A short to-do list tells you what to do now and what can wait.",
+    details: "Priority tags keep you calm and moving.",
+    icon: ShieldCheck,
+  },
+  {
+    badge: "Module 5",
+    title: "Get help if you need it",
+    description: "Ask for a pro-bono clinic or talk to a specialist for bigger losses.",
+    details: "The helper stays free; add paid help only if you choose.",
+    icon: Headphones,
+  },
+  {
+    badge: "Module 6",
+    title: "Privacy and control",
+    description: "You decide who sees your information.",
+    details: "Every action is logged with consent, and you can delete your report anytime.",
+    icon: Building2,
+  },
+]
+
+const shareMenu = [
+  {
+    title: "Official reports",
+    description: "Download a police-ready pack or a simple summary you can file yourself.",
+    actions: ["Download police-ready PDF", "Save a quick summary"],
+    status: "active",
+  },
+  {
+    title: "Partner channels",
+    description: "Send packets directly to partners as they come online. Live partners show an active button.",
+    actions: ["Send to pilot partner", "Send to FIDReC (when ready)"],
+    status: "pilot",
+  },
+  {
+    title: "For businesses",
+    description: "Templates for SMEs and regulators are coming next.",
+    actions: ["SME complaint packet", "Small Claims summary"],
+    status: "comingSoon",
+  },
+]
+
+const nextStepsList = [
+  {
+    priority: "Do now",
+    action: "File your report on the SPF e-services portal.",
+  },
+  {
+    priority: "Do now",
+    action: "Call your bank's emergency line to pause your card or account.",
+  },
+  {
+    priority: "Do soon",
+    action: "Log the scam with ScamShield so others stay safe.",
+  },
+  {
+    priority: "If needed",
+    action: "If the first response doesn't solve it, escalate to FIDReC from the hub.",
   },
 ]
 
@@ -200,6 +287,104 @@ export default function ProductPage() {
                 </Card>
               )
             })}
+          </div>
+        </section>
+
+        <section className="space-y-8">
+          <div className="space-y-2">
+            <Badge variant="secondary" className="w-fit rounded-full">
+              Report Hub
+            </Badge>
+            <h2 className="text-2xl font-semibold">Everything lives in your Report Hub</h2>
+            <p className="text-muted-foreground max-w-3xl">
+              After you share what happened, the helper keeps your story, evidence, and next steps together so you never
+              feel lost.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {reportHubModules.map((module) => {
+              const Icon = module.icon
+              return (
+                <Card key={module.title} className="h-full border-border/70">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">{module.badge}</p>
+                        <CardTitle className="text-lg">{module.title}</CardTitle>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground space-y-2">
+                    <p>{module.description}</p>
+                    <p>{module.details}</p>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="border-border/70 h-full">
+              <CardHeader>
+                <Badge variant="secondary" className="w-fit rounded-full">
+                  Share & download
+                </Badge>
+                <CardTitle>Report once, reuse it</CardTitle>
+                <CardDescription>Keep one tidy report and use it wherever you need without retyping anything.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {shareMenu.map((option) => (
+                  <div key={option.title} className="rounded-xl border border-border/60 p-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <p className="font-semibold text-foreground">{option.title}</p>
+                        <p className="text-sm text-muted-foreground">{option.description}</p>
+                      </div>
+                      <span
+                        className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                          option.status === "active"
+                            ? "bg-emerald-100 text-emerald-900"
+                            : option.status === "pilot"
+                              ? "bg-amber-100 text-amber-900"
+                              : "bg-border text-muted-foreground"
+                        }`}
+                      >
+                        {option.status === "active" && "Ready now"}
+                        {option.status === "pilot" && "Live soon"}
+                        {option.status === "comingSoon" && "Coming soon"}
+                      </span>
+                    </div>
+                    <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+                      {option.actions.map((action) => (
+                        <li key={action}>- {action}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card className="border-border/70 h-full">
+              <CardHeader>
+                <Badge variant="secondary" className="w-fit rounded-full">
+                  Next steps
+                </Badge>
+                <CardTitle>Know what to do next</CardTitle>
+                <CardDescription>A calm checklist based on your answers.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {nextStepsList.map((step) => (
+                  <div key={step.action} className="rounded-xl border border-dashed border-border/70 p-4">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{step.priority}</p>
+                    <p className="font-medium text-foreground mt-1">{step.action}</p>
+                  </div>
+                ))}
+                <p className="text-xs text-muted-foreground">
+                  Each action is saved with your consent so you stay in control.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </section>
 

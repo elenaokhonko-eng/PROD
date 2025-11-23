@@ -13,12 +13,6 @@ import {
   Loader2,
   ArrowRight,
   FileText,
-  Sparkles,
-  ShieldCheck,
-  ClipboardList,
-  Share2,
-  Building2,
-  Headphones,
 } from "lucide-react"
 import Link from "next/link"
 import { createRouterSession, getSessionToken, updateRouterSession } from "@/lib/router-session"
@@ -43,122 +37,35 @@ export default function LandingPage() {
       stage: "Screen 1 - The Helper",
       title: "Tell Lumi what happened",
       description:
-        "A calm public-good landing page where you can type or record your story. No paywall, no adversarial tone - just a sanctuary to get grounded.",
+        "Record or type your story. We transcribe it, classify it, and confirm it is a case GuideBuoy supports right now.",
     },
     {
-      stage: "Screen 2 - AI Co-Pilot",
-      title: "Answer Lumi's clarifying questions",
-      description:
-        "Our guided interview converts your story into the Unified Report schema: identity, chronology, loss amount, parties, and early AI analysis.",
+      stage: "Screen 2 - Sign up and upload proof",
+      title: "Save your case and add documents",
+      description: "If we can help, create a free account with Singpass or email, then upload your receipts, screenshots, and reference numbers.",
     },
     {
-      stage: "Screen 3 - Free & Secure Sign-Up",
-      title: "Lock your progress with Singpass or email",
-      description:
-        "The Singpass button is the hero CTA to build trust with partners. Email sign-up remains as a fallback for helpers and SMEs.",
+      stage: "Screen 3 - AI Co-Pilot",
+      title: "Short Q&A to complete your report",
+      description: "After your story and documents are saved, Lumi reviews them and asks a short Q&A before checking against Singapore's rules.",
     },
     {
       stage: "Screen 4 - Report Hub",
       title: "Work from your AXS Machine dashboard",
       description:
-        "Edit the factual record, complete the dynamic evidence checklist, view next steps, and keep everything synced in one workspace.",
+        "Edit the factual record, close evidence gaps, view next steps, and keep everything synced in one calm workspace.",
     },
     {
       stage: "Screen 5 - AXS Export & Send",
       title: "Reuse your unified report everywhere",
       description:
-        "Export agency-ready PDFs, partner intake packets, or trigger pilot integrations such as Send to FIDReC (API).",
+        "Export agency-ready PDFs now and send targeted partner packets as integrations go live.",
     },
     {
       stage: "Screen 6 - Specialist Marketplace",
       title: "Escalate only when you need to",
       description:
         "Keep the helper free, but layer optional services like SAL pro-bono referrals or paid specialist consults for high-value losses.",
-    },
-  ]
-
-  const reportModules = [
-    {
-      badge: "Module 1",
-      title: "Your factual report",
-      description: "AI summary plus an editable chronology pulled from your voice or text story.",
-      details: "This is 95% of an SPF report and forms the core JSON schema.",
-      icon: Sparkles,
-    },
-    {
-      badge: "Module 2",
-      title: "Dynamic evidence checklist",
-      description: "Lumi flags what is missing (transaction proof, screenshots, prior reports, and more).",
-      details: "Each item links to an upload action so gaps close quickly.",
-      icon: ClipboardList,
-    },
-    {
-      badge: "Module 3",
-      title: "Report Once, Reuse Everywhere menu",
-      description: "One-click generation of police-ready PDFs, partner packets, SME complaints, and FIDReC payloads.",
-      details: "Active buttons for pilot partners, greyed-out buttons for future B2R leads.",
-      icon: Share2,
-    },
-    {
-      badge: "Module 4",
-      title: "Recommended next steps",
-      description: "A prioritised to-do list (Police, ScamShield, FIDReC, partner agencies) drawn from aiAnalysis.suggestedNextSteps.",
-      details: "Keeps citizens calm and organised.",
-      icon: ShieldCheck,
-    },
-    {
-      badge: "Module 5",
-      title: "Get specialist help",
-      description: "Surface pro-bono clinics for vulnerable users or paid experts for high-value losses.",
-      details: "Stripe only powers optional upsells - the core helper stays free.",
-      icon: Headphones,
-    },
-    {
-      badge: "Module 6",
-      title: "Privacy & control",
-      description: "Trusted AI controls with consent logs and one-click report deletion.",
-      details: "Designed to meet PDPA and AI Verify expectations.",
-      icon: Building2,
-    },
-  ]
-
-  const exportMenu = [
-    {
-      title: "Official reports",
-      description: "Proof-ready bundles citizens can self-file.",
-      actions: ["Export Police-Ready Report (PDF)", "Download chronology-only summary"],
-      status: "active",
-    },
-    {
-      title: "Partner channels",
-      description: "Ready-made packets for regulated institutions and pilot APIs.",
-      actions: ["Export Partner Escalation Packet (PDF)", "Send to FIDReC (API pilot)"],
-      status: "pilot",
-    },
-    {
-      title: "Business & SME",
-      description: "Templates for SMEs, SCT, and regulators.",
-      actions: ["Generate Complaint for SME (PDF)", "Generate SCT Summary (PDF)"],
-      status: "comingSoon",
-    },
-  ]
-
-  const recommendedNextSteps = [
-    {
-      priority: "High",
-      action: "File your police-ready report via the SPF e-services portal.",
-    },
-    {
-      priority: "High",
-      action: "Use your provider's 24/7 emergency hotline to pause transactions or access.",
-    },
-    {
-      priority: "Medium",
-      action: "Log this incident with ScamShield so others stay protected.",
-    },
-    {
-      priority: "After provider response",
-      action: "Escalate to FIDReC if you remain unsatisfied with the institution's outcome.",
     },
   ]
 
@@ -493,8 +400,8 @@ export default function LandingPage() {
               </Badge>
               <h2 className="text-3xl font-semibold">How Lumi guides every citizen</h2>
               <p className="text-muted-foreground">
-                The journey mirrors our pitch deck: a calm helper landing, an AI co-pilot interview, Singpass-ready
-                signup, and the full &quot;AXS Machine&quot; report hub.
+                Start with a voice-to-text story, sign up to upload proof, then Lumi reviews your story and documents, runs a short Q&A, and only then checks against Singapore frameworks
+                before you manage everything in the AXS-style hub.
               </p>
             </div>
             <div className="grid gap-4">
@@ -508,113 +415,6 @@ export default function LandingPage() {
                 </Card>
               ))}
             </div>
-          </section>
-
-          {/* Report Hub Modules */}
-          <section className="mt-16 space-y-8">
-            <div className="text-center space-y-3">
-              <Badge variant="secondary" className="mx-auto w-fit">
-                Report Hub · Module Map
-              </Badge>
-              <h2 className="text-3xl font-semibold">Inside Singapore&apos;s Complaint Helper</h2>
-              <p className="text-muted-foreground">
-                Six modules make up the &quot;AXS Machine&quot; dashboard. These ship as part of the public-good
-                release, even before deeper integrations arrive.
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {reportModules.map((module) => {
-                const Icon = module.icon
-                return (
-                  <Card key={module.title} className="border-border/70 h-full">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Icon className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">{module.badge}</p>
-                          <CardTitle className="text-lg">{module.title}</CardTitle>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="text-sm space-y-2 text-muted-foreground">
-                      <p>{module.description}</p>
-                      <p>{module.details}</p>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
-          </section>
-
-          {/* Export Menu + Next Steps */}
-          <section className="mt-16 grid gap-6 lg:grid-cols-2">
-            <Card className="border-border/70 h-full">
-              <CardHeader>
-                <Badge variant="secondary" className="w-fit">
-                  Module 3 · AXS Menu
-                </Badge>
-                <CardTitle>Report Once, Reuse Everywhere</CardTitle>
-                <CardDescription>
-                  Export PDF bundles or push APIs. Pilot partners light up with an active CTA; everyone else sees the
-                  greyed-out hook to join our Intake OS beta.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {exportMenu.map((option) => (
-                  <div key={option.title} className="rounded-xl border border-border/60 p-4">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div>
-                        <p className="font-semibold text-foreground">{option.title}</p>
-                        <p className="text-sm text-muted-foreground">{option.description}</p>
-                      </div>
-                      <span
-                        className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                          option.status === "active"
-                            ? "bg-emerald-100 text-emerald-900"
-                            : option.status === "pilot"
-                              ? "bg-amber-100 text-amber-900"
-                              : "bg-border text-muted-foreground"
-                        }`}
-                      >
-                        {option.status === "active" && "Active"}
-                        {option.status === "pilot" && "Pilot integration"}
-                        {option.status === "comingSoon" && "Coming soon"}
-                      </span>
-                    </div>
-                    <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-                      {option.actions.map((action) => (
-                        <li key={action}>- {action}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-            <Card className="border-border/70 h-full">
-              <CardHeader>
-                <Badge variant="secondary" className="w-fit">
-                  Module 4 · Next Steps
-                </Badge>
-                <CardTitle>Based on your report, do this next</CardTitle>
-                <CardDescription>
-                  aiAnalysis.suggestedNextSteps powers a calm, prioritised checklist. Citizens stay in control without
-                  leaving the helper.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {recommendedNextSteps.map((step) => (
-                  <div key={step.action} className="rounded-xl border border-dashed border-border/70 p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{step.priority}</p>
-                    <p className="font-medium text-foreground mt-1">{step.action}</p>
-                  </div>
-                ))}
-                <p className="text-xs text-muted-foreground">
-                  Privacy-first: each action is logged with consent so we stay PDPA and AI Verify ready.
-                </p>
-              </CardContent>
-            </Card>
           </section>
 
           {/* Marketplace */}
