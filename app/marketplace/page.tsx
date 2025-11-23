@@ -38,6 +38,7 @@ const paidServices = [
     title: "Dispute coach / case prep",
     description: "Specialists who help structure your evidence, fill gaps, and frame arguments.",
     cta: "Work with a coach",
+    email: "info@guidebuoyai.sg",
   },
   {
     title: "Cybersecurity specialist report",
@@ -120,7 +121,7 @@ export default function MarketplacePage() {
                 <CardContent>
                   <div className="flex items-center gap-3">
                     <Button asChild className="rounded-full">
-                      <Link href="mailto:partners@guidebuoyai.sg">{service.cta}</Link>
+                      <Link href={`mailto:${service.email ?? "partners@guidebuoyai.sg"}`}>{service.cta}</Link>
                     </Button>
                     <Badge variant="outline" className="rounded-full">
                       Optional
