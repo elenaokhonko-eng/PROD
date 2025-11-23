@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
   Mic,
@@ -16,7 +15,6 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { createRouterSession, getSessionToken, updateRouterSession } from "@/lib/router-session"
-import { trackClientEvent } from "@/lib/analytics/client"
 import { marketingNavLinks } from "@/lib/navigation"
 
 export default function LandingPage() {
@@ -25,11 +23,6 @@ export default function LandingPage() {
   const [narrative, setNarrative] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [inputMethod, setInputMethod] = useState<"voice" | "text">("text")
-  const [waitlistFirstName, setWaitlistFirstName] = useState("")
-  const [waitlistLastName, setWaitlistLastName] = useState("")
-  const [waitlistEmail, setWaitlistEmail] = useState("")
-  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false)
-  const [waitlistSubmitted, setWaitlistSubmitted] = useState(false)
   const router = useRouter()
 
   const helperFlow = [
@@ -166,52 +159,6 @@ export default function LandingPage() {
       alert("Something went wrong. Please try again.")
     } finally {
       setIsProcessing(false)
-    }
-  }
-
-  const trackWaitlistEvent = async (eventName: string, eventData: Record<string, unknown>) => {
-    await trackClientEvent({
-      eventName,
-      eventData,
-      pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
-      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
-    })
-  }
-
-  const handleWaitlistSignup = async (event: React.FormEvent) => {
-    event.preventDefault()
-    if (!waitlistEmail) return
-
-    setWaitlistSubmitting(true)
-    try {
-      const response = await fetch("/api/waitlist/join", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: waitlistEmail,
-          first_name: waitlistFirstName,
-          last_name: waitlistLastName,
-          source: "landing_page",
-        }),
-      })
-
-      const payload = await response.json()
-      if (!response.ok) {
-        throw new Error(payload.error || "Failed to join waitlist")
-      }
-
-      await trackWaitlistEvent("waitlist_signup", {
-        email: waitlistEmail,
-        source: "landing_page",
-        timestamp: new Date().toISOString(),
-      })
-
-      setWaitlistSubmitted(true)
-    } catch (error) {
-      console.error("[waitlist] signup error:", error)
-      alert("Failed to join waitlist. Please try again.")
-    } finally {
-      setWaitlistSubmitting(false)
     }
   }
 
@@ -399,7 +346,7 @@ export default function LandingPage() {
               <Badge variant="secondary" className="mx-auto w-fit">
                 Unified Helper Flow
               </Badge>
-              <h2 className="text-3xl font-semibold">How Lumi guides every citizen</h2>
+              <h2 className="text-3xl font-semibold">How Lumi guides every user</h2>
               <p className="text-muted-foreground">
                 Start with a voice-to-text story, sign up to upload proof, then Lumi reviews your story and documents, runs a short Q&A, and only then references publicly available Singapore guidance for context before you manage everything in the AXS-style hub.
               </p>
@@ -450,65 +397,6 @@ export default function LandingPage() {
               Module 6 · Privacy & Settings: includes a one-click &ldquo;Delete my report&rdquo; button so every pilot
               meets Trusted AI benchmarks.
             </p>
-          </section>
-
-          {/* Waitlist Section */}
-          <section className="mt-16 rounded-2xl border border-primary/10 bg-primary/5 p-8">
-            <div className="max-w-3xl mx-auto text-center space-y-4">
-              <Badge variant="secondary" className="mx-auto px-4 py-1">
-                Early Access
-              </Badge>
-              <h2 className="text-3xl font-semibold">Join the Waitlist</h2>
-              <p className="text-muted-foreground">
-                GuideBuoy AI is launching soon. Join the waitlist for launch updates and a complimentary first month.
-              </p>
-            </div>
-
-            <div className="mt-8 max-w-2xl mx-auto">
-              {!waitlistSubmitted ? (
-                <form
-                  onSubmit={handleWaitlistSignup}
-                  className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start"
-                >
-                  <Input
-                    type="text"
-                    placeholder="First name"
-                    value={waitlistFirstName}
-                    onChange={(event) => setWaitlistFirstName(event.target.value)}
-                    required
-                  />
-                  <Input
-                    type="text"
-                    placeholder="Last name"
-                    value={waitlistLastName}
-                    onChange={(event) => setWaitlistLastName(event.target.value)}
-                    required
-                  />
-                  <div className="flex gap-3">
-                    <Input
-                      type="email"
-                      placeholder="Email address"
-                      value={waitlistEmail}
-                      onChange={(event) => setWaitlistEmail(event.target.value)}
-                      required
-                      className="flex-1"
-                    />
-                    <Button type="submit" disabled={waitlistSubmitting} className="whitespace-nowrap">
-                      {waitlistSubmitting ? "Joining..." : "Join"}
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <Card className="p-6 bg-accent/20 border-accent max-w-md mx-auto">
-                  <CardContent className="p-0 text-center space-y-2">
-                    <h3 className="font-semibold text-lg">You&apos;re on the list!</h3>
-                    <p className="text-sm text-muted-foreground">
-                      We’ll send a welcome email with your free month when we go live.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
           </section>
 
           {/* Trust Indicators */}
