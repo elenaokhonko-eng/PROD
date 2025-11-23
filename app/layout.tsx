@@ -68,6 +68,7 @@ export default function RootLayout({
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between text-sm text-muted-foreground">
                 <div className="space-y-1">
                   <p className="font-medium text-foreground">GuideBuoy AI SG Pte Ltd © 2025</p>
+                  <p>UEN: 202545875C</p>
                   <p>DID: +65 90727915 | Main: +65 66909262</p>
                   <p>Our office: 51 Goldhill Plaza #07-10/11 Singapore 308900</p>
                 </div>
