@@ -55,7 +55,11 @@ export default function RootLayout({
           <footer className="border-t border-border/50 bg-card/50 mt-12">
             <div className="container mx-auto px-4 py-10 space-y-6">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between text-sm text-muted-foreground">
-                <p className="font-medium text-foreground">GuideBuoy AI SG Pte Ltd © 2025</p>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">GuideBuoy AI SG Pte Ltd © 2025</p>
+                  <p>DID: +65 90727915 | Main: +65 66909262</p>
+                  <p>Our office: 51 Goldhill Plaza #07-10/11 Singapore 308900</p>
+                </div>
                 <div className="flex flex-wrap items-center justify-center gap-4">
                   <Link href="/terms" className="hover:text-foreground">Terms of Use</Link>
                   <Link href="/privacy" className="hover:text-foreground">Privacy &amp; Cookies Policy</Link>
