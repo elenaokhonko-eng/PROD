@@ -400,8 +400,7 @@ export default function LandingPage() {
               </Badge>
               <h2 className="text-3xl font-semibold">How Lumi guides every citizen</h2>
               <p className="text-muted-foreground">
-                Start with a voice-to-text story, sign up to upload proof, then Lumi reviews your story and documents, runs a short Q&A, and only then checks against Singapore frameworks
-                before you manage everything in the AXS-style hub.
+                Start with a voice-to-text story, sign up to upload proof, then Lumi reviews your story and documents, runs a short Q&A, and only then references publicly available Singapore guidance for context before you manage everything in the AXS-style hub.
               </p>
             </div>
             <div className="grid gap-4">
