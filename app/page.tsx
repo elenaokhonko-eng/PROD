@@ -59,7 +59,7 @@ export default function LandingPage() {
       stage: "Screen 5 - AXS Export & Send",
       title: "Reuse your unified report everywhere",
       description:
-        "Export agency-ready PDFs now and send targeted partner packets as integrations go live.",
+        "Export agency-ready PDFs now and send targeted partner packets as integrations go live. You can also request a new API integration for an agency or company with a one-click email request.",
     },
     {
       stage: "Screen 6 - Specialist Marketplace",
