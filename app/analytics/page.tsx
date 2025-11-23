@@ -27,6 +27,15 @@ type SessionCountRow = {
   total_events: number | null
 }
 
+type SessionPeriodRow = {
+  granularity: string | null
+  period_start: string | null
+  unique_sessions: number | null
+  total_events: number | null
+  cumulative_sessions: number | null
+  cumulative_events: number | null
+}
+
 type FunnelRow = {
   avg_story_to_signup_minutes: number | null
   avg_signup_to_docs_minutes: number | null
@@ -77,6 +86,20 @@ async function fetchSessionCounts(): Promise<SessionCountRow[]> {
 
   if (error) {
     console.error("[analytics] failed to load mv_session_counts:", error.message)
+    return []
+  }
+  return data ?? []
+}
+
+async function fetchSessionPeriods(): Promise<SessionPeriodRow[]> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from("mv_session_counts_periods")
+    .select("granularity,period_start,unique_sessions,total_events,cumulative_sessions,cumulative_events")
+    .order("period_start", { ascending: false })
+
+  if (error) {
+    console.error("[analytics] failed to load mv_session_counts_periods:", error.message)
     return []
   }
   return data ?? []
@@ -141,10 +164,11 @@ function formatNumber(value: number | null) {
 }
 
 export default async function AnalyticsPage() {
-  const [sessions, countries, sessionCounts, funnel, registeredUsers, waitlistUsers] = await Promise.all([
+  const [sessions, countries, sessionCounts, sessionPeriods, funnel, registeredUsers, waitlistUsers] = await Promise.all([
     fetchSessionRows(),
     fetchCountryRows(),
     fetchSessionCounts(),
+    fetchSessionPeriods(),
     fetchFunnelRow(),
     countTableRows("profiles"),
     countTableRows("waitlist"),
@@ -296,6 +320,41 @@ export default async function AnalyticsPage() {
                 ))}
               </ul>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Sessions by period</CardTitle>
+            <CardDescription>Daily, weekly, monthly, quarterly, yearly rollups with cumulative totals.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm text-muted-foreground">
+            {["day", "week", "month", "quarter", "year"].map((granularity) => {
+              const rows = sessionPeriods.filter((r) => r.granularity === granularity).slice(0, granularity === "day" ? 30 : 8)
+              return (
+                <div key={granularity} className="space-y-2">
+                  <p className="font-semibold text-foreground uppercase text-xs">{granularity}</p>
+                  {rows.length === 0 ? (
+                    <p>No data</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {rows.map((row) => (
+                        <li key={`${granularity}-${row.period_start ?? Math.random()}`} className="flex items-center justify-between">
+                          <span>{row.period_start ? new Date(row.period_start).toLocaleDateString() : "Unknown"}</span>
+                          <span className="flex flex-wrap items-center gap-3 justify-end">
+                            <span>Sessions: {formatNumber(row.unique_sessions)}</span>
+                            <span>Events: {formatNumber(row.total_events)}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Cumul: {formatNumber(row.cumulative_sessions)} sessions / {formatNumber(row.cumulative_events)} events
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )
+            })}
           </CardContent>
         </Card>
 
