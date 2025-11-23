@@ -282,17 +282,16 @@ export default async function AboutPage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <p>
-                The GuideBuoy stack covers intake, AI case notes, document automation, evidence management, router
-                sessions, and Stripe-powered upgrades. Every workflow runs on Supabase auth + Postgres, with secure file
-                storage and auditable logs.
+                A calm, end-to-end helper that turns one story into organised case notes, uploads, and ready-to-send
+                complaint packets. Citizens and caregivers can stay on one track instead of juggling multiple forms.
               </p>
               <p>
-                We release weekly from the same codebase that powers guidebuoyai.sg. Our render.com deployment uses the
-                Keys you see in <code>.env</code>, ensuring total parity between staging and production.
+                We ship weekly from a single codebase that runs guidebuoyai.sg. What you see in staging is what our
+                partners and pilots use in production.
               </p>
               <p>
-                The product is purpose-built for Singaporeans navigating scams and complex complaints across multiple
-                agencies, with global ambition to adapt to Malaysia and Hong Kong ODR frameworks.
+                Built for Singaporeans navigating scams and complex complaints across agencies, with a clear path to
+                adapt for Malaysia and Hong Kong cross-border disputes.
               </p>
             </CardContent>
           </Card>
