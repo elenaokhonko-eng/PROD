@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { createServiceClient } from "@/lib/supabase/service"
 import {
   Sparkles,
   ClipboardList,
@@ -24,6 +25,52 @@ export const metadata: Metadata = {
   description:
     "Explore the GuideBuoy AI platform: complaint intake, AI report builder, document automation, and the FIDReC-ready workflow powering guidebuoyai.sg.",
 }
+
+export const revalidate = 300
+
+type PlatformSnapshot = {
+  docGenerationRate: number
+  casePacks: number
+  avgTimeToRecommendationMinutes: number
+  codebaseNote: string
+}
+
+const defaultPlatformSnapshot: PlatformSnapshot = {
+  docGenerationRate: 99.2,
+  casePacks: 1800,
+  avgTimeToRecommendationMinutes: 6,
+  codebaseNote: "Same stack powers guidebuoyai.sg production and partner pilots.",
+}
+
+async function getPlatformSnapshot(): Promise<PlatformSnapshot> {
+  try {
+    const supabase = createServiceClient()
+    const { data, error } = await supabase
+      .from("platform_snapshot")
+      .select("doc_generation_rate,case_packs,avg_time_to_recommendation_minutes,codebase_note,updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) {
+      console.error("[product] platform_snapshot fetch error:", error.message)
+      return defaultPlatformSnapshot
+    }
+
+    return {
+      docGenerationRate: data?.doc_generation_rate ?? defaultPlatformSnapshot.docGenerationRate,
+      casePacks: data?.case_packs ?? defaultPlatformSnapshot.casePacks,
+      avgTimeToRecommendationMinutes:
+        data?.avg_time_to_recommendation_minutes ?? defaultPlatformSnapshot.avgTimeToRecommendationMinutes,
+      codebaseNote: data?.codebase_note ?? defaultPlatformSnapshot.codebaseNote,
+    }
+  } catch (err) {
+    console.error("[product] platform_snapshot unexpected error:", err)
+    return defaultPlatformSnapshot
+  }
+}
+
+const formatNumber = (value: number) => new Intl.NumberFormat("en-SG").format(value)
 
 const productHighlights = [
   {
@@ -179,7 +226,9 @@ const showcasePanels = [
   },
 ]
 
-export default function ProductPage() {
+export default async function ProductPage() {
+  const snapshot = await getPlatformSnapshot()
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
@@ -248,14 +297,16 @@ export default function ProductPage() {
               <div className="flex items-center gap-3">
                 <Sparkles className="h-10 w-10 text-primary" />
                 <div>
-                  <p className="text-2xl font-semibold text-foreground">99.2%</p>
-                  <p>Successful document generation rate across 1,800+ case packs.</p>
+                  <p className="text-2xl font-semibold text-foreground">{snapshot.docGenerationRate}%</p>
+                  <p>Successful document generation rate across {formatNumber(snapshot.casePacks)} case packs.</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Gauge className="h-10 w-10 text-primary" />
                 <div>
-                  <p className="text-2xl font-semibold text-foreground">6 mins</p>
+                  <p className="text-2xl font-semibold text-foreground">
+                    {snapshot.avgTimeToRecommendationMinutes} mins
+                  </p>
                   <p>Average time from intake to first actionable recommendation.</p>
                 </div>
               </div>
@@ -263,7 +314,7 @@ export default function ProductPage() {
                 <Layers className="h-10 w-10 text-primary" />
                 <div>
                   <p className="text-2xl font-semibold text-foreground">Single codebase</p>
-                  <p>Same stack powers guidebuoyai.sg production and partner pilots.</p>
+                  <p>{snapshot.codebaseNote}</p>
                 </div>
               </div>
             </CardContent>
