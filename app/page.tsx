@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { createRouterSession, getSessionToken, updateRouterSession } from "@/lib/router-session"
+import { trackClientEvent } from "@/lib/analytics/client"
 import { marketingNavLinks } from "@/lib/navigation"
 
 export default function LandingPage() {
@@ -154,6 +155,15 @@ export default function LandingPage() {
 
       // Redirect to classification page
       router.push("/router/classify")
+
+      await trackClientEvent({
+        eventName: "story_submitted",
+        sessionId: sessionToken,
+        pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        eventData: {
+          narrative_length: narrative.length,
+        },
+      })
     } catch (error) {
       console.error("[v0] Error submitting narrative:", error)
       alert("Something went wrong. Please try again.")
@@ -216,6 +226,9 @@ export default function LandingPage() {
               <Badge variant="outline" className="text-sm rounded-full">
                 Free public-good utility
               </Badge>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link href="/marketplace">Browse specialists</Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -375,6 +388,14 @@ export default function LandingPage() {
                 Keep the helper free, and tap the marketplace only if you want a human to step in. Specialists are
                 optional and activate only when you choose.
               </p>
+              <div className="flex justify-center gap-3 flex-wrap">
+                <Button asChild className="rounded-full">
+                  <Link href="/marketplace">Browse specialists</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full">
+                  <Link href="/marketplace">Find pro-bono &amp; social support</Link>
+                </Button>
+              </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {marketplaceOptions.map((option) => (

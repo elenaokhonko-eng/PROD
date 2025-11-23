@@ -35,6 +35,12 @@ export async function POST(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser()
 
+    const countryHeader =
+      request.headers.get("x-vercel-ip-country") ||
+      request.headers.get("cf-ipcountry") ||
+      request.headers.get("x-country") ||
+      undefined
+
     const payload: AnalyticsEventPayload = {
       eventName: parsed.eventName,
       eventData: parsed.eventData,
@@ -43,6 +49,10 @@ export async function POST(request: NextRequest) {
       pageUrl: parsed.pageUrl ?? request.headers.get("referer") ?? null,
       userAgent: parsed.userAgent ?? request.headers.get("user-agent") ?? null,
       createdAt: parsed.createdAt,
+    }
+
+    if (countryHeader) {
+      payload.eventData = { ...(payload.eventData ?? {}), ip_country: countryHeader }
     }
 
     await trackServerEvent(payload)

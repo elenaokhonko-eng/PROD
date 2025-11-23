@@ -5,6 +5,7 @@ import { Inter } from "next/font/google"
 import { Suspense } from "react"
 import "./globals.css"
 import { SupabaseProvider } from "@/components/providers/supabase-provider"
+import { PageViewTracker } from "@/components/analytics/page-view-tracker"
 
 export const metadata: Metadata = {
   title: "GuideBuoy AI - Singapore's Complaint Helper",
@@ -47,7 +48,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans ${inter.variable}`}>
         <SupabaseProvider>
-          <Suspense fallback={null}>{children}</Suspense>
+          <Suspense fallback={null}>
+            <PageViewTracker />
+            {children}
+          </Suspense>
           <footer className="border-t border-border/50 bg-card/50 mt-12">
             <div className="container mx-auto px-4 py-10 space-y-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
