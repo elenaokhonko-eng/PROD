@@ -47,7 +47,7 @@ export default function LandingPage() {
     {
       stage: "Screen 3 - AI Co-Pilot",
       title: "Short Q&A to complete your report",
-      description: "After your story and documents are saved, Lumi reviews them and asks a short Q&A before checking against Singapore's rules.",
+      description: "After your story and documents are saved, Lumi reviews them, asks a short Q&A, and references publicly available Singapore guidance for context.",
     },
     {
       stage: "Screen 4 - Report Hub",
