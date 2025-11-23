@@ -5,7 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service"
 
 export const metadata: Metadata = {
   title: "Analytics | GuideBuoy AI",
-  description: "Live metrics for visits, engagement, registrations, and waitlist interest.",
+  description: "Live metrics from Supabase views: sessions, engagement, funnels, registrations, and waitlist.",
 }
 
 export const dynamic = "force-dynamic"
@@ -19,6 +19,12 @@ type PageSessionRow = {
 type CountryRow = {
   country: string | null
   events: number | null
+}
+
+type SessionCountRow = {
+  day: string | null
+  unique_sessions: number | null
+  total_events: number | null
 }
 
 type FunnelRow = {
@@ -62,6 +68,20 @@ async function fetchCountryRows(): Promise<CountryRow[]> {
   return data ?? []
 }
 
+async function fetchSessionCounts(): Promise<SessionCountRow[]> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from("mv_session_counts")
+    .select("day,unique_sessions,total_events")
+    .order("day", { ascending: false })
+
+  if (error) {
+    console.error("[analytics] failed to load mv_session_counts:", error.message)
+    return []
+  }
+  return data ?? []
+}
+
 async function fetchFunnelRow(): Promise<FunnelRow | null> {
   const supabase = createServiceClient()
   const { data, error } = await supabase.from("mv_funnel_durations").select("*").maybeSingle()
@@ -97,7 +117,7 @@ function buildMetrics(
   const countryCounts: Record<string, number> = {}
   for (const row of countries) {
     const key = row.country ?? "UNKNOWN"
-    countryCounts[key] = (row.events ?? 0)
+    countryCounts[key] = row.events ?? 0
   }
 
   return {
@@ -121,9 +141,10 @@ function formatNumber(value: number | null) {
 }
 
 export default async function AnalyticsPage() {
-  const [sessions, countries, funnel, registeredUsers, waitlistUsers] = await Promise.all([
+  const [sessions, countries, sessionCounts, funnel, registeredUsers, waitlistUsers] = await Promise.all([
     fetchSessionRows(),
     fetchCountryRows(),
+    fetchSessionCounts(),
     fetchFunnelRow(),
     countTableRows("profiles"),
     countTableRows("waitlist"),
@@ -140,8 +161,7 @@ export default async function AnalyticsPage() {
           </Badge>
           <h1 className="text-4xl font-bold text-balance">Acquisition & engagement</h1>
           <p className="text-muted-foreground max-w-3xl">
-            Live metrics pulled from Supabase analytics events, profiles, and waitlist tables. Data is capped at the most
-            recent 5,000 events; add rollups in the database if you need full-history accuracy.
+            Live metrics pulled from Supabase materialized views, plus profiles and waitlist tables.
           </p>
         </div>
       </div>
@@ -151,7 +171,7 @@ export default async function AnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Unique visits (sessions)</CardTitle>
-              <CardDescription>Distinct sessions seen in the latest slice of events.</CardDescription>
+              <CardDescription>Distinct sessions from mv_pages_per_session.</CardDescription>
             </CardHeader>
             <CardContent className="text-3xl font-bold">{formatNumber(metrics.uniqueSessions)}</CardContent>
           </Card>
@@ -187,8 +207,8 @@ export default async function AnalyticsPage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Total events (sampled)</CardTitle>
-              <CardDescription>Events in the latest 5,000 rows.</CardDescription>
+              <CardTitle>Total events</CardTitle>
+              <CardDescription>Events summed from mv_pages_per_session.</CardDescription>
             </CardHeader>
             <CardContent className="text-3xl font-bold">{formatNumber(metrics.totalEvents)}</CardContent>
           </Card>
@@ -196,8 +216,8 @@ export default async function AnalyticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Funnel timing (minutes, latest sample)</CardTitle>
-            <CardDescription>Average time between key events. Add more events to improve accuracy.</CardDescription>
+            <CardTitle>Funnel timing (minutes)</CardTitle>
+            <CardDescription>Average time between key events from mv_funnel_durations.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 text-sm text-muted-foreground">
             <div>
@@ -231,13 +251,13 @@ export default async function AnalyticsPage() {
           <CardHeader>
             <CardTitle>Countries (from event data)</CardTitle>
             <CardDescription>
-              Based on any country fields present in event_data (country, country_code, ip_country). Add IP-to-country
-              enrichment to improve accuracy.
+              Based on ip_country/country fields in mv_country_rollup. Improve accuracy by adding a trusted geo header at
+              the edge (e.g., CF-IPCountry).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             {Object.keys(metrics.countryCounts).length === 0 ? (
-              <p>No country data found in recent events.</p>
+              <p>No country data found.</p>
             ) : (
               <ul className="space-y-1">
                 {Object.entries(metrics.countryCounts)
@@ -255,29 +275,44 @@ export default async function AnalyticsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Sessions per day</CardTitle>
+            <CardDescription>Distinct sessions and events from mv_session_counts (latest 14 days).</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            {sessionCounts.length === 0 ? (
+              <p>No session data available.</p>
+            ) : (
+              <ul className="space-y-1">
+                {sessionCounts.slice(0, 14).map((row) => (
+                  <li key={row.day ?? Math.random()} className="flex items-center justify-between">
+                    <span className="font-medium text-foreground">
+                      {row.day ? new Date(row.day).toLocaleDateString() : "Unknown day"}
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <span>Sessions: {formatNumber(row.unique_sessions)}</span>
+                      <span>Events: {formatNumber(row.total_events)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Instrumentation gaps & next steps</CardTitle>
             <CardDescription>What to add to make metrics actionable.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <ul className="list-disc list-inside space-y-1">
+              <li>Add page_view on any route with a custom layout (root layout already covered).</li>
               <li>
-                Add a global page/view event (with session_id) on route change so pages-per-visit is accurate. Today only
-                select screens fire events.
+                Ensure IP-to-country enrichment (Cloudflare CF-IPCountry or your own IP lookup) and forward it as a trusted
+                header.
               </li>
-              <li>
-                Capture IP-to-country once per session (store country on the first event) to improve geo analytics. For
-                higher accuracy, add an edge middleware that enriches requests with a trusted geo header.
-              </li>
-              <li>
-                Emit funnel timestamps: story_submitted, signup_completed, documents_uploaded, report_generated so we can
-                compute time-to-signup, time-to-docs, and time-to-report.
-              </li>
-              <li>
-                Track distinct users vs sessions by attaching user_id (already supported) on all events after auth.
-              </li>
-              <li>
-                Create Supabase views/materialized views for aggregates to avoid sampling and large event scans.
-              </li>
+              <li>Keep emitting funnel events: story_submitted, signup_complete, documents_uploaded, report_generated, report_downloaded.</li>
+              <li>Create a scheduled REFRESH for all MVs to keep dashboards current.</li>
             </ul>
           </CardContent>
         </Card>
