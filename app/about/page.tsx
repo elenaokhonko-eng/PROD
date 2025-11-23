@@ -86,7 +86,7 @@ const advisors: Advisor[] = [
     name: "Greg Woolf",
     title: "AI Market Entry Strategist, INSEAD AI Venture Lab",
     summary: "Advises on cross-border AI commercialization and keeps our venture narrative aligned with institutional buyers.",
-    linkedIn: "https://www.linkedin.com/in/gregorywoolf",
+    linkedIn: "https://www.linkedin.com/in/greg-woolf-b3125/",
   },
 ]
 
