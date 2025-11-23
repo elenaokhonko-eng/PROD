@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail, Phone, MapPin, Linkedin, Target } from "lucide-react"
 import { marketingNavLinks } from "@/lib/navigation"
+import { createServiceClient } from "@/lib/supabase/service"
 
 export const metadata: Metadata = {
   title: "About GuideBuoy AI – Team, Mission, and Contacts",
   description:
-    "Meet the GuideBuoy AI founding team, learn about our digital-native mission, and get in touch with the people building the FIDReC-focused platform.",
+    "Meet the GuideBuoy AI founding team, learn about our complaint OS mission, and get in touch with the people building the FIDReC-focused platform.",
 }
 
 type TeamMember = {
@@ -116,7 +117,23 @@ const contactChannels = [
   },
 ]
 
-export default function AboutPage() {
+async function getCaseCounts() {
+  const supabase = createServiceClient()
+  const [{ count: totalCases }, { count: completedReports }] = await Promise.all([
+    supabase.from("cases").select("*", { count: "exact", head: true }),
+    supabase.from("cases").select("*", { count: "exact", head: true }).eq("status", "completed"),
+  ])
+  return {
+    totalCases: totalCases ?? null,
+    completedReports: completedReports ?? null,
+  }
+}
+
+const formatNumber = (value: number | null) => (value === null ? "—" : new Intl.NumberFormat("en-SG").format(value))
+
+export default async function AboutPage() {
+  const { totalCases, completedReports } = await getCaseCounts()
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
@@ -153,18 +170,18 @@ export default function AboutPage() {
         <section className="grid gap-8 lg:grid-cols-[1.1fr_minmax(0,0.9fr)] items-center">
           <div>
             <Badge variant="outline" className="mb-4 rounded-full">
-              Digital-native justice for consumers
+              AXS-style complaint helper
             </Badge>
             <h1 className="text-4xl font-bold tracking-tight mb-4 text-balance">We are building Singapore&apos;s complaint OS</h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
               GuideBuoy AI is a software company headquartered in Singapore. We design an end-to-end platform that helps
               residents, caregivers, and nominees prepare, submit, and manage agency-ready complaints (including FIDReC
-              escalations) without hiring a law firm. Everything we ship is cloud-delivered, PDPA-aligned, and battle-tested with real consumer complaint data.
+              escalations) without legal representation. Everything we ship is cloud-delivered, PDPA-aligned, and battle-tested with real consumer complaint data.
             </p>
             <div className="mt-6 flex flex-wrap gap-4">
               <div className="rounded-2xl border border-border/60 p-4">
-                <p className="text-3xl font-semibold">2,400+</p>
-                <p className="text-sm text-muted-foreground">case assessments completed since Jan 2024</p>
+                <p className="text-3xl font-semibold">{formatNumber(totalCases)}</p>
+                <p className="text-sm text-muted-foreground">case assessments started since Jan 2024</p>
               </div>
               <div className="rounded-2xl border border-border/60 p-4">
                 <p className="text-3xl font-semibold">PDPA ✦ MAS</p>
