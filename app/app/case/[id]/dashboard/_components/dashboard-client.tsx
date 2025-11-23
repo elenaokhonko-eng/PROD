@@ -177,6 +177,8 @@ useEffect(() => {
       setIsUploading(true)
       setUploadErrors([])
       const errors: string[] = []
+      let uploadedCount = 0
+      let totalBytes = 0
       try {
         const fileArray = Array.from(files)
         for (let i = 0; i < fileArray.length; i++) {
@@ -200,6 +202,8 @@ useEffect(() => {
             const uploadedFile = await uploadEvidence(caseId, user.id, file, "evidence", `Uploaded: ${file.name}`)
             clearInterval(progressInterval)
             setUploadProgress((prev) => ({ ...prev, [fileId]: 100 }))
+            uploadedCount++
+            totalBytes += file.size
             setUploadedFiles((prev) => [...prev, { id: uploadedFile.id, filename: uploadedFile.filename, file_type: uploadedFile.file_type, file_size: uploadedFile.file_size, category: uploadedFile.category }])
             setTimeout(() => {
               setUploadProgress((prev) => { const np = { ...prev }; delete np[fileId]; return np })
@@ -212,6 +216,17 @@ useEffect(() => {
           }
         }
         if (errors.length > 0) setUploadErrors(errors)
+        if (uploadedCount > 0) {
+          await trackClientEvent({
+            eventName: "documents_uploaded",
+            userId: user.id,
+            eventData: {
+              case_id: caseId,
+              files_uploaded: uploadedCount,
+              total_bytes: totalBytes,
+            },
+          })
+        }
       } finally {
         setIsUploading(false)
       }
@@ -295,6 +310,15 @@ useEffect(() => {
       // eslint-disable-next-line no-console
       console.log("Case pack generated. Download URL:", result.downloadUrl)
       setPackDownloadUrl(result.downloadUrl)
+
+      await trackClientEvent({
+        eventName: "report_generated",
+        userId: initialUser.id,
+        eventData: {
+          case_id: caseId,
+          files_uploaded: uploadedFiles.length,
+        },
+      })
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Failed to generate case pack:", error)
@@ -303,7 +327,7 @@ useEffect(() => {
     } finally {
       setIsGeneratingPack(false)
     }
-  }, [caseId])
+  }, [caseId, initialUser.id, uploadedFiles.length])
 
   const currentQuestion = intakeQuestions[currentIntakeStep]
   const intakeProgress = ((currentIntakeStep + 1) / intakeQuestions.length) * 100
@@ -595,6 +619,16 @@ useEffect(() => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-block mt-2 text-blue-600 hover:underline"
+                        onClick={() =>
+                          trackClientEvent({
+                            eventName: "report_downloaded",
+                            userId: initialUser.id,
+                            eventData: {
+                              case_id: caseId,
+                              download_url: packDownloadUrl,
+                            },
+                          })
+                        }
                       >
                         Click here to Download PDF
                       </a>
