@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
+import { X } from "lucide-react"
 
 export function LumiChat() {
   const [open, setOpen] = useState(false)
@@ -39,20 +40,31 @@ export function LumiChat() {
 
       {open && (
         <Card className="fixed bottom-6 left-6 z-50 w-80 shadow-xl border border-border/70 bg-card/95 backdrop-blur">
-          <CardHeader className="flex flex-row items-center gap-3 pb-2">
-            <div className="relative h-12 w-12 overflow-hidden rounded-full border border-border/70">
-              <Image
-                src="/images/lumi-avatar.png"
-                alt="Lumi avatar"
-                fill
-                className="object-cover"
-                sizes="48px"
-              />
+          <CardHeader className="flex items-start gap-3 pb-2">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="relative h-12 w-12 overflow-hidden rounded-full border border-border/70 flex-shrink-0">
+                <Image
+                  src="/images/lumi-avatar.png"
+                  alt="Lumi avatar"
+                  fill
+                  className="object-cover"
+                  sizes="48px"
+                />
+              </div>
+              <div>
+                <CardTitle className="text-base">Lumi is listening</CardTitle>
+                <p className="text-xs text-muted-foreground">A calm space to offload how you feel.</p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-base">Lumi is listening</CardTitle>
-              <p className="text-xs text-muted-foreground">A calm space to offload how you feel.</p>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setOpen(false)}
+              className="rounded-full h-8 w-8 text-muted-foreground hover:text-foreground"
+              aria-label="Close Lumi"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <div className="space-y-1">
