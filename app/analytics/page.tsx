@@ -27,6 +27,10 @@ type Metrics = {
   countryCounts: Record<string, number>
   registeredUsers: number | null
   waitlistUsers: number | null
+  avgStoryToSignupMinutes: number | null
+  avgSignupToDocsMinutes: number | null
+  avgDocsToReportMinutes: number | null
+  avgReportToDownloadMinutes: number | null
 }
 
 async function fetchEvents(): Promise<AnalyticsEvent[]> {
@@ -55,6 +59,50 @@ async function countTableRows(table: string): Promise<number | null> {
   return count ?? null
 }
 
+function buildDurations(events: AnalyticsEvent[]) {
+  const bySession = new Map<string, { [key: string]: number }>()
+
+  for (const evt of events) {
+    const key = evt.session_id || evt.user_id
+    if (!key || !evt.created_at) continue
+    const time = new Date(evt.created_at).getTime()
+    const map = bySession.get(key) ?? {}
+    if (evt.event_name) {
+      map[evt.event_name] = Math.min(map[evt.event_name] ?? Number.POSITIVE_INFINITY, time)
+    }
+    bySession.set(key, map)
+  }
+
+  const storyToSignup: number[] = []
+  const signupToDocs: number[] = []
+  const docsToReport: number[] = []
+  const reportToDownload: number[] = []
+
+  for (const map of bySession.values()) {
+    if (map.story_submitted && map.signup_complete) {
+      storyToSignup.push(map.signup_complete - map.story_submitted)
+    }
+    if (map.signup_complete && map.documents_uploaded) {
+      signupToDocs.push(map.documents_uploaded - map.signup_complete)
+    }
+    if (map.documents_uploaded && map.report_generated) {
+      docsToReport.push(map.report_generated - map.documents_uploaded)
+    }
+    if (map.report_generated && map.report_downloaded) {
+      reportToDownload.push(map.report_downloaded - map.report_generated)
+    }
+  }
+
+  const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null)
+
+  return {
+    avgStoryToSignupMinutes: avg(storyToSignup) !== null ? (avg(storyToSignup)! / 60000) : null,
+    avgSignupToDocsMinutes: avg(signupToDocs) !== null ? (avg(signupToDocs)! / 60000) : null,
+    avgDocsToReportMinutes: avg(docsToReport) !== null ? (avg(docsToReport)! / 60000) : null,
+    avgReportToDownloadMinutes: avg(reportToDownload) !== null ? (avg(reportToDownload)! / 60000) : null,
+  }
+}
+
 function buildMetrics(events: AnalyticsEvent[], registeredUsers: number | null, waitlistUsers: number | null): Metrics {
   const sessionCounts = new Map<string, number>()
   const countryCounts: Record<string, number> = {}
@@ -78,6 +126,8 @@ function buildMetrics(events: AnalyticsEvent[], registeredUsers: number | null, 
   const totalEvents = events.length
   const avgEventsPerSession = uniqueSessions ? totalEvents / uniqueSessions : 0
 
+  const durations = buildDurations(events)
+
   return {
     totalEvents,
     uniqueSessions,
@@ -86,6 +136,7 @@ function buildMetrics(events: AnalyticsEvent[], registeredUsers: number | null, 
     countryCounts,
     registeredUsers,
     waitlistUsers,
+    ...durations,
   }
 }
 
@@ -168,6 +219,39 @@ export default async function AnalyticsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Funnel timing (minutes, latest sample)</CardTitle>
+            <CardDescription>Average time between key events. Add more events to improve accuracy.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 text-sm text-muted-foreground">
+            <div>
+              <p className="text-xs uppercase tracking-wide">Story → Signup</p>
+              <p className="text-2xl font-semibold text-foreground">
+                {metrics.avgStoryToSignupMinutes !== null ? metrics.avgStoryToSignupMinutes.toFixed(1) : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide">Signup → Documents</p>
+              <p className="text-2xl font-semibold text-foreground">
+                {metrics.avgSignupToDocsMinutes !== null ? metrics.avgSignupToDocsMinutes.toFixed(1) : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide">Documents → Report</p>
+              <p className="text-2xl font-semibold text-foreground">
+                {metrics.avgDocsToReportMinutes !== null ? metrics.avgDocsToReportMinutes.toFixed(1) : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide">Report → Download</p>
+              <p className="text-2xl font-semibold text-foreground">
+                {metrics.avgReportToDownloadMinutes !== null ? metrics.avgReportToDownloadMinutes.toFixed(1) : "—"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Countries (from event data)</CardTitle>
             <CardDescription>
               Based on any country fields present in event_data (country, country_code, ip_country). Add IP-to-country
@@ -204,7 +288,8 @@ export default async function AnalyticsPage() {
                 select screens fire events.
               </li>
               <li>
-                Capture IP-to-country once per session (store country on the first event) to improve geo analytics.
+                Capture IP-to-country once per session (store country on the first event) to improve geo analytics. For
+                higher accuracy, add an edge middleware that enriches requests with a trusted geo header.
               </li>
               <li>
                 Emit funnel timestamps: story_submitted, signup_completed, documents_uploaded, report_generated so we can
