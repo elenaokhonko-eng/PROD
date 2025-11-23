@@ -204,11 +204,11 @@ export default async function AboutPage() {
               </div>
               <div>
                 <p className="font-medium text-foreground">Stage</p>
-                <p>MVP launched Q1 2025, beta customers onboarded on guidebuoyai.sg, Stripe + Supabase stack in prod.</p>
+                <p>MVP live (Q4 2025) on guidebuoyai.sg; beta SME partner programme running; Stripe + Supabase stack in prod.</p>
               </div>
               <div>
                 <p className="font-medium text-foreground">Focus in 2025</p>
-                <p>Grow payer conversion, deepen integrations with FIs, and expand to other ASEAN jurisdictions.</p>
+                <p>Grow payer conversion, deepen FI/agency integrations, and extend playbooks for Malaysia and Hong Kong.</p>
               </div>
             </CardContent>
           </Card>
