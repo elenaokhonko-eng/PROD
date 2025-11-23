@@ -37,7 +37,7 @@ export default function LandingPage() {
       stage: "Screen 1 - The Helper",
       title: "Tell Lumi what happened",
       description:
-        "Record or type your story. We transcribe it, classify it, and confirm it is a case GuideBuoy supports right now.",
+        "Record or type your story. We transcribe it, classify it, and confirm it is a case GuideBuoy supports right now. If not yet supported, you’ll see a waitlist screen to sign up and get notified when your complaint type is live.",
     },
     {
       stage: "Screen 2 - Sign up and upload proof",
