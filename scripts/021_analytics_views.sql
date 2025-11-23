@@ -39,7 +39,30 @@ FROM analytics_events
 GROUP BY 1
 ORDER BY 2 DESC;
 
+-- 4) Funnel durations (earliest timestamps per session/user)
+DROP MATERIALIZED VIEW IF EXISTS mv_funnel_durations;
+CREATE MATERIALIZED VIEW mv_funnel_durations AS
+WITH first_events AS (
+  SELECT
+    COALESCE(session_id, user_id::text) AS key,
+    MIN(created_at) FILTER (WHERE event_name = 'story_submitted') AS story_submitted,
+    MIN(created_at) FILTER (WHERE event_name = 'signup_complete') AS signup_complete,
+    MIN(created_at) FILTER (WHERE event_name = 'documents_uploaded') AS documents_uploaded,
+    MIN(created_at) FILTER (WHERE event_name = 'report_generated') AS report_generated,
+    MIN(created_at) FILTER (WHERE event_name = 'report_downloaded') AS report_downloaded
+  FROM analytics_events
+  WHERE event_name IN ('story_submitted','signup_complete','documents_uploaded','report_generated','report_downloaded')
+  GROUP BY 1
+)
+SELECT
+  AVG(EXTRACT(EPOCH FROM (signup_complete - story_submitted)) / 60.0) AS avg_story_to_signup_minutes,
+  AVG(EXTRACT(EPOCH FROM (documents_uploaded - signup_complete)) / 60.0) AS avg_signup_to_docs_minutes,
+  AVG(EXTRACT(EPOCH FROM (report_generated - documents_uploaded)) / 60.0) AS avg_docs_to_report_minutes,
+  AVG(EXTRACT(EPOCH FROM (report_downloaded - report_generated)) / 60.0) AS avg_report_to_download_minutes
+FROM first_events;
+
 -- To refresh:
 -- REFRESH MATERIALIZED VIEW CONCURRENTLY mv_session_counts;
 -- REFRESH MATERIALIZED VIEW CONCURRENTLY mv_pages_per_session;
 -- REFRESH MATERIALIZED VIEW CONCURRENTLY mv_country_rollup;
+-- REFRESH MATERIALIZED VIEW CONCURRENTLY mv_funnel_durations;

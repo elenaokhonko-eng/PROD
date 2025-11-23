@@ -10,13 +10,22 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic"
 
-type AnalyticsEvent = {
+type PageSessionRow = {
   session_id: string | null
-  user_id: string | null
-  page_url: string | null
-  event_name: string | null
-  created_at: string | null
-  event_data: Record<string, unknown> | null
+  page_views: number | null
+  total_events: number | null
+}
+
+type CountryRow = {
+  country: string | null
+  events: number | null
+}
+
+type FunnelRow = {
+  avg_story_to_signup_minutes: number | null
+  avg_signup_to_docs_minutes: number | null
+  avg_docs_to_report_minutes: number | null
+  avg_report_to_download_minutes: number | null
 }
 
 type Metrics = {
@@ -33,20 +42,34 @@ type Metrics = {
   avgReportToDownloadMinutes: number | null
 }
 
-async function fetchEvents(): Promise<AnalyticsEvent[]> {
+async function fetchSessionRows(): Promise<PageSessionRow[]> {
   const supabase = createServiceClient()
-  const { data, error } = await supabase
-    .from("analytics_events")
-    .select("session_id,user_id,page_url,event_name,created_at,event_data")
-    .order("created_at", { ascending: false })
-    .limit(5000)
-
+  const { data, error } = await supabase.from("mv_pages_per_session").select("session_id,page_views,total_events")
   if (error) {
-    console.error("[analytics] failed to load events:", error.message)
+    console.error("[analytics] failed to load mv_pages_per_session:", error.message)
     return []
   }
-
   return data ?? []
+}
+
+async function fetchCountryRows(): Promise<CountryRow[]> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase.from("mv_country_rollup").select("country,events").order("events", { ascending: false })
+  if (error) {
+    console.error("[analytics] failed to load mv_country_rollup:", error.message)
+    return []
+  }
+  return data ?? []
+}
+
+async function fetchFunnelRow(): Promise<FunnelRow | null> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase.from("mv_funnel_durations").select("*").maybeSingle()
+  if (error) {
+    console.error("[analytics] failed to load mv_funnel_durations:", error.message)
+    return null
+  }
+  return data ?? null
 }
 
 async function countTableRows(table: string): Promise<number | null> {
@@ -59,74 +82,23 @@ async function countTableRows(table: string): Promise<number | null> {
   return count ?? null
 }
 
-function buildDurations(events: AnalyticsEvent[]) {
-  const bySession = new Map<string, { [key: string]: number }>()
-
-  for (const evt of events) {
-    const key = evt.session_id || evt.user_id
-    if (!key || !evt.created_at) continue
-    const time = new Date(evt.created_at).getTime()
-    const map = bySession.get(key) ?? {}
-    if (evt.event_name) {
-      map[evt.event_name] = Math.min(map[evt.event_name] ?? Number.POSITIVE_INFINITY, time)
-    }
-    bySession.set(key, map)
-  }
-
-  const storyToSignup: number[] = []
-  const signupToDocs: number[] = []
-  const docsToReport: number[] = []
-  const reportToDownload: number[] = []
-
-  for (const map of bySession.values()) {
-    if (map.story_submitted && map.signup_complete) {
-      storyToSignup.push(map.signup_complete - map.story_submitted)
-    }
-    if (map.signup_complete && map.documents_uploaded) {
-      signupToDocs.push(map.documents_uploaded - map.signup_complete)
-    }
-    if (map.documents_uploaded && map.report_generated) {
-      docsToReport.push(map.report_generated - map.documents_uploaded)
-    }
-    if (map.report_generated && map.report_downloaded) {
-      reportToDownload.push(map.report_downloaded - map.report_generated)
-    }
-  }
-
-  const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null)
-
-  return {
-    avgStoryToSignupMinutes: avg(storyToSignup) !== null ? (avg(storyToSignup)! / 60000) : null,
-    avgSignupToDocsMinutes: avg(signupToDocs) !== null ? (avg(signupToDocs)! / 60000) : null,
-    avgDocsToReportMinutes: avg(docsToReport) !== null ? (avg(docsToReport)! / 60000) : null,
-    avgReportToDownloadMinutes: avg(reportToDownload) !== null ? (avg(reportToDownload)! / 60000) : null,
-  }
-}
-
-function buildMetrics(events: AnalyticsEvent[], registeredUsers: number | null, waitlistUsers: number | null): Metrics {
-  const sessionCounts = new Map<string, number>()
-  const countryCounts: Record<string, number> = {}
-
-  for (const evt of events) {
-    const sessionId = evt.session_id ?? "unknown"
-    sessionCounts.set(sessionId, (sessionCounts.get(sessionId) ?? 0) + 1)
-
-    const country =
-      (evt.event_data?.country as string | undefined) ||
-      (evt.event_data?.country_code as string | undefined) ||
-      (evt.event_data?.ip_country as string | undefined)
-
-    if (country) {
-      countryCounts[country] = (countryCounts[country] ?? 0) + 1
-    }
-  }
-
-  const uniqueSessions = sessionCounts.size
-  const repeatSessions = Array.from(sessionCounts.values()).filter((count) => count > 1).length
-  const totalEvents = events.length
+function buildMetrics(
+  sessions: PageSessionRow[],
+  countries: CountryRow[],
+  funnel: FunnelRow | null,
+  registeredUsers: number | null,
+  waitlistUsers: number | null,
+): Metrics {
+  const uniqueSessions = sessions.length
+  const totalEvents = sessions.reduce((sum, row) => sum + (row.total_events ?? 0), 0)
+  const repeatSessions = sessions.filter((row) => (row.total_events ?? 0) > 1).length
   const avgEventsPerSession = uniqueSessions ? totalEvents / uniqueSessions : 0
 
-  const durations = buildDurations(events)
+  const countryCounts: Record<string, number> = {}
+  for (const row of countries) {
+    const key = row.country ?? "UNKNOWN"
+    countryCounts[key] = (row.events ?? 0)
+  }
 
   return {
     totalEvents,
@@ -136,7 +108,10 @@ function buildMetrics(events: AnalyticsEvent[], registeredUsers: number | null, 
     countryCounts,
     registeredUsers,
     waitlistUsers,
-    ...durations,
+    avgStoryToSignupMinutes: funnel?.avg_story_to_signup_minutes ?? null,
+    avgSignupToDocsMinutes: funnel?.avg_signup_to_docs_minutes ?? null,
+    avgDocsToReportMinutes: funnel?.avg_docs_to_report_minutes ?? null,
+    avgReportToDownloadMinutes: funnel?.avg_report_to_download_minutes ?? null,
   }
 }
 
@@ -146,13 +121,15 @@ function formatNumber(value: number | null) {
 }
 
 export default async function AnalyticsPage() {
-  const [events, registeredUsers, waitlistUsers] = await Promise.all([
-    fetchEvents(),
+  const [sessions, countries, funnel, registeredUsers, waitlistUsers] = await Promise.all([
+    fetchSessionRows(),
+    fetchCountryRows(),
+    fetchFunnelRow(),
     countTableRows("profiles"),
     countTableRows("waitlist"),
   ])
 
-  const metrics = buildMetrics(events, registeredUsers, waitlistUsers)
+  const metrics = buildMetrics(sessions, countries, funnel, registeredUsers, waitlistUsers)
 
   return (
     <main className="min-h-screen bg-background">
