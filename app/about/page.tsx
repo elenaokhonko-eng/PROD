@@ -47,7 +47,7 @@ const teamMembers: TeamMember[] = [
     experience:
       "Previously led product for a Milan robo-advisor and co-authored the Responsible AI design playbook used by two EU fintech platforms.",
     focus: "Owns GuideBuoy’s product vision, model governance, and the Gemini-powered complaint workflow layer.",
-    linkedIn: "https://www.linkedin.com/in/stepankropachev",
+    linkedIn: "https://www.linkedin.com/in/stepan-kropachev/",
   },
   {
     name: "Maria Baranova",
@@ -56,7 +56,7 @@ const teamMembers: TeamMember[] = [
     experience:
       "Served as finance director for a Sydney insurtech scale-up and ran data governance programmes for two ASX-listed institutions.",
     focus: "Leads capital planning, cohort analytics, and PDPA-compliant data instrumentation for every product surface.",
-    linkedIn: "https://www.linkedin.com/in/mariabaranova",
+    linkedIn: "https://www.linkedin.com/in/maria-baranova-businessanalyst/",
   },
   {
     name: "Ng Yuin Harng",
@@ -65,7 +65,7 @@ const teamMembers: TeamMember[] = [
     experience:
       "15+ years advising retail investors and SMEs on regulated products; frequently consults on MAS sandboxes and FIDReC outreach.",
     focus: "Owns government partnerships, ecosystem onboarding, and the playbooks that align GuideBuoy with national trust initiatives.",
-    linkedIn: "https://www.linkedin.com/in/yuinharng",
+    linkedIn: "https://www.linkedin.com/in/nicholasnyh/",
   },
 ]
 
