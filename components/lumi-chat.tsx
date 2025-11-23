@@ -12,12 +12,17 @@ export function LumiChat() {
   const [feeling, setFeeling] = useState("")
   const [share, setShare] = useState("")
   const [messages, setMessages] = useState<string[]>([])
+  const [responses, setResponses] = useState<string[]>([])
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
     const entries = [feeling.trim(), share.trim()].filter(Boolean)
     if (!entries.length) return
     setMessages((prev) => [...prev, ...entries])
+    setResponses((prev) => [
+      ...prev,
+      "I hear you. I’m here to listen. For product questions, tap Q&A to find quick answers.",
+    ])
     setFeeling("")
     setShare("")
   }
@@ -91,6 +96,18 @@ export function LumiChat() {
                     </li>
                   ))}
                 </ul>
+                {responses.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-foreground font-medium">Lumi:</p>
+                    <ul className="space-y-1 text-xs">
+                      {responses.map((msg, idx) => (
+                        <li key={`${msg}-${idx}`} className="rounded-lg bg-primary/10 p-2 text-foreground">
+                          {msg}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
