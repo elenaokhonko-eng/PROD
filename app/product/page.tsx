@@ -276,9 +276,8 @@ export default async function ProductPage() {
             Software built for Singapore’s complaint resolution network
           </h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              GuideBuoy AI is a web-native case platform running on Next.js, Supabase, Stripe, and Render. It combines
-              AI-generated guidance with deterministic workflows so consumers can submit FIDReC-ready cases faster and
-              with higher-quality evidence.
+              GuideBuoy AI is an AXS-style complaints hub built on Next.js, Supabase, Stripe, and Render. It turns one
+              Singapore story plus supporting documents into reusable, partner-ready reports with calm, guided steps.
             </p>
             <div className="mt-6 flex flex-wrap gap-4">
               <Button asChild className="rounded-full">
