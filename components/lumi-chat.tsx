@@ -31,8 +31,6 @@ export function LumiChat() {
         type="button"
         aria-label="Open Lumi support"
         title={open ? "Close Lumi" : "Open Lumi"}
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
         onClick={() => setOpen((prev) => !prev)}
         className="fixed bottom-24 left-6 z-50 h-16 w-16 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center border border-primary/40 hover:scale-105 transition"
       >
