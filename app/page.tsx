@@ -255,7 +255,7 @@ export default function LandingPage() {
               Feeling overwhelmed by a scam or complaint? Get a clear plan, for free.
             </h1>
             <p className="text-lg text-muted-foreground mb-8 text-pretty leading-relaxed">
-              We&apos;re Singapore&apos;s Complaint Helper. Tell Lumi (our lighthouse AI) what happened once and she will organise
+              We&apos;re Singapore&apos;s Complaint Helper. Tell Lumi (our lighthouse AI) what happened once and Lumi will organise
               your facts into a unified report you can reuse for the Police, national agencies, FIDReC, and more.
             </p>
             <div className="flex items-center justify-center gap-4 mb-8 flex-wrap">
