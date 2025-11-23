@@ -274,10 +274,7 @@ export default async function AnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Countries (from event data)</CardTitle>
-            <CardDescription>
-              Based on ip_country/country fields in mv_country_rollup. Improve accuracy by adding a trusted geo header at
-              the edge (e.g., CF-IPCountry).
-            </CardDescription>
+            <CardDescription>Based on ip_country/country fields in mv_country_rollup.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             {Object.keys(metrics.countryCounts).length === 0 ? (
@@ -366,10 +363,7 @@ export default async function AnalyticsPage() {
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <ul className="list-disc list-inside space-y-1">
               <li>Add page_view on any route with a custom layout (root layout already covered).</li>
-              <li>
-                Ensure IP-to-country enrichment (Cloudflare CF-IPCountry or your own IP lookup) and forward it as a trusted
-                header.
-              </li>
+              <li>Ensure IP-to-country enrichment (your edge should set a trusted geo header such as CF-IPCountry).</li>
               <li>Keep emitting funnel events: story_submitted, signup_complete, documents_uploaded, report_generated, report_downloaded.</li>
               <li>Create a scheduled REFRESH for all MVs to keep dashboards current.</li>
             </ul>
