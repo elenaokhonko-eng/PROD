@@ -71,17 +71,18 @@ export default function LandingPage() {
 
   const marketplaceOptions = [
     {
-      title: "Connect with a pro-bono clinic (via SAL)",
+      title: "Pro-bono legal and social clinics",
       label: "Public-good support",
-      description: "A warm handover to social service or legal clinics for vulnerable users.",
+      description: "A warm handover to SAL-linked legal clinics or social services when you need human guidance.",
       cta: "Request a referral",
       variant: "outline",
     },
     {
-      title: "Book a free 15-min specialist consult",
-      label: "High-value cases (> S$25k)",
-      description: "Validate losses, discuss strategy, and optionally extend to a paid hour (Stripe).",
-      cta: "Book consult",
+      title: "Specialist marketplace",
+      label: "Experts when you need them",
+      description:
+        "Browse lawyers, cybersecurity analysts, and case-prep coaches to review evidence and map relevant frameworks with you.",
+      cta: "Browse specialists",
       variant: "default",
     },
   ]
@@ -424,8 +425,8 @@ export default function LandingPage() {
               </Badge>
               <h2 className="text-3xl font-semibold">Need more help?</h2>
               <p className="text-muted-foreground">
-                Keep the helper free while validating the revenue thesis. Optional services sit behind Stripe and only
-                trigger when citizens ask for more.
+                Keep the helper free, and tap the marketplace only if you want a human to step in. Specialists are
+                optional and activate only when you choose.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
