@@ -193,18 +193,18 @@ const nextStepsList = [
 const deliveryStages = [
   {
     title: "MVP (live now)",
-    period: "Q1 2025",
-    bullets: ["Router intake + AI summaries", "Document automation pack", "Stripe monetisation"],
+    period: "Q4 2025",
+    bullets: ["Router intake + AI summaries", "Document automation pack"],
   },
   {
-    title: "Beta programme",
-    period: "Q2 2025",
-    bullets: ["Nominee workspace", "Hearing bundle compiler", "Institution messaging plugins"],
+    title: "Beta SME partners programme",
+    period: "Q1 2026",
+    bullets: ["Helper workspace (pro-bono clinics or nominees)", "Institution messaging APIs"],
   },
   {
     title: "Public launch",
-    period: "Q3 2025",
-    bullets: ["Regional playbooks", "Analytics dashboard", "3rd-party API access"],
+    period: "Q2 2026",
+    bullets: ["Complaint playbooks", "Complaints Analytics dashboard", "3rd-party API access"],
   },
 ]
 
