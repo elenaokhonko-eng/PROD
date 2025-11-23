@@ -200,7 +200,7 @@ export default function FAQPage() {
                       <SelectItem value="eligibility">Eligibility Questions</SelectItem>
                       <SelectItem value="technical">Technical Support</SelectItem>
                       <SelectItem value="billing">Billing & Payments</SelectItem>
-                      <SelectItem value="legal">Legal Process Questions</SelectItem>
+                      <SelectItem value="partnerships">Partnerships</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
