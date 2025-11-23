@@ -56,9 +56,10 @@ export default function RootLayout({
             <div className="container mx-auto px-4 py-10 space-y-6">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between text-sm text-muted-foreground">
                 <p className="font-medium text-foreground">GuideBuoy AI SG Pte Ltd © 2025</p>
-                <div className="flex flex-col items-center gap-1 text-center">
-                  <p className="font-semibold text-foreground">GuideBuoy AI</p>
-                  <p>SG Complaint Helper</p>
+                <div className="flex flex-wrap items-center justify-center gap-4">
+                  <Link href="/terms" className="hover:text-foreground">Terms of Use</Link>
+                  <Link href="/privacy" className="hover:text-foreground">Privacy &amp; Cookies Policy</Link>
+                  <Link href="mailto:security@guidebuoyai.sg" className="hover:text-foreground">Report Vulnerability</Link>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 md:justify-end">
                   <span className="font-medium text-foreground">Connect with us:</span>
@@ -68,11 +69,6 @@ export default function RootLayout({
                   <Link href="https://www.youtube.com" className="hover:text-foreground">YouTube</Link>
                   <Link href="https://www.twitter.com" className="hover:text-foreground">X</Link>
                 </div>
-              </div>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-center gap-4 text-sm text-muted-foreground">
-                <Link href="/terms" className="hover:text-foreground">Terms of Use</Link>
-                <Link href="/privacy" className="hover:text-foreground">Privacy &amp; Cookies Policy</Link>
-                <Link href="mailto:security@guidebuoyai.sg" className="hover:text-foreground">Report Vulnerability</Link>
               </div>
             </div>
           </footer>
