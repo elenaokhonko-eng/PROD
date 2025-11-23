@@ -26,20 +26,13 @@ export const metadata: Metadata = {
     "Explore the GuideBuoy AI platform: complaint intake, AI report builder, document automation, and the FIDReC-ready workflow powering guidebuoyai.sg.",
 }
 
-export const revalidate = 300
+export const dynamic = "force-dynamic"
 
 type PlatformSnapshot = {
-  docGenerationRate: number
-  casePacks: number
-  avgTimeToRecommendationMinutes: number
-  codebaseNote: string
-}
-
-const defaultPlatformSnapshot: PlatformSnapshot = {
-  docGenerationRate: 99.2,
-  casePacks: 1800,
-  avgTimeToRecommendationMinutes: 6,
-  codebaseNote: "Same stack powers guidebuoyai.sg production and partner pilots.",
+  docGenerationRate: number | null
+  casePacks: number | null
+  avgTimeToRecommendationMinutes: number | null
+  codebaseNote: string | null
 }
 
 async function getPlatformSnapshot(): Promise<PlatformSnapshot> {
@@ -54,19 +47,28 @@ async function getPlatformSnapshot(): Promise<PlatformSnapshot> {
 
     if (error) {
       console.error("[product] platform_snapshot fetch error:", error.message)
-      return defaultPlatformSnapshot
+      return {
+        docGenerationRate: null,
+        casePacks: null,
+        avgTimeToRecommendationMinutes: null,
+        codebaseNote: null,
+      }
     }
 
     return {
-      docGenerationRate: data?.doc_generation_rate ?? defaultPlatformSnapshot.docGenerationRate,
-      casePacks: data?.case_packs ?? defaultPlatformSnapshot.casePacks,
-      avgTimeToRecommendationMinutes:
-        data?.avg_time_to_recommendation_minutes ?? defaultPlatformSnapshot.avgTimeToRecommendationMinutes,
-      codebaseNote: data?.codebase_note ?? defaultPlatformSnapshot.codebaseNote,
+      docGenerationRate: data?.doc_generation_rate ?? null,
+      casePacks: data?.case_packs ?? null,
+      avgTimeToRecommendationMinutes: data?.avg_time_to_recommendation_minutes ?? null,
+      codebaseNote: data?.codebase_note ?? null,
     }
   } catch (err) {
     console.error("[product] platform_snapshot unexpected error:", err)
-    return defaultPlatformSnapshot
+    return {
+      docGenerationRate: null,
+      casePacks: null,
+      avgTimeToRecommendationMinutes: null,
+      codebaseNote: null,
+    }
   }
 }
 
@@ -296,15 +298,22 @@ export default async function ProductPage() {
               <div className="flex items-center gap-3">
                 <Sparkles className="h-10 w-10 text-primary" />
                 <div>
-                  <p className="text-2xl font-semibold text-foreground">{snapshot.docGenerationRate}%</p>
-                  <p>Successful document generation rate across {formatNumber(snapshot.casePacks)} case packs.</p>
+                  <p className="text-2xl font-semibold text-foreground">
+                    {snapshot.docGenerationRate !== null ? `${snapshot.docGenerationRate}%` : "—"}
+                  </p>
+                  <p>
+                    Successful document generation rate across{" "}
+                    {snapshot.casePacks !== null ? formatNumber(snapshot.casePacks) : "—"} case packs.
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Gauge className="h-10 w-10 text-primary" />
                 <div>
                   <p className="text-2xl font-semibold text-foreground">
-                    {snapshot.avgTimeToRecommendationMinutes} mins
+                    {snapshot.avgTimeToRecommendationMinutes !== null
+                      ? `${snapshot.avgTimeToRecommendationMinutes} mins`
+                      : "—"}
                   </p>
                   <p>Average time from intake to first actionable recommendation.</p>
                 </div>
@@ -313,7 +322,7 @@ export default async function ProductPage() {
                 <Layers className="h-10 w-10 text-primary" />
                 <div>
                   <p className="text-2xl font-semibold text-foreground">Single codebase</p>
-                  <p>{snapshot.codebaseNote}</p>
+                  <p>{snapshot.codebaseNote || "—"}</p>
                 </div>
               </div>
             </CardContent>
