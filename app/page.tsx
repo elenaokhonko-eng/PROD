@@ -388,14 +388,6 @@ export default function LandingPage() {
                 Keep the helper free, and tap the marketplace only if you want a human to step in. Specialists are
                 optional and activate only when you choose.
               </p>
-              <div className="flex justify-center gap-3 flex-wrap">
-                <Button asChild className="rounded-full">
-                  <Link href="/marketplace">Browse specialists</Link>
-                </Button>
-                <Button asChild variant="outline" className="rounded-full">
-                  <Link href="/marketplace">Find pro-bono &amp; social support</Link>
-                </Button>
-              </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {marketplaceOptions.map((option) => (

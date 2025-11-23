@@ -1,8 +1,10 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import type { Metadata } from "next"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { marketingNavLinks } from "@/lib/navigation"
 
 export const metadata: Metadata = {
   title: "Marketplace | GuideBuoy AI",
@@ -50,6 +52,31 @@ const paidServices = [
 export default function MarketplacePage() {
   return (
     <main className="min-h-screen bg-background">
+      <header className="border-b border-border/50 bg-card/50">
+        <div className="container mx-auto px-4 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">GB</span>
+            </div>
+            <span className="font-semibold text-lg">GuideBuoy AI</span>
+          </Link>
+          <div className="flex flex-wrap items-center gap-3 md:justify-end">
+            <nav className="flex flex-wrap items-center gap-4 text-sm font-medium text-muted-foreground">
+              {marketingNavLinks.map((item) => (
+                <Link key={item.href} href={item.href} className="transition-colors hover:text-foreground">
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <Link href="/auth/login">
+              <Button variant="outline" size="sm" className="rounded-full bg-transparent">
+                Sign In
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </header>
+
       <div className="border-b border-border/50 bg-card/50">
         <div className="container mx-auto px-4 py-8 space-y-4">
           <Badge variant="outline" className="rounded-full">
