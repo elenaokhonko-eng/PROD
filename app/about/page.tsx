@@ -174,9 +174,10 @@ export default async function AboutPage() {
             </Badge>
             <h1 className="text-4xl font-bold tracking-tight mb-4 text-balance">We are building Singapore&apos;s complaint OS</h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              GuideBuoy AI is a software company headquartered in Singapore. We design an end-to-end platform that helps
-              residents, caregivers, and nominees prepare, submit, and manage agency-ready complaints (including FIDReC
-              escalations) without legal representation. Everything we ship is cloud-delivered, PDPA-aligned, and battle-tested with real consumer complaint data.
+              GuideBuoy AI is a software company in Singapore. We design an AXS-style helper that lets residents,
+              caregivers, and nominees tell their story once, add evidence, and reuse it for agency-ready complaints
+              (including FIDReC escalations) without legal representation. Everything ships cloud-first, PDPA-aligned,
+              and battle-tested with real complaint data.
             </p>
             <div className="mt-6 flex flex-wrap gap-4">
               <div className="rounded-2xl border border-border/60 p-4">
@@ -185,7 +186,7 @@ export default async function AboutPage() {
               </div>
               <div className="rounded-2xl border border-border/60 p-4">
                 <p className="text-3xl font-semibold">PDPA ✦ MAS</p>
-                <p className="text-sm text-muted-foreground">every workflow reviewed by legal advisors</p>
+                <p className="text-sm text-muted-foreground">built to meet trusted AI and privacy expectations</p>
               </div>
             </div>
           </div>
