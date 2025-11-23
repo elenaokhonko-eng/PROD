@@ -14,7 +14,6 @@ import {
   Users,
   BarChart3,
   Gauge,
-  Layers,
   Headphones,
   Building2,
 } from "lucide-react"
@@ -316,13 +315,6 @@ export default async function ProductPage() {
                       : "—"}
                   </p>
                   <p>Average time from intake to first actionable recommendation.</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Layers className="h-10 w-10 text-primary" />
-                <div>
-                  <p className="text-2xl font-semibold text-foreground">Single codebase</p>
-                  <p>{snapshot.codebaseNote || "—"}</p>
                 </div>
               </div>
             </CardContent>
