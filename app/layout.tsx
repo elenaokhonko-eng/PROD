@@ -6,6 +6,7 @@ import { Suspense } from "react"
 import "./globals.css"
 import { SupabaseProvider } from "@/components/providers/supabase-provider"
 import { PageViewTracker } from "@/components/analytics/page-view-tracker"
+import { LumiChat } from "@/components/lumi-chat"
 
 export const metadata: Metadata = {
   title: "GuideBuoy AI - Singapore's Complaint Helper",
@@ -52,6 +53,7 @@ export default function RootLayout({
             <PageViewTracker />
             {children}
           </Suspense>
+          <LumiChat />
           <Link
             href="https://wa.me/6590727915"
             aria-label="Chat with GuideBuoy on WhatsApp"
