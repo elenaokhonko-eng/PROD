@@ -10,8 +10,8 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY)
-// v1beta currently supports 1.5 Pro for JSON output; 3.0 Pro is not yet exposed here
-const GEMINI_MODEL_NAME = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-1.5-pro-latest"
+// 2.5 Flash is available on v1beta for JSON output
+const GEMINI_MODEL_NAME = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-2.5-flash"
 const STORAGE_BUCKET = process.env.SUPABASE_CASE_PACK_BUCKET ?? "evidence"
 
 type FidrecCaseSummaryOutput = {
