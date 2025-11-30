@@ -9,7 +9,7 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY)
-const modelName = "gemini-3.0-pro"
+const modelName = "models/gemini-3.0-pro-latest"
 
 function scrub<T>(obj: T): T {
   try {
