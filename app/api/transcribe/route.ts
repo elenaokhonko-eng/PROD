@@ -7,7 +7,7 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY)
-const modelName = "gemini-3.0-pro"
+const modelName = "gemini-2.5-pro"
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return Buffer.from(buffer).toString("base64")
