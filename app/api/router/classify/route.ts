@@ -19,7 +19,8 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY)
-const modelName = "models/gemini-3.0-pro-latest"
+// v1beta currently supports 1.5 Pro for JSON output; 3.0 Pro is not yet exposed here
+const modelName = "models/gemini-1.5-pro-latest"
 const log = logger.withContext({ module: "router-classify", model: modelName })
 
 const classifyRequestSchema = z.object({
