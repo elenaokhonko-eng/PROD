@@ -10,7 +10,7 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY)
-const GEMINI_MODEL_NAME = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-1.5-pro-latest"
+const GEMINI_MODEL_NAME = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "gemini-3.0-pro"
 const STORAGE_BUCKET = process.env.SUPABASE_CASE_PACK_BUCKET ?? "evidence"
 
 type FidrecCaseSummaryOutput = {

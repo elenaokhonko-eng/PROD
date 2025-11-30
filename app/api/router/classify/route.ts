@@ -19,7 +19,7 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY)
-const modelName = "gemini-2.5-flash"
+const modelName = "gemini-3.0-pro"
 const log = logger.withContext({ module: "router-classify", model: modelName })
 
 const classifyRequestSchema = z.object({
