@@ -15,8 +15,8 @@ export const WelcomeEmail: React.FC<WelcomeEmailProps> = ({ userName, userEmail,
     <div style={{ padding: "32px", backgroundColor: "#f9fafb" }}>
       <p style={{ fontSize: "16px", lineHeight: "1.6" }}>Hi {userName || "there"},</p>
       <p style={{ fontSize: "16px", lineHeight: "1.6" }}>
-        Thank you for creating your GuideBuoy AI account! We{"'"}re here to help you navigate your financial dispute
-        with confidence.
+        Thank you for creating your GuideBuoy AI account! We{"'"}re here to help you navigate your complaint with
+        confidence.
       </p>
       {hasRouterSession && (
         <div
@@ -30,7 +30,7 @@ export const WelcomeEmail: React.FC<WelcomeEmailProps> = ({ userName, userEmail,
         >
           <p style={{ fontSize: "14px", margin: 0, fontWeight: "bold" }}>⭐ Your case assessment has been saved</p>
           <p style={{ fontSize: "14px", margin: "8px 0 0 0" }}>
-            We{"'"}ve imported your dispute details. You can continue where you left off.
+            We{"'"}ve imported your complaint details. You can continue where you left off.
           </p>
         </div>
       )}
@@ -39,7 +39,7 @@ export const WelcomeEmail: React.FC<WelcomeEmailProps> = ({ userName, userEmail,
         <li>Complete your profile setup</li>
         <li>Review your case assessment</li>
         <li>Upload supporting documents</li>
-        <li>Submit your FIDReC complaint</li>
+        <li>Submit your complaint</li>
       </ol>
       <div style={{ textAlign: "center", marginTop: "32px" }}>
         <a
