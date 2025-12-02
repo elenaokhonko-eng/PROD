@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export const metadata: Metadata = {
   title: "Volunteer Marketplace | GuideBuoy AI",
   description:
-    "Join as a nominee or volunteer to help victims organise evidence, file reports, and recover funds from banks, card companies, or merchants.",
+    "Join as a nominee or volunteer to help claimants organise evidence, file reports, and recover funds from banks, card companies, or merchants.",
 }
 
 const roles = [
@@ -41,7 +41,7 @@ export default function VolunteersPage() {
           </Badge>
           <h1 className="text-4xl font-bold text-balance">Help citizens as a nominee or volunteer</h1>
           <p className="text-muted-foreground max-w-3xl leading-relaxed">
-            Join the GuideBuoy network to support victims with filing, evidence prep, and follow-ups. Volunteers stay
+            Join the GuideBuoy network to support claimants with filing, evidence prep, and follow-ups. Volunteers stay
             free; we only match you to cases that fit your experience and availability.
           </p>
           <div className="flex flex-wrap gap-3">

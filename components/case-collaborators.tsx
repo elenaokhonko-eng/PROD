@@ -150,7 +150,7 @@ export default function CaseCollaborators({ caseId, isOwner, currentUserId }: Ca
               className="w-full px-3 py-2 border rounded-md"
             >
               <option value="helper">Helper</option>
-              <option value="lead_victim">Lead Victim</option>
+              <option value="lead_victim">Lead Claimant</option>
             </select>
             <Button onClick={handleInvite} disabled={isSending || !inviteEmail} className="w-full">
               {isSending ? (

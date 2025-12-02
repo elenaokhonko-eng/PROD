@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", invitation.id)
 
-    // Transfer ownership if invite makes user Victim or Lead Victim
+    // Transfer ownership if invite makes user Claimant or Lead Claimant
     if (role === "victim" || role === "lead_victim") {
       const { data: caseRow } = await supabase
         .from("cases")

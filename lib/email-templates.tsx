@@ -173,7 +173,7 @@ export const InvitationEmail: React.FC<InvitationEmailProps> = ({
         >
           <h3 style={{ fontSize: "18px", margin: "0 0 8px 0" }}>{caseTitle}</h3>
           <p style={{ fontSize: "14px", margin: 0, color: "#374151" }}>
-            Role: <strong>{role === "helper" ? "Helper" : "Lead Victim"}</strong>
+            Role: <strong>{role === "helper" ? "Helper" : "Lead Claimant"}</strong>
           </p>
         </div>
         <p style={{ fontSize: "16px", lineHeight: "1.6" }}>

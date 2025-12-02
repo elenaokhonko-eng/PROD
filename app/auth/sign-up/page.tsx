@@ -577,7 +577,7 @@ export default function SignUpPage() {
                           <Label htmlFor="victim" className="flex items-center gap-2 cursor-pointer flex-1">
                             <UserIcon className="h-4 w-4 text-primary" />
                             <div>
-                              <div className="font-medium">Victim</div>
+                              <div className="font-medium">Claimant</div>
                               <div className="text-xs text-muted-foreground">I need help with my complaint</div>
                             </div>
                           </Label>
