@@ -419,6 +419,19 @@ export default function SignUpPage() {
         timestamp: new Date().toISOString(),
       })
 
+      // Ensure the user has a local session after registration
+      try {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: verifiedUser.email,
+          password,
+        })
+        if (signInError) {
+          console.error("[signup] Post-register sign-in failed:", signInError)
+        }
+      } catch (signInUnexpected) {
+        console.error("[signup] Unexpected error during post-register sign-in:", signInUnexpected)
+      }
+
       if (isFromRouter && sessionToken) {
         if (sessionLinked) {
           persistConvertedRouterSessionToken(sessionToken)
@@ -454,7 +467,7 @@ export default function SignUpPage() {
       clearPendingEmail()
       clearVerifiedUserStorage()
 
-      router.push("/auth/sign-up-success")
+      router.push("/app")
     } catch (requestError: unknown) {
       console.error("[signup] Unexpected signup error:", requestError)
       setError(requestError instanceof Error ? requestError.message : "An error occurred")
