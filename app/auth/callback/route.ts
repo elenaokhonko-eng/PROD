@@ -1,6 +1,37 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
+const isPublicHost = (value: string) => {
+  try {
+    const url = new URL(value.startsWith("http") ? value : `https://${value}`)
+    const host = url.hostname.toLowerCase()
+    return host.includes(".") && host !== "localhost" && host !== "127.0.0.1"
+  } catch {
+    return false
+  }
+}
+
+const chooseRedirectOrigin = (fallbackOrigin: string) => {
+  const candidates = [
+    process.env.PUBLIC_AUTH_REDIRECT_BASE,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL,
+    fallbackOrigin,
+  ].filter(Boolean) as string[]
+
+  for (const candidate of candidates) {
+    if (isPublicHost(candidate)) {
+      try {
+        return new URL(candidate.startsWith("http") ? candidate : `https://${candidate}`).origin
+      } catch {
+        continue
+      }
+    }
+  }
+  return fallbackOrigin
+}
+
 const decodeNextPath = (value: string | null, origin: string) => {
   if (!value) {
     return new URL("/app", origin)
@@ -18,7 +49,8 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
   const nextParam = requestUrl.searchParams.get("next")
-  const nextUrl = decodeNextPath(nextParam, requestUrl.origin)
+  const redirectOrigin = chooseRedirectOrigin(requestUrl.origin)
+  const nextUrl = decodeNextPath(nextParam, redirectOrigin)
 
   const response = NextResponse.redirect(nextUrl)
 
