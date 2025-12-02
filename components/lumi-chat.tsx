@@ -1,7 +1,6 @@
 "use client"
 
 import Image from "next/image"
-import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,10 +18,7 @@ export function LumiChat() {
     const entry = note.trim()
     if (!entry.length) return
     setMessages((prev) => [...prev, entry])
-    setResponses((prev) => [
-      ...prev,
-      "I hear you. I'm here to listen. If you want quick product answers, tap Q&A and we'll guide you there.",
-    ])
+    setResponses((prev) => [...prev, "I hear you. I'm here to listen and keep you steady."])
     setNote("")
   }
 
@@ -82,14 +78,6 @@ export function LumiChat() {
                 Share with Lumi
               </Button>
             </form>
-
-            <div className="space-y-2">
-              <p className="text-foreground font-medium">Need product answers?</p>
-              <p>If you have questions about the helper, browse our Q&A page for quick answers.</p>
-              <Button asChild variant="outline" className="w-full rounded-full">
-                <Link href="/faq">Go to Q&A</Link>
-              </Button>
-            </div>
 
             {messages.length > 0 && (
               <div className="space-y-1">
