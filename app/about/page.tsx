@@ -10,7 +10,7 @@ import { createServiceClient } from "@/lib/supabase/service"
 export const metadata: Metadata = {
   title: "About GuideBuoy AI – Team, Mission, and Contacts",
   description:
-    "Meet the GuideBuoy AI founding team, learn about our complaint OS mission, and get in touch with the people building the FIDReC-focused platform.",
+    "Meet the GuideBuoy AI founding team, learn about our complaint OS mission, and get in touch with the people building the platform.",
 }
 
 type TeamMember = {
@@ -63,7 +63,7 @@ const teamMembers: TeamMember[] = [
     role: "Govt. & Ecosystem Lead (Singapore)",
     bio: "Financial Services Director at FinArk Group @ PromiseLand who builds bridges with regulators, trade associations, and public-sector programmes.",
     experience:
-      "15+ years advising retail investors and SMEs on regulated products; frequently consults on MAS sandboxes and FIDReC outreach.",
+      "15+ years advising retail investors and SMEs on regulated products; frequently consults on MAS sandboxes and consumer outreach.",
     focus: "Owns government partnerships, ecosystem onboarding, and the playbooks that align GuideBuoy with national trust initiatives.",
     linkedIn: "https://www.linkedin.com/in/nicholasnyh/",
   },
@@ -176,7 +176,7 @@ export default async function AboutPage() {
             <p className="text-lg text-muted-foreground leading-relaxed">
               GuideBuoy AI is a software company in Singapore. We design an AXS-style helper that lets residents,
               caregivers, and nominees tell their story once, add evidence, and reuse it for agency-ready complaints
-              (including FIDReC escalations) without legal representation. Everything ships cloud-first, PDPA-aligned,
+              (including formal escalations) without legal representation. Everything ships cloud-first, PDPA-aligned,
               and battle-tested with real complaint data.
             </p>
             <div className="mt-6 flex flex-wrap gap-4">

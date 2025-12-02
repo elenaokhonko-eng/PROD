@@ -177,7 +177,7 @@ export const InvitationEmail: React.FC<InvitationEmailProps> = ({
           </p>
         </div>
         <p style={{ fontSize: "16px", lineHeight: "1.6" }}>
-          GuideBuoy AI helps you manage financial disputes with FIDReC. By accepting this invitation, you{"'"}ll be
+          GuideBuoy AI helps you manage financial complaints and escalations. By accepting this invitation, you{"'"}ll be
           able to collaborate on case documents, evidence, and submissions.
         </p>
         <div style={{ textAlign: "center", marginTop: "32px" }}>

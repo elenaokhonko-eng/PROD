@@ -22,7 +22,7 @@ import { marketingNavLinks } from "@/lib/navigation"
 export const metadata: Metadata = {
   title: "GuideBuoy AI Product – Complaint Automation Platform",
   description:
-    "Explore the GuideBuoy AI platform: complaint intake, AI report builder, document automation, and the FIDReC-ready workflow powering guidebuoyai.sg.",
+    "Explore the GuideBuoy AI platform: complaint intake, AI report builder, document automation, and the escalation-ready workflow powering guidebuoyai.sg.",
 }
 
 export const dynamic = "force-dynamic"
@@ -86,12 +86,12 @@ const productHighlights = [
   },
   {
     title: "Document automation",
-    description: "Complaint letters, FIR drafts, and FIDReC bundles with auto-numbered exhibits and citations.",
+    description: "Complaint letters, FIR drafts, and submission bundles with auto-numbered exhibits and citations.",
     icon: FileText,
   },
   {
     title: "Live case tracker",
-    description: "Deadline tracking, reminder emails, and outcome logging for each stage of the FIDReC process.",
+    description: "Deadline tracking, reminder emails, and outcome logging for each stage of the escalation process.",
     icon: Clock,
   },
   {
@@ -161,7 +161,7 @@ const shareMenu = [
   {
     title: "Partner channels",
     description: "Send packets directly to partners as they come online. Live partners show an active button.",
-    actions: ["Send to pilot partner", "Send to FIDReC (when ready)"],
+    actions: ["Send to pilot partner", "Send when ready"],
     status: "pilot",
   },
   {
@@ -187,7 +187,7 @@ const nextStepsList = [
   },
   {
     priority: "If needed",
-    action: "If the first response doesn't solve it, escalate to FIDReC from the hub.",
+    action: "If the first response doesn't solve it, escalate from the hub.",
   },
 ]
 
@@ -221,7 +221,7 @@ const showcasePanels = [
     accent: "from-emerald-200/40 via-background to-transparent",
   },
   {
-    title: "FIDReC prep kit",
+    title: "Escalation prep kit",
     description: "Auto-filled forms, email drafts, and checklists generated from the AI case model.",
     accent: "from-amber-200/40 via-background to-transparent",
   },

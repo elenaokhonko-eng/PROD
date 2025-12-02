@@ -120,8 +120,8 @@ export default function ResultsPage() {
           icon: CheckCircle,
           iconColor: "text-accent",
           bgColor: "bg-accent/10",
-          title: "You're Eligible for FIDReC!",
-          description: "Your case meets the criteria for formal escalation through FIDReC.",
+          title: "You're eligible for formal escalation",
+          description: "Your case meets the criteria for a formal escalation path.",
           ctaText: "Sign Up & Build Your Case - S$99",
           ctaVariant: "default" as const,
         }
@@ -141,7 +141,7 @@ export default function ResultsPage() {
           iconColor: "text-muted-foreground",
           bgColor: "bg-muted",
           title: "Self-Service Resources",
-          description: "While not FIDReC-eligible, we have resources to help you resolve this yourself.",
+          description: "While not eligible for formal escalation, we have resources to help you resolve this yourself.",
           ctaText: "View Resources",
           ctaVariant: "default" as const,
         }
@@ -306,3 +306,4 @@ export default function ResultsPage() {
     </div>
   )
 }
+

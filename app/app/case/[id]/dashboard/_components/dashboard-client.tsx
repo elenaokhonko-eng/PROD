@@ -345,7 +345,7 @@ useEffect(() => {
             <CardTitle className="text-center">Case Type Not Supported</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-muted-foreground">This MVP currently only supports FIDReC scam and fraud cases. Other case types will be available soon.</p>
+            <p className="text-muted-foreground">This MVP currently only supports selected scam and fraud cases. Other case types will be available soon.</p>
             <Button onClick={() => router.push("/")} className="w-full rounded-full">Return Home</Button>
           </CardContent>
         </Card>
@@ -434,7 +434,7 @@ useEffect(() => {
                     {!hasUnlockedCase
                       ? "Get professional documents and step-by-step guidance for S$99."
                       : !intakeComplete
-                        ? "Answer a few questions to build a strong foundation for your FIDReC submission."
+                        ? "Answer a few questions to build a strong foundation for your submission."
                         : uploadedFiles.length === 0
                           ? "Add supporting documents to strengthen your case."
                           : "Review your information and generate your professional case pack."}
@@ -583,7 +583,7 @@ useEffect(() => {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <h3 className="font-semibold text-xl mb-2">Ready to Generate Your Case Pack!</h3>
-                  <p className="text-muted-foreground mb-6">You{"'"}ve completed intake and uploaded {uploadedFiles.length} pieces of evidence. Generate your professional FIDReC documents now.</p>
+                  <p className="text-muted-foreground mb-6">You{"'"}ve completed intake and uploaded {uploadedFiles.length} pieces of evidence. Generate your professional documents now.</p>
                   <Button
                     size="lg"
                     className="rounded-full"

@@ -19,7 +19,7 @@ const comingSoonFeatures = [
   {
     id: "mediation-simulator",
     title: "Mediation Simulator",
-    description: "Role-play practice sessions with AI to prepare for your FIDReC mediation",
+    description: "Role-play practice sessions with AI to prepare for mediation",
     icon: MessageSquare,
     category: "Preparation Tools",
     eta: "Q2 2025",
@@ -59,7 +59,7 @@ const comingSoonFeatures = [
   {
     id: "integrations",
     title: "System Integrations",
-    description: "Direct handoff to CJTS/FIDReC systems, email inbox sync, and automated filing",
+    description: "Direct handoff to partner systems, email inbox sync, and automated filing",
     icon: Zap,
     category: "Automation",
     eta: "Q4 2025",

@@ -214,7 +214,7 @@ export default function HomeClient({ initialUser }: { initialUser: User | null }
 
             <p className="text-xl lg:text-2xl text-muted-foreground text-pretty mb-12 max-w-3xl mx-auto leading-relaxed">
               Complex agencies can be overwhelming. I{"'"}m Lumi, your AI guide. I{"'"}ll help you build a strong, clear
-              FIDReC case in under 60 minutes.
+              formal case in under 60 minutes.
             </p>
 
             <Link href="/app/case/new">
@@ -263,7 +263,7 @@ export default function HomeClient({ initialUser }: { initialUser: User | null }
                     <span className="text-2xl">📋</span>
                   </div>
                   <h3 className="font-semibold text-lg mb-3">Get Your Case Pack</h3>
-                  <p className="text-muted-foreground">Download professional documents ready for FIDReC submission.</p>
+                  <p className="text-muted-foreground">Download professional documents ready for submission.</p>
                 </CardContent>
               </Card>
             </div>

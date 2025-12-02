@@ -11,12 +11,12 @@ import { LumiChat } from "@/components/lumi-chat"
 export const metadata: Metadata = {
   title: "GuideBuoy AI - Singapore's Complaint Helper",
   description:
-    "Navigate scams and complaints with confidence. Lumi organises one report you can reuse with the Police, FIDReC, and national partners.",
+    "Navigate scams and complaints with confidence. Lumi organises one report you can reuse with the Police and national partners.",
   metadataBase: new URL("https://guidebuoyai.sg"),
   openGraph: {
     title: "GuideBuoy AI - Singapore's Complaint Helper",
     description:
-      "Navigate scams and complaints with confidence. Lumi organises one report you can reuse with the Police, FIDReC, and national partners.",
+      "Navigate scams and complaints with confidence. Lumi organises one report you can reuse with the Police and national partners.",
     url: "https://guidebuoyai.sg",
     siteName: "GuideBuoy AI",
     images: [
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "GuideBuoy AI - Singapore's Complaint Helper",
     description:
-      "Navigate scams and complaints with confidence. Lumi organises one report you can reuse with the Police, FIDReC, and national partners.",
+      "Navigate scams and complaints with confidence. Lumi organises one report you can reuse with the Police and national partners.",
     images: ["/placeholder-logo.png"],
   },
   generator: "v0.app",

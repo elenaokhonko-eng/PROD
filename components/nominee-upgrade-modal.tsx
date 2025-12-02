@@ -78,14 +78,14 @@ export default function NomineeUpgradeModal({
               </Badge>
             </div>
             <CardHeader className="pt-8">
-              <CardTitle className="text-lg">FIDReC Nominee Service</CardTitle>
+              <CardTitle className="text-lg">Nominee Service</CardTitle>
               <div className="text-2xl font-bold">S$500 + 10% success fee</div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
                   <Users className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
-                  <span className="text-sm">Qualified nominee handles your FIDReC submission</span>
+                  <span className="text-sm">Qualified nominee handles your submission</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Calendar className="h-4 w-4 text-primary mt-1 flex-shrink-0" />

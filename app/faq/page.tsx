@@ -37,7 +37,7 @@ const faqData = [
     questions: [
       {
         q: "Which agencies recognise the unified report?",
-        a: "The report is formatted for SPF e-services, ScamShield, FIDReC, and partner pilots like FIs or SMEs. When a direct API does not exist yet, you can export a PDF and send it yourself.",
+        a: "The report is formatted for SPF e-services, ScamShield, and partner pilots like FIs or SMEs. When a direct API does not exist yet, you can export a PDF and send it yourself.",
       },
       {
         q: "What is the dynamic evidence checklist?",

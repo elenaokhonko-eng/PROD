@@ -208,7 +208,7 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Deadline Reminders</Label>
-                  <p className="text-sm text-muted-foreground">FIDReC timeline notifications</p>
+                  <p className="text-sm text-muted-foreground">Complaint timeline notifications</p>
                 </div>
                 <Switch checked={notifications.deadlines} onCheckedChange={(checked) => setNotifications((prev) => ({ ...prev, deadlines: checked }))} />
               </div>

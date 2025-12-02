@@ -214,7 +214,7 @@ export default function LandingPage() {
             </h1>
             <p className="text-lg text-muted-foreground mb-8 text-pretty leading-relaxed">
               We&apos;re Singapore&apos;s Complaint Helper. Tell Lumi (our lighthouse AI) what happened once and Lumi will organise
-              your facts into a unified report you can reuse for the Police, national agencies, FIDReC, and more.
+              your facts into a unified report you can reuse for the Police, national agencies, and more.
             </p>
             <div className="flex items-center justify-center gap-4 mb-8 flex-wrap">
               <Badge variant="outline" className="text-sm rounded-full">
@@ -242,7 +242,7 @@ export default function LandingPage() {
               <CardTitle className="text-2xl">Create your unified report</CardTitle>
               <CardDescription className="leading-relaxed">
                 Lumi listens in plain language, then turns your story into a structured JSON report that works for the
-                Police, ScamShield, FIDReC, and ecosystem partners.
+                Police, ScamShield, and ecosystem partners.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

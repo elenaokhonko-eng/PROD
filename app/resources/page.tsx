@@ -16,9 +16,9 @@ const articles = [
     summary: "Grounding tips and immediate actions to protect your accounts.",
   },
   {
-    title: "Understanding FIDReC for consumers",
+    title: "Understanding dispute resolution for consumers",
     href: "https://fidrec.com.sg/",
-    summary: "When and how to escalate to FIDReC with the right documents.",
+    summary: "When and how to escalate a financial complaint with the right documents.",
   },
 ]
 

@@ -17,13 +17,13 @@ export function getNextStepsForRuleEngine(claimType: ClaimType): string[] {
       return [
         "Gather all product brochures, chats, and sales documentation.",
         "Submit a formal complaint to the financial institution’s customer care team.",
-        "Escalate to FIDReC if the matter is not resolved within 20 business days.",
+        "Escalate to the appropriate dispute body if the matter is not resolved within 20 business days.",
       ]
     case "Denied Insurance Claim":
       return [
         "Review the insurer’s rejection letter and note the stated reasons.",
         "Collect medical reports, policy documents, and any appeal correspondence.",
-        "File an appeal with the insurer and escalate to FIDReC if unsatisfied.",
+        "File an appeal with the insurer and escalate to the relevant ombudsman if unsatisfied.",
       ]
     case "Police Matter":
       return [
