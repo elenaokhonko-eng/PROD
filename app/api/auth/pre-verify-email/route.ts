@@ -11,12 +11,17 @@ const requestSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  // Looser throttle for testing: 50 requests per 5 minutes per IP.
-  const limiter = rateLimit(keyFrom(request, "/api/auth/pre-verify-email"), 50, 300_000)
-  if (!limiter.ok) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
+  if (process.env.DISABLE_EMAIL_RATE_LIMIT === "true") {
+    // Temporary bypass for testing environments
+    console.warn("[Pre Verify Email] Rate limit bypassed via DISABLE_EMAIL_RATE_LIMIT")
+  } else {
+    const limiter = rateLimit(keyFrom(request, "/api/auth/pre-verify-email"), 50, 300_000)
+    if (!limiter.ok) {
+      return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
+    }
   }
 
+  // Looser throttle for testing: 50 requests per 5 minutes per IP.
   const supabase = await createClient()
 
   let parsed: z.infer<typeof requestSchema>
