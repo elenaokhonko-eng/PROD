@@ -10,6 +10,39 @@ const requestSchema = z.object({
   source: z.string().optional(),
 })
 
+const preferPublicBase = () => {
+  const candidates = [
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL,
+    "https://guidebuoyai.sg",
+    "https://guidebuoyaisg.onrender.com",
+  ]
+
+  const isLocalish = (value: string | undefined | null) => {
+    if (!value) return true
+    try {
+      const url = new URL(value.startsWith("http") ? value : `https://${value}`)
+      const host = url.hostname.toLowerCase()
+      return host === "localhost" || host === "127.0.0.1" || !host.includes(".")
+    } catch {
+      return true
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (!isLocalish(candidate)) {
+      try {
+        return new URL(candidate.startsWith("http") ? candidate : `https://${candidate}`).origin
+      } catch {
+        continue
+      }
+    }
+  }
+
+  return "https://guidebuoyai.sg"
+}
+
 export async function POST(request: NextRequest) {
   if (process.env.DISABLE_EMAIL_RATE_LIMIT === "true") {
     // Temporary bypass for testing environments
@@ -21,7 +54,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Looser throttle for testing: 50 requests per 5 minutes per IP.
   const supabase = await createClient()
 
   let parsed: z.infer<typeof requestSchema>
@@ -40,7 +72,9 @@ export async function POST(request: NextRequest) {
     nextParams.set("source", parsed.source)
   }
   const nextPath = `/auth/sign-up?${nextParams.toString()}`
-  const emailRedirectTo = buildAppUrl(`/auth/callback?next=${encodeURIComponent(nextPath)}`)
+  const redirectBase = preferPublicBase()
+  const emailRedirectTo = new URL(`/auth/callback?next=${encodeURIComponent(nextPath)}`, redirectBase).toString()
+  console.log("[Pre Verify Email] Using redirect base:", redirectBase, "full URL:", emailRedirectTo)
 
   const { error } = await supabase.auth.signInWithOtp({
     email: normalizedEmail,
