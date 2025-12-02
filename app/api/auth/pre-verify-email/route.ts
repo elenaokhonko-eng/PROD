@@ -10,33 +10,30 @@ const requestSchema = z.object({
   source: z.string().optional(),
 })
 
-const preferPublicBase = () => {
+const publicRedirectBase = () => {
   const candidates = [
+    process.env.PUBLIC_AUTH_REDIRECT_BASE,
     process.env.NEXT_PUBLIC_SITE_URL,
     process.env.NEXT_PUBLIC_APP_URL,
     process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL,
     "https://guidebuoyai.sg",
     "https://guidebuoyaisg.onrender.com",
-  ]
+  ].filter(Boolean) as string[]
 
-  const isLocalish = (value: string | undefined | null) => {
-    if (!value) return true
+  const isPublic = (value: string) => {
     try {
       const url = new URL(value.startsWith("http") ? value : `https://${value}`)
       const host = url.hostname.toLowerCase()
-      return host === "localhost" || host === "127.0.0.1" || !host.includes(".")
+      return host.includes(".") && host !== "localhost" && host !== "127.0.0.1"
     } catch {
-      return true
+      return false
     }
   }
 
   for (const candidate of candidates) {
-    if (!isLocalish(candidate)) {
-      try {
-        return new URL(candidate.startsWith("http") ? candidate : `https://${candidate}`).origin
-      } catch {
-        continue
-      }
+    if (isPublic(candidate)) {
+      const origin = new URL(candidate.startsWith("http") ? candidate : `https://${candidate}`).origin
+      return origin
     }
   }
 
@@ -72,7 +69,7 @@ export async function POST(request: NextRequest) {
     nextParams.set("source", parsed.source)
   }
   const nextPath = `/auth/sign-up?${nextParams.toString()}`
-  const redirectBase = preferPublicBase()
+  const redirectBase = publicRedirectBase()
   const emailRedirectTo = new URL(`/auth/callback?next=${encodeURIComponent(nextPath)}`, redirectBase).toString()
   console.log("[Pre Verify Email] Using redirect base:", redirectBase, "full URL:", emailRedirectTo)
 
