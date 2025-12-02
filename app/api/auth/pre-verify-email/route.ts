@@ -41,14 +41,16 @@ const publicRedirectBase = () => {
 }
 
 export async function POST(request: NextRequest) {
-  if (process.env.DISABLE_EMAIL_RATE_LIMIT === "true") {
-    // Temporary bypass for testing environments
-    console.warn("[Pre Verify Email] Rate limit bypassed via DISABLE_EMAIL_RATE_LIMIT")
-  } else {
+  const enforceRateLimit =
+    process.env.ENFORCE_EMAIL_RATE_LIMIT === "true" && process.env.DISABLE_EMAIL_RATE_LIMIT !== "true"
+
+  if (enforceRateLimit) {
     const limiter = rateLimit(keyFrom(request, "/api/auth/pre-verify-email"), 50, 300_000)
     if (!limiter.ok) {
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
     }
+  } else {
+    console.warn("[Pre Verify Email] Rate limit bypassed (ENFORCE_EMAIL_RATE_LIMIT not true or DISABLE flag set)")
   }
 
   const supabase = await createClient()
