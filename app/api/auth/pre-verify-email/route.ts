@@ -11,8 +11,8 @@ const requestSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  // Allow more verification attempts before throttling: 12 requests per 5 minutes per IP.
-  const limiter = rateLimit(keyFrom(request, "/api/auth/pre-verify-email"), 12, 300_000)
+  // Looser throttle for testing: 50 requests per 5 minutes per IP.
+  const limiter = rateLimit(keyFrom(request, "/api/auth/pre-verify-email"), 50, 300_000)
   if (!limiter.ok) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
   }
