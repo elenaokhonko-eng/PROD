@@ -14,11 +14,21 @@ const safeOrigin = (value: string | undefined | null): string | null => {
   }
 }
 
+const isLocalOrigin = (origin: string) => /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?/i.test(origin)
+
 export const getAppBaseUrl = () => {
-  const envOrigin =
-    safeOrigin(process.env.NEXT_PUBLIC_SITE_URL) ??
-    safeOrigin(process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL) ??
-    safeOrigin(process.env.NEXT_PUBLIC_APP_URL)
+  const envOrigins = [
+    safeOrigin(process.env.NEXT_PUBLIC_SITE_URL),
+    safeOrigin(process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL),
+    safeOrigin(process.env.NEXT_PUBLIC_APP_URL),
+  ].filter((origin): origin is string => Boolean(origin))
+
+  if (process.env.NODE_ENV === "production") {
+    const nonLocalOrigin = envOrigins.find((origin) => !isLocalOrigin(origin))
+    if (nonLocalOrigin) return nonLocalOrigin
+  }
+
+  const envOrigin = envOrigins[0]
 
   if (envOrigin) return envOrigin
 
