@@ -181,42 +181,20 @@ export default function SignUpPage() {
     const hasQueryVerification = verifiedParam === "1"
     const hasOtpCode = Boolean(codeParam)
     const stored = readVerifiedUserFromStorage()
-
-    if (!hasQueryVerification && !hasOtpCode && !stored) {
-      return
-    }
-
     let active = true
-    setCheckingVerification(true)
 
-    const exchangeAndLoadUser = async () => {
+    const loadUserFromSession = async (reason: string) => {
       try {
-        if (hasOtpCode) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeParam as string)
-          if (exchangeError) {
-            throw exchangeError
-          }
-        }
-
         const { data } = await supabase.auth.getUser()
         if (!active) return
         const user = data?.user
-        if (!user || !user.email) {
-          if (hasQueryVerification || hasOtpCode) {
-            setVerificationStatus("error")
-            setVerificationError("We could not confirm your email. Please try the link again.")
-          }
-          return
-        }
-
+        if (!user || !user.email) return
         const normalizedUserEmail = user.email.toLowerCase()
         const normalizedParamEmail = emailParam?.toLowerCase()
         const storedMatches = stored?.userId === user.id
-        const shouldTrust = hasQueryVerification || hasOtpCode || storedMatches
+        const shouldTrust = hasQueryVerification || hasOtpCode || storedMatches || !!user.email_confirmed_at
 
-        if (!shouldTrust) {
-          return
-        }
+        if (!shouldTrust) return
 
         if (hasQueryVerification && normalizedParamEmail && normalizedParamEmail !== normalizedUserEmail) {
           setVerificationStatus("error")
@@ -233,6 +211,20 @@ export default function SignUpPage() {
         setVerificationError(null)
       } catch (err) {
         if (!active) return
+        console.error("[signup] Failed to load session:", err)
+      }
+    }
+
+    const exchangeAndLoadUser = async () => {
+      setCheckingVerification(true)
+      try {
+        if (hasOtpCode) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeParam as string)
+          if (exchangeError) throw exchangeError
+        }
+        await loadUserFromSession("exchange")
+      } catch (err) {
+        if (!active) return
         setVerificationStatus("error")
         setVerificationError("We could not confirm your email. Please try the link again.")
         console.error("[signup] Failed to check/confirm email:", err)
@@ -241,10 +233,19 @@ export default function SignUpPage() {
       }
     }
 
-    void exchangeAndLoadUser()
+    if (hasOtpCode || hasQueryVerification || stored) {
+      void exchangeAndLoadUser()
+    } else {
+      // Initial background check for existing session (e.g., cookie set by confirmation tab)
+      void loadUserFromSession("initial")
+    }
+
+    const handleFocus = () => void loadUserFromSession("focus")
+    window.addEventListener("focus", handleFocus)
 
     return () => {
       active = false
+      window.removeEventListener("focus", handleFocus)
     }
   }, [supabase, verifiedParam, emailParam, codeParam])
 
