@@ -66,14 +66,13 @@ export async function POST(request: NextRequest) {
   }
 
   const normalizedEmail = parsed.email.trim().toLowerCase()
-  const nextParams = new URLSearchParams({ verified: "1", email: normalizedEmail })
+  const redirectBase = publicRedirectBase()
+  const nextParams = new URLSearchParams({ email: normalizedEmail, verified: "1" })
   if (parsed.source) {
     nextParams.set("source", parsed.source)
   }
-  const nextPath = `/auth/sign-up?${nextParams.toString()}`
-  const redirectBase = publicRedirectBase()
-  const emailRedirectTo = new URL(`/auth/callback?next=${encodeURIComponent(nextPath)}`, redirectBase).toString()
-  console.log("[Pre Verify Email] Using redirect base:", redirectBase, "full URL:", emailRedirectTo)
+  const emailRedirectTo = `${redirectBase}/auth/sign-up?${nextParams.toString()}`
+  console.log("[Pre Verify Email] Using redirect URL:", emailRedirectTo)
 
   const { error } = await supabase.auth.signInWithOtp({
     email: normalizedEmail,

@@ -93,6 +93,7 @@ export default function SignUpPage() {
   const source = searchParams.get("source")
   const emailParam = searchParams.get("email")
   const verifiedParam = searchParams.get("verified")
+  const codeParam = searchParams.get("code")
   const isFromRouter = source === "router"
 
   const [email, setEmail] = useState("")
@@ -178,23 +179,30 @@ export default function SignUpPage() {
 
   useEffect(() => {
     const hasQueryVerification = verifiedParam === "1"
+    const hasOtpCode = Boolean(codeParam)
     const stored = readVerifiedUserFromStorage()
 
-    if (!hasQueryVerification && !stored) {
+    if (!hasQueryVerification && !hasOtpCode && !stored) {
       return
     }
 
     let active = true
     setCheckingVerification(true)
 
-    supabase.auth
-      .getUser()
-      .then(({ data }) => {
+    const exchangeAndLoadUser = async () => {
+      try {
+        if (hasOtpCode) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeParam as string)
+          if (exchangeError) {
+            throw exchangeError
+          }
+        }
+
+        const { data } = await supabase.auth.getUser()
         if (!active) return
-        setCheckingVerification(false)
         const user = data?.user
         if (!user || !user.email) {
-          if (hasQueryVerification) {
+          if (hasQueryVerification || hasOtpCode) {
             setVerificationStatus("error")
             setVerificationError("We could not confirm your email. Please try the link again.")
           }
@@ -204,7 +212,7 @@ export default function SignUpPage() {
         const normalizedUserEmail = user.email.toLowerCase()
         const normalizedParamEmail = emailParam?.toLowerCase()
         const storedMatches = stored?.userId === user.id
-        const shouldTrust = hasQueryVerification || storedMatches
+        const shouldTrust = hasQueryVerification || hasOtpCode || storedMatches
 
         if (!shouldTrust) {
           return
@@ -223,17 +231,22 @@ export default function SignUpPage() {
         setVerificationStatus("verified")
         setVerificationMessage("Email verified. Continue below to finish creating your account.")
         setVerificationError(null)
-      })
-      .catch((err) => {
+      } catch (err) {
         if (!active) return
-        setCheckingVerification(false)
-        console.error("[signup] Failed to check Supabase session:", err)
-      })
+        setVerificationStatus("error")
+        setVerificationError("We could not confirm your email. Please try the link again.")
+        console.error("[signup] Failed to check/confirm email:", err)
+      } finally {
+        if (active) setCheckingVerification(false)
+      }
+    }
+
+    void exchangeAndLoadUser()
 
     return () => {
       active = false
     }
-  }, [supabase, verifiedParam, emailParam])
+  }, [supabase, verifiedParam, emailParam, codeParam])
 
   const trackEvent = async (eventName: string, eventData: Record<string, unknown>) => {
     await trackClientEvent({
