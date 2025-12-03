@@ -36,6 +36,11 @@ export default function OnboardingPage() {
         }
       } catch (err) {
         console.warn("[onboarding] No valid auth session, redirecting to login", err)
+        try {
+          await supabase.auth.signOut()
+        } catch {
+          // ignore
+        }
         clearConvertedRouterSessionToken()
         router.replace("/auth/login?next=/onboarding")
         return false
@@ -75,6 +80,11 @@ export default function OnboardingPage() {
           err instanceof Error &&
           /Unauthorized|No convertible session|Session already linked|user_not_found/i.test(err.message)
         ) {
+          try {
+            await supabase.auth.signOut()
+          } catch {
+            // ignore
+          }
           router.replace("/auth/login?next=/onboarding")
         } else {
           router.replace("/app")
