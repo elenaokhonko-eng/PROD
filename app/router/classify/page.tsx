@@ -115,7 +115,7 @@ export default function ClassifyPage() {
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-200" />
-                <p className="text-sm text-muted-foreground">Checking eligibility criteria...</p>
+                <p className="text-sm text-muted-foreground">Mapping what you shared to the right path...</p>
               </div>
             </div>
           ) : (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import type { User } from "@supabase/supabase-js"
 import Link from "next/link"
@@ -62,7 +62,7 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
 
   const user: User | null = initialUser
   const caseData: CaseSummary | null = initialCase
-  const payment = initialPayment
+  void initialPayment
   const [currentIntakeStep, setCurrentIntakeStep] = useState(0)
   const [intakeResponses, setIntakeResponses] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {}
@@ -75,20 +75,10 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
   const [isDragging, setIsDragging] = useState(false)
   const [uploadErrors, setUploadErrors] = useState<string[]>([])
-  const [isCreatingCheckout, setIsCreatingCheckout] = useState(false)
-  const [checkoutStatus, setCheckoutStatus] = useState<"success" | "cancel" | null>(null)
-  const [hasUnlockedCase, setHasUnlockedCase] = useState<boolean>(Boolean(payment))
+  const hasUnlockedCase = true
   const [isGeneratingPack, setIsGeneratingPack] = useState(false)
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [packDownloadUrl, setPackDownloadUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    const stored = window.localStorage.getItem(`gb_case_unlocked_${caseId}`)
-    if (stored === "true") {
-      setHasUnlockedCase(true)
-    }
-  }, [caseId])
 
   const intakeComplete = useMemo(() => intakeQuestions.every((q) => !q.required || intakeResponses[q.key]), [intakeResponses])
 
@@ -127,35 +117,6 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
       setIsSavingIntake(false)
     }
   }
-
-useEffect(() => {
-  if (typeof window === "undefined") return
-  const params = new URLSearchParams(window.location.search)
-  const status = params.get("checkout")
-  if (status === "success" || status === "cancel") {
-    setCheckoutStatus(status)
-    if (status === "success") {
-      setHasUnlockedCase(true)
-      window.localStorage.setItem(`gb_case_unlocked_${caseId}`, "true")
-    }
-    window.history.replaceState({}, "", window.location.pathname)
-  }
-}, [caseId])
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    if (hasUnlockedCase) {
-      window.localStorage.setItem(`gb_case_unlocked_${caseId}`, "true")
-    }
-  }, [hasUnlockedCase, caseId])
-
-  useEffect(() => {
-    if (checkoutStatus === "success") {
-      const timeout = setTimeout(() => setCheckoutStatus(null), 8000)
-      return () => clearTimeout(timeout)
-    }
-    return
-  }, [checkoutStatus])
 
   const handleIntakeNext = async () => {
     const currentQuestion = intakeQuestions[currentIntakeStep]
@@ -249,23 +210,6 @@ useEffect(() => {
     },
     [user],
   )
-
-  const handleCheckout = async () => {
-    try {
-      setIsCreatingCheckout(true)
-      const res = await fetch("/api/payments/create-checkout-session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ caseId }) })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to start checkout")
-      if (data.url) window.location.href = data.url as string
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("Checkout error:", err)
-      // eslint-disable-next-line no-alert
-      alert("Unable to start checkout. Please try again.")
-    } finally {
-      setIsCreatingCheckout(false)
-    }
-  }
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes"
@@ -392,28 +336,6 @@ useEffect(() => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          {checkoutStatus === "success" && (
-            <div className="rounded-xl border border-emerald-400/50 bg-emerald-500/10 p-4 flex items-start gap-3">
-              <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5" />
-              <div>
-                <p className="font-semibold text-emerald-700">Payment confirmed</p>
-                <p className="text-sm text-emerald-700/80 dark:text-emerald-200/80">
-                  Thank you for your purchase! Your case pack is unlocked—continue building your claim below.
-                </p>
-              </div>
-            </div>
-          )}
-          {checkoutStatus === "cancel" && (
-            <div className="rounded-xl border border-amber-400/50 bg-amber-500/10 p-4 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
-              <div>
-                <p className="font-semibold text-amber-700">Checkout cancelled</p>
-                <p className="text-sm text-amber-700/80 dark:text-amber-200/80">
-                  Your payment wasn&apos;t completed. You can retry whenever you&apos;re ready.
-                </p>
-              </div>
-            </div>
-          )}
           <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20 rounded-xl">
             <CardHeader>
               <div className="flex items-start gap-4">
@@ -422,28 +344,20 @@ useEffect(() => {
                 </div>
                 <div className="flex-1">
                   <CardTitle className="text-xl mb-2 text-balance">
-                    {!hasUnlockedCase
-                      ? "Ready to unlock your case pack?"
-                      : !intakeComplete
-                        ? <>Let{"'"}s build your case story</>
-                        : uploadedFiles.length === 0
-                          ? "Upload your evidence"
-                          : "Your case is ready!"}
+                    {!intakeComplete
+                      ? <>Let{'"'}s build your case story</>
+                      : uploadedFiles.length === 0
+                        ? "Upload your evidence"
+                        : "Your case is ready!"}
                   </CardTitle>
                   <p className="text-muted-foreground mb-4 text-pretty">
-                    {!hasUnlockedCase
-                      ? "Get professional documents and step-by-step guidance for S$99."
-                      : !intakeComplete
-                        ? "Answer a few questions to build a strong foundation for your submission."
-                        : uploadedFiles.length === 0
-                          ? "Add supporting documents to strengthen your case."
-                          : "Review your information and generate your professional case pack."}
+                    {!intakeComplete
+                      ? "Answer a few questions to build a strong foundation for your submission."
+                      : uploadedFiles.length === 0
+                        ? "Add supporting documents to strengthen your case."
+                        : "Review your information and generate your professional case pack."}
                   </p>
-                  {!hasUnlockedCase && (
-                    <Button size="lg" className="rounded-full" onClick={handleCheckout} disabled={isCreatingCheckout}>
-                      {isCreatingCheckout ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Redirecting to Checkout...</>) : (<>Unlock Case Pack - S$99</>)}
-                    </Button>
-                  )}
+                  <Badge variant="secondary" className="rounded-full">All tools are free during the pilot</Badge>
                 </div>
               </div>
             </CardHeader>

@@ -23,6 +23,7 @@ export default function LandingPage() {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const [narrative, setNarrative] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
   const [inputMethod, setInputMethod] = useState<"voice" | "text">("text")
   const router = useRouter()
 
@@ -93,9 +94,12 @@ export default function LandingPage() {
   }, [])
 
   const handleVoiceRecording = async () => {
+    if (isTranscribing) return
+
     if (!isRecording) {
       // Start recording
       try {
+        setIsTranscribing(false)
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
         const recorder = new MediaRecorder(stream)
         const chunks: Blob[] = []
@@ -103,6 +107,7 @@ export default function LandingPage() {
           if (e.data && e.data.size > 0) chunks.push(e.data)
         }
         recorder.onstop = async () => {
+          setIsTranscribing(true)
           try {
             const blob = new Blob(chunks, { type: "audio/webm" })
             const form = new FormData()
@@ -118,6 +123,9 @@ export default function LandingPage() {
             console.error("[v0] Transcription upload error:", err)
             alert("Failed to transcribe recording")
           } finally {
+            setIsTranscribing(false)
+            recorder.stream.getTracks().forEach((track) => track.stop())
+            setMediaRecorder(null)
           }
         }
         recorder.start()
@@ -129,10 +137,10 @@ export default function LandingPage() {
       }
     } else {
       // Stop recording
-      try {
-        mediaRecorder?.stop()
-      } finally {
-        setIsRecording(false)
+      setIsRecording(false)
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        setIsTranscribing(true)
+        mediaRecorder.stop()
       }
     }
   }
@@ -285,22 +293,47 @@ export default function LandingPage() {
               {/* Voice Input */}
               {inputMethod === "voice" && (
                 <div className="space-y-4">
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-semibold text-foreground">Voice capture</p>
+                    <p className="text-xs text-muted-foreground">
+                      Click once to start recording and click again to stop. We will show a processing meter until your transcript is ready.
+                    </p>
+                  </div>
                   <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-border rounded-xl bg-muted/20">
                     <button
                       onClick={handleVoiceRecording}
+                      disabled={isTranscribing}
                       className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
                         isRecording
                           ? "bg-destructive text-destructive-foreground animate-pulse"
                           : "bg-primary text-primary-foreground hover:scale-105"
-                      }`}
+                      } ${isTranscribing ? "opacity-60 cursor-not-allowed" : ""}`}
                     >
                       {isRecording ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
                     </button>
                     <p className="mt-4 text-sm font-medium">
-                      {isRecording ? "Recording... Click to stop" : "Click to start recording"}
+                      {isRecording ? "Recording... Click again to stop" : "Click once to start, then click again to stop"}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">Speak clearly and include all relevant details</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {isTranscribing
+                        ? "Processing your audio. This can take up to ~30 seconds."
+                        : "Speak clearly and include all relevant details"}
+                    </p>
                   </div>
+                  {isTranscribing && (
+                    <div className="rounded-xl border border-border bg-background/70 px-4 py-3 flex items-center gap-3">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Processing your recording</p>
+                        <p className="text-xs text-muted-foreground">
+                          Hang tight while we transcribe. Your text will appear below the mic button.
+                        </p>
+                        <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
+                          <div className="h-full w-1/3 bg-primary animate-pulse" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {narrative && (
                     <div className="p-4 bg-muted/50 rounded-xl">
                       <p className="text-sm font-medium mb-2">Transcript:</p>

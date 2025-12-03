@@ -62,15 +62,9 @@ export async function POST(request: NextRequest) {
       ],
     })
 
-    const prompt = `You are an expert in Singapore FIDReC (Financial Industry Disputes Resolution Centre) eligibility criteria.
+    const prompt = `You are an intake assistant for GuideBuoy AI (Singapore consumer disputes and scam complaints). Do NOT gate users behind strict FIDReC criteria—we want everyone to keep moving, with a recommended path that fits what they shared.
 
-FIDReC Eligibility Requirements:
-1. Must be an individual consumer (not business)
-2. Dispute must be with a Singapore financial institution (FIDReC member)
-3. Claim amount must be <= SGD 150,000
-4. Incident must have occurred within last 6 years
-5. Must have first complained to the institution
-6. Institution must have rejected or not resolved within 30 days
+Context to consider (not blockers): institution type, claim size, timing, whether they already contacted the institution, and what evidence they have. Use this to choose a helpful path, not to reject.
 
 Dispute Classification:
 ${JSON.stringify(scrub(classification), null, 2)}
@@ -78,15 +72,21 @@ ${JSON.stringify(scrub(classification), null, 2)}
 User Responses:
 ${JSON.stringify(scrub(responses), null, 2)}
 
-Assess eligibility and provide:
-1. is_fidrec_eligible: boolean
-2. eligibility_score: 0-100 (confidence in case strength)
-3. recommended_path: "fidrec_eligible" | "waitlist" | "self_service" | "not_eligible"
+Decide the best support path and provide:
+1. is_fidrec_eligible: boolean (true when a formal escalation or ombuds-style path seems viable; otherwise false)
+2. eligibility_score: 0-100 (overall confidence in the case/story strength for any path)
+3. recommended_path: one of
+   - "fidrec_eligible": move ahead with a hands-on case build / escalation
+   - "waitlist": we need to loop them into our launch or specialist queue
+   - "self_service": give DIY guidance/resources now
+   - "not_eligible": only for clearly out-of-scope or abusive content; prefer self_service otherwise
 4. reasoning: Array of key points explaining the assessment
 5. missing_info: Array of any critical missing information
-6. next_steps: Array of 3-5 recommended actions
+6. next_steps: Array of 3-5 recommended actions the user can take now
 7. estimated_timeline: String describing expected timeline
 8. success_probability: "high" | "medium" | "low"
+
+Be generous: never block the user just because details are missing; still pick the best available path and surface missing_info.
 
 Return ONLY valid JSON, no other text.
 

@@ -61,21 +61,18 @@ export async function POST(request: NextRequest) {
       ],
     })
 
-    const prompt = `You are an expert in Singapore financial disputes and FIDReC cases.
+    const prompt = `You are an intake assistant for GuideBuoy AI (Singapore consumer disputes and scam complaints). We no longer gate users for FIDReC—ask practical, lightweight questions that help us move them to the right path.
 
 Based on this dispute classification:
 ${JSON.stringify(scrub(classification), null, 2)}
 
-Generate 5-7 clarifying questions to assess FIDReC eligibility and case strength.
-
-Questions should cover:
-1. Singapore institution verification
-2. Individual vs business consumer
-3. Claim amount
-4. Incident timing
-5. Prior complaint to institution
-6. Product type
-7. Evidence availability
+Generate 5-7 clarifying questions to understand the case. Focus on:
+1. Who/what they dealt with (institution or party)
+2. Rough claim amount or loss
+3. When it happened
+4. What they already tried (e.g., contacted institution/police)
+5. Evidence availability (receipts, screenshots, reference numbers)
+6. Urgency or harm (money lost, account access, harassment)
 
 Return a JSON object with a "questions" array. Each question should have:
 - key: unique identifier (snake_case)
@@ -83,6 +80,8 @@ Return a JSON object with a "questions" array. Each question should have:
 - type: "radio", "text", "number", or "date"
 - options: array of options (for radio type)
 - required: boolean
+
+Keep wording plain and friendly. Do not include legal disclaimers.
 
 JSON Output:`
 

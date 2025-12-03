@@ -120,9 +120,9 @@ export default function ResultsPage() {
           icon: CheckCircle,
           iconColor: "text-accent",
           bgColor: "bg-accent/10",
-          title: "You're eligible for formal escalation",
-          description: "Your case meets the criteria for a formal escalation path.",
-          ctaText: "Sign Up & Build Your Case - S$99",
+          title: "We can move your case forward",
+          description: "Your story is strong enough to keep going. Let's build your report and next steps together.",
+          ctaText: "Continue to sign up",
           ctaVariant: "default" as const,
         }
       case "waitlist":
@@ -131,7 +131,7 @@ export default function ResultsPage() {
           iconColor: "text-primary",
           bgColor: "bg-primary/10",
           title: "Join Our Waitlist",
-          description: "Your case needs professional guidance. We'll notify you when our full service launches.",
+          description: "We’re lining up a specialist path for cases like yours. Join the list and we’ll notify you as soon as it’s ready.",
           ctaText: "Join Waitlist",
           ctaVariant: "default" as const,
         }
@@ -150,9 +150,9 @@ export default function ResultsPage() {
           icon: AlertCircle,
           iconColor: "text-destructive",
           bgColor: "bg-destructive/10",
-          title: "Limited Options Available",
-          description: "Based on your situation, formal escalation may not be the best path.",
-          ctaText: "Explore Options",
+          title: "We need a bit more to guide you",
+          description: "We couldn’t place this yet. Add any missing details or start a fresh assessment.",
+          ctaText: "Add more details",
           ctaVariant: "outline" as const,
         }
     }
