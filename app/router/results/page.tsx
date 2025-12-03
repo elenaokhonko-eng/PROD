@@ -14,6 +14,7 @@ export default function ResultsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [assessment, setAssessment] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [classification, setClassification] = useState<any>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function ResultsPage() {
           router.push("/router")
           return
         }
+        setClassification(session.classification_result)
 
         // Get eligibility assessment
         const response = await fetch("/api/router/assess", {
@@ -207,6 +209,16 @@ export default function ResultsPage() {
               {/* Key Reasoning */}
               <div>
                 <h3 className="font-semibold mb-3">Assessment Summary</h3>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <Badge variant="secondary" className="rounded-full">
+                    Complaint Type: {classification?.claimType || "Financial Dispute"}
+                  </Badge>
+                  {classification?.claimSubtype && (
+                    <Badge variant="outline" className="rounded-full">
+                      Subtype: {classification.claimSubtype}
+                    </Badge>
+                  )}
+                </div>
                 <ul className="space-y-2">
                   {assessment.reasoning.map((reason: string, index: number) => (
                     <li key={index} className="flex items-start gap-2 text-sm">
