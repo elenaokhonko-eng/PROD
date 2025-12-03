@@ -225,9 +225,9 @@ export default function SignUpPage() {
         await loadUserFromSession("exchange")
       } catch (err) {
         if (!active) return
-        setVerificationStatus("error")
-        setVerificationError("We could not confirm your email. Please try the link again.")
-        console.error("[signup] Failed to check/confirm email:", err)
+        console.warn("[signup] Waiting for email confirmation; could not exchange code yet:", err)
+        setVerificationStatus("idle")
+        setVerificationError(null)
       } finally {
         if (active) setCheckingVerification(false)
       }
