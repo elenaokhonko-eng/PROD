@@ -8,7 +8,6 @@ import { logger } from "@/lib/logger"
 
 type ClassificationOutput = {
   claim_type: ClaimType
-  recommendation: "Financial Institution" | "Police" | "Other"
   summary: string
   key_entities?: string[]
 }
@@ -28,26 +27,12 @@ const classifyRequestSchema = z.object({
   narrative: z.string().min(1, "narrative is required").max(20_000, "narrative is too long"),
 })
 
-const systemInstruction = `You are an AI assistant analyzing financial dispute descriptions from users in Singapore. Your task is to classify the issue and provide ONLY a single, valid JSON object matching the following TypeScript type. Do not include any introductory text, concluding text, explanations, or markdown formatting like \`\`\`json.
+const systemInstruction = `You are an AI assistant analyzing dispute descriptions from users in Singapore. Classify the issue ONLY as "Scam" or "Fraud" and return one valid JSON object matching this TypeScript type:
 
-Categories for claim_type:
-- Phishing Scam: User lost money due to deceptive messages, calls, or links impersonating legitimate entities.
-- Mis-sold Product: User bought a financial product (insurance, investment) that was unsuitable for their needs or misrepresented.
-- Denied Insurance Claim: User's claim on an insurance policy (life, health, CI, etc.) was rejected.
-- Police Matter: The issue seems primarily criminal (e.g., love scam, investment fraud not involving a regulated FI directly, physical theft) and should be reported to the police first.
-- Other/Unclear: The description doesn't fit the above or lacks sufficient detail.
-
-Recommendations for recommendation:
-- Financial Institution: The primary next step involves dealing with a bank or insurer (even if police report is also needed).
-- Police: The primary next step is reporting to the Singapore Police Force.
-- Other: Not enough information to recommend a primary channel.
-
-TypeScript type for JSON output:
 type ClassificationOutput = {
-  claim_type: 'Phishing Scam' | 'Mis-sold Product' | 'Denied Insurance Claim' | 'Police Matter' | 'Other/Unclear';
-  recommendation: 'Financial Institution' | 'Police' | 'Other';
-  summary: string; // Brief one-sentence summary
-  key_entities?: string[]; // Optional list of mentioned entities like bank names, amounts
+  claim_type: 'Scam' | 'Fraud';
+  summary: string; // one-sentence summary
+  key_entities?: string[]; // optional names, numbers, platforms
 };`
 
 function sanitizeText(input: string): string {
@@ -119,7 +104,7 @@ JSON Output:`
     let classificationResult: ClassificationOutput
     try {
       classificationResult = JSON.parse(rawText) as ClassificationOutput
-      if (!classificationResult.claim_type || !classificationResult.recommendation || !classificationResult.summary) {
+      if (!classificationResult.claim_type || !classificationResult.summary) {
         throw new Error("Parsed JSON is missing required fields.")
       }
       log.info("Gemini classification parsed", { classification: classificationResult })
@@ -129,9 +114,8 @@ JSON Output:`
         rawPreview: rawText.slice(0, 400),
       })
       classificationResult = {
-        claim_type: "Other/Unclear",
-        recommendation: "Other",
-        summary: "Failed to classify. The AI response was not in the expected format.",
+        claim_type: "Scam",
+        summary: "Failed to classify precisely. Defaulting to scam handling.",
       }
     }
 
@@ -155,7 +139,6 @@ JSON Output:`
 
     return NextResponse.json({
       claimType: classificationResult.claim_type,
-      recommendation: classificationResult.recommendation,
       summary: classificationResult.summary,
       keyEntities: classificationResult.key_entities,
       nextSteps,

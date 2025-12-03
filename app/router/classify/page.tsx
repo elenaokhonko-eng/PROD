@@ -49,12 +49,13 @@ export default function ClassifyPage() {
         // Update session with classification
         await updateRouterSession(sessionToken, {
           classification_result: result,
+          user_responses: {},
         })
 
-        // Auto-redirect after 2 seconds
+        // Auto-redirect after 1 second directly to results (no question step)
         setTimeout(() => {
-          router.push("/router/questions")
-        }, 2000)
+          router.push("/router/results")
+        }, 1000)
       } catch (err) {
         console.error("[v0] Error analyzing incident:", err)
         setError("Something went wrong. Please try again.")
