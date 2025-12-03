@@ -376,7 +376,6 @@ export default function SignUpPage() {
           sessionToken,
           consent: consentPayload,
           preverifiedUserId: verifiedUser.id,
-          sendWelcomeEmail: false,
         }),
       })
 
