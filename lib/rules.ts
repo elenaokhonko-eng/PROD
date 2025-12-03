@@ -1,7 +1,8 @@
-export type ClaimType = "Scam" | "Fraud"
+export type ClaimType = "Financial Dispute"
+export type ClaimSubtype = "Scam" | "Fraud"
 
-export function getNextStepsForRuleEngine(claimType: ClaimType): string[] {
-  switch (claimType) {
+export function getNextStepsForRuleEngine(subtype: ClaimSubtype): string[] {
+  switch (subtype) {
     case "Scam":
       return [
         "Secure your accounts: reset passwords and enable multi-factor authentication.",
@@ -18,4 +19,3 @@ export function getNextStepsForRuleEngine(claimType: ClaimType): string[] {
       return []
   }
 }
-

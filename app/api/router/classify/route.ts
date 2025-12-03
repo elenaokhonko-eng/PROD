@@ -3,11 +3,12 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/ge
 import { z } from "zod"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
 import { createServiceClient } from "@/lib/supabase/service"
-import { getNextStepsForRuleEngine, type ClaimType } from "@/lib/rules"
+import { getNextStepsForRuleEngine, type ClaimSubtype } from "@/lib/rules"
 import { logger } from "@/lib/logger"
 
 type ClassificationOutput = {
-  claim_type: ClaimType
+  claim_type: "Financial Dispute"
+  claim_subtype: ClaimSubtype
   summary: string
   key_entities?: string[]
 }
@@ -27,10 +28,11 @@ const classifyRequestSchema = z.object({
   narrative: z.string().min(1, "narrative is required").max(20_000, "narrative is too long"),
 })
 
-const systemInstruction = `You are an AI assistant analyzing dispute descriptions from users in Singapore. Classify the issue ONLY as "Scam" or "Fraud" and return one valid JSON object matching this TypeScript type:
+const systemInstruction = `You are an AI assistant analyzing dispute descriptions from users in Singapore. Identify the overall type as "Financial Dispute" and the subtype as either "Scam" or "Fraud". Return one valid JSON object matching:
 
 type ClassificationOutput = {
-  claim_type: 'Scam' | 'Fraud';
+  claim_type: 'Financial Dispute';
+  claim_subtype: 'Scam' | 'Fraud';
   summary: string; // one-sentence summary
   key_entities?: string[]; // optional names, numbers, platforms
 };`
@@ -104,7 +106,7 @@ JSON Output:`
     let classificationResult: ClassificationOutput
     try {
       classificationResult = JSON.parse(rawText) as ClassificationOutput
-      if (!classificationResult.claim_type || !classificationResult.summary) {
+      if (!classificationResult.claim_type || !classificationResult.claim_subtype || !classificationResult.summary) {
         throw new Error("Parsed JSON is missing required fields.")
       }
       log.info("Gemini classification parsed", { classification: classificationResult })
@@ -114,7 +116,8 @@ JSON Output:`
         rawPreview: rawText.slice(0, 400),
       })
       classificationResult = {
-        claim_type: "Scam",
+        claim_type: "Financial Dispute",
+        claim_subtype: "Scam",
         summary: "Failed to classify precisely. Defaulting to scam handling.",
       }
     }
@@ -135,10 +138,11 @@ JSON Output:`
       })
     }
 
-    const nextSteps = getNextStepsForRuleEngine(classificationResult.claim_type)
+    const nextSteps = getNextStepsForRuleEngine(classificationResult.claim_subtype)
 
     return NextResponse.json({
       claimType: classificationResult.claim_type,
+      claimSubtype: classificationResult.claim_subtype,
       summary: classificationResult.summary,
       keyEntities: classificationResult.key_entities,
       nextSteps,
