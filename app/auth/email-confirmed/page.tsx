@@ -14,21 +14,36 @@ export default function EmailConfirmedPage() {
   const [message, setMessage] = useState<string>("Confirming your email...")
 
   useEffect(() => {
+    const markSuccess = () => {
+      setStatus("success")
+      setMessage("Your email is confirmed. Return to your signup tab to finish.")
+    }
+
     const confirm = async () => {
-      if (!code) {
-        setStatus("error")
-        setMessage("Invalid or missing confirmation code.")
-        return
-      }
       try {
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (error) {
-          throw error
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          if (error) throw error
+          markSuccess()
+          return
         }
-        setStatus("success")
-        setMessage("Your email is confirmed. Return to your signup tab to finish.")
+
+        const { data } = await supabase.auth.getUser()
+        if (data?.user?.email_confirmed_at) {
+          markSuccess()
+          return
+        }
+
+        setStatus("error")
+        setMessage("Invalid confirmation link. Please request a new one.")
       } catch (err) {
         console.error("[email-confirmed] Exchange failed:", err)
+        // Even if exchange failed, check if user is already confirmed
+        const { data } = await supabase.auth.getUser().catch(() => ({ data: null }))
+        if (data?.user?.email_confirmed_at) {
+          markSuccess()
+          return
+        }
         setStatus("error")
         setMessage("We could not confirm this link. Please request a new one.")
       }
@@ -64,4 +79,3 @@ export default function EmailConfirmedPage() {
     </div>
   )
 }
-

@@ -481,7 +481,11 @@ export default function SignUpPage() {
       clearPendingEmail()
       clearVerifiedUserStorage()
 
-      router.push("/onboarding")
+      if (isFromRouter && sessionToken) {
+        router.push("/onboarding")
+      } else {
+        router.push("/app")
+      }
     } catch (requestError: unknown) {
       console.error("[signup] Unexpected signup error:", requestError)
       setError(requestError instanceof Error ? requestError.message : "An error occurred")
