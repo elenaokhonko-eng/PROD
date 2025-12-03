@@ -376,6 +376,7 @@ export default function SignUpPage() {
           sessionToken,
           consent: consentPayload,
           preverifiedUserId: verifiedUser.id,
+          sendWelcomeEmail: false,
         }),
       })
 
@@ -467,7 +468,7 @@ export default function SignUpPage() {
       clearPendingEmail()
       clearVerifiedUserStorage()
 
-      router.push("/app")
+      router.push("/onboarding")
     } catch (requestError: unknown) {
       console.error("[signup] Unexpected signup error:", requestError)
       setError(requestError instanceof Error ? requestError.message : "An error occurred")
