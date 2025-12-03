@@ -48,6 +48,10 @@ export default function OnboardingPage() {
         console.error("Onboarding import failed:", err)
         setError(err instanceof Error ? err.message : "Unknown error")
         clearConvertedRouterSessionToken()
+        // Graceful fallback for missing/unauthorized sessions
+        if (err instanceof Error && /Unauthorized|No convertible session|Session already linked/i.test(err.message)) {
+          router.replace("/app")
+        }
       }
     }
 

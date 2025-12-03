@@ -22,12 +22,11 @@ export async function POST(request: Request) {
 
   const supabaseService = createServiceClient()
 
-  const { data: routerSession, error: sessionError } = await supabaseService
+  // Fetch session regardless of prior status/user, then reconcile ownership.
+  const { data: rawSession, error: sessionError } = await supabaseService
     .from("router_sessions")
     .select("*")
     .eq("session_token", token)
-    .eq("converted_to_user_id", user.id)
-    .eq("status", "CONVERTED")
     .maybeSingle()
 
   if (sessionError) {
@@ -35,17 +34,50 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Database error" }, { status: 500 })
   }
 
-  if (!routerSession) {
-    console.warn(`[Create Case] No convertible session found for token ${token} and user ${user.id}`)
+  if (!rawSession) {
+    console.warn(`[Create Case] No router session found for token ${token}`)
     return NextResponse.json({ error: "No convertible session found" }, { status: 404 })
   }
+
+  if (rawSession.converted_to_user_id && rawSession.converted_to_user_id !== user.id) {
+    console.warn(
+      `[Create Case] Session ${token} already linked to another user ${rawSession.converted_to_user_id}. Current user: ${user.id}`,
+    )
+    return NextResponse.json({ error: "Session already linked to another user" }, { status: 403 })
+  }
+
+  // Attach session to this user if not already.
+  if (!rawSession.converted_to_user_id) {
+    const { error: claimError } = await supabaseService
+      .from("router_sessions")
+      .update({
+        converted_to_user_id: user.id,
+        status: "CONVERTED",
+        converted_at: new Date().toISOString(),
+      })
+      .eq("session_token", token)
+
+    if (claimError) {
+      console.error(`[Create Case] Failed to claim session ${token} for user ${user.id}:`, claimError)
+      return NextResponse.json({ error: "Failed to claim session" }, { status: 500 })
+    }
+  }
+
+  const routerSession = {
+    ...rawSession,
+    converted_to_user_id: user.id,
+    status: "CONVERTED",
+  }
+
+  const claimType =
+    (routerSession.classification_result as { claimType?: string } | null)?.claimType || "Financial Dispute"
 
   const { data: newCase, error: caseError } = await supabaseService
     .from("cases")
     .insert({
       user_id: user.id,
       case_status: "DRAFT",
-      claim_type: routerSession.classification_result?.claimType || "Phishing Scam",
+      claim_type: claimType,
       dispute_narrative: routerSession.dispute_narrative,
     })
     .select("id")
