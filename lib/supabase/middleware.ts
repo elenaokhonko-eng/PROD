@@ -32,7 +32,15 @@ export async function updateSession(request: NextRequest) {
 
   const {
     data: { user },
+    error: getUserError,
   } = await supabase.auth.getUser()
+
+  if (getUserError && /user_not_found/i.test(getUserError.message || "")) {
+    await supabase.auth.signOut()
+    const url = request.nextUrl.clone()
+    url.pathname = "/auth/login"
+    return NextResponse.redirect(url)
+  }
 
   // Protect app routes (except auth routes)
   if (
