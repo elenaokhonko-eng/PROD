@@ -79,10 +79,11 @@ export async function POST(request: Request) {
 
   const normalizeClaimType = (subtype: string | null | undefined) => {
     const value = (subtype || "").toLowerCase().trim()
-    if (value === "fraud") return "fidrec_fraud"
-    if (value === "scam") return "fidrec_scam"
-    // Fallback to our most permissive/scam-friendly type to satisfy DB check constraint
-    return "fidrec_scam"
+    if (value.includes("fraud") || value.includes("scam")) return "phishing_scam"
+    if (value.includes("mis-sold") || value.includes("missold") || value.includes("mis sold")) return "mis_sold_product"
+    if (value.includes("insurance")) return "denied_insurance"
+    // Default to a valid value that passes the DB check constraint
+    return "phishing_scam"
   }
 
   const { data: newCase, error: caseError } = await supabaseService

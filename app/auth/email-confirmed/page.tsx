@@ -9,7 +9,7 @@ import { Loader2, CheckCircle, AlertCircle } from "lucide-react"
 export default function EmailConfirmedPage() {
   const supabase = useSupabase()
   const searchParams = useSearchParams()
-  const code = searchParams.get("code")
+  const code = searchParams.get("code") || searchParams.get("token")
   const [status, setStatus] = useState<"pending" | "success" | "error">("pending")
   const [message, setMessage] = useState<string>("Confirming your email...")
 
