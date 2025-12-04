@@ -69,15 +69,17 @@ export async function POST(request: Request) {
     status: "CONVERTED",
   }
 
-  const claimType =
-    (routerSession.classification_result as { claimType?: string } | null)?.claimType || "Financial Dispute"
+  const claimSubtype =
+    (routerSession.classification_result as { claimSubtype?: string } | null)?.claimSubtype ||
+    (routerSession.classification_result as { claimType?: string } | null)?.claimType ||
+    "Phishing Scam"
 
   const { data: newCase, error: caseError } = await supabaseService
     .from("cases")
     .insert({
       user_id: user.id,
       case_status: "DRAFT",
-      claim_type: claimType,
+      claim_type: claimSubtype,
       dispute_narrative: routerSession.dispute_narrative,
     })
     .select("id")
