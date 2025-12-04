@@ -77,11 +77,19 @@ export async function POST(request: Request) {
     (routerSession.classification_result as { claimType?: string } | null)?.claimType ||
     "Scam"
 
+  const normalizeClaimType = (subtype: string | null | undefined) => {
+    const value = (subtype || "").toLowerCase().trim()
+    if (value === "fraud") return "fidrec_fraud"
+    if (value === "scam") return "fidrec_scam"
+    // Fallback to our most permissive/scam-friendly type to satisfy DB check constraint
+    return "fidrec_scam"
+  }
+
   const { data: newCase, error: caseError } = await supabaseService
     .from("cases")
     .insert({
       user_id: activeUserId,
-      claim_type: claimSubtype,
+      claim_type: normalizeClaimType(claimSubtype),
       dispute_narrative: routerSession.dispute_narrative ?? null,
       case_status: "draft",
     })
