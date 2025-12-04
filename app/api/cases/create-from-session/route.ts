@@ -75,7 +75,7 @@ export async function POST(request: Request) {
   const claimSubtype =
     (routerSession.classification_result as { claimSubtype?: string } | null)?.claimSubtype ||
     (routerSession.classification_result as { claimType?: string } | null)?.claimType ||
-    "Phishing Scam"
+    "Scam"
 
   const { data: newCase, error: caseError } = await supabaseService
     .from("cases")
@@ -83,6 +83,7 @@ export async function POST(request: Request) {
       user_id: activeUserId,
       claim_type: claimSubtype,
       dispute_narrative: routerSession.dispute_narrative ?? null,
+      case_status: "draft",
     })
     .select("id")
     .single()
@@ -104,15 +105,19 @@ export async function POST(request: Request) {
     console.warn(`[Create Case] Failed to mark session ${routerSession.id} as imported:`, updateError)
   }
 
-  trackServerEvent({
-    eventName: "router_conversion_imported",
-    userId: user.id,
-    sessionId: routerSession.session_token,
-    eventData: {
-      case_id: newCase.id,
-      recommended_path: routerSession.recommended_path,
-    },
-  })
+  try {
+    await trackServerEvent({
+      eventName: "router_conversion_imported",
+      userId: activeUserId,
+      sessionId: routerSession.session_token,
+      eventData: {
+        case_id: newCase.id,
+        recommended_path: routerSession.recommended_path,
+      },
+    })
+  } catch (err) {
+    console.warn("[Create Case] Failed to log analytics for router conversion:", err)
+  }
 
   return NextResponse.json({
     success: true,
