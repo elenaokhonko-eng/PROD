@@ -21,40 +21,24 @@ export async function uploadEvidence(
   category: string,
   description: string,
 ): Promise<EvidenceFile> {
-  const supabase = createClient()
+  const formData = new FormData()
+  formData.append("caseId", caseId)
+  formData.append("category", category)
+  formData.append("description", description || file.name)
+  formData.append("file", file)
 
-  // Generate unique file path
-  const fileExt = file.name.split(".").pop()
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-  const filePath = `${caseId}/${category}/${fileName}`
-
-  // Upload to Supabase Storage
-  const { error: uploadError } = await supabase.storage.from("evidence").upload(filePath, file, {
-    cacheControl: "3600",
-    upsert: false,
+  const res = await fetch("/api/evidence/upload", {
+    method: "POST",
+    body: formData,
   })
 
-  if (uploadError) throw uploadError
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to upload evidence")
+  }
 
-  // Create evidence record
-  const { data: evidenceData, error: evidenceError } = await supabase
-    .from("evidence")
-    .insert({
-      case_id: caseId,
-      user_id: userId,
-      filename: file.name,
-      file_path: filePath,
-      file_type: file.type,
-      file_size: file.size,
-      description: description || file.name,
-      category: category,
-    })
-    .select()
-    .single()
+  const { evidence } = (await res.json()) as { evidence: EvidenceFile }
 
-  if (evidenceError) throw evidenceError
-
-  // Track upload
   await trackClientEvent({
     eventName: "evidence_uploaded",
     userId: userId,
@@ -68,7 +52,7 @@ export async function uploadEvidence(
     userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
   })
 
-  return evidenceData
+  return evidence
 }
 
 export async function getEvidenceList(caseId: string): Promise<EvidenceFile[]> {
