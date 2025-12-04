@@ -90,6 +90,8 @@ export async function POST(request: Request) {
     .from("cases")
     .insert({
       user_id: activeUserId,
+      owner_user_id: activeUserId,
+      creator_user_id: activeUserId,
       claim_type: normalizeClaimType(claimSubtype),
       dispute_narrative: routerSession.dispute_narrative ?? null,
       case_status: "draft",
