@@ -35,11 +35,12 @@ export async function updateSession(request: NextRequest) {
     error: getUserError,
   } = await supabase.auth.getUser()
 
+  // If the cookie is stale (user_not_found), try to refresh once and otherwise continue
   if (getUserError && /user_not_found/i.test(getUserError.message || "")) {
-    await supabase.auth.signOut()
-    const url = request.nextUrl.clone()
-    url.pathname = "/auth/login"
-    return NextResponse.redirect(url)
+    const { error: refreshError } = await supabase.auth.refreshSession()
+    if (refreshError) {
+      console.warn("[middleware] Failed to refresh stale session:", refreshError.message)
+    }
   }
 
   // Protect app routes (except auth routes)
