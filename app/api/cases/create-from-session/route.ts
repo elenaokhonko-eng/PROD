@@ -78,7 +78,6 @@ export async function POST(request: Request) {
     .from("cases")
     .insert({
       user_id: user.id,
-      case_status: "DRAFT",
       claim_type: claimSubtype,
       dispute_narrative: routerSession.dispute_narrative,
     })
