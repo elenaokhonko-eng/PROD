@@ -32,7 +32,7 @@ async function checkCaseAccess(
 ): Promise<boolean> {
   const { data: caseData, error: caseError } = await supabase
     .from("cases")
-    .select("owner_user_id")
+    .select("owner_user_id, user_id")
     .eq("id", caseId)
     .single()
 
@@ -41,7 +41,7 @@ async function checkCaseAccess(
     return false
   }
 
-  if (caseData.owner_user_id === userId) {
+  if (caseData.owner_user_id === userId || caseData.user_id === userId) {
     return true
   }
 
