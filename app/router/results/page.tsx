@@ -213,11 +213,6 @@ export default function ResultsPage() {
                   <Badge variant="secondary" className="rounded-full">
                     Complaint Type: {classification?.claimType || "Financial Dispute"}
                   </Badge>
-                  {classification?.claimSubtype && (
-                    <Badge variant="outline" className="rounded-full">
-                      Subtype: {classification.claimSubtype}
-                    </Badge>
-                  )}
                 </div>
                 <ul className="space-y-2">
                   {assessment.reasoning.map((reason: string, index: number) => (
