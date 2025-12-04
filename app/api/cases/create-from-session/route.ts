@@ -8,12 +8,7 @@ export async function POST(request: Request) {
   const supabase = await createClient()
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
 
   const { token } = await request.json()
   if (!token) {
@@ -30,7 +25,7 @@ export async function POST(request: Request) {
     .maybeSingle()
 
   if (sessionError) {
-    console.error(`[Create Case] Error fetching router session ${token} for user ${user.id}:`, sessionError)
+    console.error(`[Create Case] Error fetching router session ${token}:`, sessionError)
     return NextResponse.json({ error: "Database error" }, { status: 500 })
   }
 
@@ -39,9 +34,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No convertible session found" }, { status: 404 })
   }
 
-  if (rawSession.converted_to_user_id && rawSession.converted_to_user_id !== user.id) {
+  const sessionUserId = rawSession.converted_to_user_id
+  const activeUserId = user?.id ?? sessionUserId
+
+  if (!activeUserId) {
+    console.warn(`[Create Case] No active user for session ${token}`)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (rawSession.converted_to_user_id && rawSession.converted_to_user_id !== activeUserId) {
     console.warn(
-      `[Create Case] Session ${token} already linked to another user ${rawSession.converted_to_user_id}. Current user: ${user.id}`,
+      `[Create Case] Session ${token} already linked to another user ${rawSession.converted_to_user_id}. Current user: ${activeUserId}`,
     )
     return NextResponse.json({ error: "Session already linked to another user" }, { status: 403 })
   }
@@ -51,21 +54,21 @@ export async function POST(request: Request) {
     const { error: claimError } = await supabaseService
       .from("router_sessions")
       .update({
-        converted_to_user_id: user.id,
+        converted_to_user_id: activeUserId,
         status: "CONVERTED",
         converted_at: new Date().toISOString(),
       })
       .eq("session_token", token)
 
     if (claimError) {
-      console.error(`[Create Case] Failed to claim session ${token} for user ${user.id}:`, claimError)
+      console.error(`[Create Case] Failed to claim session ${token} for user ${activeUserId}:`, claimError)
       return NextResponse.json({ error: "Failed to claim session" }, { status: 500 })
     }
   }
 
   const routerSession = {
     ...rawSession,
-    converted_to_user_id: user.id,
+    converted_to_user_id: activeUserId,
     status: "CONVERTED",
   }
 
@@ -77,9 +80,9 @@ export async function POST(request: Request) {
   const { data: newCase, error: caseError } = await supabaseService
     .from("cases")
     .insert({
-      user_id: user.id,
+      user_id: activeUserId,
       claim_type: claimSubtype,
-      dispute_narrative: routerSession.dispute_narrative,
+      dispute_narrative: routerSession.dispute_narrative ?? null,
     })
     .select("id")
     .single()
