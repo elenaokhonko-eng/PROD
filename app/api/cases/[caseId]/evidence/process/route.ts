@@ -146,14 +146,21 @@ export async function POST(request: Request, { params }: { params: { caseId: str
         continue
       }
 
-      const { error: fnError } = await service.functions.invoke(functionName, {
-        body: { document_id: existingDoc.id },
-      })
+      const { error: statusError } = await service
+        .from("case_documents")
+        .update({ processing_status: "queued", processing_error: null, is_processed: false })
+        .eq("id", existingDoc.id)
 
-      if (fnError) {
-        results.push({ evidence_id: doc.id, document_id: existingDoc.id, ok: false, error: fnError.message })
+      if (statusError) {
+        results.push({ evidence_id: doc.id, document_id: existingDoc.id, ok: false, error: statusError.message })
         continue
       }
+
+      void service.functions
+        .invoke(functionName, { body: { document_id: existingDoc.id } })
+        .catch((error) => {
+          console.error("[evidence/process] Async invoke failed:", error)
+        })
 
       queued += 1
       results.push({ evidence_id: doc.id, document_id: existingDoc.id, ok: true, queued: true })
@@ -223,14 +230,21 @@ export async function POST(request: Request, { params }: { params: { caseId: str
       documentId = createdDoc.id
     }
 
-    const { error: fnError } = await service.functions.invoke(functionName, {
-      body: { document_id: documentId },
-    })
+    const { error: statusError } = await service
+      .from("case_documents")
+      .update({ processing_status: "queued", processing_error: null, is_processed: false })
+      .eq("id", documentId)
 
-    if (fnError) {
-      results.push({ evidence_id: evidence.id, document_id: documentId, ok: false, error: fnError.message })
+    if (statusError) {
+      results.push({ evidence_id: evidence.id, document_id: documentId, ok: false, error: statusError.message })
       continue
     }
+
+    void service.functions
+      .invoke(functionName, { body: { document_id: documentId } })
+      .catch((error) => {
+        console.error("[evidence/process] Async invoke failed:", error)
+      })
 
     queued += 1
     results.push({ evidence_id: evidence.id, document_id: documentId, ok: true, queued: true })
