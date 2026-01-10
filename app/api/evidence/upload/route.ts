@@ -5,6 +5,8 @@ import { createServiceClient } from "@/lib/supabase/service"
 
 export const runtime = "nodejs"
 
+const STORAGE_BUCKET = "evidence"
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData()
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
     const filePath = `${caseId}/${category}/${fileName}`
 
     // Upload to storage using service role (bypasses bucket RLS)
-    const { error: storageError } = await supabaseService.storage.from("evidence").upload(filePath, file, {
+    const { error: storageError } = await supabaseService.storage.from(STORAGE_BUCKET).upload(filePath, file, {
       cacheControl: "3600",
       upsert: false,
     })
@@ -67,6 +69,26 @@ export async function POST(request: Request) {
     if (insertError) {
       console.error("[evidence/upload] Insert failed:", insertError)
       return NextResponse.json({ error: "Failed to save evidence metadata" }, { status: 500 })
+    }
+
+    const { error: caseDocError } = await supabaseService
+      .from("case_documents")
+      .insert({
+        case_id: caseId,
+        filename: originalName,
+        original_filename: originalName,
+        file_size: (file as File).size,
+        mime_type: (file as File).type,
+        document_type: null,
+        storage_bucket: STORAGE_BUCKET,
+        storage_path: filePath,
+        processing_status: "uploaded",
+        is_processed: false,
+      })
+
+    if (caseDocError) {
+      console.error("[evidence/upload] case_documents insert failed:", caseDocError)
+      return NextResponse.json({ error: "Failed to create case document record" }, { status: 500 })
     }
 
     return NextResponse.json({ evidence })

@@ -14,6 +14,20 @@ export interface EvidenceFile {
   uploaded_at: string
 }
 
+export type EvidenceProcessResponse = {
+  ok: boolean
+  queued: number
+  skipped: number
+  results: Array<{
+    evidence_id: string
+    document_id?: string | null
+    ok: boolean
+    queued?: boolean
+    skipped?: boolean
+    error?: string | null
+  }>
+}
+
 export async function uploadEvidence(
   caseId: string,
   userId: string,
@@ -53,6 +67,21 @@ export async function uploadEvidence(
   })
 
   return evidence
+}
+
+export async function processEvidence(caseId: string, evidenceIds?: string[]): Promise<EvidenceProcessResponse> {
+  const res = await fetch(`/api/cases/${caseId}/evidence/process`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ evidenceIds }),
+  })
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to queue evidence processing")
+  }
+
+  return res.json() as Promise<EvidenceProcessResponse>
 }
 
 export async function getEvidenceList(caseId: string): Promise<EvidenceFile[]> {

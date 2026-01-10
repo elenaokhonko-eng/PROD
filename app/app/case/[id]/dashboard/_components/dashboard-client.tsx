@@ -6,7 +6,7 @@ import type { User } from "@supabase/supabase-js"
 import Link from "next/link"
 import Image from "next/image"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { uploadEvidence, deleteEvidence } from "@/lib/evidence-storage"
+import { uploadEvidence, deleteEvidence, processEvidence } from "@/lib/evidence-storage"
 import { trackClientEvent } from "@/lib/analytics/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Progress } from "@/components/ui/progress"
-import { FileText, Upload, Download, CheckCircle, AlertCircle, ArrowRight, Loader2, ImageIcon, Trash2 } from "lucide-react"
+import { FileText, Upload, Download, CheckCircle, AlertCircle, ArrowRight, Loader2, ImageIcon, Trash2, Sparkles } from "lucide-react"
 
 const intakeQuestions = [
   { key: "institution_name", question: "What is the name of the financial institution?", type: "text", required: true, placeholder: "e.g., DBS Bank, OCBC Bank, Great Eastern" },
@@ -79,6 +79,10 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
   const [isGeneratingPack, setIsGeneratingPack] = useState(false)
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [packDownloadUrl, setPackDownloadUrl] = useState<string | null>(null)
+  const [isProcessingAll, setIsProcessingAll] = useState(false)
+  const [processingIds, setProcessingIds] = useState<Record<string, boolean>>({})
+  const [processingNotice, setProcessingNotice] = useState<string | null>(null)
+  const [processingError, setProcessingError] = useState<string | null>(null)
 
   const intakeComplete = useMemo(() => intakeQuestions.every((q) => !q.required || intakeResponses[q.key]), [intakeResponses])
 
@@ -209,6 +213,60 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
       }
     },
     [user],
+  )
+
+  const handleProcessEvidence = useCallback(
+    async (fileId: string) => {
+      if (!caseId || isProcessingAll) return
+      setProcessingError(null)
+      setProcessingNotice(null)
+      setProcessingIds((prev) => ({ ...prev, [fileId]: true }))
+
+      try {
+        const result = await processEvidence(caseId, [fileId])
+        const queued = result.queued ?? 0
+        const skipped = result.skipped ?? 0
+
+        if (queued > 0) setProcessingNotice(`Queued ${queued} file for processing.`)
+        else if (skipped > 0) setProcessingNotice("File already processed or in progress.")
+        else setProcessingNotice("No files queued.")
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        setProcessingError(message)
+      } finally {
+        setProcessingIds((prev) => {
+          const next = { ...prev }
+          delete next[fileId]
+          return next
+        })
+      }
+    },
+    [caseId, isProcessingAll],
+  )
+
+  const handleProcessAll = useCallback(
+    async () => {
+      if (!caseId || isProcessingAll || uploadedFiles.length === 0) return
+      setProcessingError(null)
+      setProcessingNotice(null)
+      setIsProcessingAll(true)
+
+      try {
+        const result = await processEvidence(caseId)
+        const queued = result.queued ?? 0
+        const skipped = result.skipped ?? 0
+        const parts: string[] = []
+        if (queued > 0) parts.push(`Queued ${queued} file${queued === 1 ? "" : "s"}.`)
+        if (skipped > 0) parts.push(`Skipped ${skipped} already processed.`)
+        setProcessingNotice(parts.join(" ") || "No files queued.")
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        setProcessingError(message)
+      } finally {
+        setIsProcessingAll(false)
+      }
+    },
+    [caseId, isProcessingAll, uploadedFiles.length],
   )
 
   const formatFileSize = (bytes: number) => {
@@ -469,7 +527,43 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
                 </div>
                 {uploadedFiles.length > 0 && (
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between"><Label className="text-base font-semibold">Uploaded Files</Label><Badge variant="secondary" className="rounded-full">{uploadedFiles.length} {uploadedFiles.length === 1 ? "file" : "files"}</Badge></div>
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <Label className="text-base font-semibold">Uploaded Files</Label>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="rounded-full">{uploadedFiles.length} {uploadedFiles.length === 1 ? "file" : "files"}</Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleProcessAll}
+                          disabled={isProcessingAll || uploadedFiles.length === 0}
+                          className="rounded-full bg-transparent"
+                        >
+                          {isProcessingAll ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Process all
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                    {processingNotice && (
+                      <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg">
+                        <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                        <p className="text-sm">{processingNotice}</p>
+                      </div>
+                    )}
+                    {processingError && (
+                      <div className="flex items-center gap-2 text-destructive bg-destructive/10 p-3 rounded-lg">
+                        <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                        <p className="text-sm">{processingError}</p>
+                      </div>
+                    )}
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {uploadedFiles.map((file) => (
                         <div key={file.id} className="flex items-center justify-between p-4 border border-border rounded-xl bg-card hover:bg-accent/5 transition-colors group">
@@ -480,9 +574,35 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
                               <p className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</p>
                             </div>
                           </div>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteFile(file.id)} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleProcessEvidence(file.id)}
+                              disabled={isProcessingAll || processingIds[file.id]}
+                              className="rounded-full bg-transparent"
+                            >
+                              {processingIds[file.id] ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Processing
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="h-4 w-4 mr-2" />
+                                  Process
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteFile(file.id)}
+                              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
