@@ -30,11 +30,11 @@ export async function POST(request: NextRequest) {
     // Validate case ownership or access
     const { data: caseData, error: caseError } = await supabase
       .from("cases")
-      .select("id, owner_user_id, creator_user_id")
+      .select("id, user_id")
       .eq("id", caseId)
       .single()
     if (caseError || !caseData) return NextResponse.json({ error: "Case not found" }, { status: 404 })
-    const isOwner = caseData.owner_user_id === user.id || caseData.creator_user_id === user.id
+    const isOwner = caseData.user_id === user.id
     if (!isOwner) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const stripeSecret = process.env.STRIPE_SECRET_KEY

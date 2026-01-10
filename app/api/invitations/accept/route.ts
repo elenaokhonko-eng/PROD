@@ -87,13 +87,13 @@ export async function POST(request: NextRequest) {
     if (role === "victim" || role === "lead_victim") {
       const { data: caseRow } = await supabase
         .from("cases")
-        .select("owner_user_id")
+        .select("user_id")
         .eq("id", invitation.case_id)
         .single()
-      if (caseRow && caseRow.owner_user_id !== user.id) {
+      if (caseRow && caseRow.user_id !== user.id) {
         await supabase
           .from("cases")
-          .update({ owner_user_id: user.id, updated_at: new Date().toISOString() })
+          .update({ user_id: user.id, updated_at: new Date().toISOString() })
           .eq("id", invitation.case_id)
       }
     }

@@ -32,8 +32,8 @@ export async function POST(request: NextRequest, { params }: { params: { caseId:
     const { caseId } = params
 
     // Ensure user has permission to invite
-    const { data: caseData } = await supabase.from("cases").select("owner_user_id").eq("id", caseId).single()
-    const isOwner = caseData?.owner_user_id === user.id
+    const { data: caseData } = await supabase.from("cases").select("user_id").eq("id", caseId).single()
+    const isOwner = caseData?.user_id === user.id
 
     let canInvite = isOwner
     if (!canInvite) {

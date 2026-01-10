@@ -22,18 +22,18 @@ export async function getCaseWithRole(caseId: string, userId: string) {
 
   const { data: caseData } = await supabase
     .from("cases")
-    .select("*, owner_user_id, creator_user_id")
+    .select("*, user_id")
     .eq("id", caseId)
     .single()
 
   if (!caseData) return null
 
-  if (caseData.owner_user_id === userId || caseData.creator_user_id === userId) {
+  if (caseData.user_id === userId) {
     return {
       case: caseData,
       role: "victim" as CaseRole,
       permissions: ["read", "write", "delete", "invite"],
-      isOwner: caseData.owner_user_id === userId,
+      isOwner: true,
     }
   }
 
@@ -95,11 +95,11 @@ export async function transferCaseOwnership(caseId: string, currentOwnerId: stri
   const { error } = await supabase
     .from("cases")
     .update({
-      owner_user_id: newOwnerId,
+      user_id: newOwnerId,
       updated_at: new Date().toISOString(),
     })
     .eq("id", caseId)
-    .eq("owner_user_id", currentOwnerId)
+    .eq("user_id", currentOwnerId)
 
   if (error) throw error
 

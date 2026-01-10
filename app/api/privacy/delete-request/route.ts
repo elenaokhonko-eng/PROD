@@ -16,7 +16,7 @@ export async function POST() {
     const { data: cases } = await supabase
       .from("cases")
       .select("id")
-      .or(`user_id.eq.${user.id},owner_user_id.eq.${user.id},creator_user_id.eq.${user.id}`)
+      .eq("user_id", user.id)
 
     const caseIds = (cases ?? []).map((c: { id: string }) => c.id)
 

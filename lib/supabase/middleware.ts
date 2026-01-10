@@ -41,6 +41,10 @@ export async function updateSession(request: NextRequest) {
     if (refreshError) {
       console.warn("[middleware] Failed to refresh stale session:", refreshError.message)
     }
+    const { error: signOutError } = await supabase.auth.signOut()
+    if (signOutError) {
+      console.warn("[middleware] Failed to clear stale session:", signOutError.message)
+    }
   }
 
   // Protect app routes (except auth routes)

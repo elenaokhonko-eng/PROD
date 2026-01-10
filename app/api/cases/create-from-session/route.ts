@@ -72,10 +72,8 @@ export async function POST(request: Request) {
     status: "CONVERTED",
   }
 
-  const claimSubtype =
-    (routerSession.classification_result as { claimSubtype?: string } | null)?.claimSubtype ||
-    (routerSession.classification_result as { claimType?: string } | null)?.claimType ||
-    "Scam"
+  const claimType =
+    (routerSession.classification_result as { claimType?: string } | null)?.claimType || "Scam"
 
   const normalizeClaimType = (subtype: string | null | undefined) => {
     const value = (subtype || "").toLowerCase().trim()
@@ -104,17 +102,15 @@ export async function POST(request: Request) {
     .from("cases")
     .insert({
       user_id: activeUserId,
-      owner_user_id: activeUserId,
-      creator_user_id: activeUserId,
-      claim_type: normalizeClaimType(claimSubtype),
-      dispute_narrative: routerSession.dispute_narrative ?? null,
-      case_status: "draft",
+      claim_type: normalizeClaimType(claimType),
+      case_summary: routerSession.dispute_narrative ?? null,
+      status: "draft",
     })
     .select("id")
     .single()
 
   if (caseError) {
-    console.error(`[Create Case] Error creating new case for user ${user.id}:`, caseError)
+    console.error(`[Create Case] Error creating new case for user ${activeUserId}:`, caseError)
     return NextResponse.json({ error: "Failed to create case" }, { status: 500 })
   }
 

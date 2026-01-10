@@ -27,7 +27,7 @@ export async function POST() {
 
     const [profileResult, casesResult, responsesResult, paymentsResult, outcomesResult] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
-      supabase.from("cases").select("*").or(`user_id.eq.${user.id},owner_user_id.eq.${user.id},creator_user_id.eq.${user.id}`),
+      supabase.from("cases").select("*").eq("user_id", user.id),
       responsesPromise,
       supabase.from("payments").select("*").eq("user_id", user.id),
       outcomesPromise,

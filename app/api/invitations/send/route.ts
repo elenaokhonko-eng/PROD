@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Case not found" }, { status: 404 })
     }
 
-    const isOwner = caseData.owner_user_id === user.id
+    const isOwner = caseData.user_id === user.id
 
     // Check collaborator permissions separately
     let isCollaboratorWhoCanInvite = false
