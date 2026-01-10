@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import type { User } from "@supabase/supabase-js"
 import Link from "next/link"
@@ -83,6 +83,7 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
   const [processingIds, setProcessingIds] = useState<Record<string, boolean>>({})
   const [processingNotice, setProcessingNotice] = useState<string | null>(null)
   const [processingError, setProcessingError] = useState<string | null>(null)
+  const [processingPendingIds, setProcessingPendingIds] = useState<string[]>([])
 
   const intakeComplete = useMemo(() => intakeQuestions.every((q) => !q.required || intakeResponses[q.key]), [intakeResponses])
 
@@ -226,10 +227,17 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
         const result = await processEvidence(caseId, [fileId])
         const queued = result.queued ?? 0
         const skipped = result.skipped ?? 0
+        const queuedIds = (result.results ?? [])
+          .filter((item) => item.queued && item.document_id)
+          .map((item) => item.document_id as string)
 
         if (queued > 0) setProcessingNotice(`Queued ${queued} file for processing.`)
         else if (skipped > 0) setProcessingNotice("File already processed or in progress.")
         else setProcessingNotice("No files queued.")
+
+        if (queuedIds.length > 0) {
+          setProcessingPendingIds((prev) => Array.from(new Set([...prev, ...queuedIds])))
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         setProcessingError(message)
@@ -255,10 +263,17 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
         const result = await processEvidence(caseId)
         const queued = result.queued ?? 0
         const skipped = result.skipped ?? 0
+        const queuedIds = (result.results ?? [])
+          .filter((item) => item.queued && item.document_id)
+          .map((item) => item.document_id as string)
         const parts: string[] = []
         if (queued > 0) parts.push(`Queued ${queued} file${queued === 1 ? "" : "s"}.`)
         if (skipped > 0) parts.push(`Skipped ${skipped} already processed.`)
         setProcessingNotice(parts.join(" ") || "No files queued.")
+
+        if (queuedIds.length > 0) {
+          setProcessingPendingIds((prev) => Array.from(new Set([...prev, ...queuedIds])))
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         setProcessingError(message)
@@ -335,6 +350,57 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
   const intakeProgress = ((currentIntakeStep + 1) / intakeQuestions.length) * 100
 
   const supportedCaseTypes = new Set(["fidrec_scam", "fidrec_fraud", "phishing_scam"])
+
+  useEffect(() => {
+    if (processingPendingIds.length === 0) return
+    let active = true
+
+    const poll = async () => {
+      const { data, error } = await supabase
+        .from("case_documents")
+        .select("id, processing_status")
+        .in("id", processingPendingIds)
+
+      if (!active) return
+
+      if (error) {
+        setProcessingError(error.message)
+        return
+      }
+
+      const rows = data ?? []
+      const statusMap = rows.reduce((acc, row) => {
+        const key = (row.processing_status ?? "unknown").toString().toLowerCase()
+        acc[key] = (acc[key] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+
+      const pending = rows.filter((row) => {
+        const status = (row.processing_status ?? "").toString().toLowerCase()
+        return status !== "ready" && status !== "failed"
+      })
+
+      if (pending.length === 0) {
+        const ready = statusMap.ready ?? 0
+        const failed = statusMap.failed ?? 0
+        setProcessingNotice(`Processing complete. Ready: ${ready}, Failed: ${failed}.`)
+        setProcessingPendingIds([])
+        return
+      }
+
+      setProcessingNotice(`Processing... ${pending.length} remaining.`)
+    }
+
+    void poll()
+    const timer = window.setInterval(() => {
+      void poll()
+    }, 4000)
+
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
+  }, [processingPendingIds, supabase])
 
   if (!caseData?.claim_type || !supportedCaseTypes.has(caseData.claim_type)) {
     return (
