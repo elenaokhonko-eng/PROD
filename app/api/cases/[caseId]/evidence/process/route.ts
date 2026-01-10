@@ -39,24 +39,128 @@ export async function POST(request: Request, { params }: { params: { caseId: str
   const body = (await request.json().catch(() => ({}))) as ProcessRequest
   const evidenceIds = Array.isArray(body.evidenceIds) ? body.evidenceIds.filter(Boolean) : []
 
-  let evidenceQuery = supabase
-    .from("evidence")
-    .select("id, case_id, filename, file_path, file_type, file_size")
-    .eq("case_id", params.caseId)
+  const service = createServiceClient()
+  const { data: caseRow, error: caseError } = await service
+    .from("cases")
+    .select("id, user_id")
+    .eq("id", params.caseId)
+    .single()
+
+  if (caseError || !caseRow) {
+    return NextResponse.json({ error: "Case not found" }, { status: 404 })
+  }
+
+  if (caseRow.user_id !== user.id) {
+    const { data: collaborator } = await service
+      .from("case_collaborators")
+      .select("user_id")
+      .eq("case_id", params.caseId)
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle()
+
+    if (!collaborator) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+  }
+
+  let evidenceRows: Array<{
+    id: string
+    filename: string
+    file_path: string
+    file_type: string
+    file_size: number
+  }> = []
 
   if (evidenceIds.length > 0) {
-    evidenceQuery = evidenceQuery.in("id", evidenceIds)
+    const { data, error } = await service
+      .from("evidence")
+      .select("id, filename, file_path, file_type, file_size")
+      .eq("case_id", params.caseId)
+      .in("id", evidenceIds)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
+    evidenceRows = data ?? []
+  } else {
+    const { data, error } = await service
+      .from("evidence")
+      .select("id, filename, file_path, file_type, file_size")
+      .eq("case_id", params.caseId)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
+    evidenceRows = data ?? []
   }
 
-  const { data: evidenceRows, error: evidenceError } = await evidenceQuery
-  if (evidenceError) {
-    return NextResponse.json({ error: evidenceError.message }, { status: 400 })
-  }
-  if (!evidenceRows || evidenceRows.length === 0) {
-    return NextResponse.json({ error: "No evidence files found" }, { status: 400 })
-  }
+  if (!evidenceRows.length) {
+    let caseDocQuery = service
+      .from("case_documents")
+      .select("id")
+      .eq("case_id", params.caseId)
 
-  const service = createServiceClient()
+    if (evidenceIds.length > 0) {
+      caseDocQuery = caseDocQuery.in("id", evidenceIds)
+    }
+
+    const { data: caseDocs, error: caseDocError } = await caseDocQuery
+    if (caseDocError) {
+      return NextResponse.json({ error: caseDocError.message }, { status: 400 })
+    }
+
+    if (!caseDocs || caseDocs.length === 0) {
+      return NextResponse.json({ error: "No documents found" }, { status: 400 })
+    }
+
+    const results: ProcessResult[] = []
+    let queued = 0
+    let skipped = 0
+
+    for (const doc of caseDocs) {
+      const { data: existingDoc, error: existingError } = await service
+        .from("case_documents")
+        .select("id, is_processed, processing_status")
+        .eq("id", doc.id)
+        .eq("case_id", params.caseId)
+        .maybeSingle()
+
+      if (existingError || !existingDoc) {
+        results.push({ evidence_id: doc.id, ok: false, error: existingError?.message ?? "Document not found" })
+        continue
+      }
+
+      const status = (existingDoc.processing_status ?? "").toString().toLowerCase()
+      if (existingDoc.is_processed || ["parsing", "verifying", "chunking", "extracting"].includes(status)) {
+        skipped += 1
+        results.push({
+          evidence_id: doc.id,
+          document_id: existingDoc.id,
+          ok: true,
+          queued: false,
+          skipped: true,
+        })
+        continue
+      }
+
+      const { error: fnError } = await service.functions.invoke(functionName, {
+        body: { document_id: existingDoc.id },
+      })
+
+      if (fnError) {
+        results.push({ evidence_id: doc.id, document_id: existingDoc.id, ok: false, error: fnError.message })
+        continue
+      }
+
+      queued += 1
+      results.push({ evidence_id: doc.id, document_id: existingDoc.id, ok: true, queued: true })
+    }
+
+    return NextResponse.json({ ok: true, queued, skipped, results })
+  }
   const results: ProcessResult[] = []
   let queued = 0
   let skipped = 0
