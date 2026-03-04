@@ -70,7 +70,7 @@ export default function ResultsPage() {
   const handlePathAction = (path: string) => {
     switch (path) {
       case "fidrec_eligible":
-        router.push("/auth/sign-up?source=router&eligible=true")
+        router.push("/sign-up?source=router&eligible=true")
         break
       case "waitlist":
         router.push("/waitlist?source=router")

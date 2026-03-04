@@ -1,13 +1,12 @@
-import { redirect } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
+import { redirect } from 'next/navigation'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { getCurrentUser } from '@/lib/auth'
 
 export default async function NewCasePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
+  const user = await getCurrentUser()
+  if (!user) redirect('/sign-in')
 
   return (
     <div className="min-h-screen bg-background">
@@ -22,13 +21,13 @@ export default async function NewCasePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                We’ll guide you through a few questions to classify the report and recommend next steps.
+                We'll guide you through a few questions to classify the report and recommend next steps.
               </p>
               <Link href="/router">
                 <Button variant="default" size="lg" className="rounded-full w-full">Start Free Triage</Button>
               </Link>
               <p className="text-xs text-muted-foreground text-center">
-                After triage, use “Invite a Helper/Client” from the dashboard to share and transfer case ownership.
+                After triage, use "Invite a Helper/Client" from the dashboard to share and transfer case ownership.
               </p>
             </CardContent>
           </Card>

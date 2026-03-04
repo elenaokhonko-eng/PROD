@@ -203,7 +203,7 @@ export default function LandingPage() {
               <Badge variant="secondary" className="hidden sm:inline-flex rounded-full">
                 Free Helper Access
               </Badge>
-              <Link href="/auth/login">
+              <Link href="/sign-in">
                 <Button variant="outline" size="sm" className="rounded-full bg-transparent">
                   Sign In
                 </Button>

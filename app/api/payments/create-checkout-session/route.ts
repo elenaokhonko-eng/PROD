@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import Stripe from "stripe"
 import { z } from "zod"
+import { getCurrentUser } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 
 const checkoutSchema = z.object({
@@ -21,11 +22,10 @@ export async function POST(request: NextRequest) {
 
     const { caseId } = parsed
 
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const supabase = await createClient()
 
     // Validate case ownership or access
     const { data: caseData, error: caseError } = await supabase
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       .eq("id", caseId)
       .single()
     if (caseError || !caseData) return NextResponse.json({ error: "Case not found" }, { status: 404 })
-    const isOwner = caseData.user_id === user.id
+    const isOwner = caseData.user_id === user.profileId
     if (!isOwner) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const stripeSecret = process.env.STRIPE_SECRET_KEY
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const { data: payment, error: paymentInsertError } = await supabase
       .from("payments")
       .insert({
-        user_id: user.id,
+        user_id: user.profileId,
         case_id: caseId,
         amount: 99,
         currency: "SGD",
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         cancel_url: `${normalizedAppUrl}/app/case/${caseId}/dashboard?checkout=cancel`,
         metadata: {
           case_id: caseId,
-          user_id: user.id,
+          user_id: user.profileId,
           payment_row_id: payment.id,
         },
       })

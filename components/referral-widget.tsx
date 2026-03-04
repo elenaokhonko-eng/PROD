@@ -36,7 +36,7 @@ export function ReferralWidget() {
   }, [])
 
   const referralUrl =
-    referralCode && typeof window !== "undefined" ? `${window.location.origin}/auth/sign-up?ref=${referralCode}` : ""
+    referralCode && typeof window !== "undefined" ? `${window.location.origin}/sign-up?ref=${referralCode}` : ""
 
   const handleCopy = () => {
     if (referralUrl) {

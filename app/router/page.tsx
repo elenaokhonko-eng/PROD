@@ -132,7 +132,7 @@ export default function RouterPage() {
               <Badge variant="secondary" className="hidden sm:inline-flex">
                 Free Dispute Check
               </Badge>
-              <Link href="/auth/login">
+              <Link href="/sign-in">
                 <Button variant="outline" size="sm">
                   Sign In
                 </Button>

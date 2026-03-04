@@ -230,7 +230,7 @@ export default async function AnalyticsPage() {
                 </Link>
               ))}
             </nav>
-            <Link href="/auth/login">
+            <Link href="/sign-in">
               <Button variant="outline" size="sm" className="rounded-full bg-transparent">
                 Sign In
               </Button>

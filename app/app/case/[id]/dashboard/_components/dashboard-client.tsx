@@ -2,10 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import type { User } from "@supabase/supabase-js"
 import Link from "next/link"
 import Image from "next/image"
-import { useSupabase } from "@/components/providers/supabase-provider"
+import { useClerk } from "@clerk/nextjs"
 import { uploadEvidence, deleteEvidence, processEvidence } from "@/lib/evidence-storage"
 import { trackClientEvent } from "@/lib/analytics/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -49,7 +48,7 @@ type PaymentSummary = Record<string, unknown> | null
 
 type DashboardClientProps = {
   caseId: string
-  initialUser: User
+  initialUser: { id: string; email: string }
   initialCase: CaseSummary
   initialPayment: PaymentSummary
   initialResponses: Array<{ question_key: string; response_value: string; response_type?: string }>
@@ -57,10 +56,10 @@ type DashboardClientProps = {
 }
 
 export default function DashboardClient({ caseId, initialUser, initialCase, initialPayment, initialResponses, initialFiles }: DashboardClientProps) {
-  const supabase = useSupabase()
+  const { signOut } = useClerk()
   const router = useRouter()
 
-  const user: User | null = initialUser
+  const user = initialUser
   const caseData: CaseSummary | null = initialCase
   void initialPayment
   const [currentIntakeStep, setCurrentIntakeStep] = useState(0)
@@ -88,26 +87,31 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
   const intakeComplete = useMemo(() => intakeQuestions.every((q) => !q.required || intakeResponses[q.key]), [intakeResponses])
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOut()
     router.push("/")
   }
 
   const completeIntake = async () => {
     setIsSavingIntake(true)
     try {
-      const responsePromises = Object.entries(intakeResponses).map(([key, value]) =>
-        supabase.from("case_responses").upsert(
-          {
-            case_id: caseId,
-            question_key: key,
-            response_value: value,
-            response_type: intakeQuestions.find((q) => q.key === key)?.type || "text",
-          },
-          { onConflict: "case_id,question_key" },
-        ),
-      )
-      await Promise.all(responsePromises)
-      await supabase.from("cases").update({ status: "evidence", updated_at: new Date().toISOString() }).eq("id", caseId)
+      const responses = Object.entries(intakeResponses).map(([key, value]) => ({
+        question_key: key,
+        response_value: value,
+        response_type: intakeQuestions.find((q) => q.key === key)?.type || "text",
+      }))
+
+      await fetch(`/api/cases/${caseId}/responses`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responses }),
+      })
+
+      await fetch(`/api/cases/${caseId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "evidence" }),
+      })
+
       await trackClientEvent({
         eventName: "intake_complete",
         userId: caseData?.user_id ?? null,
@@ -307,9 +311,6 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
     setGenerationError(null)
     setPackDownloadUrl(null)
 
-    // eslint-disable-next-line no-console
-    console.log("Initiating case pack generation for case:", caseId)
-
     try {
       const response = await fetch(`/api/cases/${caseId}/generate-pack`, {
         method: "POST",
@@ -324,8 +325,6 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
         throw new Error("API did not return a download URL.")
       }
 
-      // eslint-disable-next-line no-console
-      console.log("Case pack generated. Download URL:", result.downloadUrl)
       setPackDownloadUrl(result.downloadUrl)
 
       await trackClientEvent({
@@ -351,44 +350,49 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
 
   const supportedCaseTypes = new Set(["fidrec_scam", "fidrec_fraud", "phishing_scam"])
 
+  // Poll for document processing status via API
   useEffect(() => {
     if (processingPendingIds.length === 0) return
     let active = true
 
     const poll = async () => {
-      const { data, error } = await supabase
-        .from("case_documents")
-        .select("id, processing_status")
-        .in("id", processingPendingIds)
+      try {
+        const res = await fetch(`/api/cases/${caseId}/documents/status`)
+        if (!active) return
 
-      if (!active) return
+        if (!res.ok) {
+          setProcessingError('Failed to check processing status')
+          return
+        }
 
-      if (error) {
-        setProcessingError(error.message)
-        return
+        const { documents } = await res.json()
+        const relevant = (documents ?? []).filter((d: { id: string }) =>
+          processingPendingIds.includes(d.id)
+        )
+
+        const statusMap = relevant.reduce((acc: Record<string, number>, row: { processing_status?: string }) => {
+          const key = (row.processing_status ?? "unknown").toString().toLowerCase()
+          acc[key] = (acc[key] || 0) + 1
+          return acc
+        }, {} as Record<string, number>)
+
+        const pending = relevant.filter((row: { processing_status?: string }) => {
+          const status = (row.processing_status ?? "").toString().toLowerCase()
+          return status !== "ready" && status !== "failed"
+        })
+
+        if (pending.length === 0) {
+          const ready = statusMap.ready ?? 0
+          const failed = statusMap.failed ?? 0
+          setProcessingNotice(`Processing complete. Ready: ${ready}, Failed: ${failed}.`)
+          setProcessingPendingIds([])
+          return
+        }
+
+        setProcessingNotice(`Processing... ${pending.length} remaining.`)
+      } catch {
+        if (active) setProcessingError('Failed to check processing status')
       }
-
-      const rows = data ?? []
-      const statusMap = rows.reduce((acc, row) => {
-        const key = (row.processing_status ?? "unknown").toString().toLowerCase()
-        acc[key] = (acc[key] || 0) + 1
-        return acc
-      }, {} as Record<string, number>)
-
-      const pending = rows.filter((row) => {
-        const status = (row.processing_status ?? "").toString().toLowerCase()
-        return status !== "ready" && status !== "failed"
-      })
-
-      if (pending.length === 0) {
-        const ready = statusMap.ready ?? 0
-        const failed = statusMap.failed ?? 0
-        setProcessingNotice(`Processing complete. Ready: ${ready}, Failed: ${failed}.`)
-        setProcessingPendingIds([])
-        return
-      }
-
-      setProcessingNotice(`Processing... ${pending.length} remaining.`)
     }
 
     void poll()
@@ -400,7 +404,7 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
       active = false
       window.clearInterval(timer)
     }
-  }, [processingPendingIds, supabase])
+  }, [processingPendingIds, caseId])
 
   if (!caseData?.claim_type || !supportedCaseTypes.has(caseData.claim_type)) {
     return (
@@ -743,18 +747,3 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

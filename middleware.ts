@@ -1,5 +1,5 @@
-import { updateSession } from "@/lib/supabase/middleware"
-import type { NextRequest } from "next/server"
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
 const blockedPathPatterns: RegExp[] = [
   /\.env/i,
@@ -12,27 +12,27 @@ const blockedPathPatterns: RegExp[] = [
 
 const blockedUserAgents: RegExp[] = [/aiohttp/i, /cms-checker/i]
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-  const userAgent = request.headers.get("user-agent") ?? ""
+const isProtectedRoute = createRouteMatcher(['/app(.*)'])
+const isPublicAppRoute = createRouteMatcher(['/app/signup'])
 
-  if (blockedPathPatterns.some((pattern) => pattern.test(pathname)) || blockedUserAgents.some((pattern) => pattern.test(userAgent))) {
-    return new Response("Not found", { status: 404 })
+export default clerkMiddleware(async (auth, request: NextRequest) => {
+  const { pathname } = request.nextUrl
+  const userAgent = request.headers.get('user-agent') ?? ''
+
+  if (
+    blockedPathPatterns.some((pattern) => pattern.test(pathname)) ||
+    blockedUserAgents.some((pattern) => pattern.test(userAgent))
+  ) {
+    return new NextResponse('Not found', { status: 404 })
   }
 
-  return await updateSession(request)
-}
+  if (isProtectedRoute(request) && !isPublicAppRoute(request)) {
+    await auth.protect()
+  }
+})
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - images - .svg, .png, .jpg, .jpeg, .gif, .webp
-     * Feel free to modify this pattern to include more paths.
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

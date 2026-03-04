@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import type { User } from "@supabase/supabase-js"
+import { useClerk } from "@clerk/nextjs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge"
 import { User as UserIcon, Bell, Shield, Eye, Download, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { ReferralWidget } from "@/components/referral-widget"
-import { useSupabase } from "@/components/providers/supabase-provider"
 
 type Profile = {
   full_name?: string | null
@@ -21,15 +20,15 @@ type Profile = {
 } & Record<string, unknown>
 
 type SettingsClientProps = {
-  initialUser: User
+  initialUser: { id: string; email: string }
   initialProfile: Profile | null
 }
 
 export default function SettingsClient({ initialUser, initialProfile }: SettingsClientProps) {
   const router = useRouter()
-  const supabase = useSupabase()
+  const { signOut } = useClerk()
 
-  const [user] = useState<User | null>(initialUser)
+  const user = initialUser
   const [profile] = useState<Profile | null>(initialProfile)
   const [isSaving, setIsSaving] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -49,11 +48,12 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
 
     setIsSaving(true)
     try {
-      await supabase.from("profiles").upsert({
-        id: user.id,
-        email: user.email,
-        updated_at: new Date().toISOString(),
+      const res = await fetch("/api/profiles", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       })
+      if (!res.ok) throw new Error("Failed to save profile")
       // eslint-disable-next-line no-alert
       alert("Profile updated successfully!")
     } catch (error) {
@@ -108,7 +108,7 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOut()
     router.push("/")
   }
 
@@ -312,5 +312,3 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
     </div>
   )
 }
-
-

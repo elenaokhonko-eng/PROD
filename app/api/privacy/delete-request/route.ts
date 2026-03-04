@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { getCurrentUser } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 import { trackServerEvent } from "@/lib/analytics/server"
 
@@ -6,17 +7,16 @@ import { trackServerEvent } from "@/lib/analytics/server"
 // mark cases anonymized and log analytics events. In production, move to a queue/job.
 export async function POST() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const supabase = await createClient()
 
     // Fetch user's cases (owner or creator)
     const { data: cases } = await supabase
       .from("cases")
       .select("id")
-      .eq("user_id", user.id)
+      .eq("user_id", user.profileId)
 
     const caseIds = (cases ?? []).map((c: { id: string }) => c.id)
 
@@ -44,7 +44,7 @@ export async function POST() {
     // Log events
     await trackServerEvent({
       eventName: "privacy_delete_completed",
-      userId: user.id,
+      userId: user.profileId,
       eventData: { case_ids: caseIds },
     })
 

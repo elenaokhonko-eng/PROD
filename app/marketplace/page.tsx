@@ -68,7 +68,7 @@ export default function MarketplacePage() {
                 </Link>
               ))}
             </nav>
-            <Link href="/auth/login">
+            <Link href="/sign-in">
               <Button variant="outline" size="sm" className="rounded-full bg-transparent">
                 Sign In
               </Button>
@@ -89,7 +89,7 @@ export default function MarketplacePage() {
           </p>
           <div className="flex flex-wrap gap-3">
             <Button asChild className="rounded-full">
-              <Link href="/auth/sign-up?source=marketplace">Sign in to request help</Link>
+              <Link href="/sign-up?source=marketplace">Sign in to request help</Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full">
               <Link href="mailto:partners@guidebuoyai.sg">Partner with us</Link>

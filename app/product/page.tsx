@@ -252,7 +252,7 @@ export default async function ProductPage() {
               <Badge variant="secondary" className="hidden sm:inline-flex rounded-full">
                 Free Helper Access
               </Badge>
-              <Link href="/auth/login">
+              <Link href="/sign-in">
                 <Button variant="outline" size="sm" className="rounded-full bg-transparent">
                   Sign In
                 </Button>
@@ -282,7 +282,7 @@ export default async function ProductPage() {
             </p>
             <div className="mt-6 flex flex-wrap gap-4">
               <Button asChild className="rounded-full">
-                <Link href="/auth/sign-up?source=product">Start free intake</Link>
+                <Link href="/sign-up?source=product">Start free intake</Link>
               </Button>
               <Button asChild variant="outline" className="rounded-full">
                 <Link href="mailto:partners@guidebuoyai.sg">Book a product tour</Link>
