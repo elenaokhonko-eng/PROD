@@ -15,7 +15,7 @@ const blockedUserAgents: RegExp[] = [/aiohttp/i, /cms-checker/i]
 const isProtectedRoute = createRouteMatcher(['/app(.*)'])
 const isPublicAppRoute = createRouteMatcher(['/app/signup'])
 
-export default clerkMiddleware(async (auth, request: NextRequest) => {
+export default clerkMiddleware(async function proxy(auth, request: NextRequest) {
   const { pathname } = request.nextUrl
   const userAgent = request.headers.get('user-agent') ?? ''
 
