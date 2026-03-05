@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import Image from "next/image"
-import { useClerk } from "@clerk/nextjs"
+import { SiteHeader } from "@/components/site-header"
 import { uploadEvidence, deleteEvidence, processEvidence } from "@/lib/evidence-storage"
 import { trackClientEvent } from "@/lib/analytics/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -56,7 +55,6 @@ type DashboardClientProps = {
 }
 
 export default function DashboardClient({ caseId, initialUser, initialCase, initialPayment, initialResponses, initialFiles }: DashboardClientProps) {
-  const { signOut } = useClerk()
   const router = useRouter()
 
   const user = initialUser
@@ -85,11 +83,6 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
   const [processingPendingIds, setProcessingPendingIds] = useState<string[]>([])
 
   const intakeComplete = useMemo(() => intakeQuestions.every((q) => !q.required || intakeResponses[q.key]), [intakeResponses])
-
-  const handleSignOut = async () => {
-    await signOut()
-    router.push("/")
-  }
 
   const completeIntake = async () => {
     setIsSavingIntake(true)
@@ -427,33 +420,7 @@ export default function DashboardClient({ caseId, initialUser, initialCase, init
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">GB</span>
-              </div>
-              <span className="font-semibold text-lg">GuideBuoy AI</span>
-            </Link>
-            <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="rounded-full">
-                {caseData?.claim_type?.replace("_", " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}
-              </Badge>
-              {hasUnlockedCase && (
-                <Badge variant="default" className="bg-accent text-accent-foreground rounded-full">Premium Access</Badge>
-              )}
-              {user && (
-                <>
-                  <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
-                  <Button variant="outline" size="sm" onClick={handleSignOut} className="rounded-full bg-transparent">Sign Out</Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Disclaimer Banner */}
       <div className="bg-accent/10 border-b border-accent/20 py-2">

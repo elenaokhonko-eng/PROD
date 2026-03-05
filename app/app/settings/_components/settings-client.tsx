@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useClerk } from "@clerk/nextjs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { User as UserIcon, Bell, Shield, Eye, Download, Trash2 } from "lucide-react"
-import Link from "next/link"
+import { SiteHeader } from "@/components/site-header"
 import { ReferralWidget } from "@/components/referral-widget"
 
 type Profile = {
@@ -26,7 +25,6 @@ type SettingsClientProps = {
 
 export default function SettingsClient({ initialUser, initialProfile }: SettingsClientProps) {
   const router = useRouter()
-  const { signOut } = useClerk()
 
   const user = initialUser
   const [profile] = useState<Profile | null>(initialProfile)
@@ -107,41 +105,9 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
     }
   }
 
-  const handleSignOut = async () => {
-    await signOut()
-    router.push("/")
-  }
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">GB</span>
-              </div>
-              <span className="font-semibold text-lg">GuideBuoy AI</span>
-            </Link>
-            <div className="flex items-center gap-3">
-              {user && (
-                <>
-                  <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
-                  <Button variant="outline" size="sm" onClick={handleSignOut}>
-                    Sign Out
-                  </Button>
-                </>
-              )}
-              <Link href="/app">
-                <Button variant="outline" size="sm">
-                  Back to App
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto space-y-6">

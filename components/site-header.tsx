@@ -43,7 +43,7 @@ export function SiteHeader({ badge }: SiteHeaderProps) {
             )}
             {isLoaded && isSignedIn ? (
               <div className="flex items-center gap-2">
-                <Link href="/app">
+                <Link href="/app/case/new">
                   <Button variant="outline" size="sm" className="rounded-full bg-transparent">
                     Dashboard
                   </Button>
