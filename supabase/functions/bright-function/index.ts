@@ -9,8 +9,8 @@ Deno.serve(async (req)=>{
       status: 405
     });
     // Entitlement check
-    const entitlement = await get_effective_entitlement(case_id);
-    if (!entitlement) {
+    const caseEntitlement = await get_effective_entitlement(case_id);
+    if (!caseEntitlement) {
       return new Response("Unauthorized", { status: 401 });
     }
     if (!SERVICE_ROLE_KEY) throw new Error("Missing GUIDEBUOY_SERVICE_ROLE_KEY secret");
