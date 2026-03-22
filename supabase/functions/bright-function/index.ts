@@ -14,8 +14,9 @@ Deno.serve(async (req)=>{
     const case_id = body.case_id;
     // Entitlement check
     const entitlement = await get_effective_entitlement(case_id);
-    if (!entitlement || !Array.isArray(entitlement.features) || !entitlement.features.includes("FREE_SUMMARY")) {
-      console.error("Entitlement check failed: FREE_SUMMARY not included");
+    const requiredFeature = "FREE_SUMMARY"; // Define the required feature dynamically or through configuration
+    if (!entitlement || !Array.isArray(entitlement.features) || !entitlement.features.includes(requiredFeature)) {
+      console.error(`Entitlement check failed: ${requiredFeature} not included`);
       return new Response("Unauthorized", { status: 401 });
     }
       console.error("Entitlement check failed: FREE_SUMMARY not included");
