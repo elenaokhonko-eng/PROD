@@ -55,30 +55,6 @@ Deno.serve(async (req)=>{
     });
     const lang = intake?.language ?? "en";
     const intake_id = intake?.id ?? null;
-    await upsertNarrative({
-      supabase,
-      case_id,
-      narrative_type: "tier0_summary",
-      title: "Incident summary (Tier-0)",
-      text_content: llm.summary,
-      source_ref,
-      version: 1,
-      language: lang,
-      audience: "user",
-      intake_id
-    });
-    await upsertNarrative({
-      supabase,
-      case_id,
-      narrative_type: "tier0_evidence_checklist",
-      title: "Evidence checklist (Tier-0)",
-      text_content: llm.evidence_checklist ?? "",
-      source_ref,
-      version: 1,
-      language: lang,
-      audience: "user",
-      intake_id
-    });
     return json({
       ok: true,
       case_id,
