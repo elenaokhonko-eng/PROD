@@ -14,8 +14,8 @@ Deno.serve(async (req)=>{
     const case_id = body.case_id;
     // Entitlement check
     const entitlement = await get_effective_entitlement(case_id);
-    if (!entitlement || !entitlement.plan || !entitlement.features || !entitlement.features.includes("FREE_SUMMARY")) {
-      console.error("Entitlement check failed: FREE_SUMMARY not included or plan missing");
+    if (!entitlement || !Array.isArray(entitlement.features) || !entitlement.features.includes("FREE_SUMMARY")) {
+      console.error("Entitlement check failed: FREE_SUMMARY not included");
       return new Response("Unauthorized", { status: 401 });
     }
       console.error("Entitlement check failed: FREE_SUMMARY not included");
