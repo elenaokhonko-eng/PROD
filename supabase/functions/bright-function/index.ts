@@ -29,12 +29,6 @@ Deno.serve(async (req)=>{
     }).limit(1).range(0, 0); // Limit to 1 result to reduce resource usage
     if (intakeErr) throw intakeErr;
     const intake = intakeRows?.[0] ?? null;
-    // Load timeline_raw if present
-    const { data: timelineRows, error: timelineErr } = await supabase.from("case_narratives").select("text_content").eq("case_id", case_id).eq("narrative_type", "timeline_raw").order("created_at", {
-      ascending: false
-    }).limit(1);
-    if (timelineErr) throw timelineErr;
-    const timeline_raw = timelineRows?.[0]?.text_content ?? null;
     // Input snapshot (narrative and intake only)
     const input = {
       primary_narrative: caseRow.primary_narrative,
