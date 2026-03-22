@@ -9,7 +9,8 @@ Deno.serve(async (req)=>{
       status: 405
     });
     // Entitlement check
-    const user = await supabase.auth.getUser();
+    const supabase = createClient(PROJECT_URL, SERVICE_ROLE_KEY);
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user || !user.data) {
       return new Response("Unauthorized", { status: 401 });
     }
