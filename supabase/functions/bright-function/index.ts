@@ -8,7 +8,11 @@ Deno.serve(async (req)=>{
     if (req.method !== "POST") return new Response("Method Not Allowed", {
       status: 405
     });
-    if (!PROJECT_URL) throw new Error("Missing GUIDEBUOY_URL secret");
+    // Entitlement check
+    const user = await supabase.auth.getUser();
+    if (!user || !user.data) {
+      return new Response("Unauthorized", { status: 401 });
+    }
     if (!SERVICE_ROLE_KEY) throw new Error("Missing GUIDEBUOY_SERVICE_ROLE_KEY secret");
     if (!OPENAI_API_KEY) throw new Error("Missing GuideBuoy_EdgeFunction secret (OpenAI key)");
     const body = await req.json();
