@@ -68,10 +68,16 @@ Deno.serve(async (req)=>{
       source_ref
     }, 200);
   } catch (e) {
-    return json({
+    console.error(`Error: ${String(e)}`);
+    return new Response(JSON.stringify({
       ok: false,
-      error: String(e)
-    }, 500);
+      error: "Internal Server Error"
+    }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
   }
 });
 function json(obj, status = 200) {
