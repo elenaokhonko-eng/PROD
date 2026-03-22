@@ -8,8 +8,8 @@ Deno.serve(async (req)=>{
     if (req.method !== "POST") return new Response("Method Not Allowed", {
       status: 405
     });
-    if (!SERVICE_ROLE_KEY) throw new Error("Missing GUIDEBUOY_SERVICE_ROLE_KEY secret");
-    if (!OPENAI_API_KEY) throw new Error("Missing GuideBuoy_EdgeFunction secret (OpenAI key)");
+    if (!SERVICE_ROLE_KEY) return new Response("Service Role Key Missing", { status: 500 });
+    if (!OPENAI_API_KEY) return new Response("OpenAI API Key Missing", { status: 500 });
     const body = await req.json();
     const case_id = body.case_id;
     // Entitlement check
@@ -19,19 +19,16 @@ Deno.serve(async (req)=>{
     }
     const prompt_version = body.prompt_version ?? "v0.1";
     const source_ref = `tier0:${prompt_version}`;
-    if (!case_id) return json({
-      ok: false,
-      error: "Missing case_id"
-    }, 400);
+    if (!case_id) return new Response("Missing case_id", { status: 400 });
     const supabase = createClient(PROJECT_URL, SERVICE_ROLE_KEY);
     // Load case
     const { data: caseRow, error: caseErr } = await supabase.from("cases").select("id, jurisdiction, institution_name, claim_amount, claim_currency, incident_date, incident_datetime, primary_narrative").eq("id", case_id).single();
-    if (caseErr) throw caseErr;
+    if (caseErr) return new Response(`Case Error: ${caseErr.message}`, { status: 500 });
     // Load latest intake
     const { data: intakeRows, error: intakeErr } = await supabase.from("case_intake").select("id, narrative_text, answers_json, language, created_at").eq("case_id", case_id).order("created_at", {
       ascending: false
     }).limit(1).range(0, 0); // Limit to 1 result to reduce resource usage
-    if (intakeErr) throw intakeErr;
+    if (intakeErr) return new Response(`Intake Error: ${intakeErr.message}`, { status: 500 });
     const intake = intakeRows?.[0] ?? null;
     // Input snapshot (narrative and intake only)
     const input = {
