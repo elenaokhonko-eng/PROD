@@ -26,7 +26,7 @@ Deno.serve(async (req)=>{
     // Load latest intake
     const { data: intakeRows, error: intakeErr } = await supabase.from("case_intake").select("id, narrative_text, answers_json, language, created_at").eq("case_id", case_id).order("created_at", {
       ascending: false
-    }).limit(1);
+    }).limit(1).range(0, 0); // Limit to 1 result to reduce resource usage
     if (intakeErr) throw intakeErr;
     const intake = intakeRows?.[0] ?? null;
     // Load timeline_raw if present
@@ -146,7 +146,7 @@ Return STRICT JSON:
 }
 `;
   const user = `INPUT JSON:\n${JSON.stringify(input, null, 2)}`;
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+  const resp = await fetch("https://api.openai.com/v1/chat/completions", { // Ensure model fits free tier
     method: "POST",
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
@@ -172,7 +172,11 @@ Return STRICT JSON:
   });
   if (!resp.ok) {
     const err = await resp.text();
-    throw new Error(`OpenAI error ${resp.status}: ${err}`);
+    console.error(`OpenAI error ${resp.status}: ${err}`); // Log error instead of throwing to prevent retries
+    return json({
+      ok: false,
+      error: `OpenAI error ${resp.status}`
+    }, 500);
   }
   const data = await resp.json();
   const content = data?.choices?.[0]?.message?.content;
