@@ -35,25 +35,14 @@ Deno.serve(async (req)=>{
     }).limit(1);
     if (timelineErr) throw timelineErr;
     const timeline_raw = timelineRows?.[0]?.text_content ?? null;
-    // Input snapshot (facts only)
+    // Input snapshot (narrative and intake only)
     const input = {
-      case: {
-        id: caseRow.id,
-        jurisdiction: caseRow.jurisdiction,
-        institution_name: caseRow.institution_name,
-        claim_amount: caseRow.claim_amount,
-        claim_currency: caseRow.claim_currency,
-        incident_date: caseRow.incident_date,
-        incident_datetime: caseRow.incident_datetime
-      },
+      primary_narrative: caseRow.primary_narrative,
       intake: intake ? {
-        intake_id: intake.id,
         narrative_text: intake.narrative_text,
         answers_json: intake.answers_json,
         language: intake.language ?? "en"
-      } : null,
-      primary_narrative: caseRow.primary_narrative,
-      timeline_raw
+      } : null
     };
     // LLM call
     const llm = await callOpenAITier0(input);
