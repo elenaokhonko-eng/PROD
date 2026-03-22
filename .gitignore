@@ -8,3 +8,6 @@ node_modules
 
 # Claude Code local settings (machine-specific permissions)
 .claude/settings.local.json
+
+# Implementation / planning docs (not for repo)
+docs/implementation-plan.md
