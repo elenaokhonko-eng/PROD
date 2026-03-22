@@ -329,7 +329,7 @@ Important: strength must be honest. If the user has no police report and no bank
     if (structuredData.evidenceInventory.length > 0) {
       addTextBlock("Evidence Inventory", 13, { bold: true, extraGap: lineGap })
       structuredData.evidenceInventory.forEach((item) => {
-        const marker = item.status === "present" ? "[✓]" : "[✗]"
+        const marker = item.status === "present" ? "[Y]" : "[N]"
         addTextBlock(`${marker} ${item.item}`)
       })
       cursorY -= lineGap
@@ -340,7 +340,7 @@ Important: strength must be honest. If the user has no police report and no bank
       addTextBlock("Bank Duty Checklist (SRF)", 13, { bold: true, extraGap: lineGap })
       structuredData.bankDutyChecklist.forEach((duty) => {
         const marker =
-          duty.likelyMet === true ? "[✓ Likely met]" : duty.likelyMet === false ? "[✗ Possibly not met]" : "[? Unknown]"
+          duty.likelyMet === true ? "[Likely met]" : duty.likelyMet === false ? "[Possibly not met]" : "[Unknown]"
         addTextBlock(`${marker} ${duty.duty}`)
         if (duty.note) addTextBlock(`   ${duty.note}`, baseFontSize - 1)
       })
@@ -358,7 +358,7 @@ Important: strength must be honest. If the user has no police report and no bank
     if (structuredData.riskFlags.length > 0) {
       addTextBlock("Risk Flags", 13, { bold: true, extraGap: lineGap })
       structuredData.riskFlags.forEach((flag) => {
-        addTextBlock(`⚠ ${flag}`)
+        addTextBlock(`[!] ${flag}`)
       })
       cursorY -= lineGap
     }
