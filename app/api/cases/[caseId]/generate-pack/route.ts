@@ -23,6 +23,12 @@ type FidrecCaseSummaryOutput = {
   keyArguments: string[]
   desiredResolution: string
   evidenceIndex: { fileName: string; description: string }[]
+  // PRD §6 Screen 4 — Case Readiness Report sections
+  evidenceInventory: { item: string; status: "present" | "missing" }[]
+  bankDutyChecklist: { duty: string; likelyMet: boolean | null; note: string }[]
+  strengthIndicator: "Weak" | "Moderate" | "Strong"
+  strengthRationale: string
+  riskFlags: string[]
 }
 
 async function checkCaseAccess(
@@ -135,20 +141,44 @@ export async function POST(_req: NextRequest, { params }: { params: { caseId: st
       evidenceList: evidenceList ?? [],
     }
 
-    const systemPrompt = `You are an expert paralegal assistant specializing in FIDReC submissions in Singapore. Analyze the provided case data (summary, intake Q&A, evidence list) and generate a structured JSON output suitable for drafting a formal FIDReC case submission document. Focus on summarizing, structuring the timeline, identifying key arguments, and listing evidence clearly.
+    const systemPrompt = `You are an expert paralegal assistant specializing in FIDReC submissions in Singapore. Analyse the provided case data (summary, intake Q&A, evidence list) and generate a structured Case Readiness Report plus FIDReC submission structure.
 
-Return ONLY a single, valid JSON object matching the following TypeScript type. Do not include any introductory text, concluding text, explanations, or markdown formatting like \`\`\`json.
+Return ONLY a single, valid JSON object. No markdown, no introductory text, no explanation.
 
 type FidrecCaseSummaryOutput = {
-  caseTitle: string; // e.g., "Dispute Regarding Unauthorized Transactions on DBS Credit Card"
-  claimantName: string; // Placeholder like "Claimant" if unknown
-  respondentName: string; // e.g., "DBS Bank Ltd." - Extract from context if possible, otherwise placeholder "Financial Institution"
-  summaryOfDispute: string; // Generate a concise 2-3 sentence summary of the core issue and amount.
-  chronologyOfEvents: { date: string; description: string }[]; // Create a timeline based on intake responses and summary. Use YYYY-MM-DD where possible or descriptions like "Around October 2024".
-  keyArguments: string[]; // List 3-5 bullet points outlining the claimant's main arguments or reasons for dispute.
-  desiredResolution: string; // Summarize what the claimant is seeking (e.g., "Full refund of S$XXXX.XX"). Extract amount if possible.
-  evidenceIndex: { fileName: string; description: string }[]; // Use the provided evidenceList directly.
-};`
+  caseTitle: string;              // e.g., "Dispute Regarding Unauthorised Transactions on DBS Credit Card"
+  claimantName: string;           // "Claimant" placeholder if unknown
+  respondentName: string;         // e.g., "DBS Bank Ltd." — extract from context, else "Financial Institution"
+  summaryOfDispute: string;       // 2–3 sentences summarising the core issue and amount
+  chronologyOfEvents: { date: string; description: string }[];  // Timeline from intake Q&A. YYYY-MM-DD or "Around October 2024"
+  keyArguments: string[];         // 3–5 claimant arguments
+  desiredResolution: string;      // What the claimant is seeking, with amount if known
+
+  // === Case Readiness Report (PRD §6 Screen 4) ===
+
+  evidenceInventory: {            // Checklist of evidence items FIDReC typically expects
+    item: string;                 // e.g., "Bank statement showing disputed transaction"
+    status: "present" | "missing"; // "present" if the item appears in the uploaded evidence list, else "missing"
+  }[];                            // Include at minimum: bank statements, transaction records, bank correspondence, police report, screenshots of communications
+
+  bankDutyChecklist: {            // SRF bank duty assessment (applies to phishing/SRF cases)
+    duty: string;                 // e.g., "Real-time transaction alerts sent to customer"
+    likelyMet: boolean | null;    // true/false if determinable from case data, null if unknown
+    note: string;                 // 1-sentence explanation
+  }[];                            // Always include: real-time alerts, cooling-off period, fraud surveillance, scam awareness warnings
+
+  strengthIndicator: "Weak" | "Moderate" | "Strong";   // Honest assessment — do not inflate
+  strengthRationale: string;      // 1–2 sentences explaining the strength indicator honestly
+
+  evidenceIndex: { fileName: string; description: string }[];   // Use the provided evidenceList
+
+  riskFlags: string[];            // 2–5 honest risk warnings the claimant should be aware of
+                                  // e.g., "You mentioned clicking a suspicious link — the bank may argue this constitutes negligence under EUPG"
+                                  // e.g., "The 6-month FIDReC filing window may be approaching — file promptly"
+                                  // Be specific and honest. Do not include generic platitudes.
+};
+
+Important: strength must be honest. If the user has no police report and no bank correspondence, that is "Weak" — do not call it "Moderate" to be encouraging.`
 
     const userPrompt = `Case Data:\n\`\`\`json\n${JSON.stringify(aiInputData, null, 2)}\n\`\`\`\n\nJSON Output:`
 
@@ -188,6 +218,12 @@ type FidrecCaseSummaryOutput = {
       ) {
         throw new Error("Parsed JSON from AI is missing required fields.")
       }
+      // Ensure new PRD sections have safe defaults if AI omits them
+      structuredData.evidenceInventory ??= []
+      structuredData.bankDutyChecklist ??= []
+      structuredData.strengthIndicator ??= "Moderate"
+      structuredData.strengthRationale ??= ""
+      structuredData.riskFlags ??= []
     } catch (parseError) {
       console.error("[Generate Pack] AI JSON parse error:", parseError, "Raw output:", rawJsonText)
       const message = parseError instanceof Error ? parseError.message : "Unknown parse error"
@@ -286,6 +322,48 @@ type FidrecCaseSummaryOutput = {
 
     addTextBlock("Desired Resolution", 13, { bold: true, extraGap: lineGap })
     addTextBlock(structuredData.desiredResolution, baseFontSize, { extraGap: lineGap * 2 })
+
+    // ── PRD §6 Screen 4: Case Readiness Report sections ────────────────────
+
+    // 1. Evidence inventory
+    if (structuredData.evidenceInventory.length > 0) {
+      addTextBlock("Evidence Inventory", 13, { bold: true, extraGap: lineGap })
+      structuredData.evidenceInventory.forEach((item) => {
+        const marker = item.status === "present" ? "[✓]" : "[✗]"
+        addTextBlock(`${marker} ${item.item}`)
+      })
+      cursorY -= lineGap
+    }
+
+    // 2. Bank duty checklist
+    if (structuredData.bankDutyChecklist.length > 0) {
+      addTextBlock("Bank Duty Checklist (SRF)", 13, { bold: true, extraGap: lineGap })
+      structuredData.bankDutyChecklist.forEach((duty) => {
+        const marker =
+          duty.likelyMet === true ? "[✓ Likely met]" : duty.likelyMet === false ? "[✗ Possibly not met]" : "[? Unknown]"
+        addTextBlock(`${marker} ${duty.duty}`)
+        if (duty.note) addTextBlock(`   ${duty.note}`, baseFontSize - 1)
+      })
+      cursorY -= lineGap
+    }
+
+    // 3. Strength indicator
+    addTextBlock("Case Strength", 13, { bold: true, extraGap: lineGap })
+    addTextBlock(`Overall: ${structuredData.strengthIndicator}`, baseFontSize, { bold: true })
+    if (structuredData.strengthRationale) {
+      addTextBlock(structuredData.strengthRationale, baseFontSize, { extraGap: lineGap * 2 })
+    }
+
+    // 4. Risk flags
+    if (structuredData.riskFlags.length > 0) {
+      addTextBlock("Risk Flags", 13, { bold: true, extraGap: lineGap })
+      structuredData.riskFlags.forEach((flag) => {
+        addTextBlock(`⚠ ${flag}`)
+      })
+      cursorY -= lineGap
+    }
+
+    // ── Original sections ────────────────────────────────────────────────────
 
     addTextBlock("Index of Submitted Evidence", 13, { bold: true, extraGap: lineGap })
     structuredData.evidenceIndex.forEach((evidence, index) => {

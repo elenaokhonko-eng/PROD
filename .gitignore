@@ -2,3 +2,9 @@ node_modules
 .next
 .env*
 .tools
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Claude Code local settings (machine-specific permissions)
+.claude/settings.local.json
