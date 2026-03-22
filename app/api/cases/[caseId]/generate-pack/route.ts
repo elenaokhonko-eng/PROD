@@ -279,10 +279,22 @@ Important: strength must be honest. If the user has no police report and no bank
       return lines.length > 0 ? lines : [""]
     }
 
+    // Replaces characters outside WinAnsi (Latin-1) range with safe ASCII equivalents
+    const sanitizeForPdf = (text: string): string =>
+      text
+        .replace(/[\u2018\u2019]/g, "'")   // smart single quotes
+        .replace(/[\u201C\u201D]/g, '"')   // smart double quotes
+        .replace(/\u2013/g, "-")           // en-dash
+        .replace(/\u2014/g, "--")          // em-dash
+        .replace(/\u2026/g, "...")         // ellipsis
+        .replace(/\u2022/g, "-")           // bullet
+        .replace(/\u00A0/g, " ")           // non-breaking space
+        .replace(/[^\x00-\xFF]/g, "?")     // anything else outside Latin-1
+
     const addTextBlock = (text: string, fontSize = baseFontSize, options?: { bold?: boolean; extraGap?: number }) => {
       const { bold = false, extraGap = lineGap } = options ?? {}
       const font = bold ? boldFont : regularFont
-      const lines = wrapText(text, fontSize, font)
+      const lines = wrapText(sanitizeForPdf(text), fontSize, font)
 
       ensureSpace(lines.length * fontSize * 1.2)
 
