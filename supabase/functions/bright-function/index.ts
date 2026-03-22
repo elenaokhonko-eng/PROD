@@ -18,6 +18,9 @@ Deno.serve(async (req)=>{
       console.error("Entitlement check failed: FREE_SUMMARY not included");
       return new Response("Unauthorized", { status: 401 });
     }
+      console.error("Entitlement check failed: FREE_SUMMARY not included");
+      return new Response("Unauthorized", { status: 401 });
+    }
       return new Response("Unauthorized", { status: 401 });
     }
     const prompt_version = body.prompt_version ?? "v0.1";
