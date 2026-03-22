@@ -47,6 +47,18 @@ Deno.serve(async (req)=>{
     // LLM call
     const llm = await callOpenAITier0(input);
     // Write outputs to case_narratives (update-if-exists, else insert)
+    await upsertNarrative({
+      supabase,
+      case_id,
+      narrative_type: "tier0_incident_overview",
+      title: "Incident Overview (Tier-0)",
+      text_content: llm.incident_overview ?? "",
+      source_ref,
+      version: 1,
+      language: lang,
+      audience: "user",
+      intake_id
+    });
     const lang = intake?.language ?? "en";
     const intake_id = intake?.id ?? null;
     await upsertNarrative({
@@ -131,6 +143,7 @@ RULES:
 Return STRICT JSON:
 {
   "summary": "string",
+  "incident_overview": "string",
   "evidence_checklist": "string"
 }
 `;
