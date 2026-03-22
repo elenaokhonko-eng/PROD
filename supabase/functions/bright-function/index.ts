@@ -8,15 +8,15 @@ Deno.serve(async (req)=>{
     if (req.method !== "POST") return new Response("Method Not Allowed", {
       status: 405
     });
+    if (!SERVICE_ROLE_KEY) throw new Error("Missing GUIDEBUOY_SERVICE_ROLE_KEY secret");
+    if (!OPENAI_API_KEY) throw new Error("Missing GuideBuoy_EdgeFunction secret (OpenAI key)");
+    const body = await req.json();
+    const case_id = body.case_id;
     // Entitlement check
     const caseEntitlement = await get_effective_entitlement(case_id);
     if (!caseEntitlement) {
       return new Response("Unauthorized", { status: 401 });
     }
-    if (!SERVICE_ROLE_KEY) throw new Error("Missing GUIDEBUOY_SERVICE_ROLE_KEY secret");
-    if (!OPENAI_API_KEY) throw new Error("Missing GuideBuoy_EdgeFunction secret (OpenAI key)");
-    const body = await req.json();
-    const case_id = body.case_id;
     const prompt_version = body.prompt_version ?? "v0.1";
     const source_ref = `tier0:${prompt_version}`;
     if (!case_id) return json({
