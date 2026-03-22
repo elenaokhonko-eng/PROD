@@ -13,8 +13,8 @@ Deno.serve(async (req)=>{
     const body = await req.json();
     const case_id = body.case_id;
     // Entitlement check
-    const caseEntitlement = await get_effective_entitlement(case_id);
-    if (!caseEntitlement || !caseEntitlement.includes("FREE_SUMMARY")) {
+    const { plan, features } = await get_effective_entitlement(case_id);
+    if (!features || !features.includes("FREE_SUMMARY")) {
       return new Response("Unauthorized", { status: 401 });
     }
     const prompt_version = body.prompt_version ?? "v0.1";
