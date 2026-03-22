@@ -113,6 +113,7 @@ RULES:
 Return STRICT JSON:
 {
   "classification": "string"
+  // Ensure no responsibility or likelihood scoring is included
 }
 `;
   const user = `INPUT JSON:\n${JSON.stringify(input, null, 2)}`;
