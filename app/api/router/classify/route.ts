@@ -13,7 +13,7 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY)
-const modelName = "models/gemini-2.5-flash"
+const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-2.0-flash"
 const log = logger.withContext({ module: "router-classify", model: modelName })
 
 const classifyRequestSchema = z.object({
@@ -118,12 +118,17 @@ export async function POST(request: NextRequest) {
 
     const sanitizedNarrative = sanitizeText(narrative)
 
+    const userPrompt = `User narrative:
+"""
+${sanitizedNarrative}
+"""
+
+JSON Output:`
+
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction,
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
+      generationConfig: { responseMimeType: "application/json" },
       safetySettings: [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -131,13 +136,6 @@ export async function POST(request: NextRequest) {
         },
       ],
     })
-
-    const userPrompt = `User narrative:
-"""
-${sanitizedNarrative}
-"""
-
-JSON Output:`
 
     log.info("Calling Gemini for triage signal extraction")
     const result = await model.generateContent(userPrompt)
