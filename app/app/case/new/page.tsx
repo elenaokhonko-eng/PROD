@@ -2,11 +2,11 @@ import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { getCurrentUser } from '@/lib/auth'
+import { auth } from '@clerk/nextjs/server'
 
 export default async function NewCasePage() {
-  const user = await getCurrentUser()
-  if (!user) redirect('/sign-in')
+  const { userId } = await auth()
+  if (!userId) redirect('/sign-in')
 
   return (
     <div className="min-h-screen bg-background">

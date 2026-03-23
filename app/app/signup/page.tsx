@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation'
-import { getCurrentUser } from '@/lib/auth'
+import { auth } from '@clerk/nextjs/server'
 
 export default async function AppSignupPage() {
-  const user = await getCurrentUser()
+  const { userId } = await auth()
 
-  if (user) {
+  if (userId) {
     redirect('/app/case/new')
   }
 
