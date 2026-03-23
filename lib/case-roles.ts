@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/server"
 import { trackClientEvent } from "@/lib/analytics/client"
 
 export type CaseRole = "victim" | "helper" | "lead_victim" | "defendant"

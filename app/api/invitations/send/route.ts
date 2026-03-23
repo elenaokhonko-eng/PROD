@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
+import { getCurrentUser } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 import { EMAIL_FROM } from "@/lib/email-config"
 import { InvitationEmail } from "@/lib/email-templates"
@@ -23,11 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
     }
 
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -44,6 +41,8 @@ export async function POST(request: NextRequest) {
 
     const { caseId, email, role } = parsed
 
+    const supabase = await createClient()
+
     // Verify user owns or has access to the case
     const { data: caseData, error: caseError } = await supabase
       .from("cases")
@@ -55,7 +54,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Case not found" }, { status: 404 })
     }
 
-    const isOwner = caseData.user_id === user.id
+    const isOwner = caseData.user_id === user.profileId
 
     // Check collaborator permissions separately
     let isCollaboratorWhoCanInvite = false
@@ -64,7 +63,7 @@ export async function POST(request: NextRequest) {
         .from("case_collaborators")
         .select("can_invite")
         .eq("case_id", caseId)
-        .eq("user_id", user.id)
+        .eq("user_id", user.profileId)
         .eq("status", "active")
         .single()
       isCollaboratorWhoCanInvite = Boolean(collab?.can_invite)
@@ -96,7 +95,7 @@ export async function POST(request: NextRequest) {
       .from("invitations")
       .insert({
         case_id: caseId,
-        inviter_user_id: user.id,
+        inviter_user_id: user.profileId,
         invitee_email: email,
         role: role || "helper",
         invitation_token: invitationToken,
@@ -111,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user profile for email
-    const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single()
+    const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.profileId).single()
 
     const html = await render(InvitationEmail({
       inviterName: profile?.full_name || user.email || "A user",

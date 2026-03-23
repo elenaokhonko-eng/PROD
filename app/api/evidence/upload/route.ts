@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { createClient as createServerClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const runtime = "nodejs"
@@ -22,13 +22,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "caseId is required" }, { status: 400 })
     }
 
-    const supabaseServer = await createServerClient()
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseServer.auth.getUser()
-
-    if (userError || !user) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -55,7 +50,7 @@ export async function POST(request: Request) {
       .from("evidence")
       .insert({
         case_id: caseId,
-        user_id: user.id,
+        user_id: user.profileId,
         filename: originalName,
         file_path: filePath,
         file_type: (file as File).type,

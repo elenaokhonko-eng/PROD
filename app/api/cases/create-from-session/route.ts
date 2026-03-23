@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server"
 
 import { trackServerEvent } from "@/lib/analytics/server"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   const { token } = await request.json()
   if (!token) {
@@ -35,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   const sessionUserId = rawSession.converted_to_user_id
-  const activeUserId = user?.id ?? sessionUserId
+  const activeUserId = user?.profileId ?? sessionUserId
 
   if (!activeUserId) {
     console.warn(`[Create Case] No active user for session ${token}`)

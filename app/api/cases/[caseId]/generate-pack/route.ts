@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai"
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib"
-import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth"
+import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
 const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY
@@ -32,7 +33,7 @@ type FidrecCaseSummaryOutput = {
 }
 
 async function checkCaseAccess(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   caseId: string,
   userId: string,
 ): Promise<boolean> {
@@ -66,25 +67,21 @@ async function checkCaseAccess(
   return Boolean(collaborators?.length)
 }
 
-export async function POST(_req: NextRequest, { params }: { params: { caseId: string } }) {
-  const { caseId } = params
+export async function POST(_req: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
+  const { caseId } = await params
   console.log(`[Generate Pack] Request received for caseId: ${caseId}`)
 
-  const supabase = await createSupabaseServerClient()
+  const user = await getCurrentUser()
+  if (!user) {
+    console.error("[Generate Pack] Authentication error: no user")
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const userId = user.profileId
+  console.log(`[Generate Pack] Authenticated user: ${userId}`)
 
   try {
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      console.error("[Generate Pack] Authentication error:", authError)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const userId = user.id
-    console.log(`[Generate Pack] Authenticated user: ${userId}`)
+    const supabase = await createClient()
 
     const hasAccess = await checkCaseAccess(supabase, caseId, userId)
     if (!hasAccess) {
@@ -231,7 +228,7 @@ Important: strength must be honest. If the user has no police report and no bank
     }
 
     structuredData.claimantName =
-      caseDetails.claimant_name ?? (user.user_metadata?.full_name as string | undefined) ?? "Claimant"
+      caseDetails.claimant_name ?? "Claimant"
     structuredData.evidenceIndex = aiInputData.evidenceList
 
     console.log("[Generate Pack] Generating PDF document...")

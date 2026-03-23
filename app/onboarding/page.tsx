@@ -3,12 +3,12 @@
 import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@clerk/nextjs"
 
 import {
   clearConvertedRouterSessionToken,
   getConvertedRouterSessionToken,
 } from "@/lib/router-session"
-import { useSupabase } from "@/components/providers/supabase-provider"
 
 function LoadingSpinner() {
   return (
@@ -20,38 +20,21 @@ function LoadingSpinner() {
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const supabase = useSupabase()
+  const { isLoaded, isSignedIn } = useAuth()
   const [status, setStatus] = useState<"checking" | "importing" | "complete" | "no_session">("checking")
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const ensureSession = async () => {
-      try {
-        const { data, error: sessionError } = await supabase.auth.getSession()
-        if (sessionError) {
-          throw sessionError
-        }
-        if (!data?.session) {
-          throw new Error("no_session")
-        }
-      } catch (err) {
-        console.warn("[onboarding] No valid auth session, redirecting to login", err)
-        try {
-          await supabase.auth.signOut()
-        } catch {
-          // ignore
-        }
-        clearConvertedRouterSessionToken()
-        router.replace("/auth/login?next=/onboarding")
-        return false
-      }
-      return true
+    if (!isLoaded) return
+
+    if (!isSignedIn) {
+      clearConvertedRouterSessionToken()
+      router.replace("/sign-in?redirect_url=/onboarding")
+      return
     }
 
     const importSession = async (token: string) => {
       try {
-        const okSession = await ensureSession()
-        if (!okSession) return
         setStatus("importing")
         const response = await fetch("/api/cases/create-from-session", {
           method: "POST",
@@ -75,20 +58,7 @@ export default function OnboardingPage() {
         console.error("Onboarding import failed:", err)
         setError(err instanceof Error ? err.message : "Unknown error")
         clearConvertedRouterSessionToken()
-        // Graceful fallback for missing/unauthorized sessions
-        if (
-          err instanceof Error &&
-          /Unauthorized|No convertible session|Session already linked|user_not_found/i.test(err.message)
-        ) {
-          try {
-            await supabase.auth.signOut()
-          } catch {
-            // ignore
-          }
-          router.replace("/auth/login?next=/onboarding")
-        } else {
-          router.replace("/app")
-        }
+        router.replace("/app")
       }
     }
 
@@ -99,7 +69,7 @@ export default function OnboardingPage() {
       setStatus("no_session")
       router.replace("/app")
     }
-  }, [router, supabase])
+  }, [router, isLoaded, isSignedIn])
 
   if (status === "checking" || status === "importing") {
     return (

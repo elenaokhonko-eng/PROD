@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
+import { getCurrentUser } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 
 const updateCaseSchema = z
@@ -15,24 +16,27 @@ const updateCaseSchema = z
     }
   })
 
-export async function GET(_request: NextRequest, { params }: { params: { caseId: string } }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
+  const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { caseId } = await params
+  const supabase = await createClient()
 
   const { data, error } = await supabase
     .from("cases")
     .select("id, claim_type, status, claim_amount, institution_name, incident_date, case_summary")
-    .eq("id", params.caseId)
+    .eq("id", caseId)
     .single()
   if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 })
   return NextResponse.json(data)
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { caseId: string } }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
+  const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { caseId } = await params
 
   let allowed
   try {
@@ -44,10 +48,12 @@ export async function PUT(request: NextRequest, { params }: { params: { caseId: 
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
   }
 
+  const supabase = await createClient()
+
   const { data, error } = await supabase
     .from("cases")
     .update({ ...allowed, updated_at: new Date().toISOString() })
-    .eq("id", params.caseId)
+    .eq("id", caseId)
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
