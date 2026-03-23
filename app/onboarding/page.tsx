@@ -8,6 +8,8 @@ import { useAuth } from "@clerk/nextjs"
 import {
   clearConvertedRouterSessionToken,
   getConvertedRouterSessionToken,
+  getSessionToken,
+  persistConvertedRouterSessionToken,
 } from "@/lib/router-session"
 
 function LoadingSpinner() {
@@ -28,8 +30,7 @@ export default function OnboardingPage() {
     if (!isLoaded) return
 
     if (!isSignedIn) {
-      clearConvertedRouterSessionToken()
-      router.replace("/sign-in?redirect_url=/onboarding")
+      router.replace("/sign-up?redirect_url=/onboarding")
       return
     }
 
@@ -62,8 +63,9 @@ export default function OnboardingPage() {
       }
     }
 
-    const token = getConvertedRouterSessionToken()
+    const token = getConvertedRouterSessionToken() ?? getSessionToken()
     if (token) {
+      persistConvertedRouterSessionToken(token)
       void importSession(token)
     } else {
       setStatus("no_session")

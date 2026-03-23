@@ -24,8 +24,17 @@ export default function ClassifyPage() {
         }
 
         const session = await getRouterSession(sessionToken)
-      if (!session || !session.dispute_narrative) {
+        if (!session || !session.dispute_narrative) {
           router.push("/router")
+          return
+        }
+
+        // Skip API call if classification already exists on the session
+        if (session.classification_result) {
+          setClassification(session.classification_result)
+          setTimeout(() => {
+            router.push("/router/results")
+          }, 1000)
           return
         }
 

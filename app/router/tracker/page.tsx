@@ -125,7 +125,7 @@ export default function TrackerPage() {
                           FIDReC submission.
                         </p>
                         <Button asChild size="sm" className="mt-3 rounded-full">
-                          <Link href="/auth/sign-up?source=tracker&ready=true">
+                          <Link href="/onboarding">
                             Build my FIDReC case
                             <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
                           </Link>
