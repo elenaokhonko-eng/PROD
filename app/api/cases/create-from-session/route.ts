@@ -39,11 +39,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // If already imported with a case, return the existing case ID
+  // If already imported with a case, re-link ownership and return existing case
   if (rawSession.status === "IMPORTED" && rawSession.converted_to_case_id) {
-    console.info(
-      `[Create Case] Session ${token} already imported as case ${rawSession.converted_to_case_id}`,
-    )
+    // Fix ownership if profile ID changed (e.g. migration edge case)
+    if (activeUserId && rawSession.converted_to_user_id !== activeUserId) {
+      await supabaseService
+        .from("cases")
+        .update({ user_id: activeUserId })
+        .eq("id", rawSession.converted_to_case_id)
+      await supabaseService
+        .from("router_sessions")
+        .update({ converted_to_user_id: activeUserId })
+        .eq("id", rawSession.id)
+      console.info(
+        `[Create Case] Re-linked case ${rawSession.converted_to_case_id} from ${rawSession.converted_to_user_id} to ${activeUserId}`,
+      )
+    }
     return NextResponse.json({
       success: true,
       caseId: rawSession.converted_to_case_id,
