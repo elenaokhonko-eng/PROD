@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
 
 import { trackServerEvent } from "@/lib/analytics/server"
-import { getCurrentUser } from "@/lib/auth"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export async function POST(request: Request) {
-  const user = await getCurrentUser()
+  const user = await getOrCreateProfile()
 
   const { token } = await request.json()
   if (!token) {

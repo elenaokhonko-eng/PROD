@@ -1,9 +1,9 @@
-import { getCurrentUser } from '@/lib/auth'
+import { getOrCreateProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import SettingsClient from './_components/settings-client'
 
 export default async function SettingsPage() {
-  const user = await getCurrentUser()
+  const user = await getOrCreateProfile()
   if (!user) return null
 
   const supabase = await createClient()

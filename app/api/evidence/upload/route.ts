@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { getCurrentUser } from "@/lib/auth"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const runtime = "nodejs"
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "caseId is required" }, { status: 400 })
     }
 
-    const user = await getCurrentUser()
+    const user = await getOrCreateProfile()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }

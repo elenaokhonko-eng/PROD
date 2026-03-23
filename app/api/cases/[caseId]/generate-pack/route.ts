@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai"
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib"
-import { getCurrentUser } from "@/lib/auth"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -11,8 +11,7 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY)
-// 2.5 Flash is available on v1beta for JSON output
-const GEMINI_MODEL_NAME = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-2.5-flash"
+const GEMINI_MODEL_NAME = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-2.0-flash"
 const STORAGE_BUCKET = process.env.SUPABASE_CASE_PACK_BUCKET ?? "evidence"
 
 type FidrecCaseSummaryOutput = {
@@ -71,7 +70,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ ca
   const { caseId } = await params
   console.log(`[Generate Pack] Request received for caseId: ${caseId}`)
 
-  const user = await getCurrentUser()
+  const user = await getOrCreateProfile()
   if (!user) {
     console.error("[Generate Pack] Authentication error: no user")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { getCurrentUser } from "@/lib/auth"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 import { EMAIL_FROM } from "@/lib/email-config"
 import { InvitationEmail } from "@/lib/email-templates"
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
     }
 
-    const user = await getCurrentUser()
+    const user = await getOrCreateProfile()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }

@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { getCurrentUser } from "@/lib/auth"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 import { nanoid } from "nanoid"
 
@@ -10,7 +10,7 @@ const shareSchema = z.object({
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
   try {
-    const user = await getCurrentUser()
+    const user = await getOrCreateProfile()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }

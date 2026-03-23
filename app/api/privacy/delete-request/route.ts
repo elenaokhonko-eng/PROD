@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getCurrentUser } from "@/lib/auth"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 import { trackServerEvent } from "@/lib/analytics/server"
 
@@ -7,7 +7,7 @@ import { trackServerEvent } from "@/lib/analytics/server"
 // mark cases anonymized and log analytics events. In production, move to a queue/job.
 export async function POST() {
   try {
-    const user = await getCurrentUser()
+    const user = await getOrCreateProfile()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const supabase = await createClient()

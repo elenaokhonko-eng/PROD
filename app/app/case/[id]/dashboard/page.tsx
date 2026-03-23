@@ -1,4 +1,4 @@
-import { getCurrentUser } from '@/lib/auth'
+import { getOrCreateProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import DashboardClient from './_components/dashboard-client'
 
@@ -7,7 +7,7 @@ export default async function UnifiedCaseDashboard({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const user = await getCurrentUser()
+  const user = await getOrCreateProfile()
   if (!user) return null
 
   const { id: caseId } = await params

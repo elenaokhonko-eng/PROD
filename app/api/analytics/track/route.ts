@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import type { AnalyticsEventPayload } from "@/lib/analytics/types"
 import { trackServerEvent } from "@/lib/analytics/server"
-import { getCurrentUser } from "@/lib/auth"
+import { getOrCreateProfile } from "@/lib/auth"
 import { logger } from "@/lib/logger"
 
 const payloadSchema = z.object({
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid analytics payload" }, { status: 400 })
     }
 
-    const user = await getCurrentUser()
+    const user = await getOrCreateProfile()
 
     const countryHeader = request.headers.get("cf-ipcountry") || request.headers.get("x-country") || undefined
 

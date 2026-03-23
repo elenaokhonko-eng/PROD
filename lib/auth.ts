@@ -7,26 +7,6 @@ export type CurrentUser = {
   email: string
 }
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
-  const { userId } = await auth()
-  if (!userId) return null
-
-  const supabase = await createClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, email')
-    .eq('clerk_id', userId)
-    .single()
-
-  if (!profile) return null
-
-  return {
-    clerkId: userId,
-    profileId: profile.id,
-    email: profile.email,
-  }
-}
-
 export async function getOrCreateProfile(): Promise<CurrentUser | null> {
   const { userId } = await auth()
   if (!userId) return null

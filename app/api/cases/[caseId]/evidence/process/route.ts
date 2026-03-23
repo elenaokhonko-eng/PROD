@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { getCurrentUser } from "@/lib/auth"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const runtime = "nodejs"
@@ -21,7 +21,7 @@ type ProcessResult = {
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
-  const user = await getCurrentUser()
+  const user = await getOrCreateProfile()
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }

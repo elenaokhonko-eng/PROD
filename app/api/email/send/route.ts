@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { EMAIL_FROM } from "@/lib/email-config"
 import { sendMail } from "@/lib/mail"
-import { getCurrentUser } from "@/lib/auth"
+import { getOrCreateProfile } from "@/lib/auth"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
 
 const emailSendSchema = z.object({
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Require an authenticated user to avoid exposing an open email relay
-    const user = await getCurrentUser()
+    const user = await getOrCreateProfile()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }

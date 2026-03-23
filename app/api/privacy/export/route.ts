@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
-import { getCurrentUser } from "@/lib/auth"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 
 type IdRow = { id: string }
 
 export async function POST() {
   try {
-    const user = await getCurrentUser()
+    const user = await getOrCreateProfile()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const supabase = await createClient()
