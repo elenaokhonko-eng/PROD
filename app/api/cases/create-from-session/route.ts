@@ -39,6 +39,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  // If already imported with a case, return the existing case ID
+  if (rawSession.status === "IMPORTED" && rawSession.converted_to_case_id) {
+    console.info(
+      `[Create Case] Session ${token} already imported as case ${rawSession.converted_to_case_id}`,
+    )
+    return NextResponse.json({
+      success: true,
+      caseId: rawSession.converted_to_case_id,
+      message: "Session was already imported",
+    })
+  }
+
   if (rawSession.converted_to_user_id && rawSession.converted_to_user_id !== activeUserId) {
     console.warn(
       `[Create Case] Session ${token} already linked to another user ${rawSession.converted_to_user_id}. Current user: ${activeUserId}`,
