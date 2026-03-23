@@ -30,3 +30,13 @@ ALTER TABLE evidence DROP CONSTRAINT IF EXISTS evidence_user_id_fkey;
 
 -- router_sessions: drop user_id FK (if exists)
 ALTER TABLE router_sessions DROP CONSTRAINT IF EXISTS router_sessions_user_id_fkey;
+
+-- router_sessions: drop converted_to_user_id FK
+ALTER TABLE router_sessions DROP CONSTRAINT IF EXISTS router_sessions_converted_to_user_id_fkey;
+
+-- complaint_letters: drop user_id FK
+ALTER TABLE complaint_letters DROP CONSTRAINT IF EXISTS complaint_letters_user_id_fkey;
+
+-- referrals: drop referrer and referred user FKs
+ALTER TABLE referrals DROP CONSTRAINT IF EXISTS referrals_referrer_user_id_fkey;
+ALTER TABLE referrals DROP CONSTRAINT IF EXISTS referrals_referred_user_id_fkey;
