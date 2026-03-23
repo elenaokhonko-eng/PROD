@@ -3,6 +3,9 @@ node_modules
 .env*
 .tools
 
+# clerk configuration (can include secrets)
+/.clerk/
+
 # TypeScript build cache
 *.tsbuildinfo
 
