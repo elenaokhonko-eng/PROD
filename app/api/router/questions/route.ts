@@ -9,8 +9,7 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY)
-// 2.5 Flash is available on v1beta for JSON output
-const modelName = "models/gemini-2.5-flash"
+const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-2.0-flash"
 
 function scrub<T>(obj: T): T {
   try {
@@ -50,9 +49,7 @@ export async function POST(request: NextRequest) {
 
     const model = genAI.getGenerativeModel({
       model: modelName,
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
+      generationConfig: { responseMimeType: "application/json" },
       safetySettings: [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,

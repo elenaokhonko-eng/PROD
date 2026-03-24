@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 import { nanoid } from "nanoid"
 
@@ -7,13 +8,9 @@ const shareSchema = z.object({
   email: z.string().email(),
 })
 
-export async function POST(request: NextRequest, { params }: { params: { caseId: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
+    const user = await getOrCreateProfile()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -29,11 +26,13 @@ export async function POST(request: NextRequest, { params }: { params: { caseId:
     }
 
     const { email } = parsed
-    const { caseId } = params
+    const { caseId } = await params
+
+    const supabase = await createClient()
 
     // Ensure user has permission to invite
     const { data: caseData } = await supabase.from("cases").select("user_id").eq("id", caseId).single()
-    const isOwner = caseData?.user_id === user.id
+    const isOwner = caseData?.user_id === user.profileId
 
     let canInvite = isOwner
     if (!canInvite) {
@@ -41,7 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: { caseId:
         .from("case_collaborators")
         .select("can_invite")
         .eq("case_id", caseId)
-        .eq("user_id", user.id)
+        .eq("user_id", user.profileId)
         .eq("status", "active")
         .single()
       canInvite = Boolean(collab?.can_invite)
@@ -74,7 +73,7 @@ export async function POST(request: NextRequest, { params }: { params: { caseId:
       .from("invitations")
       .insert({
         case_id: caseId,
-        inviter_user_id: user.id,
+        inviter_user_id: user.profileId,
         invitee_email: email,
         role: "defendant",
         invitation_token,

@@ -1,15 +1,12 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { redirect } from 'next/navigation'
+import { auth } from '@clerk/nextjs/server'
 
 export default async function AppSignupPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { userId } = await auth()
 
-  if (user) {
-    redirect("/app/case/new")
+  if (userId) {
+    redirect('/app/case/new')
   }
 
-  redirect("/auth/sign-up")
+  redirect('/sign-up')
 }

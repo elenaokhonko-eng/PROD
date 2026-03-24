@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Users, Mail, Trash2, Loader2 } from "lucide-react"
-import { useSupabase } from "@/components/providers/supabase-provider"
 
 interface CaseCollaboratorsProps {
   caseId: string
@@ -25,8 +24,7 @@ type Collaborator = {
   } | null
 }
 
-export default function CaseCollaborators({ caseId, isOwner, currentUserId }: CaseCollaboratorsProps) {
-  const supabase = useSupabase()
+export default function CaseCollaborators({ caseId, isOwner }: CaseCollaboratorsProps) {
   const [collaborators, setCollaborators] = useState<Collaborator[]>([])
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteRole, setInviteRole] = useState("helper")
@@ -34,16 +32,17 @@ export default function CaseCollaborators({ caseId, isOwner, currentUserId }: Ca
   const [isSending, setIsSending] = useState(false)
 
   const fetchCollaborators = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("case_collaborators")
-      .select("*, profiles(full_name, email)")
-      .eq("case_id", caseId)
-
-    if (!error && data) {
-      setCollaborators(data as Collaborator[])
+    try {
+      const res = await fetch(`/api/cases/${caseId}/share`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "list" }) })
+      if (res.ok) {
+        const data = await res.json()
+        setCollaborators(data.collaborators ?? [])
+      }
+    } catch {
+      // ignore
     }
     setIsLoading(false)
-  }, [caseId, supabase])
+  }, [caseId])
 
   useEffect(() => {
     void fetchCollaborators()
@@ -67,19 +66,10 @@ export default function CaseCollaborators({ caseId, isOwner, currentUserId }: Ca
         const data = await response.json()
         alert(data.error || "Failed to send invitation")
       }
-    } catch (error) {
+    } catch {
       alert("An error occurred")
     } finally {
       setIsSending(false)
-    }
-  }
-
-  const handleRemoveCollaborator = async (collaboratorId: string) => {
-    if (!confirm("Are you sure you want to remove this collaborator?")) return
-    const { error } = await supabase.from("case_collaborators").delete().eq("id", collaboratorId)
-
-    if (!error) {
-      void fetchCollaborators()
     }
   }
 
@@ -117,16 +107,6 @@ export default function CaseCollaborators({ caseId, isOwner, currentUserId }: Ca
                     </Badge>
                   </div>
                 </div>
-                {isOwner && collaborator.user_id !== currentUserId && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveCollaborator(collaborator.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
               </div>
             ))}
           </div>

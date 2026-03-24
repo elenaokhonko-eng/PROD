@@ -66,7 +66,7 @@ function getPathConfig(assessment: Assessment, fiName: string | null): PathConfi
         title: "Your case may qualify for a refund under Singapore law",
         description: `The Shared Responsibility Framework (SRF) may require ${fi} to compensate you. We'll help you assess the bank's specific duties and build your case.`,
         ctaText: "Start building my case",
-        ctaHref: "/auth/sign-up?source=router&path=A",
+        ctaHref: "/onboarding",
         ctaVariant: "default",
       }
     case "A2":
@@ -93,7 +93,7 @@ function getPathConfig(assessment: Assessment, fiName: string | null): PathConfi
         title: "You may be eligible to file with FIDReC",
         description: `Your dispute with ${fi} appears ready for formal escalation. FIDReC is Singapore's independent dispute resolution body — filing is free.`,
         ctaText: "Build my FIDReC submission",
-        ctaHref: "/auth/sign-up?source=router&path=B",
+        ctaHref: "/onboarding",
         ctaVariant: "default",
       }
     case "C":
@@ -453,7 +453,7 @@ export default function ResultsPage() {
                     You can invite a family member or friend to help you through this process — it&apos;s free.
                   </p>
                   <Button asChild variant="outline" size="sm" className="rounded-full">
-                    <Link href="/auth/sign-up?source=router&helper=true">Invite a helper</Link>
+                    <Link href="/app/signup?source=router&helper=true">Invite a helper</Link>
                   </Button>
                 </div>
               )}

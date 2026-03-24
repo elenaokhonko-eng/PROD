@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { createClient } from "@/lib/supabase/server"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const runtime = "nodejs"
@@ -20,16 +20,13 @@ type ProcessResult = {
   error?: string | null
 }
 
-export async function POST(request: Request, { params }: { params: { caseId: string } }) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
+export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
+  const user = await getOrCreateProfile()
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const { caseId } = await params
 
   const functionName = process.env.SUPABASE_DOCUMENT_PROCESSOR_FUNCTION
   if (!functionName) {
@@ -43,19 +40,19 @@ export async function POST(request: Request, { params }: { params: { caseId: str
   const { data: caseRow, error: caseError } = await service
     .from("cases")
     .select("id, user_id")
-    .eq("id", params.caseId)
+    .eq("id", caseId)
     .single()
 
   if (caseError || !caseRow) {
     return NextResponse.json({ error: "Case not found" }, { status: 404 })
   }
 
-  if (caseRow.user_id !== user.id) {
+  if (caseRow.user_id !== user.profileId) {
     const { data: collaborator } = await service
       .from("case_collaborators")
       .select("user_id")
-      .eq("case_id", params.caseId)
-      .eq("user_id", user.id)
+      .eq("case_id", caseId)
+      .eq("user_id", user.profileId)
       .eq("status", "active")
       .maybeSingle()
 
@@ -76,7 +73,7 @@ export async function POST(request: Request, { params }: { params: { caseId: str
     const { data, error } = await service
       .from("evidence")
       .select("id, filename, file_path, file_type, file_size")
-      .eq("case_id", params.caseId)
+      .eq("case_id", caseId)
       .in("id", evidenceIds)
 
     if (error) {
@@ -88,7 +85,7 @@ export async function POST(request: Request, { params }: { params: { caseId: str
     const { data, error } = await service
       .from("evidence")
       .select("id, filename, file_path, file_type, file_size")
-      .eq("case_id", params.caseId)
+      .eq("case_id", caseId)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
@@ -101,7 +98,7 @@ export async function POST(request: Request, { params }: { params: { caseId: str
     let caseDocQuery = service
       .from("case_documents")
       .select("id")
-      .eq("case_id", params.caseId)
+      .eq("case_id", caseId)
 
     if (evidenceIds.length > 0) {
       caseDocQuery = caseDocQuery.in("id", evidenceIds)
@@ -125,7 +122,7 @@ export async function POST(request: Request, { params }: { params: { caseId: str
         .from("case_documents")
         .select("id, is_processed, processing_status")
         .eq("id", doc.id)
-        .eq("case_id", params.caseId)
+        .eq("case_id", caseId)
         .maybeSingle()
 
       if (existingError || !existingDoc) {
@@ -176,7 +173,7 @@ export async function POST(request: Request, { params }: { params: { caseId: str
     const { data: existingDoc, error: existingError } = await service
       .from("case_documents")
       .select("id, is_processed, processing_status")
-      .eq("case_id", params.caseId)
+      .eq("case_id", caseId)
       .eq("storage_bucket", STORAGE_BUCKET)
       .eq("storage_path", evidence.file_path)
       .maybeSingle()
@@ -204,7 +201,7 @@ export async function POST(request: Request, { params }: { params: { caseId: str
       const { data: createdDoc, error: createError } = await service
         .from("case_documents")
         .insert({
-          case_id: params.caseId,
+          case_id: caseId,
           filename: evidence.filename,
           original_filename: evidence.filename,
           file_size: evidence.file_size,

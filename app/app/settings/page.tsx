@@ -1,17 +1,22 @@
-import { createClient } from "@/lib/supabase/server"
-import SettingsClient from "./_components/settings-client"
+import { getOrCreateProfile } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/server'
+import SettingsClient from './_components/settings-client'
 
 export default async function SettingsPage() {
+  const user = await getOrCreateProfile()
+  if (!user) return null
+
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.profileId)
+    .single()
 
-  if (!user) {
-    return null
-  }
-
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-
-  return <SettingsClient initialUser={user} initialProfile={profile} />
+  return (
+    <SettingsClient
+      initialUser={{ id: user.profileId, email: user.email }}
+      initialProfile={profile}
+    />
+  )
 }
