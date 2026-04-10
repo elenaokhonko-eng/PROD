@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@clerk/nextjs"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, XCircle, Loader2 } from "lucide-react"
@@ -13,17 +13,14 @@ export default function InvitationAcceptPage() {
   const router = useRouter()
   const params = useParams()
   const token = params.token as string
+  const { isLoaded, isSignedIn } = useAuth()
 
   useEffect(() => {
-    const acceptInvitation = async () => {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+    if (!isLoaded) return
 
-      if (!user) {
-        // Redirect to signup with invitation token
-        router.push(`/auth/sign-up?invite=${token}`)
+    const acceptInvitation = async () => {
+      if (!isSignedIn) {
+        router.push(`/sign-up?redirect_url=/invite/${token}`)
         return
       }
 
@@ -46,14 +43,14 @@ export default function InvitationAcceptPage() {
           setStatus("error")
           setMessage(data.error || "Failed to accept invitation")
         }
-      } catch (error) {
+      } catch {
         setStatus("error")
         setMessage("An unexpected error occurred")
       }
     }
 
     acceptInvitation()
-  }, [token, router])
+  }, [token, router, isLoaded, isSignedIn])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

@@ -1,54 +1,24 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import type { User } from "@supabase/supabase-js"
+import { useUser, useClerk } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useSupabase } from "@/components/providers/supabase-provider"
 import { trackClientEvent } from "@/lib/analytics/client"
 
-export default function HomeClient({ initialUser }: { initialUser: User | null }) {
-  const supabase = useSupabase()
-  const [user, setUser] = useState<User | null>(initialUser)
-  const [loading, setLoading] = useState(!initialUser)
+export default function HomeClient() {
+  const { user, isLoaded } = useUser()
+  const { signOut } = useClerk()
   const [email, setEmail] = useState("")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
-
-  useEffect(() => {
-    if (!initialUser) {
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        setUser(user)
-        setLoading(false)
-      })
-    } else {
-      setLoading(false)
-    }
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    void trackClientEvent({
-      eventName: "homepage_view",
-      eventData: {
-        page: "app_homepage",
-        timestamp: new Date().toISOString(),
-      },
-    })
-
-    return () => subscription.unsubscribe()
-  }, [initialUser, supabase])
 
   const handleWaitlistSignup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,7 +44,7 @@ export default function HomeClient({ initialUser }: { initialUser: User | null }
       })
 
       setIsSubmitted(true)
-    } catch (error) {
+    } catch {
       // eslint-disable-next-line no-alert
       alert("Failed to join waitlist. Please try again.")
     } finally {
@@ -83,10 +53,10 @@ export default function HomeClient({ initialUser }: { initialUser: User | null }
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOut()
   }
 
-  if (loading) {
+  if (!isLoaded) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -121,12 +91,12 @@ export default function HomeClient({ initialUser }: { initialUser: User | null }
                 </>
               ) : (
                 <>
-                  <Link href="/auth/login">
+                  <Link href="/sign-in">
                     <Button variant="outline" size="sm">
                       Sign In
                     </Button>
                   </Link>
-                  <Link href="/auth/sign-up">
+                  <Link href="/sign-up">
                     <Button size="sm">Get Started</Button>
                   </Link>
                 </>
@@ -326,5 +296,3 @@ export default function HomeClient({ initialUser }: { initialUser: User | null }
     </div>
   )
 }
-
-

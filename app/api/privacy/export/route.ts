@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 
 type IdRow = { id: string }
 
 export async function POST() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getOrCreateProfile()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const { data: ownedCases } = await supabase.from("cases").select("id").eq("user_id", user.id)
+    const supabase = await createClient()
+
+    const { data: ownedCases } = await supabase.from("cases").select("id").eq("user_id", user.profileId)
     const ownedCaseIds = (ownedCases ?? []).map((row: IdRow) => row.id)
 
     // Pull primary user data
@@ -26,10 +26,10 @@ export async function POST() {
         : Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
 
     const [profileResult, casesResult, responsesResult, paymentsResult, outcomesResult] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", user.id).single(),
-      supabase.from("cases").select("*").eq("user_id", user.id),
+      supabase.from("profiles").select("*").eq("id", user.profileId).single(),
+      supabase.from("cases").select("*").eq("user_id", user.profileId),
       responsesPromise,
-      supabase.from("payments").select("*").eq("user_id", user.id),
+      supabase.from("payments").select("*").eq("user_id", user.profileId),
       outcomesPromise,
     ])
 
@@ -41,7 +41,7 @@ export async function POST() {
 
     const exportPayload = {
       generated_at: new Date().toISOString(),
-      user: { id: user.id, email: user.email },
+      user: { id: user.profileId, email: user.email },
       profile,
       cases,
       case_responses: responses,

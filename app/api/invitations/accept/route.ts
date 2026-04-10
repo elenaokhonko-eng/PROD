@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 
 const acceptSchema = z.object({
@@ -8,11 +9,7 @@ const acceptSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
+    const user = await getOrCreateProfile()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -28,6 +25,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { invitationToken } = parsed
+
+    const supabase = await createClient()
 
     // Fetch invitation
     const { data: invitation, error: inviteError } = await supabase
@@ -59,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     const { error: collaboratorError } = await supabase.from("case_collaborators").insert({
       case_id: invitation.case_id,
-      user_id: user.id,
+      user_id: user.profileId,
       role,
       invited_by: invitation.inviter_user_id,
       accepted_at: new Date().toISOString(),
@@ -78,7 +77,7 @@ export async function POST(request: NextRequest) {
       .from("invitations")
       .update({
         status: "accepted",
-        accepted_by: user.id,
+        accepted_by: user.profileId,
         accepted_at: new Date().toISOString(),
       })
       .eq("id", invitation.id)
@@ -90,10 +89,10 @@ export async function POST(request: NextRequest) {
         .select("user_id")
         .eq("id", invitation.case_id)
         .single()
-      if (caseRow && caseRow.user_id !== user.id) {
+      if (caseRow && caseRow.user_id !== user.profileId) {
         await supabase
           .from("cases")
-          .update({ user_id: user.id, updated_at: new Date().toISOString() })
+          .update({ user_id: user.profileId, updated_at: new Date().toISOString() })
           .eq("id", invitation.case_id)
       }
     }

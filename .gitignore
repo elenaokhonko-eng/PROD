@@ -3,3 +3,15 @@ node_modules
 .env*
 .tools
 .aider*
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Claude Code local settings (machine-specific permissions)
+.claude/settings.local.json
+
+# Implementation / planning docs (not for repo)
+docs/implementation-plan.md

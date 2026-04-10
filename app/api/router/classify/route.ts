@@ -5,12 +5,7 @@ import { rateLimit, keyFrom } from "@/lib/rate-limit"
 import { createServiceClient } from "@/lib/supabase/service"
 import { getNextStepsForRuleEngine } from "@/lib/rules"
 import { logger } from "@/lib/logger"
-
-type ClassificationOutput = {
-  claim_type: "Financial Dispute"
-  summary: string
-  key_entities?: string[]
-}
+import type { TriageSignals } from "@/lib/rules"
 
 const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY
 if (!API_KEY) {
@@ -18,8 +13,7 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY)
-// 2.5 Flash is available on v1beta for JSON output
-const modelName = "models/gemini-2.5-flash"
+const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-2.0-flash"
 const log = logger.withContext({ module: "router-classify", model: modelName })
 
 const classifyRequestSchema = z.object({
@@ -27,13 +21,52 @@ const classifyRequestSchema = z.object({
   narrative: z.string().min(1, "narrative is required").max(20_000, "narrative is too long"),
 })
 
-const systemInstruction = `You are an AI assistant analyzing dispute descriptions from users in Singapore. Identify the overall type as "Financial Dispute". Return one valid JSON object matching:
+const systemInstruction = `You are a triage assistant for GuideBuoy AI, a Singapore consumer dispute platform that helps scam and financial fraud victims. Analyse the user's narrative and extract structured triage signals.
 
-type ClassificationOutput = {
-  claim_type: 'Financial Dispute';
-  summary: string; // one-sentence summary
-  key_entities?: string[]; // optional names, numbers, platforms
-};`
+Return ONE valid JSON object matching this TypeScript type EXACTLY — no additional fields, no markdown, no comments:
+
+type TriageSignals = {
+  money_lost: boolean;
+  transaction_type:
+    | "unauthorized_access"       // Account was accessed without the user's involvement (e.g. account takeover)
+    | "deceived_into_acting"      // User was tricked into clicking a link, entering credentials, or transferring money (phishing, fake messages)
+    | "voluntary_transfer"        // User willingly sent money based on false pretences (investment scam, romance scam)
+    | "unknown";
+  scam_type:
+    | "phishing"                  // Fake link/SMS/email tricking user to enter credentials or approve a transaction
+    | "investment"                // Fake investment opportunity, high returns promised
+    | "romance"                   // Love scam / romance scam
+    | "job"                       // Fake job offer, work-from-home scam
+    | "government_impersonation"  // Impersonating SPF, IRAS, MOM, CPF, court, etc.
+    | "ecommerce"                 // Online shopping or marketplace scam
+    | "other"
+    | "unknown";
+  scam_channel:                   // For phishing only — HOW did the scam reach the user?
+    | "sms"
+    | "email"
+    | "whatsapp_telegram_rcs"
+    | "phone_call"
+    | "physical_letter"
+    | "website_social_media"
+    | "unknown"
+    | null;                       // null if scam_type is NOT phishing
+  entity_impersonation: boolean | null;  // Was the scammer pretending to be a real organisation (bank, government, brand)? null if unclear
+  fi_name: string | null;               // Name of the bank or financial platform involved (e.g. "DBS", "GrabPay", "Shopee"). null if not mentioned
+  incident_date: string | null;         // ISO date YYYY-MM-DD of when the scam occurred. null if not mentioned
+  bank_contacted: boolean | null;       // Has the user already contacted their bank about this? null if unclear
+  bank_contact_date: string | null;     // ISO date when user first contacted the bank. null if not mentioned
+  bank_final_reply: boolean | null;     // Has the bank issued a final reply or rejection? null if unclear
+  police_report_filed: boolean | null;  // Has the user filed a police report (SPF)? null if unclear
+  claim_amount_sgd: number | null;      // Approximate SGD amount lost. null if not mentioned
+  summary: string;                      // One clear sentence describing what happened in plain English
+  distress_signals: boolean;            // true if the narrative suggests the user is overwhelmed, elderly, in a crisis, or has not told family
+};
+
+Key rules:
+- For transaction_type: "deceived_into_acting" covers phishing victims who were tricked into authorising — do NOT classify them as "voluntary_transfer" just because they clicked or transferred.
+- For scam_channel: only populate this field for phishing scams. Leave null for investment, romance, job scams.
+- Be conservative: only set boolean fields to true/false if the narrative is clear. Use null when genuinely uncertain.
+- Return ONLY the JSON — no explanation text.`
 
 function sanitizeText(input: string): string {
   if (!input) return input
@@ -43,6 +76,26 @@ function sanitizeText(input: string): string {
   out = out.replace(/\b(\+?65[- ]?)?\d{4}[- ]?\d{4}\b/g, "[REDACTED_PHONE]")
   out = out.replace(/\b\d{12,16}\b/g, "[REDACTED_ACCOUNT]")
   return out
+}
+
+/** Fallback signals when Gemini fails to parse. */
+function fallbackSignals(summary: string): TriageSignals {
+  return {
+    money_lost: true,
+    transaction_type: "unknown",
+    scam_type: "unknown",
+    scam_channel: null,
+    entity_impersonation: null,
+    fi_name: null,
+    incident_date: null,
+    bank_contacted: null,
+    bank_contact_date: null,
+    bank_final_reply: null,
+    police_report_filed: null,
+    claim_amount_sgd: null,
+    summary,
+    distress_signals: false,
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -65,12 +118,17 @@ export async function POST(request: NextRequest) {
 
     const sanitizedNarrative = sanitizeText(narrative)
 
+    const userPrompt = `User narrative:
+"""
+${sanitizedNarrative}
+"""
+
+JSON Output:`
+
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction,
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
+      generationConfig: { responseMimeType: "application/json" },
       safetySettings: [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -79,51 +137,37 @@ export async function POST(request: NextRequest) {
       ],
     })
 
-    const userPrompt = `User Description:
-"""
-${sanitizedNarrative}
-"""
-
-JSON Output:`
-
-    log.info("Calling Gemini for classification")
+    log.info("Calling Gemini for triage signal extraction")
     const result = await model.generateContent(userPrompt)
     const response = result.response
     const rawText =
       response.text() ??
       response.candidates?.[0]?.content?.parts?.find((part) => "text" in part)?.text ??
       ""
-    console.log("[v0] Raw Gemini Classification Response:", rawText)
 
     const rawPreview = rawText.length > 1000 ? `${rawText.slice(0, 1000)}...` : rawText
-    log.debug("Gemini classification raw response", {
-      preview: rawPreview,
-      characters: rawText.length,
-    })
+    log.debug("Gemini classify raw response", { preview: rawPreview, characters: rawText.length })
 
-    let classificationResult: ClassificationOutput
+    let signals: TriageSignals
     try {
-      classificationResult = JSON.parse(rawText) as ClassificationOutput
-      if (!classificationResult.claim_type || !classificationResult.summary) {
+      signals = JSON.parse(rawText) as TriageSignals
+      if (typeof signals.money_lost !== "boolean" || !signals.summary) {
         throw new Error("Parsed JSON is missing required fields.")
       }
-      log.info("Gemini classification parsed", { classification: classificationResult })
     } catch (parseError) {
-      log.warn("Classification JSON parse error", {
+      log.warn("Classify JSON parse error — using fallback signals", {
         error: parseError instanceof Error ? parseError.message : String(parseError),
         rawPreview: rawText.slice(0, 400),
       })
-      classificationResult = {
-        claim_type: "Financial Dispute",
-        summary: "Failed to classify precisely. Defaulting to scam handling.",
-      }
+      signals = fallbackSignals("Unable to parse narrative. Please try again.")
     }
 
+    // Persist anonymized training data
     const supabase = createServiceClient()
     const { error: insertError } = await supabase.from("anonymized_training_data").insert({
       original_case_id: null,
       anonymized_narrative: sanitizedNarrative,
-      dispute_category: classificationResult.claim_type,
+      dispute_category: "Financial Dispute",
       outcome_type: null,
       anonymization_method: "regex_v2",
     })
@@ -131,41 +175,23 @@ JSON Output:`
       log.error("Failed to persist anonymized training data", {
         error: insertError.message,
         hint: insertError.hint,
-        details: insertError.details,
       })
     }
 
-    const nextSteps = getNextStepsForRuleEngine()
-
+    // Return triage signals + legacy fields for backward compatibility
     return NextResponse.json({
-      claimType: classificationResult.claim_type,
-      summary: classificationResult.summary,
-      keyEntities: classificationResult.key_entities,
-      nextSteps,
+      // New triage signal fields
+      ...signals,
+      // Legacy fields expected by older code paths
+      claimType: "Financial Dispute",
+      summary: signals.summary,
+      keyEntities: signals.fi_name ? [signals.fi_name] : [],
+      nextSteps: getNextStepsForRuleEngine(),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     const stack = error instanceof Error ? error.stack : undefined
-    let status: number | undefined
-    let payload: unknown
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "response" in error &&
-      typeof (error as { response?: { status?: number; data?: unknown } }).response === "object"
-    ) {
-      const response = (error as { response?: { status?: number; data?: unknown } }).response
-      status = response?.status
-      payload = response?.data
-    }
-    log.error("Classification API error", {
-      error: message,
-      stack,
-      status,
-    })
-    if (payload !== undefined) {
-      log.debug("Classification API error payload", { payload })
-    }
+    log.error("Classification API error", { error: message, stack })
     return NextResponse.json({ error: message || "Failed to classify case" }, { status: 500 })
   }
 }

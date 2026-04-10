@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server"
 
 import { trackServerEvent } from "@/lib/analytics/server"
-import { createClient } from "@/lib/supabase/server"
+import { getOrCreateProfile } from "@/lib/auth"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getOrCreateProfile()
 
   const { token } = await request.json()
   if (!token) {
@@ -35,11 +32,34 @@ export async function POST(request: Request) {
   }
 
   const sessionUserId = rawSession.converted_to_user_id
-  const activeUserId = user?.id ?? sessionUserId
+  const activeUserId = user?.profileId ?? sessionUserId
 
   if (!activeUserId) {
     console.warn(`[Create Case] No active user for session ${token}`)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // If already imported with a case, re-link ownership and return existing case
+  if (rawSession.status === "IMPORTED" && rawSession.converted_to_case_id) {
+    // Fix ownership if profile ID changed (e.g. migration edge case)
+    if (activeUserId && rawSession.converted_to_user_id !== activeUserId) {
+      await supabaseService
+        .from("cases")
+        .update({ user_id: activeUserId })
+        .eq("id", rawSession.converted_to_case_id)
+      await supabaseService
+        .from("router_sessions")
+        .update({ converted_to_user_id: activeUserId })
+        .eq("id", rawSession.id)
+      console.info(
+        `[Create Case] Re-linked case ${rawSession.converted_to_case_id} from ${rawSession.converted_to_user_id} to ${activeUserId}`,
+      )
+    }
+    return NextResponse.json({
+      success: true,
+      caseId: rawSession.converted_to_case_id,
+      message: "Session was already imported",
+    })
   }
 
   if (rawSession.converted_to_user_id && rawSession.converted_to_user_id !== activeUserId) {

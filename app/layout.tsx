@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Inter } from "next/font/google"
 import { Suspense } from "react"
 import "./globals.css"
-import { SupabaseProvider } from "@/components/providers/supabase-provider"
+import { ClerkProvider } from "@clerk/nextjs"
 import { PageViewTracker } from "@/components/analytics/page-view-tracker"
 import { LumiChat } from "@/components/lumi-chat"
 
@@ -48,7 +48,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${inter.variable}`}>
-        <SupabaseProvider>
+        <ClerkProvider>
           <Suspense fallback={null}>
             <PageViewTracker />
             {children}
@@ -91,7 +91,7 @@ export default function RootLayout({
               </div>
             </div>
           </footer>
-        </SupabaseProvider>
+        </ClerkProvider>
       </body>
     </html>
   )

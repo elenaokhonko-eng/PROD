@@ -12,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Mail } from "lucide-react"
 import Link from "next/link"
-import { marketingNavLinks } from "@/lib/navigation"
+import { SiteHeader } from "@/components/site-header"
 
 const faqData = [
   {
@@ -107,33 +107,7 @@ export default function FAQPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">GB</span>
-              </div>
-              <span className="font-semibold text-lg">GuideBuoy AI</span>
-            </Link>
-            <div className="flex flex-wrap items-center gap-3 md:justify-end">
-              <nav className="flex flex-wrap items-center gap-4 text-sm font-medium text-muted-foreground">
-                {marketingNavLinks.map((item) => (
-                  <Link key={item.href} href={item.href} className="transition-colors hover:text-foreground">
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-              <Link href="/app">
-                <Button variant="outline" size="sm">
-                  Back to App
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">

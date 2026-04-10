@@ -6,10 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Mic, MicOff, Loader2, ArrowRight, FileText } from "lucide-react"
+import { Mic, MicOff, Loader2, ArrowRight, FileText, RotateCcw } from "lucide-react"
 import Link from "next/link"
-import { createRouterSession, getSessionToken, updateRouterSession } from "@/lib/router-session"
-import { marketingNavLinks } from "@/lib/navigation"
+import { createRouterSession, getSessionToken, getRouterSession, updateRouterSession, clearSessionToken } from "@/lib/router-session"
+import { SiteHeader } from "@/components/site-header"
+
+type CatchUpState =
+  | { type: "none" }
+  | { type: "has_results"; summary: string }
+  | { type: "has_narrative"; narrative: string; summary: string }
 
 export default function RouterPage() {
   const [isRecording, setIsRecording] = useState(false)
@@ -18,15 +23,47 @@ export default function RouterPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [inputMethod, setInputMethod] = useState<"voice" | "text">("text")
+  const [catchUp, setCatchUp] = useState<CatchUpState>({ type: "none" })
   const router = useRouter()
 
   useEffect(() => {
-    // Initialize or retrieve session
     const initSession = async () => {
       const existingToken = getSessionToken()
       if (!existingToken) {
         await createRouterSession()
+        return
       }
+
+      // Check if existing session is still valid and has progress worth restoring
+      const session = await getRouterSession(existingToken)
+      if (!session) {
+        // Token is stale — create a fresh session
+        clearSessionToken()
+        await createRouterSession()
+        return
+      }
+
+      const expired = session.expires_at && new Date(session.expires_at) < new Date()
+      if (expired) {
+        clearSessionToken()
+        await createRouterSession()
+        return
+      }
+
+      // Session is active — check what progress exists
+      const classification = session.classification_result as Record<string, unknown> | null | undefined
+      const savedNarrative = session.dispute_narrative
+
+      if (classification && typeof classification.summary === "string") {
+        // Triage was already completed
+        setCatchUp({ type: "has_results", summary: classification.summary })
+      } else if (savedNarrative) {
+        // Narrative was entered but triage wasn't finished
+        const summary =
+          savedNarrative.length > 80 ? savedNarrative.slice(0, 80) + "…" : savedNarrative
+        setCatchUp({ type: "has_narrative", narrative: savedNarrative, summary })
+      }
+      // Otherwise: session exists but is blank — proceed normally (no banner)
     }
     initSession()
   }, [])
@@ -111,36 +148,7 @@ export default function RouterPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">GB</span>
-              </div>
-              <span className="font-semibold text-lg">GuideBuoy AI</span>
-            </Link>
-            <div className="flex flex-wrap items-center gap-3 md:justify-end">
-              <nav className="flex flex-wrap items-center gap-4 text-sm font-medium text-muted-foreground">
-                {marketingNavLinks.map((item) => (
-                  <Link key={item.href} href={item.href} className="transition-colors hover:text-foreground">
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-              <Badge variant="secondary" className="hidden sm:inline-flex">
-                Free Dispute Check
-              </Badge>
-              <Link href="/auth/login">
-                <Button variant="outline" size="sm">
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <SiteHeader badge="Free Dispute Check" />
 
       {/* Hero Section */}
       <div className="hero-gradient py-12 md:py-20">
@@ -170,7 +178,84 @@ export default function RouterPage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto space-y-4">
+
+          {/* Catch-up banner — only shown when returning with progress */}
+          {catchUp.type === "has_results" && (
+            <Card className="border-primary/30 bg-primary/5 rounded-xl">
+              <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <p className="font-medium text-sm">Welcome back — your assessment is saved</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                    &ldquo;{catchUp.summary}&rdquo;
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <Button asChild size="sm" className="rounded-full">
+                    <Link href="/router/results">
+                      Continue
+                      <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full text-muted-foreground"
+                    onClick={() => {
+                      clearSessionToken()
+                      setCatchUp({ type: "none" })
+                      void createRouterSession()
+                    }}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                    Start fresh
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {catchUp.type === "has_narrative" && (
+            <Card className="border-primary/30 bg-primary/5 rounded-xl">
+              <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <p className="font-medium text-sm">Welcome back — we saved where you left off</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                    &ldquo;{catchUp.summary}&rdquo;
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <Button
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => {
+                      if (catchUp.type === "has_narrative") {
+                        setNarrative(catchUp.narrative)
+                        setCatchUp({ type: "none" })
+                      }
+                    }}
+                  >
+                    Continue
+                    <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full text-muted-foreground"
+                    onClick={() => {
+                      clearSessionToken()
+                      setCatchUp({ type: "none" })
+                      void createRouterSession()
+                    }}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                    Start fresh
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="text-2xl">Share Your Dispute</CardTitle>

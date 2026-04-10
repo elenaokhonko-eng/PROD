@@ -49,7 +49,7 @@ export default function VolunteersPage() {
               <Link href="mailto:partners@guidebuoyai.sg?subject=Volunteer%20nominee%20application">Apply to volunteer</Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full">
-              <Link href="/auth/sign-up?source=volunteers">Sign in to view open cases</Link>
+              <Link href="/sign-up?source=volunteers">Sign in to view open cases</Link>
             </Button>
           </div>
         </div>
