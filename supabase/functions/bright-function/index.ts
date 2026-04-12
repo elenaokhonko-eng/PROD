@@ -20,6 +20,24 @@ type Tier0LLMResult = {
   srf_signals?: SrfSignals;
 };
 
+type Tier0NormalizeInput = {
+  case?: {
+    institution_name?: unknown;
+    claim_amount?: unknown;
+    claim_currency?: unknown;
+    incident_date?: unknown;
+    incident_datetime?: unknown;
+  };
+  intake?: {
+    narrative_text?: unknown;
+    answers_json?: unknown;
+    language?: unknown;
+    intake_id?: unknown;
+  } | null;
+  primary_narrative?: unknown;
+  timeline_raw?: unknown;
+};
+
 Deno.serve(async (req) => {
   try {
     if (req.method !== "POST") {
@@ -92,6 +110,10 @@ Deno.serve(async (req) => {
 
     const llm = await callOpenAITier0(input);
 
+    if (isValidSrfSignals(llm.srf_signals)) {
+      llm.srf_signals.missing_fields = normalizeMissingFields(llm.srf_signals.missing_fields, input);
+    }
+
     const lang = intake?.language ?? "en";
     const intake_id = intake?.id ?? null;
 
@@ -100,7 +122,7 @@ Deno.serve(async (req) => {
       case_id,
       narrative_type: "tier0_summary",
       title: "Incident summary (Tier-0)",
-      text_content: llm.summary ?? "",
+      text_content: sanitizeSummary(llm.summary ?? ""),
       source_ref,
       version: 1,
       language: lang,
@@ -169,6 +191,85 @@ function json(obj: unknown, status = 200) {
   });
 }
 
+function isCaseFieldPresent(v: unknown): boolean {
+  if (v === null || v === undefined) return false;
+  if (typeof v === "string") return v.trim().length > 0;
+  if (typeof v === "number") return Number.isFinite(v);
+  if (typeof v === "boolean") return true;
+  return true;
+}
+
+/** Maps normalized (trimmed, lowercased, collapsed spaces) labels to case keys. */
+function canonicalMissingFieldKey(normalized: string): keyof NonNullable<Tier0NormalizeInput["case"]> | null {
+  const map: Record<string, keyof NonNullable<Tier0NormalizeInput["case"]>> = {
+    amount: "claim_amount",
+    "claim amount": "claim_amount",
+    claim_amount: "claim_amount",
+    currency: "claim_currency",
+    "claim currency": "claim_currency",
+    claim_currency: "claim_currency",
+    institution: "institution_name",
+    "institution name": "institution_name",
+    institution_name: "institution_name",
+    date: "incident_date",
+    "incident date": "incident_date",
+    incident_date: "incident_date",
+    datetime: "incident_datetime",
+    "incident datetime": "incident_datetime",
+    incident_datetime: "incident_datetime",
+  };
+  return map[normalized] ?? null;
+}
+
+function normalizeMissingFields(raw: string[], input: Tier0NormalizeInput): string[] {
+  const c = input.case ?? {};
+  const seen = new Set<string>();
+  const out: string[] = [];
+
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (!trimmed) continue;
+
+    const normalized = trimmed.toLowerCase().replace(/\s+/g, " ");
+    const canonical = canonicalMissingFieldKey(normalized);
+    if (canonical && isCaseFieldPresent(c[canonical])) {
+      continue;
+    }
+
+    const dedupeKey = canonical ?? normalized;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    out.push(trimmed);
+  }
+
+  return out;
+}
+
+const BANNED_SUMMARY_PATTERNS: RegExp[] = [
+  /\bat home\b/gi,
+  /\bhaving dinner\b/gi,
+  /\bwith family\b/gi,
+  /\bwith my family\b/gi,
+  /\bwith his family\b/gi,
+  /\bwith her family\b/gi,
+  /\bwith their family\b/gi,
+  /\bwhile at home\b/gi,
+  /\bwatching tv\b/gi,
+];
+
+function sanitizeSummary(summary: string): string {
+  let s = summary;
+  for (const re of BANNED_SUMMARY_PATTERNS) {
+    const next = s.replace(re, "");
+    if (next !== s) {
+      console.warn("Tier-0: removed banned contextual phrase from summary");
+      s = next;
+    }
+  }
+  return s.replace(/\s{2,}/g, " ").replace(/\s+([.,;:])/g, "$1").trim();
+}
+
 async function upsertNarrative(args: {
   supabase: SupabaseClient;
   case_id: string;
@@ -234,8 +335,8 @@ function headingForFit(fit: SrfSignals["overall_fit"]): string {
   return `Assessment: ${cap} SRF relevance`;
 }
 
-function yesNo(b: boolean): string {
-  return b ? "Yes" : "No";
+function pathWording(b: boolean): string {
+  return b ? "Possible" : "Not indicated";
 }
 
 function renderTier0SrfSignal(signals: SrfSignals): string {
@@ -249,9 +350,9 @@ function renderTier0SrfSignal(signals: SrfSignals): string {
   lines.push(signals.reasoning);
   lines.push("");
   lines.push("Potential paths:");
-  lines.push(`- Bank-related SRF issues: ${yesNo(signals.bank_path_relevant)}`);
-  lines.push(`- Telco-related SRF / IMDA issues: ${yesNo(signals.telco_path_relevant)}`);
-  lines.push(`- IMDA may be relevant: ${yesNo(signals.imda_relevant)}`);
+  lines.push(`- Bank-related SRF issues: ${pathWording(signals.bank_path_relevant)}`);
+  lines.push(`- Telco-related SRF / IMDA issues: ${pathWording(signals.telco_path_relevant)}`);
+  lines.push(`- IMDA may be relevant: ${pathWording(signals.imda_relevant)}`);
   if (signals.missing_fields.length > 0) {
     lines.push("");
     lines.push("Missing information:");
@@ -267,6 +368,12 @@ async function callOpenAITier0(input: unknown): Promise<Tier0LLMResult> {
 
 GROUND RULES
 Use only facts explicitly present in the provided JSON. Do not infer, assume, invent facts, or introduce external knowledge (e.g. how scams usually work). If something is missing, write "not provided". Be neutral, factual, chronological, clear, and non-judgemental. Do not provide legal advice, do not determine liability, and do not state that the user is eligible or ineligible for compensation.
+
+SUMMARY HARD RULES
+Do not add personal circumstances, location, family context, emotions, or surrounding scene details unless explicitly stated in the input. Do not add inferred context such as where the user was, what device they used, or what they were doing at the time, unless the input explicitly says so. If a fact is not explicitly in the input, do not include it.
+
+MISSING_FIELDS HARD RULES
+Do not list a field as missing if it appears anywhere in the input JSON, including: case fields, intake narrative_text, intake answers_json, primary_narrative, and timeline_raw. Specifically, do not list institution_name, claim_amount, claim_currency, incident_date, or incident_datetime as missing when they are present in input.case (non-null and non-empty where applicable). Do not list any field as missing unless it would materially help clarify the SRF signal.
 
 OUTPUT
 Return STRICT JSON only, with this exact structure (no extra keys):
@@ -300,7 +407,7 @@ telco_path_relevant: Assess only from user-visible facts in the input. true only
 
 imda_relevant: true only if telco_path_relevant is true; otherwise false. Be conservative.
 
-missing_fields: List only genuinely missing information the user could reasonably supply (e.g. whether an SMS showed a sender name, whether a message appeared in an existing thread, whether a transaction was authorised, whether and when the bank was contacted). Exclude telco-internal data, regulatory conclusions, and speculative items.
+missing_fields: List only genuinely missing information the user could reasonably supply (e.g. whether an SMS showed a sender name, whether a message appeared in an existing thread, whether a transaction was authorised, whether and when the bank was contacted). Exclude telco-internal data, regulatory conclusions, and speculative items. Apply the MISSING_FIELDS HARD RULES above.
 
 reasoning: Explain the classifications using only input facts; if uncertain, say what is missing.`;
 
