@@ -13,6 +13,21 @@ type FidrecCheck = {
   match_type: "exact" | "alias" | "none" | null;
 };
 
+/** Structured facts from latest `run_case_extract_v4` row in `case_extract_runs`. */
+type Tier0ExtractFacts = {
+  institution_name: string | null;
+  claim_amount: number | null;
+  claim_currency: string | null;
+  incident_date: string | null;
+  channel: string | null;
+  disputed_merchant: string | null;
+  spoofing_indicator: {
+    status: string | null;
+    type: string | null;
+    basis: string[];
+  } | null;
+};
+
 type SrfSignals = {
   overall_fit: "likely" | "possible" | "unlikely";
   reasoning: string;
@@ -47,6 +62,7 @@ type Tier0NormalizeInput = {
   primary_narrative?: unknown;
   timeline_raw?: unknown;
   fidrec_check?: FidrecCheck;
+  extract_facts?: Tier0ExtractFacts | null;
 };
 
 Deno.serve(async (req) => {
@@ -97,18 +113,18 @@ Deno.serve(async (req) => {
     if (timelineErr) return new Response(`Timeline narrative Error: ${timelineErr.message}`, { status: 500 });
     const timeline_raw = timelineRows?.[0]?.text_content ?? null;
 
-    const extractedInstitutionName = await getLatestExtractInstitutionName(supabase, case_id);
-    const institutionForFidrec = extractedInstitutionName || caseRow.institution_name || null;
+    const extractFacts = await getLatestExtractFacts(supabase, case_id);
+    const institutionForFidrec = extractFacts?.institution_name ?? caseRow.institution_name ?? null;
     const fidrecCheck = await checkFidrecSubscription(supabase, institutionForFidrec);
 
     const input = {
       case: {
         id: caseRow.id,
         jurisdiction: caseRow.jurisdiction,
-        institution_name: caseRow.institution_name,
-        claim_amount: caseRow.claim_amount,
-        claim_currency: caseRow.claim_currency,
-        incident_date: caseRow.incident_date,
+        institution_name: extractFacts?.institution_name ?? caseRow.institution_name,
+        claim_amount: extractFacts?.claim_amount ?? caseRow.claim_amount,
+        claim_currency: extractFacts?.claim_currency ?? caseRow.claim_currency,
+        incident_date: extractFacts?.incident_date ?? caseRow.incident_date,
         incident_datetime: caseRow.incident_datetime,
       },
       primary_narrative: caseRow.primary_narrative,
@@ -121,6 +137,7 @@ Deno.serve(async (req) => {
           }
         : null,
       timeline_raw,
+      extract_facts: extractFacts,
       fidrec_check: fidrecCheck,
     };
 
@@ -304,11 +321,50 @@ async function checkFidrecSubscription(
   });
 }
 
-async function getLatestExtractInstitutionName(supabase: SupabaseClient, case_id: string): Promise<string | null> {
+function safeExtractNumber(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v === "string") {
+    const cleaned = v.replace(/[^0-9.\-]/g, "");
+    if (!cleaned) return null;
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeExtractCurrency(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const c = String(v).trim().toUpperCase();
+  if (!c) return null;
+  if (c === "S$" || c === "S") return "SGD";
+  return c;
+}
+
+function parseExtractSpoofing(raw: unknown): Tier0ExtractFacts["spoofing_indicator"] {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const basisRaw = o.basis;
+  const basis = Array.isArray(basisRaw)
+    ? basisRaw.filter((x): x is string => typeof x === "string").map((s) => s.trim()).filter(Boolean)
+    : [];
+  return {
+    status: typeof o.status === "string" ? o.status : null,
+    type: typeof o.type === "string" ? o.type : null,
+    basis,
+  };
+}
+
+async function getLatestExtractFacts(
+  supabase: SupabaseClient,
+  case_id: string,
+): Promise<Tier0ExtractFacts | null> {
   const { data, error } = await supabase
     .from("case_extract_runs")
-    .select("extract_json")
+    .select("extract_json, prompt_version")
     .eq("case_id", case_id)
+    .ilike("prompt_version", "%run_case_extract_v4%")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -317,14 +373,66 @@ async function getLatestExtractInstitutionName(supabase: SupabaseClient, case_id
     console.warn(`Tier-0: case_extract_runs fetch failed: ${error.message}`);
     return null;
   }
-  if (!data?.extract_json || typeof data.extract_json !== "object") return null;
+  if (!data?.prompt_version || !String(data.prompt_version).includes("run_case_extract_v4")) return null;
+  if (!data.extract_json || typeof data.extract_json !== "object") return null;
+
   const ej = data.extract_json as Record<string, unknown>;
+
   const cm = ej.case_meta;
-  if (!cm || typeof cm !== "object") return null;
-  const name = (cm as Record<string, unknown>).institution_name;
-  if (typeof name !== "string") return null;
-  const t = name.trim();
-  return t.length > 0 ? t : null;
+  let institution_name: string | null = null;
+  let claim_amount: number | null = null;
+  let claim_currency: string | null = null;
+  if (cm && typeof cm === "object") {
+    const meta = cm as Record<string, unknown>;
+    if (typeof meta.institution_name === "string") {
+      const t = meta.institution_name.trim();
+      institution_name = t.length > 0 ? t : null;
+    }
+    claim_amount = safeExtractNumber(meta.claim_amount);
+    claim_currency = normalizeExtractCurrency(meta.claim_currency);
+  }
+
+  let incident_date: string | null = null;
+  const idRaw = ej.incident_date;
+  if (typeof idRaw === "string") {
+    const s = idRaw.trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) incident_date = s.slice(0, 10);
+    else if (s.length > 0) incident_date = s;
+  }
+
+  let channel: string | null = null;
+  let spoofing_indicator: Tier0ExtractFacts["spoofing_indicator"] = null;
+  const inc = ej.incident;
+  if (inc && typeof inc === "object") {
+    const iv = inc as Record<string, unknown>;
+    if (typeof iv.channel === "string") {
+      const c = iv.channel.trim();
+      channel = c.length > 0 ? c : null;
+    }
+    if (iv.spoofing_indicator !== undefined && iv.spoofing_indicator !== null) {
+      spoofing_indicator = parseExtractSpoofing(iv.spoofing_indicator);
+    }
+  }
+
+  let disputed_merchant: string | null = null;
+  const tx = ej.transaction;
+  if (tx && typeof tx === "object") {
+    const dm = (tx as Record<string, unknown>).disputed_merchant;
+    if (typeof dm === "string") {
+      const m = dm.trim();
+      disputed_merchant = m.length > 0 ? m : null;
+    }
+  }
+
+  return {
+    institution_name,
+    claim_amount,
+    claim_currency,
+    incident_date,
+    channel,
+    disputed_merchant,
+    spoofing_indicator,
+  };
 }
 
 function buildFidrecMatchNote(check: FidrecCheck): string {
