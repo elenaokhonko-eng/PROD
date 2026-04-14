@@ -8,7 +8,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
  * - Adds type-aware preference: BANK_COMMS + DISPUTE_FORM outrank late-stage letters
  * - Chooses EARLIEST date >= incident_date among "first_report" candidates (when available)
  * - Keeps: two-tier evidence (all-doc compute + prompt curation), txn dedupe/filter, loss override, atomic RPC + stages
- */ const VERSION = "run_case_extract_v3::v2.1.3::two-tier-evidence+loss-keyword-override+txn-dedupe-filter+reporting-dates(first-report+type-aware)::atomic-rpc+stages";
+ * v2.1.4: structured incident (channel, spoofing_indicator), transaction.disputed_merchant; case_meta claim normalize; missing_facts merge
+ * v2.1.5: incident.channel = scam/fraud contact medium only (not reporting channels); no \"unknown\" channel value
+ */ const VERSION = "run_case_extract_v3::v2.1.5::+incident-channel-scam-only+spoofing-align-null-channel::two-tier-evidence+loss-keyword-override+txn-dedupe-filter+reporting-dates(first-report+type-aware)::atomic-rpc+stages";
 /* =========================================================
    HELPERS
    ========================================================= */ function jsonResp(data, status = 200) {
@@ -167,7 +169,7 @@ async function callOpenAIResponses(openaiKey, body) {
 }
 async function openaiExtract(args) {
   const { openaiKey, model, template, inputText, serverComputed } = args;
-  const systemText = "You are an information extraction engine.\n" + "Return ONLY valid JSON.\n" + "It MUST match the TEMPLATE exactly:\n" + "- Do NOT add new keys.\n" + "- Use null when unknown.\n" + "- No legal conclusions.\n" + "- Do not invent documents beyond those provided.\n" + "\n" + "SERVER OVERRIDES (MUST FOLLOW):\n" + "- If SERVER_COMPUTED.reported_loss.amount is not null, set reported_loss.amount to that exact value.\n" + "- If SERVER_COMPUTED.institution_name_guess is not null, set case_meta.institution_name to that value unless clearly contradicted.\n" + "- If SERVER_COMPUTED.reported_to_police_at is not null, set timeline.reported_to_police_at to that exact value.\n" + "- If SERVER_COMPUTED.reported_to_institution_at is not null, set timeline.reported_to_institution_at to that exact value.\n";
+  const systemText = "You are an information extraction engine.\n" + "Return ONLY valid JSON.\n" + "It MUST match the TEMPLATE exactly:\n" + "- Do NOT add new keys.\n" + "- Use null when unknown.\n" + "- No legal conclusions.\n" + "- Do not invent documents beyond those provided.\n" + "\n" + "STRUCTURED FACTS (no narrative; facts only; null when not clearly supported):\n" + "\n" + "case_meta.institution_name:\n" + "- Set ONLY if a financial institution is explicitly named in the data (e.g. DBS, OCBC, UOB, Citibank, Standard Chartered, Wise, PayPal).\n" + "- Use a short canonical name (e.g. \"DBS\").\n" + "- Do NOT infer from country, product type, or context alone.\n" + "\n" + "incident.channel (scam / fraudulent contact ONLY, NOT reporting):\n" + "- Set ONLY how the scam or fraudulent first contact occurred: one of sms | phone_call | whatsapp | telegram | email | website | banking_app when clearly stated for that contact; otherwise null.\n" + "- Do NOT set incident.channel from later reporting or follow-up: e.g. calling the bank hotline, customer support, filing a police report, or submitting a dispute or complaint.\n" + "- If the only phone call described is to report the incident after discovery, keep incident.channel null.\n" + "- If how the victim was first approached is unclear, use null (do not use a placeholder string for channel).\n" + "\n" + "incident.spoofing_indicator (aligned with scam contact, not reporting):\n" + "- If incident.channel is null, set spoofing_indicator.type to null.\n" + "- status \"yes\" ONLY for clear sender-identity manipulation on the scam/fraud contact itself (e.g. SMS under bank sender name, message in existing legitimate thread, scam call showing official bank number).\n" + "- status \"no\" when the scam contact source is clearly an ordinary mobile number or normal sender with no masking.\n" + "- Impersonation in message content alone without spoofed sender identity is NOT spoofing — use \"no\" or \"unknown\", never \"yes\".\n" + "- status \"unknown\" when unclear or when only reporting/support/police channels are described without clear scam-channel spoofing facts (default when in doubt).\n" + "- type: \"sms\" or \"phone_call\" only when incident.channel is sms or phone_call and spoofing facts match that medium; otherwise null.\n" + "- basis: short factual strings only (e.g. \"message appeared under bank sender name\", \"ordinary mobile number described\", \"no sender identity details provided\").\n" + "\n" + "transaction.disputed_merchant:\n" + "- Payee / merchant / recipient explicitly named; null if unclear.\n" + "\n" + "evidence_status.missing_facts:\n" + "- Include dot-path strings for important gaps: case_meta.institution_name when null; incident.channel when null; transaction.disputed_merchant when null.\n" + "- Include incident.spoofing_indicator.status when the case clearly involves sms or phone_call and spoofing status remains unknown.\n" + "\n" + "SERVER OVERRIDES (MUST FOLLOW):\n" + "- If SERVER_COMPUTED.reported_loss.amount is not null, set reported_loss.amount to that exact value.\n" + "- If SERVER_COMPUTED.institution_name_guess is not null, set case_meta.institution_name to that value unless clearly contradicted.\n" + "- If SERVER_COMPUTED.reported_to_police_at is not null, set timeline.reported_to_police_at to that exact value.\n" + "- If SERVER_COMPUTED.reported_to_institution_at is not null, set timeline.reported_to_institution_at to that exact value.\n";
   const userText = "Fill this JSON template using only the provided case data.\n\n" + `TEMPLATE (JSON):\n${JSON.stringify(template)}\n\n` + `SERVER_COMPUTED:\n${JSON.stringify(serverComputed)}\n\n` + `DATA:\n${inputText}\n`;
   const payload1 = await callOpenAIResponses(openaiKey, {
     model,
@@ -836,11 +838,45 @@ function computeServerFacts(allEvidence, caseCurrency, claimAmount, incidentISO)
 }
 /* =========================================================
    POSTPROCESS: validator compat + enforce server facts
-   ========================================================= */ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts) {
+   ========================================================= */ const ALLOWED_INCIDENT_CHANNELS = new Set([
+  "sms",
+  "phone_call",
+  "whatsapp",
+  "telegram",
+  "email",
+  "website",
+  "banking_app"
+]);
+const ALLOWED_SPOOFING_STATUS = new Set([
+  "yes",
+  "no",
+  "unknown"
+]);
+const ALLOWED_SPOOFING_TYPE = new Set([
+  "sms",
+  "phone_call"
+]);
+function mergeStructuredMissingFacts(ej) {
+  const mf = ej.evidence_status.missing_facts;
+  if (!Array.isArray(mf)) return;
+  const add = (path)=>{
+    if (!mf.includes(path)) mf.push(path);
+  };
+  if (ej?.case_meta?.institution_name == null) add("case_meta.institution_name");
+  const ch = ej?.incident?.channel;
+  if (ch == null) add("incident.channel");
+  if (ej?.transaction?.disputed_merchant == null) add("transaction.disputed_merchant");
+  const sp = ej?.incident?.spoofing_indicator?.status;
+  if ((ch === "sms" || ch === "phone_call") && sp === "unknown") add("incident.spoofing_indicator.status");
+}
+function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) {
   const ej = ejRaw && typeof ejRaw === "object" ? ejRaw : {};
   // Ensure required objects exist
   ej.timeline = ej.timeline ?? {};
   ej.case_meta = ej.case_meta ?? {};
+  ej.incident = ej.incident && typeof ej.incident === "object" ? ej.incident : {};
+  ej.incident.spoofing_indicator = ej.incident.spoofing_indicator && typeof ej.incident.spoofing_indicator === "object" ? ej.incident.spoofing_indicator : {};
+  ej.transaction = ej.transaction && typeof ej.transaction === "object" ? ej.transaction : {};
   ej.evidence_status = ej.evidence_status ?? {};
   ej.customer_actions = ej.customer_actions ?? {};
   ej.institution_actions = ej.institution_actions ?? {};
@@ -866,6 +902,47 @@ function computeServerFacts(allEvidence, caseCurrency, claimAmount, incidentISO)
     // Only fill if missing
     if (!ej.case_meta.institution_name) ej.case_meta.institution_name = serverFacts.institution_name_guess;
   }
+  // case_meta.institution_name: string | null
+  if (ej.case_meta.institution_name != null) {
+    if (typeof ej.case_meta.institution_name === "string") {
+      const t = ej.case_meta.institution_name.trim();
+      ej.case_meta.institution_name = t || null;
+    } else {
+      ej.case_meta.institution_name = null;
+    }
+  }
+  // case_meta claim fields: normalize types (consistent with reported_loss handling)
+  ej.case_meta.claim_amount = safeNumber(ej.case_meta.claim_amount);
+  ej.case_meta.claim_currency = normalizeCurrency(ej.case_meta.claim_currency);
+  if (caseRecord) {
+    const rowAmt = safeNumber(caseRecord.claim_amount);
+    const rowCur = normalizeCurrency(caseRecord.claim_currency);
+    if (rowAmt !== null) ej.case_meta.claim_amount = rowAmt;
+    if (rowCur) ej.case_meta.claim_currency = rowCur;
+  }
+  // incident.channel
+  if (typeof ej.incident.channel === "string") {
+    const c = ej.incident.channel.trim().toLowerCase().replace(/[\s-]+/g, "_");
+    ej.incident.channel = ALLOWED_INCIDENT_CHANNELS.has(c) ? c : null;
+  } else {
+    ej.incident.channel = null;
+  }
+  // incident.spoofing_indicator
+  const si = ej.incident.spoofing_indicator;
+  si.status = ALLOWED_SPOOFING_STATUS.has(si.status) ? si.status : "unknown";
+  si.type = ALLOWED_SPOOFING_TYPE.has(si.type) ? si.type : null;
+  if (ej.incident.channel !== "sms" && ej.incident.channel !== "phone_call") si.type = null;
+  else if (ej.incident.channel === "sms" && si.type === "phone_call") si.type = null;
+  else if (ej.incident.channel === "phone_call" && si.type === "sms") si.type = null;
+  if (!Array.isArray(si.basis)) si.basis = [];
+  si.basis = si.basis.filter((x)=>typeof x === "string").map((s)=>s.trim()).filter(Boolean);
+  // transaction.disputed_merchant
+  if (typeof ej.transaction.disputed_merchant === "string") {
+    const m = ej.transaction.disputed_merchant.trim();
+    ej.transaction.disputed_merchant = m || null;
+  } else {
+    ej.transaction.disputed_merchant = null;
+  }
   if (serverFacts?.reported_to_police_at) {
     ej.timeline.reported_to_police_at = serverFacts.reported_to_police_at;
   }
@@ -888,6 +965,7 @@ function computeServerFacts(allEvidence, caseCurrency, claimAmount, incidentISO)
   if (!Array.isArray(ej.evidence_status.missing_facts)) ej.evidence_status.missing_facts = [];
   if (!Array.isArray(ej.evidence_status.documents_missing)) ej.evidence_status.documents_missing = [];
   if (!Array.isArray(ej.evidence_status.documents_present)) ej.evidence_status.documents_present = [];
+  mergeStructuredMissingFacts(ej);
   return ej;
 }
 /* =========================================================
@@ -991,6 +1069,17 @@ function computeServerFacts(allEvidence, caseCurrency, claimAmount, incidentISO)
         claim_currency: caseData.claim_currency ?? null,
         institution_name: caseData.institution_name ?? null
       },
+      incident: {
+        channel: null,
+        spoofing_indicator: {
+          status: "unknown",
+          type: null,
+          basis: []
+        }
+      },
+      transaction: {
+        disputed_merchant: null
+      },
       evidence_status: {
         confidence: 0.5,
         missing_facts: [],
@@ -1036,7 +1125,7 @@ function computeServerFacts(allEvidence, caseCurrency, claimAmount, incidentISO)
     mark("08_openai_ok");
     // Post-process + enforce server facts + insert extract_run
     mark("09_postprocess");
-    const ej = applyValidationCompatibilityAndEnforce(ejRaw, serverFacts);
+    const ej = applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseData);
     // Required list (for case_extract_runs.missing_fields)
     const missing_fields = [];
     const requiredFields = [

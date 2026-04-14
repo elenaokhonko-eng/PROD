@@ -5,6 +5,14 @@ const PROJECT_URL = Deno.env.get("GUIDEBUOY_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("GUIDEBUOY_SERVICE_ROLE_KEY");
 const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction");
 
+type FidrecCheck = {
+  institution_name_input: string | null;
+  institution_name_normalized: string | null;
+  fidrec_subscription_possible: boolean | null;
+  matched_institution_name: string | null;
+  match_type: "exact" | "alias" | "none" | null;
+};
+
 type SrfSignals = {
   overall_fit: "likely" | "possible" | "unlikely";
   reasoning: string;
@@ -12,6 +20,8 @@ type SrfSignals = {
   telco_path_relevant: boolean;
   imda_relevant: boolean;
   missing_fields: string[];
+  fidrec_subscription_possible?: boolean | null;
+  fidrec_match_note?: string | null;
 };
 
 type Tier0LLMResult = {
@@ -36,6 +46,7 @@ type Tier0NormalizeInput = {
   } | null;
   primary_narrative?: unknown;
   timeline_raw?: unknown;
+  fidrec_check?: FidrecCheck;
 };
 
 Deno.serve(async (req) => {
@@ -86,6 +97,10 @@ Deno.serve(async (req) => {
     if (timelineErr) return new Response(`Timeline narrative Error: ${timelineErr.message}`, { status: 500 });
     const timeline_raw = timelineRows?.[0]?.text_content ?? null;
 
+    const extractedInstitutionName = await getLatestExtractInstitutionName(supabase, case_id);
+    const institutionForFidrec = extractedInstitutionName || caseRow.institution_name || null;
+    const fidrecCheck = await checkFidrecSubscription(supabase, institutionForFidrec);
+
     const input = {
       case: {
         id: caseRow.id,
@@ -106,12 +121,15 @@ Deno.serve(async (req) => {
           }
         : null,
       timeline_raw,
+      fidrec_check: fidrecCheck,
     };
 
     const llm = await callOpenAITier0(input);
 
     if (isValidSrfSignals(llm.srf_signals)) {
       llm.srf_signals.missing_fields = normalizeMissingFields(llm.srf_signals.missing_fields, input);
+      llm.srf_signals.fidrec_subscription_possible = fidrecCheck.fidrec_subscription_possible;
+      llm.srf_signals.fidrec_match_note = buildFidrecMatchNote(fidrecCheck);
     }
 
     const lang = intake?.language ?? "en";
@@ -189,6 +207,132 @@ function json(obj: unknown, status = 200) {
       "Content-Type": "application/json",
     },
   });
+}
+
+function normalizeInstitutionName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+async function checkFidrecSubscription(
+  supabase: SupabaseClient,
+  institutionName: string | null | undefined,
+): Promise<FidrecCheck> {
+  const allNull = (): FidrecCheck => ({
+    institution_name_input: null,
+    institution_name_normalized: null,
+    fidrec_subscription_possible: null,
+    matched_institution_name: null,
+    match_type: null,
+  });
+
+  if (institutionName === null || institutionName === undefined) return allNull();
+  if (typeof institutionName !== "string") return allNull();
+  const raw = institutionName.trim();
+  if (!raw) return allNull();
+
+  const normalized = normalizeInstitutionName(raw);
+
+  const withInput = (partial: Omit<FidrecCheck, "institution_name_input" | "institution_name_normalized">): FidrecCheck => ({
+    institution_name_input: raw,
+    institution_name_normalized: normalized,
+    ...partial,
+  });
+
+  const { data: exact, error: exactErr } = await supabase
+    .from("fidrec_eligible")
+    .select("institution_name, institution_name_normalized")
+    .eq("institution_name_normalized", normalized)
+    .maybeSingle();
+
+  if (exactErr) {
+    console.warn(`Tier-0: fidrec_eligible exact match failed: ${exactErr.message}`);
+    return withInput({
+      fidrec_subscription_possible: null,
+      matched_institution_name: null,
+      match_type: null,
+    });
+  }
+
+  if (exact) {
+    const display =
+      typeof exact.institution_name === "string" && exact.institution_name.trim().length > 0
+        ? exact.institution_name.trim()
+        : String(exact.institution_name_normalized ?? normalized);
+    return withInput({
+      fidrec_subscription_possible: true,
+      matched_institution_name: display,
+      match_type: "exact",
+    });
+  }
+
+  const { data: rows, error: listErr } = await supabase
+    .from("fidrec_eligible")
+    .select("institution_name, institution_name_normalized, aliases");
+
+  if (listErr) {
+    console.warn(`Tier-0: fidrec_eligible alias list unavailable: ${listErr.message}`);
+    return withInput({
+      fidrec_subscription_possible: false,
+      matched_institution_name: null,
+      match_type: "none",
+    });
+  }
+
+  for (const row of rows ?? []) {
+    const aliases = row.aliases;
+    if (!Array.isArray(aliases)) continue;
+    for (const a of aliases) {
+      if (typeof a !== "string") continue;
+      if (normalizeInstitutionName(a) === normalized) {
+        const display =
+          typeof row.institution_name === "string" && row.institution_name.trim().length > 0
+            ? row.institution_name.trim()
+            : String(row.institution_name_normalized ?? normalized);
+        return withInput({
+          fidrec_subscription_possible: true,
+          matched_institution_name: display,
+          match_type: "alias",
+        });
+      }
+    }
+  }
+
+  return withInput({
+    fidrec_subscription_possible: false,
+    matched_institution_name: null,
+    match_type: "none",
+  });
+}
+
+async function getLatestExtractInstitutionName(supabase: SupabaseClient, case_id: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("case_extract_runs")
+    .select("extract_json")
+    .eq("case_id", case_id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn(`Tier-0: case_extract_runs fetch failed: ${error.message}`);
+    return null;
+  }
+  if (!data?.extract_json || typeof data.extract_json !== "object") return null;
+  const ej = data.extract_json as Record<string, unknown>;
+  const cm = ej.case_meta;
+  if (!cm || typeof cm !== "object") return null;
+  const name = (cm as Record<string, unknown>).institution_name;
+  if (typeof name !== "string") return null;
+  const t = name.trim();
+  return t.length > 0 ? t : null;
+}
+
+function buildFidrecMatchNote(check: FidrecCheck): string {
+  const m = check.matched_institution_name;
+  if (check.match_type === "exact" && m) return `Matched institution in FIDReC list: ${m}`;
+  if (check.match_type === "alias" && m) return `Matched institution in FIDReC list by alias: ${m}`;
+  if (check.match_type === "none") return "No FIDReC list match found for provided institution name";
+  return "Institution name not available for FIDReC matching";
 }
 
 function isCaseFieldPresent(v: unknown): boolean {
@@ -327,6 +471,12 @@ function isValidSrfSignals(v: unknown): v is SrfSignals {
   if (typeof o.imda_relevant !== "boolean") return false;
   if (!Array.isArray(o.missing_fields)) return false;
   if (!o.missing_fields.every((x) => typeof x === "string")) return false;
+  if (o.fidrec_subscription_possible !== undefined && o.fidrec_subscription_possible !== null) {
+    if (typeof o.fidrec_subscription_possible !== "boolean") return false;
+  }
+  if (o.fidrec_match_note !== undefined && o.fidrec_match_note !== null && typeof o.fidrec_match_note !== "string") {
+    return false;
+  }
   return true;
 }
 
@@ -337,6 +487,12 @@ function headingForFit(fit: SrfSignals["overall_fit"]): string {
 
 function pathWording(b: boolean): string {
   return b ? "Possible" : "Not indicated";
+}
+
+function fidrecPathwayWording(v: boolean | null | undefined): string {
+  if (v === true) return "Possible";
+  if (v === false) return "Not indicated";
+  return "Unknown";
 }
 
 function renderTier0SrfSignal(signals: SrfSignals): string {
@@ -353,6 +509,12 @@ function renderTier0SrfSignal(signals: SrfSignals): string {
   lines.push(`- Bank-related SRF issues: ${pathWording(signals.bank_path_relevant)}`);
   lines.push(`- Telco-related SRF / IMDA issues: ${pathWording(signals.telco_path_relevant)}`);
   lines.push(`- IMDA may be relevant: ${pathWording(signals.imda_relevant)}`);
+  lines.push("");
+  lines.push("Institution pathway:");
+  lines.push(`- FIDReC subscription match: ${fidrecPathwayWording(signals.fidrec_subscription_possible)}`);
+  if (signals.fidrec_match_note != null && String(signals.fidrec_match_note).trim() !== "") {
+    lines.push(`- Match note: ${signals.fidrec_match_note}`);
+  }
   if (signals.missing_fields.length > 0) {
     lines.push("");
     lines.push("Missing information:");
@@ -368,6 +530,9 @@ async function callOpenAITier0(input: unknown): Promise<Tier0LLMResult> {
 
 GROUND RULES
 Use only facts explicitly present in the provided JSON. Do not infer, assume, invent facts, or introduce external knowledge (e.g. how scams usually work). If something is missing, write "not provided". Be neutral, factual, chronological, clear, and non-judgemental. Do not provide legal advice, do not determine liability, and do not state that the user is eligible or ineligible for compensation.
+
+FIDREC_CHECK (optional object in input JSON)
+The fidrec_check block is a soft, reference-list signal only. Do not guess FIDReC subscription from institution name familiarity alone. A positive list match may suggest relevance of a consumer financial dispute pathway; a non-match is not a final exclusion. A null or inconclusive result means unknown. Do not state that the user is or is not entitled to FIDReC or any scheme.
 
 SUMMARY HARD RULES
 Do not add personal circumstances, location, family context, emotions, or surrounding scene details unless explicitly stated in the input. Do not add inferred context such as where the user was, what device they used, or what they were doing at the time, unless the input explicitly says so. If a fact is not explicitly in the input, do not include it.
