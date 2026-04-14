@@ -19,6 +19,7 @@ type Tier0ExtractFacts = {
   claim_amount: number | null;
   claim_currency: string | null;
   incident_date: string | null;
+  incident_datetime: string | null;
   channel: string | null;
   disputed_merchant: string | null;
   spoofing_indicator: {
@@ -230,6 +231,25 @@ function normalizeInstitutionName(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+/** Deterministic candidates: full normalized string, then each "/" segment normalized (e.g. DBS/POSB → dbs/posb, dbs, posb). */
+function fidrecInstitutionCandidates(normalized: string): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const add = (fragment: string) => {
+    const n = normalizeInstitutionName(fragment);
+    if (!n || seen.has(n)) return;
+    seen.add(n);
+    out.push(n);
+  };
+  add(normalized);
+  if (normalized.includes("/")) {
+    for (const part of normalized.split("/")) {
+      add(part);
+    }
+  }
+  return out;
+}
+
 async function checkFidrecSubscription(
   supabase: SupabaseClient,
   institutionName: string | null | undefined,
@@ -248,6 +268,7 @@ async function checkFidrecSubscription(
   if (!raw) return allNull();
 
   const normalized = normalizeInstitutionName(raw);
+  const candidates = fidrecInstitutionCandidates(normalized);
 
   const withInput = (partial: Omit<FidrecCheck, "institution_name_input" | "institution_name_normalized">): FidrecCheck => ({
     institution_name_input: raw,
@@ -255,26 +276,33 @@ async function checkFidrecSubscription(
     ...partial,
   });
 
-  const { data: exact, error: exactErr } = await supabase
-    .from("fidrec_eligible")
-    .select("institution_name, institution_name_normalized")
-    .eq("institution_name_normalized", normalized)
-    .maybeSingle();
+  let exactRow: { institution_name?: unknown; institution_name_normalized?: unknown } | null = null;
+  for (const cand of candidates) {
+    const { data: exact, error: exactErr } = await supabase
+      .from("fidrec_eligible")
+      .select("institution_name, institution_name_normalized")
+      .eq("institution_name_normalized", cand)
+      .maybeSingle();
 
-  if (exactErr) {
-    console.warn(`Tier-0: fidrec_eligible exact match failed: ${exactErr.message}`);
-    return withInput({
-      fidrec_subscription_possible: null,
-      matched_institution_name: null,
-      match_type: null,
-    });
+    if (exactErr) {
+      console.warn(`Tier-0: fidrec_eligible exact match failed: ${exactErr.message}`);
+      return withInput({
+        fidrec_subscription_possible: null,
+        matched_institution_name: null,
+        match_type: null,
+      });
+    }
+    if (exact) {
+      exactRow = exact;
+      break;
+    }
   }
 
-  if (exact) {
+  if (exactRow) {
     const display =
-      typeof exact.institution_name === "string" && exact.institution_name.trim().length > 0
-        ? exact.institution_name.trim()
-        : String(exact.institution_name_normalized ?? normalized);
+      typeof exactRow.institution_name === "string" && exactRow.institution_name.trim().length > 0
+        ? exactRow.institution_name.trim()
+        : String(exactRow.institution_name_normalized ?? normalized);
     return withInput({
       fidrec_subscription_possible: true,
       matched_institution_name: display,
@@ -295,21 +323,23 @@ async function checkFidrecSubscription(
     });
   }
 
-  for (const row of rows ?? []) {
-    const aliases = row.aliases;
-    if (!Array.isArray(aliases)) continue;
-    for (const a of aliases) {
-      if (typeof a !== "string") continue;
-      if (normalizeInstitutionName(a) === normalized) {
-        const display =
-          typeof row.institution_name === "string" && row.institution_name.trim().length > 0
-            ? row.institution_name.trim()
-            : String(row.institution_name_normalized ?? normalized);
-        return withInput({
-          fidrec_subscription_possible: true,
-          matched_institution_name: display,
-          match_type: "alias",
-        });
+  for (const cand of candidates) {
+    for (const row of rows ?? []) {
+      const aliases = row.aliases;
+      if (!Array.isArray(aliases)) continue;
+      for (const a of aliases) {
+        if (typeof a !== "string") continue;
+        if (normalizeInstitutionName(a) === cand) {
+          const display =
+            typeof row.institution_name === "string" && row.institution_name.trim().length > 0
+              ? row.institution_name.trim()
+              : String(row.institution_name_normalized ?? cand);
+          return withInput({
+            fidrec_subscription_possible: true,
+            matched_institution_name: display,
+            match_type: "alias",
+          });
+        }
       }
     }
   }
@@ -364,7 +394,7 @@ async function getLatestExtractFacts(
     .from("case_extract_runs")
     .select("extract_json, prompt_version")
     .eq("case_id", case_id)
-    .ilike("prompt_version", "%run_case_extract_v4%")
+    .ilike("prompt_version", "%run_case_extract%")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -400,6 +430,16 @@ async function getLatestExtractFacts(
     else if (s.length > 0) incident_date = s;
   }
 
+  let incident_datetime: string | null = null;
+  const tl = ej.timeline;
+  if (tl && typeof tl === "object") {
+    const ia = (tl as Record<string, unknown>).incident_at;
+    if (typeof ia === "string" && ia.trim().length > 0) incident_datetime = ia.trim();
+  }
+  if (!incident_datetime && typeof ej.incident_datetime === "string" && ej.incident_datetime.trim().length > 0) {
+    incident_datetime = ej.incident_datetime.trim();
+  }
+
   let channel: string | null = null;
   let spoofing_indicator: Tier0ExtractFacts["spoofing_indicator"] = null;
   const inc = ej.incident;
@@ -429,6 +469,7 @@ async function getLatestExtractFacts(
     claim_amount,
     claim_currency,
     incident_date,
+    incident_datetime,
     channel,
     disputed_merchant,
     spoofing_indicator,
@@ -473,8 +514,30 @@ function canonicalMissingFieldKey(normalized: string): keyof NonNullable<Tier0No
   return map[normalized] ?? null;
 }
 
+function extractFactsFieldPresent(
+  canonical: keyof NonNullable<Tier0NormalizeInput["case"]>,
+  xf: Tier0ExtractFacts | null | undefined,
+): boolean {
+  if (!xf) return false;
+  switch (canonical) {
+    case "institution_name":
+      return isCaseFieldPresent(xf.institution_name);
+    case "claim_amount":
+      return isCaseFieldPresent(xf.claim_amount);
+    case "claim_currency":
+      return isCaseFieldPresent(xf.claim_currency);
+    case "incident_date":
+      return isCaseFieldPresent(xf.incident_date);
+    case "incident_datetime":
+      return isCaseFieldPresent(xf.incident_datetime);
+    default:
+      return false;
+  }
+}
+
 function normalizeMissingFields(raw: string[], input: Tier0NormalizeInput): string[] {
   const c = input.case ?? {};
+  const xf = input.extract_facts;
   const seen = new Set<string>();
   const out: string[] = [];
 
@@ -486,6 +549,9 @@ function normalizeMissingFields(raw: string[], input: Tier0NormalizeInput): stri
     const normalized = trimmed.toLowerCase().replace(/\s+/g, " ");
     const canonical = canonicalMissingFieldKey(normalized);
     if (canonical && isCaseFieldPresent(c[canonical])) {
+      continue;
+    }
+    if (canonical && extractFactsFieldPresent(canonical, xf)) {
       continue;
     }
 
