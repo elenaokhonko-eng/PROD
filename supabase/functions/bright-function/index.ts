@@ -403,7 +403,7 @@ async function getLatestExtractFacts(
     console.warn(`Tier-0: case_extract_runs fetch failed: ${error.message}`);
     return null;
   }
-  if (!data?.prompt_version || !String(data.prompt_version).includes("run_case_extract_v4")) return null;
+  if (!data?.prompt_version || !String(data.prompt_version).includes("run_case_extract")) return null;
   if (!data.extract_json || typeof data.extract_json !== "object") return null;
 
   const ej = data.extract_json as Record<string, unknown>;
