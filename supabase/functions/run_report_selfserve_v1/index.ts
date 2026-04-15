@@ -192,6 +192,39 @@ const REPORT_JSON_SCHEMA = {
       items: {
         type: "string"
       }
+    },
+    regulatory_considerations: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          title: {
+            type: "string"
+          },
+          summary: {
+            type: "string"
+          },
+          source_name: {
+            type: [
+              "string",
+              "null"
+            ]
+          },
+          clause_ref: {
+            type: [
+              "string",
+              "null"
+            ]
+          }
+        },
+        required: [
+          "title",
+          "summary",
+          "source_name",
+          "clause_ref"
+        ]
+      }
     }
   },
   required: [
@@ -209,7 +242,8 @@ const REPORT_JSON_SCHEMA = {
     "evidence_checklist",
     "disclaimers",
     "limitations",
-    "missing_facts"
+    "missing_facts",
+    "regulatory_considerations"
   ]
 };
 /** ---------------------------
@@ -246,6 +280,10 @@ const REPORT_JSON_SCHEMA = {
                 "Use: requested resolution = reversal/restoration + investigation details + confirmation of safeguards.",
                 "Tone factual and respectful; audience is bank complaints team.",
                 "Do not give legal advice; include disclaimers + limitations.",
+                "Use regulatory_considerations ONLY from provided regulatory_context.",
+                "For regulatory_considerations, keep each item concise, plain-English, and complaint-friendly.",
+                "Do not state that any clause was breached; frame clauses as relevant considerations only.",
+                "Do not invent regulatory references, source names, clause references, or summaries.",
                 `PromptVersion=${promptVersion}`
               ].join(" ")
             }
@@ -380,6 +418,93 @@ function softenUnauthorizedTransactionsPhrases(s) {
   s = s.replace(/^\s*a new payee was added\b/, "A new payee was added");
   return s;
 }
+/**
+ * Softens affirmative bank-control wording into bank-claim / confirmation style (deterministic, single-pass safe).
+ */ function rewriteBankAssertionText(s) {
+  if (typeof s !== "string" || !s) return s;
+  let out = s;
+  out = out.replace(/\bhas stated that\s+the bank\s+has stated that/gi, "the bank has stated that");
+  out = out.replace(/\bhas stated that\s+([A-Z][A-Za-z0-9&.\-]{1,40})\s+has stated that/g, (_, n)=>`${n} has stated that`);
+  out = out.replace(/step-up authentication was used and attempted to block the transaction/gi, "step-up authentication was used and that transaction blocking was attempted");
+  out = out.replace(/has stated that step-up authentication was used and attempted to block/gi, "has stated that step-up authentication was used and that transaction blocking was attempted");
+  out = out.replace(/\b([A-Z][A-Za-z0-9&.\-]{1,40})\s+applied\s+step-?up\s+authentication\b/g, (_, b)=>`${b} has stated that step-up authentication was used`);
+  out = out.replace(/\bthe\s+bank\s+applied\s+step-?up\s+authentication\b/gi, "the bank has stated that step-up authentication was used");
+  out = out.replace(/\b([A-Z][A-Za-z0-9&.\-]{1,40})\s+used\s+step-?up\s+authentication\b/g, (_, b)=>`${b} has stated that step-up authentication was used`);
+  out = out.replace(/\bthe\s+bank\s+used\s+step-?up\s+authentication\b/gi, "the bank has stated that step-up authentication was used");
+  out = out.replace(/\b([A-Z][A-Za-z0-9&.\-]{1,40})\s+attempted\s+to\s+block\s+the\s+transaction\b/g, (_, b)=>`${b} has stated that transaction blocking was attempted for the transaction`);
+  out = out.replace(/\bthe\s+bank\s+attempted\s+to\s+block\s+the\s+transaction\b/gi, "the bank has stated that transaction blocking was attempted for the transaction");
+  out = out.replace(/\b([A-Z][A-Za-z0-9&.\-]{1,40})\s+attempted\s+to\s+block\b/g, (_, b)=>`${b} has stated that transaction blocking was attempted`);
+  out = out.replace(/\bthe\s+bank\s+attempted\s+to\s+block\b/gi, "the bank has stated that transaction blocking was attempted");
+  out = out.replace(/\battempted\s+to\s+block\s+the\s+transaction\b/gi, (m, offset, full)=>{
+    const before = full.slice(Math.max(0, offset - 80), offset);
+    if (/\bhas stated that\b/i.test(before)) return m;
+    return "the bank has stated that transaction blocking was attempted for the transaction";
+  });
+  out = out.replace(/\bstep-?up\s+authentication\s+was\s+used\b/gi, (m, offset, full)=>{
+    const before = full.slice(Math.max(0, offset - 50), offset);
+    if (/\bhas stated that\s*$/i.test(before.trimEnd())) return m;
+    return "the bank has stated that step-up authentication was used";
+  });
+  out = out.replace(/\btransaction\s+blocking\s+was\s+attempted\b/gi, (m, offset, full)=>{
+    const before = full.slice(Math.max(0, offset - 50), offset);
+    if (/\bhas stated that\s*$/i.test(before.trimEnd())) return m;
+    return "the bank has stated that transaction blocking was attempted";
+  });
+  if (out.includes("has stated that") && !/\b(the\s+bank|[A-Z][A-Za-z0-9&.\-]{1,40})\s+(used|applied)\s+step-?up\s+authentication\b/i.test(out) && !/\b(the\s+bank|[A-Z][A-Za-z0-9&.\-]{1,40})\s+attempted\s+to\s+block\b/i.test(out)) {
+    const passive = /\bstep-?up\s+authentication\s+was\s+used\b/i.exec(out);
+    const passiveTb = /\btransaction\s+blocking\s+was\s+attempted\b/i.exec(out);
+    const passiveOk = (tok)=>{
+      if (!tok) return true;
+      const before = out.slice(Math.max(0, tok.index - 50), tok.index);
+      return /\bhas stated that\s*$/i.test(before.trimEnd());
+    };
+    if (passiveOk(passive) && passiveOk(passiveTb)) return out;
+  }
+  return out;
+}
+/**
+ * Deterministic cleanup of executive_summary from extract_json: hard merchant normalization when payee is known; one merchant mention.
+ */ function fixExecutiveSummaryMerchantAndLoss(summary, extractJson) {
+  let s = toStr(summary);
+  const { disputedMerchant } = computeExtractDerivedTotals(extractJson);
+  s = s.replace(/I transferred a total of ([A-Z]{3})\s?([\d,]+) to an unknown merchant\.?/gi, (_, cur, amt)=>{
+    if (disputedMerchant) return `A total of ${cur} ${amt} was transferred to '${disputedMerchant}', a merchant I do not recognise.`;
+    return `A total of ${cur} ${amt} was transferred to a merchant I do not recognise.`;
+  });
+  if (!disputedMerchant) return normalizePunctuation(s);
+  const esc = disputedMerchant.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const mq = `'${disputedMerchant}'`;
+  const token = `merchant ${mq}`;
+  s = s.replace(/I transferred a total of [\s\S]*?unknown merchant\.?/gi, "");
+  s = s.replace(/unknown overseas merchant named ['"](.+?)['"]/gi, token);
+  s = s.replace(/unknown merchant ['"](.+?)['"]/gi, token);
+  s = s.replace(/\bto an unknown merchant\b/gi, `to ${token}`);
+  s = s.replace(/\bto unknown merchant\b/gi, `to ${token}`);
+  s = s.replace(/unknown merchant/gi, token);
+  let seenTok = false;
+  s = s.replace(new RegExp(`merchant\\s+['"]${esc}['"]`, "gi"), ()=>{
+    if (!seenTok) {
+      seenTok = true;
+      return token;
+    }
+    return "";
+  });
+  const parts = s.split(/\n\n+/).map((p)=>p.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    const escRe = new RegExp(esc, "i");
+    const kept = [];
+    let haveMerchant = false;
+    for (const p of parts){
+      const mentions = escRe.test(p);
+      if (mentions && /^I\s+transferred\s+a\s+total\s+of\b/i.test(p) && haveMerchant) continue;
+      if (mentions) haveMerchant = true;
+      kept.push(p);
+    }
+    s = kept.join("\n\n");
+  }
+  s = s.replace(/\s{2,}/g, " ").replace(/\s+([.,;:!?])/g, "$1").replace(/\n{3,}/g, "\n\n").trim();
+  return normalizePunctuation(s);
+}
 /** ---------------------------
  * Authorised enum enforcement
  * --------------------------- */ function enforceAuthorisedEnum(reportJson) {
@@ -440,6 +565,224 @@ function softenUnauthorizedTransactionsPhrases(s) {
   return out;
 }
 /** ---------------------------
+ * Extract-derived totals + merchant (deterministic enrichment)
+ * --------------------------- */ function safeReportNumber(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const cleaned = v.replace(/[^0-9.\-]/g, "");
+    if (!cleaned) return null;
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function normalizeReportCurrency(v) {
+  if (v === null || v === undefined) return null;
+  const c = String(v).trim().toUpperCase();
+  if (!c) return null;
+  if (c === "S$" || c === "S") return "SGD";
+  return c;
+}
+function sumLossesAmounts(losses) {
+  if (!Array.isArray(losses)) return null;
+  let sum = 0;
+  let any = false;
+  for (const L of losses){
+    const a = safeReportNumber(L?.amount);
+    if (a !== null) {
+      sum += a;
+      any = true;
+    }
+  }
+  return any ? sum : null;
+}
+function extractRegulatoryClauseIds(decisionJson) {
+  const out = [];
+  const seen = new Set();
+  const pushId = (v)=>{
+    const s = toStr(v).trim();
+    if (!s) return;
+    if (seen.has(s)) return;
+    seen.add(s);
+    out.push(s);
+  };
+  const refs = decisionJson?.references ?? {};
+  const refList = refs?.regulatory_clauses ?? refs?.regulatory_clause_ids ?? [];
+  if (Array.isArray(refList)) {
+    for (const r of refList){
+      if (typeof r === "string") pushId(r);
+      else if (r && typeof r === "object") pushId(r.id ?? r.clause_id ?? r.regulatory_clause_id);
+    }
+  }
+  const maybeArrays = [
+    decisionJson?.regulatory_clauses,
+    decisionJson?.regulatory_clause_ids
+  ];
+  for (const arr of maybeArrays){
+    if (!Array.isArray(arr)) continue;
+    for (const r of arr){
+      if (typeof r === "string") pushId(r);
+      else if (r && typeof r === "object") pushId(r.id ?? r.clause_id ?? r.regulatory_clause_id);
+    }
+  }
+  return out;
+}
+function shortClauseSummary(row) {
+  const plain = toStr(row?.plain_english_summary).trim();
+  if (plain) return plain;
+  const excerpt = toStr(row?.excerpt).replace(/\s+/g, " ").trim();
+  if (excerpt) {
+    if (excerpt.length <= 280) return excerpt;
+    return `${excerpt.slice(0, 277).trim()}...`;
+  }
+  const textContent = toStr(row?.text_content).replace(/\s+/g, " ").trim();
+  if (!textContent) return "";
+  if (textContent.length <= 280) return textContent;
+  return `${textContent.slice(0, 277).trim()}...`;
+}
+function buildRegulatoryContext(rows) {
+  if (!Array.isArray(rows)) return [];
+  const out = [];
+  for (const row of rows){
+    const title = toStr(row?.title).trim();
+    const summary = shortClauseSummary(row);
+    if (!title || !summary) continue;
+    out.push({
+      title,
+      source_name: toStr(row?.source_name ?? row?.source_ref).trim() || null,
+      clause_ref: toStr(row?.clause_ref).trim() || null,
+      summary
+    });
+    if (out.length >= 5) break;
+  }
+  return out;
+}
+function neutralizeRegulatorySummaryText(s) {
+  let out = toStr(s);
+  out = out.replace(/\bthe bank is liable\b/gi, "liability should be assessed based on the available facts");
+  out = out.replace(/\bthis proves\b/gi, "this may indicate");
+  out = out.replace(/\bguarantees reimbursement\b/gi, "may support a reimbursement review");
+  return normalizePunctuation(out);
+}
+function normalizeRegulatoryConsiderations(reportJson) {
+  const arr = Array.isArray(reportJson?.regulatory_considerations) ? reportJson.regulatory_considerations : [];
+  const out = [];
+  const seen = new Set();
+  for (const item of arr){
+    const title = toStr(item?.title).trim();
+    const summary = neutralizeRegulatorySummaryText(item?.summary).trim();
+    const source_name = toStr(item?.source_name).trim() || null;
+    const clause_ref = toStr(item?.clause_ref).trim() || null;
+    if (!title || !summary) continue;
+    const key = `${normKey(title)}|${normKey(clause_ref ?? "")}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      title,
+      summary,
+      source_name,
+      clause_ref
+    });
+    if (out.length >= 5) break;
+  }
+  reportJson.regulatory_considerations = out;
+}
+/**
+ * Reads reported_loss → case_meta → sum(losses.amount); currency same order; merchant from transaction.
+ */ function computeExtractDerivedTotals(extractJson) {
+  const rl = extractJson?.reported_loss ?? {};
+  let totalAmount = safeReportNumber(rl?.amount);
+  let totalCurrency = normalizeReportCurrency(rl?.currency);
+  const cm = extractJson?.case_meta ?? {};
+  if (totalAmount === null) totalAmount = safeReportNumber(cm?.claim_amount);
+  if (!totalCurrency) totalCurrency = normalizeReportCurrency(cm?.claim_currency);
+  if (totalAmount === null) totalAmount = sumLossesAmounts(extractJson?.losses);
+  if (!totalCurrency && Array.isArray(extractJson?.losses)) {
+    for (const L of extractJson.losses){
+      const c = normalizeReportCurrency(L?.currency);
+      if (c) {
+        totalCurrency = c;
+        break;
+      }
+    }
+  }
+  if (!totalCurrency) totalCurrency = "SGD";
+  const dm = extractJson?.transaction?.disputed_merchant ?? null;
+  const disputedMerchant = typeof dm === "string" && dm.trim() ? dm.trim() : null;
+  return {
+    totalAmount,
+    totalCurrency,
+    disputedMerchant
+  };
+}
+function patchDisputedTransactionsTotalRow(disputedTransactions, totalAmount, totalCurrency) {
+  if (!Array.isArray(disputedTransactions) || disputedTransactions.length <= 1) return;
+  const amt = typeof totalAmount === "number" && Number.isFinite(totalAmount) ? totalAmount : null;
+  const cur = totalCurrency || "SGD";
+  for(let i = disputedTransactions.length - 1; i >= 0; i--){
+    const row = disputedTransactions[i];
+    if (!row || typeof row !== "object") continue;
+    const lab = toStr(row.label).trim();
+    if (!lab) continue;
+    if (/\btotal\b/i.test(lab)) {
+      row.amount = amt;
+      row.currency = cur;
+      return;
+    }
+  }
+  for(let i = 0; i < disputedTransactions.length; i++){
+    const row = disputedTransactions[i];
+    if (!row || typeof row !== "object") continue;
+    const lab = toStr(row.label).trim().toLowerCase();
+    if (lab === "total" || lab.startsWith("total ") || lab.includes("total amount")) {
+      row.amount = amt;
+      row.currency = cur;
+      return;
+    }
+  }
+}
+/** Patch executive summary + totals + disputed_transactions from extract_json (no schema change). */ function applyExtractDerivedEnrichment(reportJson, extractJson) {
+  const { totalAmount, totalCurrency, disputedMerchant } = computeExtractDerivedTotals(extractJson);
+  const totalCurrencyResolved = totalCurrency || "SGD";
+  const amountPhrase = typeof totalAmount === "number" && Number.isFinite(totalAmount) ? `${totalCurrencyResolved} ${totalAmount}` : `amount not confirmed (${totalCurrencyResolved})`;
+  let es = toStr(reportJson?.executive_summary);
+  const replacementClause = disputedMerchant ? `transferred a total of ${amountPhrase} as a disputed transfer to merchant '${disputedMerchant}'` : `transferred a total of ${amountPhrase} to an unknown merchant`;
+  const reTransferred = /(\bI\s+)?transferred a total of\s+[^.!?\n]+([.!?]|$)/i;
+  if (reTransferred.test(es)) {
+    es = es.replace(reTransferred, (m, iPrefix, punct)=>{
+      const lead = iPrefix ? "I " : "";
+      const end = typeof punct === "string" && punct.match(/[.!?]/) ? punct : ".";
+      return `${lead}${replacementClause}${end}`;
+    });
+  } else {
+    es = `${es.trim()}\n\nI ${replacementClause}.`.trim();
+  }
+  reportJson.executive_summary = normalizePunctuation(es);
+  reportJson.totals = reportJson.totals && typeof reportJson.totals === "object" ? reportJson.totals : {};
+  reportJson.totals.total_amount = typeof totalAmount === "number" && Number.isFinite(totalAmount) ? totalAmount : null;
+  reportJson.totals.currency = totalCurrencyResolved;
+  const losses = Array.isArray(extractJson?.losses) ? extractJson.losses : [];
+  if (losses.length === 1) {
+    const prev = Array.isArray(reportJson.disputed_transactions) && reportJson.disputed_transactions[0] ? reportJson.disputed_transactions[0] : {};
+    const amt = typeof totalAmount === "number" && Number.isFinite(totalAmount) ? totalAmount : safeReportNumber(losses[0]?.amount);
+    const cur = totalCurrencyResolved;
+    const label = disputedMerchant ? `Disputed transfer — ${disputedMerchant}` : toStr(prev?.label).trim() || "Disputed transfer(s) due to phishing scam";
+    reportJson.disputed_transactions = [
+      {
+        label,
+        amount: amt ?? null,
+        currency: cur,
+        authorised: prev.authorised != null ? prev.authorised : "unclear",
+        notes: typeof prev.notes === "string" ? prev.notes : prev.notes != null ? toStr(prev.notes) : null
+      }
+    ];
+  } else if (Array.isArray(reportJson.disputed_transactions)) {
+    patchDisputedTransactionsTotalRow(reportJson.disputed_transactions, totalAmount, totalCurrencyResolved);
+  }
+}
+/** ---------------------------
  * Facts-derived booleans for guardrails
  * --------------------------- */ function hasProvidedOtpOrCredsOrLink(extractJson) {
   const ca = extractJson?.customer_actions ?? {};
@@ -468,6 +811,7 @@ function forceNeutralAuthorised(reportJson, enabled) {
   reportJson.disclaimers = Array.isArray(reportJson.disclaimers) ? reportJson.disclaimers : [];
   reportJson.limitations = Array.isArray(reportJson.limitations) ? reportJson.limitations : [];
   reportJson.missing_facts = Array.isArray(reportJson.missing_facts) ? reportJson.missing_facts : [];
+  reportJson.regulatory_considerations = Array.isArray(reportJson.regulatory_considerations) ? reportJson.regulatory_considerations : [];
   // Final dedupe pass
   reportJson.key_responsibility_points = dedupeList(reportJson.key_responsibility_points, 25);
   reportJson.requested_resolution = dedupeList(reportJson.requested_resolution, 25);
@@ -475,6 +819,7 @@ function forceNeutralAuthorised(reportJson, enabled) {
   reportJson.disclaimers = dedupeList(reportJson.disclaimers, 15);
   reportJson.limitations = dedupeList(reportJson.limitations, 15);
   reportJson.missing_facts = dedupeList(reportJson.missing_facts, 30);
+  normalizeRegulatoryConsiderations(reportJson);
   // Keep disputed_transactions small + clean labels
   if (reportJson.disputed_transactions.length > 5) {
     reportJson.disputed_transactions = reportJson.disputed_transactions.slice(0, 5);
@@ -555,6 +900,16 @@ function forceNeutralAuthorised(reportJson, enabled) {
     const extractJson = extractRun.extract_json ?? {};
     const decisionJson = decisionRun.decision_json ?? {};
     const missingFields = extractRun.missing_fields ?? null;
+    const regulatoryClauseIds = extractRegulatoryClauseIds(decisionJson);
+    let regulatoryContext = [];
+    if (regulatoryClauseIds.length > 0) {
+      const { data: regulatoryRows, error: rcErr } = await supabaseAdmin.from("regulatory_clauses").select("id, title, clause_ref, source_ref, text_content").in("id", regulatoryClauseIds).limit(10);
+      if (rcErr) {
+        console.warn("regulatory_clauses query warning:", JSON.stringify(rcErr));
+      } else {
+        regulatoryContext = buildRegulatoryContext(regulatoryRows ?? []);
+      }
+    }
     /** 4) Build model input */ const caseMeta = extractJson?.case_meta ?? {};
     const timeline = extractJson?.timeline ?? {};
     const losses = Array.isArray(extractJson?.losses) ? extractJson.losses : [];
@@ -568,6 +923,7 @@ function forceNeutralAuthorised(reportJson, enabled) {
       extract_json: extractJson,
       decision_json: decisionJson,
       missing_fields: missingFields,
+      regulatory_context: regulatoryContext,
       derived: {
         institution_name: institutionName,
         jurisdiction: caseMeta?.jurisdiction ?? null,
@@ -589,7 +945,7 @@ function forceNeutralAuthorised(reportJson, enabled) {
      *  - OTP/creds enforcement
      *  - payee agent attribution neutralization
      *  - enrich missing facts
-     *  - final sanitize pass (glue/punctuation + enum enforcement)
+     *  - extract-derived enrichment → FINAL FIX (exec merchant + bank wording) → final sanitize
      *  - ensureDefaults + dedupe
      */ /** 7) Broad scrubs */ scrubEverywhere(reportJson, fixArtefacts);
     scrubEverywhere(reportJson, removeLegalConclusions);
@@ -620,8 +976,13 @@ function forceNeutralAuthorised(reportJson, enabled) {
       "Bank to confirm whether any step-up authentication/additional verification was triggered for the payee addition and transfers (and if not, why not).",
       "Bank to confirm whether any transaction monitoring/blocks were triggered, and provide the investigation findings for why the transfers proceeded."
     ], 30);
+    /** 10b) Deterministic totals / disputed_transactions / exec clause from extract_json */ applyExtractDerivedEnrichment(reportJson, extractJson);
+    /** FINAL FIX (after all generation + enrichment; immediately before finalSanitizeReport) */ reportJson.executive_summary = fixExecutiveSummaryMerchantAndLoss(toStr(reportJson.executive_summary), extractJson);
+    scrubEverywhere(reportJson, rewriteBankAssertionText);
+    console.log("FINAL FIX APPLIED");
     /** 11) Final sanitization pass (glue/punctuation + enum enforcement) */ reportJson = finalSanitizeReport(reportJson);
     /** 12) Final shaping + dedupe */ ensureDefaults(reportJson);
+    /** 12b) FINAL SAFETY NET: hard exec_summary merchant normalization after all other report processing */ reportJson.executive_summary = fixExecutiveSummaryMerchantAndLoss(toStr(reportJson.executive_summary), extractJson);
     /** 13) Insert report */ const { data: inserted, error: insErr } = await supabaseAdmin.from("reports").insert({
       user_id,
       case_id,
