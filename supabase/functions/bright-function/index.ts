@@ -669,6 +669,61 @@ function fidrecPathwayWording(v: boolean | null | undefined): string {
   return "Unknown";
 }
 
+/** Deterministic split for SRF narrative: bank explanation/records vs user-suppliable facts. */
+function classifyMissingInfoItem(item: string): "user_fact" | "bank_gap" {
+  const n = item.toLowerCase().replace(/\s+/g, " ");
+  const bankMarkers = [
+    "authenticated",
+    "authentication",
+    "digital token",
+    "token",
+    "how the transaction was",
+    "bank explanation",
+    "bank's explanation",
+    "how the bank",
+    "why the bank",
+    "bank decision",
+    "bank investigation",
+    "bank records",
+    "notification",
+    "payee",
+    "how this transaction",
+    "method used",
+  ];
+  for (const m of bankMarkers) {
+    if (n.includes(m)) return "bank_gap";
+  }
+  return "user_fact";
+}
+
+/** User-friendly phrasing for missing-info bullets; falls back to trimmed original. */
+function rewriteMissingInfoItem(item: string): string {
+  const t = item.trim();
+  if (!t) return t;
+  const rules: { source: string; flags: string; replacement: string }[] = [
+    {
+      source: "details on how the transaction was authenticated by the digital token",
+      flags: "gi",
+      replacement: "The bank's explanation of the claimed digital token authentication",
+    },
+    {
+      source: "evidence of any notifications received regarding the addition of the payee",
+      flags: "gi",
+      replacement: "Screenshots or records of any bank notifications about payee addition",
+    },
+    {
+      source: "whether (the )?transaction was authenticated (by|using) (a )?digital token",
+      flags: "gi",
+      replacement: "Whether the bank says the transaction was authenticated with a digital token (and any proof you have)",
+    },
+  ];
+  for (const { source, flags, replacement } of rules) {
+    const re = new RegExp(source, flags);
+    if (re.test(t)) return t.replace(re, replacement).replace(/\s+/g, " ").trim();
+  }
+  return t;
+}
+
 function renderTier0SrfSignal(signals: SrfSignals): string {
   const lines: string[] = [];
   lines.push(headingForFit(signals.overall_fit));
@@ -689,12 +744,22 @@ function renderTier0SrfSignal(signals: SrfSignals): string {
   if (signals.fidrec_match_note != null && String(signals.fidrec_match_note).trim() !== "") {
     lines.push(`- Match note: ${signals.fidrec_match_note}`);
   }
-  if (signals.missing_fields.length > 0) {
+  const userMissingLines: string[] = [];
+  const bankMissingLines: string[] = [];
+  for (const f of signals.missing_fields) {
+    const rewritten = rewriteMissingInfoItem(f);
+    const bucket = classifyMissingInfoItem(rewritten) === "bank_gap" ? bankMissingLines : userMissingLines;
+    bucket.push(`- ${rewritten}`);
+  }
+  if (userMissingLines.length > 0) {
     lines.push("");
-    lines.push("Missing information:");
-    for (const f of signals.missing_fields) {
-      lines.push(`- ${f}`);
-    }
+    lines.push("User information that may help:");
+    for (const line of userMissingLines) lines.push(line);
+  }
+  if (bankMissingLines.length > 0) {
+    lines.push("");
+    lines.push("Bank information or explanation that may help:");
+    for (const line of bankMissingLines) lines.push(line);
   }
   return lines.join("\n");
 }
@@ -746,7 +811,7 @@ telco_path_relevant: Assess only from user-visible facts in the input. true only
 
 imda_relevant: true only if telco_path_relevant is true; otherwise false. Be conservative.
 
-missing_fields: List only genuinely missing information the user could reasonably supply (e.g. whether an SMS showed a sender name, whether a message appeared in an existing thread, whether a transaction was authorised, whether and when the bank was contacted). Exclude telco-internal data, regulatory conclusions, and speculative items. Apply the MISSING_FIELDS HARD RULES above.
+missing_fields: List only genuinely missing information the user could reasonably supply (e.g. whether an SMS showed a sender name, whether a message appeared in an existing thread, whether a transaction was authorised, whether and when the bank was contacted). Exclude telco-internal data, regulatory conclusions, and speculative items. Apply the MISSING_FIELDS HARD RULES above. When suggesting missing information, prefer concise user-actionable wording for items the consumer can provide, and plain language for gaps that mainly need the bank's explanation, investigation, or records (still output a single missing_fields string array as specified).
 
 reasoning: Explain the classifications using only input facts; if uncertain, say what is missing.`;
 
