@@ -585,6 +585,142 @@ function inferGapsFromNulls(extractJson) {
 function asUpper(x) {
   return (x ?? "").toString().trim().toUpperCase();
 }
+function isUnauthorisedTransactionCase(extractJson) {
+  const text = JSON.stringify(extractJson || {}).toLowerCase();
+  return text.includes("transaction") && (text.includes("fraud") || text.includes("scam") || text.includes("phishing") || text.includes("unauthorised") || text.includes("unauthorized"));
+}
+function isEUPGClause(c: any): boolean {
+  const text = `${c?.source_name || ""} ${c?.source_ref || ""} ${c?.title || ""}`.toLowerCase();
+  return text.includes("e-payments") || text.includes("user protection") || text.includes("eupg") || text.includes("epug");
+}
+function scoreEUPGClauseForCase(c: any, extractJson: any): number {
+  const text = `${c?.title || ""} ${c?.excerpt || ""} ${c?.plain_english_summary || ""} ${c?.source_ref || ""}`.toLowerCase();
+  const customer = extractJson?.customer_actions ?? {};
+  const institution = extractJson?.institution_actions ?? {};
+  const noOtpCredsLink = customer?.shared_otp === false && customer?.provided_credentials === false && customer?.clicked_phishing_link === false;
+  const payeeAdded = institution?.payee_added === true;
+  const txBlockNotAttempted = institution?.transaction_block_attempted === false;
+  let score = 0;
+  if (text.includes("unauthorised transaction") || text.includes("unauthorized transaction")) score += 7;
+  if (text.includes("bank liability") || text.includes("liability")) score += 5;
+  if (text.includes("security safeguard") || text.includes("security safeguards") || text.includes("safeguard")) score += 4;
+  if (text.includes("payee control") || text.includes("payee controls")) score += 4;
+  if (text.includes("alert") || text.includes("notification")) score += 3;
+  if (text.includes("transaction monitoring")) score += 4;
+  if (text.includes("fraud detection")) score += 4;
+  if (noOtpCredsLink) {
+    if (text.includes("unauthorised transaction") || text.includes("unauthorized transaction")) score += 5;
+    if (text.includes("bank liability") || text.includes("liability")) score += 4;
+    if (text.includes("security safeguard") || text.includes("security safeguards") || text.includes("safeguard")) score += 3;
+  }
+  if (payeeAdded) {
+    if (text.includes("payee control") || text.includes("payee controls")) score += 5;
+    if (text.includes("alert") || text.includes("notification")) score += 4;
+  }
+  if (txBlockNotAttempted) {
+    if (text.includes("transaction monitoring")) score += 5;
+    if (text.includes("fraud detection")) score += 5;
+  }
+  return score;
+}
+function mapEupgFallbackRow(c) {
+  const doc = c.regulatory_documents;
+  const docObj = Array.isArray(doc) ? doc[0] : doc;
+  const label = (docObj?.document_title || docObj?.source || c.source_ref || "").toString().trim() || null;
+  const body = (c.text_content ?? "").toString();
+  return {
+    id: String(c.id),
+    clause_ref: c.clause_ref ?? null,
+    source_ref: label,
+    excerpt: body.slice(0, 2000),
+    relevance: "Prioritized MAS E-Payments User Protection Guidelines clause for unauthorised transaction/scam case.",
+    title: c.title ?? null,
+    source_name: label,
+    plain_english_summary: body.slice(0, 2000)
+  };
+}
+async function fetchFallbackEUPGClauses(supabase) {
+  const clauseSelect = "id, title, clause_ref, text_content, source_ref, document_id";
+  const docSelect = "id, document_title, source";
+  const orOnClause = [
+    "title.ilike.%e-payments%",
+    "title.ilike.%user protection%",
+    "title.ilike.%mas e-payments%",
+    "title.ilike.%unauthorised%",
+    "title.ilike.%unauthorized%",
+    "source_ref.ilike.%e-payments%",
+    "source_ref.ilike.%user protection%",
+    "text_content.ilike.%e-payments%",
+    "text_content.ilike.%user protection%"
+  ].join(",");
+  const { data: byClauseFields, error: errClause } = await supabase.from("regulatory_clauses").select(clauseSelect).or(orOnClause).order("id", {
+    ascending: true
+  }).limit(2);
+  const { data: byJoinedDoc, error: errJoin } = await supabase.from("regulatory_clauses").select(`${clauseSelect}, regulatory_documents!inner(${docSelect})`).or([
+    "document_title.ilike.%e-payments%",
+    "document_title.ilike.%user protection%",
+    "document_title.ilike.%e payments%",
+    "document_title.ilike.%unauthorised%",
+    "document_title.ilike.%unauthorized%",
+    "source.ilike.%e-payments%",
+    "source.ilike.%user protection%"
+  ].join(","), {
+    foreignTable: "regulatory_documents"
+  }).order("id", {
+    ascending: true
+  }).limit(2);
+  const merged = new Map();
+  for (const row of byClauseFields ?? []){
+    merged.set(String(row.id), row);
+  }
+  for (const row of byJoinedDoc ?? []){
+    merged.set(String(row.id), row);
+  }
+  let usedDocumentIdFallback = false;
+  let documentIdsQueried = 0;
+  let errDocs = null;
+  let errByDoc = null;
+  if (merged.size === 0) {
+    usedDocumentIdFallback = true;
+    const res = await supabase.from("regulatory_documents").select("id").or([
+      "document_title.ilike.%e-payments%",
+      "document_title.ilike.%user protection%",
+      "document_title.ilike.%e payments%",
+      "source.ilike.%e-payments%",
+      "source.ilike.%user protection%"
+    ].join(",")).order("id", {
+      ascending: true
+    }).limit(20);
+    errDocs = res.error;
+    const docIds = (res.data ?? []).map((d)=>d.id).filter(Boolean);
+    documentIdsQueried = docIds.length;
+    if (docIds.length > 0) {
+      const res2 = await supabase.from("regulatory_clauses").select(clauseSelect).in("document_id", docIds).order("id", {
+        ascending: true
+      }).limit(2);
+      errByDoc = res2.error;
+      for (const row of res2.data ?? []){
+        merged.set(String(row.id), row);
+      }
+    }
+  }
+  const rows = Array.from(merged.values()).sort((a, b)=>String(a.id).localeCompare(String(b.id))).slice(0, 2);
+  const errs = {
+    clause_or: errClause ?? null,
+    join_or: errJoin ?? null,
+    documents: errDocs ?? null,
+    by_document_id: errByDoc ?? null
+  };
+  const hasErr = Object.values(errs).some(Boolean);
+  console.log("EUPG_FALLBACK_RESULT", {
+    merged_count: rows.length,
+    clause_ids: rows.map((r)=>r.id),
+    used_document_id_fallback: usedDocumentIdFallback,
+    document_ids_matched: documentIdsQueried,
+    errors: hasErr ? errs : null
+  });
+  return rows;
+}
 function getDocType(d) {
   return asUpper(d.declared_document_type || d.predicted_document_type || "");
 }
@@ -830,6 +966,81 @@ function buildEvidenceFromDoc(d, maxItems = 6) {
     decisionJson.references.regulatory_clauses = Array.isArray(decisionJson.references.regulatory_clauses) ? decisionJson.references.regulatory_clauses : [];
     decisionJson.references.public_decisions = Array.isArray(decisionJson.references.public_decisions) ? decisionJson.references.public_decisions : [];
     decisionJson.references.evidence = Array.isArray(decisionJson.references.evidence) ? decisionJson.references.evidence : [];
+    // MAS EUPG: include and front-load for disputed/unauthorised transaction cases (independent of OTP/credentials/phishing flags).
+    const isUnauthorisedCase = isUnauthorisedTransactionCase(extractJson);
+    const selectedClauseById = new Map<string, any>((clauseMatches ?? []).map((c)=>[
+        String(c.id),
+        c
+      ]));
+    let selectedClauses = decisionJson.references.regulatory_clauses.map((c)=>{
+      const matched: any = selectedClauseById.get(String(c.id)) ?? {};
+      return {
+        ...c,
+        title: matched.title ?? null,
+        source_name: matched.source_name ?? matched.source_ref ?? null,
+        source_ref: matched.source_ref ?? c.source_ref ?? null,
+        plain_english_summary: matched.plain_english_summary ?? null
+      };
+    });
+    if (isUnauthorisedCase) {
+      const hasEUPG = selectedClauses.some(isEUPGClause);
+      let fallbackRows: any[] = [];
+      if (!hasEUPG) {
+        fallbackRows = await fetchFallbackEUPGClauses(supabase);
+        if (fallbackRows && fallbackRows.length > 0) {
+          selectedClauses = [
+            ...fallbackRows.map(mapEupgFallbackRow),
+            ...selectedClauses
+          ];
+        }
+      }
+      console.log("EUPG_ENFORCEMENT", {
+        hasEUPG_before: hasEUPG,
+        final_eupg_count: selectedClauses.filter(isEUPGClause).length
+      });
+      const eupg = selectedClauses.filter(isEUPGClause);
+      const rest = selectedClauses.filter((c)=>!isEUPGClause(c));
+      selectedClauses = [
+        ...eupg,
+        ...rest
+      ];
+      // GUARANTEE at least one EUPG survives
+      const finalHasEUPG = selectedClauses.some(isEUPGClause);
+      if (!finalHasEUPG) {
+        const fallbackRows = await fetchFallbackEUPGClauses(supabase);
+        if (fallbackRows && fallbackRows.length > 0) {
+          const first = mapEupgFallbackRow(fallbackRows[0]);
+          selectedClauses = [
+            first,
+            ...selectedClauses
+          ];
+        }
+      }
+    }
+    const eupg = selectedClauses.filter(isEUPGClause).sort((a, b)=>scoreEUPGClauseForCase(b, extractJson) - scoreEUPGClauseForCase(a, extractJson));
+    const rest = selectedClauses.filter((c)=>!isEUPGClause(c));
+    const topRelevantEUPG = eupg.slice(0, 2);
+    selectedClauses = [
+      ...topRelevantEUPG,
+      ...rest
+    ].slice(0, 5);
+    console.log("EUPG_FINAL_CHECK", {
+      total: selectedClauses.length,
+      eupg_count: selectedClauses.filter(isEUPGClause).length,
+      titles: selectedClauses.map((c)=>c.title)
+    });
+    decisionJson.references.regulatory_clauses = selectedClauses.map((c)=>({
+        id: String(c.id),
+        clause_ref: c.clause_ref ?? null,
+        source_ref: c.source_ref ?? null,
+        excerpt: (c.excerpt ?? "").toString(),
+        relevance: (c.relevance ?? "").toString()
+      }));
+    console.log("REGULATORY_SELECTION_DEBUG", {
+      isUnauthorisedCase,
+      selected_count: selectedClauses.length,
+      eupg_present: selectedClauses.some(isEUPGClause)
+    });
     decisionJson.diagnostics = decisionJson.diagnostics ?? {
       assumptions: [],
       limits: []
