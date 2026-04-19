@@ -28,6 +28,35 @@ function errToText(e) {
     return `Non-Error thrown (unstringifiable): ${String(e)}`;
   }
 }
+/** Self-serve report only: RPC get_case_eligibility; see migration comment for scope. */
+async function fetchCaseEligibilitySnapshot(supabase, case_id) {
+  const { data, error } = await supabase.rpc("get_case_eligibility", {
+    p_case_id: case_id
+  });
+  if (error) throw new Error(`get_case_eligibility RPC error: ${JSON.stringify(error)}`);
+  return data;
+}
+function eligibilityBlockStatusSelfServe(snapshot) {
+  if (snapshot?.features?.self_serve_report !== true) return 403;
+  return 409;
+}
+function jsonCaseNotEligibleSelfServe(snapshot) {
+  const reasons = Array.isArray(snapshot?.reasons) ? snapshot.reasons : [];
+  return jsonResp({
+    ok: false,
+    error: "case_not_eligible",
+    action: "run_report_selfserve",
+    reasons,
+    eligibility: snapshot
+  }, eligibilityBlockStatusSelfServe(snapshot));
+}
+/** UUID from eligibility resolved_ids (Postgres jsonb null / string). */
+function uuidFromResolved(v) {
+  if (v == null || v === "null") return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  return s;
+}
 function toStr(v) {
   if (typeof v === "string") return v;
   if (v == null) return "";
@@ -846,6 +875,7 @@ function forceNeutralAuthorised(reportJson, enabled) {
   if (!SIMULATION_KEY) return textResp("Missing SIMULATION_KEY secret", 500);
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   try {
+    let eligibilitySnapshot = null;
     if (req.method !== "POST") return textResp("POST only", 405);
     const body = await req.json().catch(()=>({}));
     if (body.simulation_key !== SIMULATION_KEY) {
@@ -879,19 +909,38 @@ function forceNeutralAuthorised(reportJson, enabled) {
         });
       }
     }
-    /** 2) Fetch latest decision run for case */ const { data: decisionRun, error: decErr } = await supabaseAdmin.from("case_decision_runs").select("id, case_id, decision_json, extract_run_id, created_at").eq("case_id", case_id).order("created_at", {
-      ascending: false
-    }).limit(1).maybeSingle();
+    // Self-serve report depends on an existing case_decision_run (loaded below). Gated here via get_case_eligibility — enforced path is run_report_selfserve only (see RPC migration).
+    eligibilitySnapshot = await fetchCaseEligibilitySnapshot(supabaseAdmin, case_id);
+    if (!eligibilitySnapshot?.eligible_actions?.run_report_selfserve) {
+      return jsonCaseNotEligibleSelfServe(eligibilitySnapshot);
+    }
+    const resolved = eligibilitySnapshot?.resolved_ids ?? {};
+    const resolvedDecisionId = uuidFromResolved(resolved.latest_decision_run_id);
+    const resolvedExtractId = uuidFromResolved(resolved.latest_extract_run_id);
+    /** 2) Load decision + extract using the same lineage as get_case_eligibility (resolved_ids), not a second "latest" query that could drift. */ let decisionRun;
+    let decErr;
+    if (resolvedDecisionId) {
+      const dr = await supabaseAdmin.from("case_decision_runs").select("id, case_id, decision_json, extract_run_id, created_at").eq("id", resolvedDecisionId).eq("case_id", case_id).maybeSingle();
+      decisionRun = dr.data;
+      decErr = dr.error;
+    } else {
+      const dr = await supabaseAdmin.from("case_decision_runs").select("id, case_id, decision_json, extract_run_id, created_at").eq("case_id", case_id).order("created_at", {
+        ascending: false
+      }).limit(1).maybeSingle();
+      decisionRun = dr.data;
+      decErr = dr.error;
+    }
     if (decErr) throw new Error(`case_decision_runs query error: ${JSON.stringify(decErr)}`);
     if (!decisionRun) return jsonResp({
       ok: false,
       error: "No case_decision_runs found for case_id"
     }, 404);
-    if (!decisionRun.extract_run_id) return jsonResp({
+    const extractIdToLoad = resolvedExtractId || decisionRun.extract_run_id;
+    if (!extractIdToLoad) return jsonResp({
       ok: false,
       error: "Decision run missing extract_run_id"
     }, 500);
-    /** 3) Fetch extract run using extract_run_id */ const { data: extractRun, error: erErr } = await supabaseAdmin.from("case_extract_runs").select("id, case_id, extract_json, missing_fields, created_at").eq("id", decisionRun.extract_run_id).maybeSingle();
+    /** 3) Fetch extract run (prefer eligibility resolved extract id; must match decision lineage when RPC returned it) */ const { data: extractRun, error: erErr } = await supabaseAdmin.from("case_extract_runs").select("id, case_id, extract_json, missing_fields, created_at").eq("id", extractIdToLoad).eq("case_id", case_id).maybeSingle();
     if (erErr) throw new Error(`case_extract_runs query error: ${JSON.stringify(erErr)}`);
     if (!extractRun) return jsonResp({
       ok: false,
@@ -983,7 +1032,9 @@ function forceNeutralAuthorised(reportJson, enabled) {
     /** 11) Final sanitization pass (glue/punctuation + enum enforcement) */ reportJson = finalSanitizeReport(reportJson);
     /** 12) Final shaping + dedupe */ ensureDefaults(reportJson);
     /** 12b) FINAL SAFETY NET: hard exec_summary merchant normalization after all other report processing */ reportJson.executive_summary = fixExecutiveSummaryMerchantAndLoss(toStr(reportJson.executive_summary), extractJson);
-    /** 13) Insert report */ const { data: inserted, error: insErr } = await supabaseAdmin.from("reports").insert({
+    /** 13) Insert report
+     * TODO: Persist eligibility_snapshot on reports when a dedicated jsonb column exists (avoid extending locked report_json schema).
+     */ const { data: inserted, error: insErr } = await supabaseAdmin.from("reports").insert({
       user_id,
       case_id,
       status: "COMPLETED",
@@ -1001,6 +1052,7 @@ function forceNeutralAuthorised(reportJson, enabled) {
       status: inserted.status,
       report_json: inserted.report_json,
       debug: {
+        eligibility_snapshot: eligibilitySnapshot,
         decision_run_id: decisionRun.id,
         extract_run_id: extractRun.id,
         prompt_version: promptVersion,

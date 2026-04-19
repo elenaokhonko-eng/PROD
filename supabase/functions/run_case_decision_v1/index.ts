@@ -820,6 +820,7 @@ function buildEvidenceFromDoc(d, maxItems = 6) {
     const clauseThreshold = clampFloat(body.clause_similarity_threshold, 0, 1, 0.12);
     const promptVersion = body.prompt_version ?? "decision_v1.2_spans_doc_types";
     if (!case_id) return textResp("Missing case_id", 400);
+    // Decision generation is intentionally NOT gated on get_case_eligibility / entitlements here: case_decision_runs are not tied to case_entitlements yet (free tier runs decisions). Self-serve report eligibility is enforced in run_report_selfserve_v1 only.
     /** 1) Latest extract run */ const { data: extractRun, error: erErr } = await supabase.from("case_extract_runs").select("id, case_id, extract_json, missing_fields, created_at").eq("case_id", case_id).order("created_at", {
       ascending: false
     }).limit(1).maybeSingle();
