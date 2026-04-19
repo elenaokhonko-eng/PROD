@@ -15,3 +15,6 @@ node_modules
 
 # Implementation / planning docs (not for repo)
 docs/implementation-plan.md
+
+# Local GitHub wiki import scratch (nested git repo)
+docs/.wiki-import/

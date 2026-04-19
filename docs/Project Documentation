@@ -1,1 +1,7845 @@
-# Team Documentation
+# Project Documentation
+
+Offline copy of the [GuideBuoy PROD GitHub Wiki](https://github.com/elenaokhonko-eng/PROD/wiki). Regenerate by cloning `PROD.wiki` into `docs/.wiki-import` and running the merge script used in-repo.
+
+**Last synced:** 2026-04-19
+
+## Table of contents
+
+1. [Home](#wiki-page-home)
+2. [GuideBuoy-Backend-Overview](#wiki-page-guidebuoy-backend-overview)
+3. [GuideBuoy-Data-Schema-Reference](#wiki-page-guidebuoy-data-schema-reference)
+4. [Frontend-Integration-Handover](#wiki-page-frontend-integration-handover)
+5. [Data-Model-Overview](#wiki-page-data-model-overview)
+6. [backfill_embeddings_v1](#wiki-page-backfill-embeddings-v1)
+7. [case_decision_runs-table](#wiki-page-case-decision-runs-table)
+8. [case_document_chunks-table](#wiki-page-case-document-chunks-table)
+9. [case_document_extractions-table](#wiki-page-case-document-extractions-table)
+10. [case_document_verifications-table](#wiki-page-case-document-verifications-table)
+11. [case_documents_content-table](#wiki-page-case-documents-content-table)
+12. [case_documents_enriched-view](#wiki-page-case-documents-enriched-view)
+13. [case_documents-table](#wiki-page-case-documents-table)
+14. [case_entitlements-table](#wiki-page-case-entitlements-table)
+15. [case_events-table](#wiki-page-case-events-table)
+16. [case_extract_runs-table](#wiki-page-case-extract-runs-table)
+17. [case_intake-table](#wiki-page-case-intake-table)
+18. [case_narratives-table](#wiki-page-case-narratives-table)
+19. [case_outcomes-table](#wiki-page-case-outcomes-table)
+20. [case_validation_runs-table](#wiki-page-case-validation-runs-table)
+21. [cases-table](#wiki-page-cases-table)
+22. [decision_sources_inbox-table](#wiki-page-decision-sources-inbox-table)
+23. [decision_url_inbox](#wiki-page-decision-url-inbox)
+24. [evidence_processed_v2](#wiki-page-evidence-processed-v2)
+25. [public_decisions-table](#wiki-page-public-decisions-table)
+26. [regulatory_clauses-table](#wiki-page-regulatory-clauses-table)
+27. [regulatory_documents-table](#wiki-page-regulatory-documents-table)
+28. [reports-table](#wiki-page-reports-table)
+29. [run_case_decision_v1](#wiki-page-run-case-decision-v1)
+30. [run_case_extract_v3](#wiki-page-run-case-extract-v3)
+31. [run_report_selfserve_v1](#wiki-page-run-report-selfserve-v1)
+32. [tier‐0-narrative-generator](#wiki-page-tier-0-narrative-generator)
+33. [user_entitlements-table](#wiki-page-user-entitlements-table)
+34. [v_latest_validation_run-view](#wiki-page-v-latest-validation-run-view)
+35. [v_latest_validation-view](#wiki-page-v-latest-validation-view)
+
+---
+
+<a id="wiki-page-home"></a>
+
+**Wiki page:** `Home.md`
+
+Welcome to the PROD wiki!
+
+- **Data model + audit principles:** [[GuideBuoy Data Schema Reference]]
+- **Frontend ↔ backend wiring:** [[Frontend Integration Handover]]
+- **Backend layout:** [[GuideBuoy Backend Overview]]
+- **Entity index:** [[Data Model Overview]]
+
+
+---
+
+<a id="wiki-page-guidebuoy-backend-overview"></a>
+
+**Wiki page:** `GuideBuoy-Backend-Overview.md`
+
+# GuideBuoy Backend Overview
+
+## Purpose
+This wiki explains how our Supabase backend, Edge Functions, and AI pipelines are structured and how to work with them safely.
+
+---
+
+## Data schema & audit model
+
+For **design principles**, table relationships, validation-view grain, and what is deployed vs roadmap, see [[GuideBuoy Data Schema Reference]] on this wiki (kept in sync with `supabase/migrations` in the PROD repo).
+
+---
+
+## Source of Truth
+
+The backend is now managed via Git:
+
+- Schema & RPC → `supabase/migrations/*.sql`
+- Edge Functions → `supabase/functions/*`
+- Config → `supabase/config.toml`
+
+The Supabase dashboard is used for:
+- logs
+- secrets
+- verification
+
+---
+
+## Architecture Overview
+
+### 1. Data Layer (Supabase Postgres)
+- Tables: cases, documents, extractions, decisions
+- RPC functions define reusable backend logic
+
+### 2. Edge Functions
+Located in:
+Examples:
+- run_case_extract_v1 / v2 / v3
+- run_case_decision_v1
+- evidence_processed_v1 / v2
+- run_report_selfserve_v1
+
+These orchestrate:
+- AI model calls
+- processing pipelines
+- tier logic
+
+### 3. AI Processing
+- extraction runs
+- decision runs
+- report generation
+- embeddings / vector processing
+
+---
+
+## Tier Separation
+
+We support multiple tiers:
+
+- Tier 0 (free)
+- Tier 1 (self-serve report)
+- Tier 2 (escalation pack)
+
+Each tier controls:
+- which functions can run
+- whether evidence is used
+- whether decisioning is allowed
+
+---
+
+## Workflow (Safe)
+
+1. Make changes locally (or in Codespaces)
+2. Update:
+   - migrations for schema/RPC
+   - functions for backend logic
+3. Commit and push to GitHub
+4. Deploy / verify in Supabase
+
+---
+
+## Important Rule
+
+Do NOT make permanent backend changes only in the dashboard.
+
+If it is not in Git, it is not part of the system.
+
+
+---
+
+<a id="wiki-page-guidebuoy-data-schema-reference"></a>
+
+**Wiki page:** `GuideBuoy-Data-Schema-Reference.md`
+
+# GuideBuoy data schema & pipeline reference
+
+This page is the **normative architecture narrative** for GuideBuoy’s Postgres / Supabase layer: design principles, how tables relate, and how the decision pipeline stays auditable. It is **cross-checked** against the checked-in migration snapshot `supabase/migrations/20260314055326_remote_schema.sql` and follow-on RPC migration `20260419140000_get_case_eligibility_self_serve.sql`. When production diverges, update Git first, then refresh this wiki.
+
+**Related wiki pages:** [[Data Model Overview]], per-table pages (e.g. [[cases table]]), and edge function pages ([[run_case_decision v1]], [[run_report_selfserve v1]], [[gemini-task]] / document pipeline, etc.).
+
+**Frontend integration (what to wire in the app):** [[Frontend Integration Handover]] — co-founder walkthrough mapped to Edge Function names, tables, RPC gates, and recording links.
+
+---
+
+## 0. Scope & design principles
+
+1. **Decision loop is forward-looking** — Each decision run is a snapshot given inputs at that time; history is preserved, not rewritten.
+2. **Ground truth is never used in live eligibility** — Post-resolution outcomes ([[case outcomes table]], external precedents) inform evaluation, analytics, and offline learning only, not the live eligibility path for an open case.
+3. **Learning artefacts are isolated** — Training labels, anonymised exports, and precedent corpora are separated from mutable “current case” fields.
+4. **Every mutation of a case is traceable** — Prefer append-only logs (`case_events`, extract/validation/decision runs, document pipeline tables) over silent updates.
+5. **Human-provided corrections override model inference** — Intake and explicit user answers win over extracted or inferred fields when they conflict; downstream should record corrections as new rows/events, not overwrites of testimony.
+
+---
+
+## 1. Schema source of truth & important corrections
+
+| Topic | Deployed behaviour (migrations) | Documentation pitfall to avoid |
+|--------|----------------------------------|----------------------------------|
+| **Validation “latest” views** | `v_latest_validation` and `v_latest_validation_run` both use `DISTINCT ON (extract_run_id) … ORDER BY extract_run_id, created_at DESC` on `case_validation_runs`. | They are **one row per extract run**, not per `case_id`. Today the two view definitions are **identical**; consumers should not assume different semantics until the views diverge in a future migration. |
+| **Validation cardinality** | `UNIQUE (extract_run_id)` on `case_validation_runs` — at most **one** validation row per extraction run. | Do not design for multiple validation rows per same `extract_run_id` without dropping that constraint. |
+| **Decision idempotency** | Partial unique index on `case_decision_runs (case_id, extract_run_id) WHERE extract_run_id IS NOT NULL`. | Re-runs for the same extract are deduped at the DB layer when `extract_run_id` is set. |
+| **`cases` lifecycle** | Table has both `status` (CHECK: draft → … → completed) and `case_status` (text, default `DRAFT`, no CHECK in snapshot). Also legacy AI mirrors: `eligibility_status`, `strength_score`, `strength_score_value` on `cases` — treat as **legacy / UI convenience**; versioned inference lives in `case_decision_runs`. | Do not describe a single `case_status` enum as the only workflow field; align product copy with `status` vs `case_status` intentionally or deprecate one path. |
+| **`regulatory_clauses`** | Columns: `id`, `document_id`, `clause_ref`, `clause_type`, `title`, `text_content`, `source_ref`, `created_at`, `embedding`. | Richer normative models (e.g. `conditions` / `exceptions` jsonb, `applies_to`, date ranges) are **roadmap** unless added by a later migration. |
+| **`case_document_verifications`** | Base column is `decision` (not `verification_decision`). The view `case_documents_enriched` exposes it as `verification_decision`. | Edge code and SQL must use the correct name per layer. |
+| **`case_document_extractions`** | `validation_status` defaults to **`unreviewed`**, not “unvalidated”. | Align UX and docs with the default. |
+| **`run_validation_v1`** | Inserts `source = 'rules'` (not `model`) for the rule-based path in the current function body. | CHECK on `source` allows `model`, `rules`, `hybrid`. |
+
+---
+
+## 2. Core data layer (tables & views)
+
+The subsections below **amplify** the per-table wiki pages with governance and pipeline context. For raw column lists, prefer the migration file or the individual `*-table` wiki pages.
+
+### 2.1 `cases`
+
+**Purpose:** Canonical container for one victim dispute; stable `id` across intake, documents, extracts, decisions, reports.
+
+**Deployed highlights:** `case_key`, `user_id`, `creator_user_id`, `owner_user_id`, `claim_type` (CHECK), `jurisdiction`, `claim_amount` / `claim_currency`, `institution_name`, `incident_date` / `incident_datetime`, `dispute_category`, `primary_narrative`, `router_session_id`, privacy fields, `status` + `case_status`, legacy `eligibility_status` / `strength_score` / `strength_score_value`.
+
+**Principle:** Keep `cases` relatively conservative; versioned evaluative outputs belong in **run tables** and JSON artefacts.
+
+### 2.2 `case_intake`
+
+**Purpose:** Append-friendly, versioned **raw user testimony** (`answers_json`, `narrative_text`) with provenance (`source`, `intake_type`, `language`, `timezone`, `is_user_confirmed`). `version` is auto-assigned when null via trigger `set_case_intake_version`.
+
+**Separation:** Not for derived narratives or model decisions — see `case_narratives` and `case_extract_runs`.
+
+### 2.3 `case_narratives`
+
+**Purpose:** Derived narratives (tier-0 summaries, timelines, reports) for reasoning, embeddings, and UX — **not** primary evidence.
+
+**Traceability:** `intake_id`, `extract_run_id`, `decision_run_id` link back to upstream artefacts. Treat as **append-oriented** in product design (Tier-0 edge path may upsert specific `(case_id, narrative_type, source_ref)` — see [[tier‐0 narrative generator]] and enforce uniqueness if you need hard idempotency).
+
+### 2.4 `case_events`
+
+**Purpose:** Append-only **timeline ledger** (not “current state”). `event_time` vs `created_at`; optional `confidence` for inferred events (standardise 0–1 in application copy).
+
+**Gap:** No `payload_json` today — complex payloads must live in `description`, linked tables, or a future migration.
+
+### 2.5 `case_extract_runs`
+
+**Purpose:** Immutable structured snapshot from intake/narratives: `extract_json`, `missing_fields`, `model_name`, `prompt_version`, optional `intake_id`.
+
+**Pipeline rule:** Decisioning should consume extracts (and document extractions), not raw intake alone — see [[run case extract v3]] / v1 paths in repo.
+
+### 2.6 `case_validation_runs` & validation views
+
+**Purpose:** Quality checkpoint before / alongside decisioning: `missing_fields`, `ambiguities`, `questions_to_user`, `validation_summary`, `status` (`created` \| `valid` \| `needs_user` \| `invalid` \| `error`), `source` (`model` \| `rules` \| `hybrid`), provenance + `raw_output` (PII-sensitive).
+
+**Views:** `v_latest_validation` / `v_latest_validation_run` return the latest row **per `extract_run_id`** — use when you care about the validation attached to a **specific extraction**. For “validation for whatever extract the latest decision used”, follow the same lineage as `get_case_eligibility` / `run_report_selfserve_v1` (latest decision → its `extract_run_id` → validation row for that id).
+
+### 2.7 Regulatory corpus
+
+- **`regulatory_documents`** — Jurisdiction-scoped sources; `full_text` as `tsvector`; `embedding` for RAG; summarised duty fields are interpretive aids, not substitutes for full text.
+- **`regulatory_clauses`** — **Clause-level** units in the **slim** schema above; `match_regulatory_clauses` / `match_regulatory_clauses_threshold` (see §3) power retrieval.
+
+### 2.8 `public_decisions` & `decision_sources_inbox`
+
+**`public_decisions`:** Canonical **external** published decisions; rich JSON fields (`issues_findings`, `signals`, `decision_terms`, `timeline`, etc.); **not** written by the live user-case outcome path.
+
+**`decision_sources_inbox`:** Staging queue for discovered URLs before ingest into `public_decisions`. Operational statuses are convention-driven (`new` default in DB); align with [[decision url inbox]] edge function.
+
+### 2.9 Document pipeline (`case_documents` → `case_documents_content` → `case_document_chunks` → extractions / verifications → `case_documents_enriched`)
+
+**Chain of custody:** File metadata on `case_documents`; versioned parse output on `case_documents_content` (`content_sha256`, `pipeline_version`); deterministic chunks on `case_document_chunks` with **`UNIQUE (content_id, chunk_index)`**; structured facts + `citations` on `case_document_extractions`; type verification audit on `case_document_verifications`.
+
+**`case_documents_enriched`:** Joins extractions to verifications on `(document_id, content_id)` — primary read surface for [[run case decision v1]] document signals.
+
+### 2.10 `case_decision_runs`
+
+**Purpose:** Append-oriented **decision ledger** per case. `decision_json` must satisfy CHECKs when `decision_version` is `case_decision_v1` (includes `eligibility` + `references` with score/status). `extract_run_id` / `validation_run_id` bind provenance.
+
+**Read path:** `get_latest_decision_run(p_case_id)` returns the latest row by `created_at DESC` (handle ties in application if needed).
+
+### 2.11 `case_outcomes`
+
+Ground-truth **post-resolution** labels (`outcome_type` CHECK). **Not** fed into live eligibility — avoids leakage and feedback loops.
+
+### 2.12 `case_entitlements` vs `user_entitlements`
+
+- **`case_entitlements`** — Per-case plan (`free` \| `self_serve_report` \| `escalation_pack`) + `features` JSON; used with `get_effective_entitlement(case_id)` for **case-scoped** gating.
+- **`user_entitlements`** — Per-user plan/features; default row created by auth trigger `handle_new_user_entitlement`.
+
+**`get_case_eligibility(case_id)`** (newer migration) composes effective entitlements, prerequisite flags (extract, validation, decision, documents), and **`eligible_actions`** so self-serve report flow cannot drift from `run_report_selfserve_v1` lineage.
+
+### 2.13 `reports`
+
+Artifact store: `report_type`, `status` (CHECK: `DRAFT` \| `COMPLETED` \| …), `report_json`, `source_decision_run_id`, `inputs_hash` for dedupe. **PII / RLS:** treat `report_json` as highly sensitive.
+
+### 2.14 Other notable tables (brief)
+
+- **`profiles`** + **`handle_new_user`** — Auth sync; role coercion and notification defaults (see migration).
+- **`case_responses`**, **`case_collaborators`**, **`router_sessions`**, **`evidence`** (legacy-style evidence), **`llm_runs`** — Support collaboration, pre-case routing, observability; not all are on every pipeline diagram.
+
+---
+
+## 3. Database functions (Postgres)
+
+| Function | Role |
+|----------|------|
+| `get_latest_decision_run(p_case_id uuid)` | Returns latest `case_decision_runs` row for UI / orchestration. |
+| `get_effective_entitlement(p_case_id uuid)` | JSON effective plan/features for a case. |
+| `get_case_eligibility(p_case_id uuid)` | **SECURITY DEFINER** eligibility JSON for gating (self-serve vs decision vs escalation); aligns resolved ids with report flow. |
+| `match_public_decisions` / `match_public_decisions_threshold` | pgvector precedent retrieval over `public_decisions.embedding`. |
+| `match_regulatory_clauses` | **Overloaded:** (embedding, match_count) uses `<->` ranking; (embedding, match_count, threshold) and `match_regulatory_clauses_threshold` add threshold filtering — confirm which signature edge functions call. |
+| `run_validation_v1(p_extract_run_id uuid)` | Rule-based validation insert; returns new validation id. |
+| `set_case_intake_version` | BEFORE INSERT trigger helper for monotonic `version`. |
+| `set_updated_at` | Generic `updated_at` touch trigger. |
+
+---
+
+## 4. Edge functions (index)
+
+Detailed HTTP contracts live on each page; architecturally:
+
+| Area | Functions |
+|------|-----------|
+| Intake / extract | [[run case extract v3]], `run_case_extract_v1` (repo) |
+| Validation | Rules in DB `run_validation_v1`; model validation may appear in other paths |
+| Decision | [[run case decision v1]] — evidence ranking, RPC retrieval, strict JSON, score/status enforcement |
+| Reports | [[run report selfserve v1]] — simulation key, scrub pipeline, `reports` persistence |
+| Tier-0 | [[tier‐0 narrative generator]] |
+| Documents | **gemini-task** (parse → verify → chunk → extract) — see repo `supabase/functions` |
+| Embeddings worker | [[backfill embeddings v1]] |
+| Decision URL queue | [[decision url inbox]] |
+
+---
+
+## 5. Audit patterns (summary)
+
+- **Append-only runs** for extract, validation, decision, document parse/extract/verify.
+- **Views** for “latest” projections — understand **grain** (`case_id` vs `extract_run_id`).
+- **Ground-truth isolation** — `case_outcomes` / `public_decisions` vs live `case_decision_runs`.
+- **Human overrides** — newer `case_intake` rows and explicit answers supersede older model extractions when orchestration respects them.
+
+---
+
+## 6. Changelog (doc maintenance)
+
+| Date | Change |
+|------|--------|
+| 2026-04-19 | Initial consolidated reference; corrected validation view grain and `regulatory_clauses` slim schema vs roadmap. |
+
+
+---
+
+<a id="wiki-page-frontend-integration-handover"></a>
+
+**Wiki page:** `Frontend-Integration-Handover.md`
+
+# Frontend integration handover (April 16, 2026)
+
+Notes from the **AI Start Up catch-up** walkthrough (Masha → Elena): what the frontend should call, which Supabase tables to read/write, and how that maps to the checked-in schema and Edge Functions.
+
+**Recording (Fathom):** [Meeting recording](https://fathom.video/share/KkxEZBoYQNK1VtHNzMoaQ5kNYG1WnL5f)
+
+**Schema source of truth:** `supabase/migrations/` in the PROD repo — especially `20260314055326_remote_schema.sql` and RPC additions such as `get_case_eligibility`. Narrative below is **aligned to that**; where the transcript used informal names, the mapping table resolves them.
+
+---
+
+## Transcript ↔ production names
+
+| Transcript / informal | What to use in code / Supabase |
+|------------------------|---------------------------------|
+| `runCaseExtract` | Edge Function **`run_case_extract_v3`** (`supabase/functions/run_case_extract_v3`). Request body: `{ "case_id": "<uuid>" }` (POST). The repo also contains `run_case_extract_v1`, v2, v4 — **standardise on v3** unless a ticket explicitly points elsewhere. |
+| `force_true` (avoid redundant processing) | **`run_case_extract_v3` does not take a `force` flag** in the current handler; each successful call **inserts a new** `case_extract_runs` row. For **documents**, **`evidence_processed_v2`** accepts `"force": true` to re-run Gemini when a content row already exists for the same model/prompt/pipeline version. |
+| “Evidence Processed” | Edge Function **`evidence_processed_v2`** — body: `{ "document_id": "..." }` **or** `{ "case_id": "...", "force"?: boolean, "max_docs"?: number, "reprocess_errors_only"?: boolean, "continue_on_error"?: boolean }`. There is also **`gemini-task`** for a narrower per-document parse/classify path; avoid calling both on the same doc without a product rule. |
+| “T‑zero narrative generator” | Edge Function folder **`bright-function`** in the repo (see wiki [[tier‐0 narrative generator]]). Writes `case_narratives` rows: `tier0_summary`, `tier0_evidence_checklist`, and when valid, **`tier0_srf_signal`**. |
+| “Run Report Self‑Serve” | Edge Function **`run_report_selfserve_v1`**. Today it is gated with a **`simulation_key`** body field vs env `SIMULATION_KEY` (no JWT) — treat as **MVP / simulation** until you wire auth. Server uses **`get_case_eligibility(p_case_id)`** so gating cannot drift from prerequisites. |
+| “User tier free / paid” | **Two layers:** `user_entitlements` (per user, default `plan = free` via trigger `handle_new_user_entitlement`) and optional **`case_entitlements`** (per-case upgrade). Effective gates come from **`get_effective_entitlement(case_id)`** → merged `plan` + `features.*`. Plan values in DB are constrained to **`free` \| `self_serve_report` \| `escalation_pack`** — map product language “Tier 1 / paid self‑serve” → **`self_serve_report`**. |
+| “Display extracted_json” | Read **`case_document_extractions.extracted_json`** (and/or **`case_documents_enriched`** for a joined read model). Denormalised doc status: **`case_documents.verification_status`**, **`verification_confidence`**, **`verified_document_type`**. |
+
+---
+
+## 1. Core loop: narrative → extract → gap questions
+
+**Intent (transcript):** Turn free text into structured JSON; **nulls** (and explicit missing lists) drive follow‑up questions; user answers feed the next extract.
+
+**Supabase-aligned flow**
+
+1. **Capture narrative**
+   - Persist user / voice transcript text on **`cases.primary_narrative`** when that is the canonical “headline” story field.
+   - Also capture structured / iterative answers in **`case_intake`** (`narrative_text`, `answers_json`, `version`, `is_user_confirmed`, …) so you preserve **what the user actually said** over time.
+
+2. **Run extraction**
+   - Invoke **`run_case_extract_v3`** with `{ case_id }`.
+   - Read the newest row from **`case_extract_runs`**: **`extract_json`** (structured facts) and **`missing_fields`** (array of gaps the server computed).
+
+3. **Drive the questionnaire**
+   - **Parse `extract_json`** for `null` / missing nested fields (e.g. timeline / institution / loss paths — exact shape is versioned in the extract schema).
+   - **Merge** with **`missing_fields`** and, when you run rules validation, **`case_validation_runs.questions_to_user`** / **`missing_fields`** from **`run_validation_v1`** (SQL function) for machine-generated question objects.
+   - Present **specific** questions per gap (transcript: incident date, bank name, etc. — map to your schema paths).
+
+4. **Iterate**
+   - Save answers as a **new** `case_intake` row (higher `version`) or extend `answers_json` per product rules.
+   - Call **`run_case_extract_v3`** again → new `case_extract_runs` row. Compare history if you need “what we knew at time T”.
+
+**Fathom deep link (transcription + primary narrative):** [~4:14](https://fathom.video/share/KkxEZBoYQNK1VtHNzMoaQ5kNYG1WnL5f?timestamp=253.9999)
+
+---
+
+## 2. Document processing: upload → classify → show status
+
+**Intent:** After upload, show classification, confidence, and accepted / rejected / needs review; prompt re‑upload when appropriate.
+
+**Supabase-aligned flow**
+
+1. **Upload** creates **`case_documents`** (storage pointer + user-declared `document_type`) and stores the blob in Supabase Storage.
+
+2. **Process** with **`evidence_processed_v2`** (`document_id` or batch by `case_id`).
+
+3. **Read back for UI**
+   - **`case_documents`**: `processing_status`, `processing_error`, **`verification_status`** (`accepted` \| `rejected` \| `needs_review` in current verifier), **`verification_confidence`**, `verified_document_type`.
+   - **`case_document_extractions`**: **`extracted_json`**, `extracted_text`, `confidence`, `extraction_type`, `schema_version`.
+   - Optional single query: view **`case_documents_enriched`**.
+
+**Plain-text / `.txt` uploads:** The worker’s MIME sniff defaults unknown types toward **`image/jpeg`** for Gemini inline data — **plain `.txt` is not first-class** today; prefer PDF/image or extend MIME detection before promising `.txt` support.
+
+**Fathom deep link (evidence early in flow):** [~21:03](https://fathom.video/share/KkxEZBoYQNK1VtHNzMoaQ5kNYG1WnL5f?timestamp=1262.9999)
+
+---
+
+## 3. Tier‑0 (freemium): summary + checklist + SRF signal
+
+**Trigger:** invoke **`bright-function`** (same contract as [[tier‐0 narrative generator]] wiki page).
+
+**Outputs (in `case_narratives`):**
+
+| `narrative_type` | UX block |
+|------------------|----------|
+| `tier0_summary` | Short chronological incident summary |
+| `tier0_evidence_checklist` | Recommended evidence to gather |
+| `tier0_srf_signal` | **Preliminary, non-binding** Singapore **SRF / telco path** signal text (when the model returns valid `srf_signals`) |
+
+**Frontend:** compose the three blocks into one friendly screen; label the SRF block as **informational only** (not a final eligibility decision — that lives in **`case_decision_runs`** for paid decisioning flows).
+
+---
+
+## 4. Run Report Self‑Serve (paid tier)
+
+**Trigger:** **`run_report_selfserve_v1`** after prerequisites exist (latest decision + extract lineage — see RPC `get_case_eligibility`).
+
+**Access control (transcript → schema):**
+
+- On registration, rely on **`user_entitlements`** default (`plan = free`) created by **`handle_new_user_entitlement`**.
+- On Stripe success, update **`user_entitlements.plan`** and/or merge **`features`** JSON (e.g. `allow_self_serve_report`) — exact keys should match what **`get_effective_entitlement`** expects (see migration SQL).
+- **Per-case upgrade:** insert/update **`case_entitlements`** with `plan = 'self_serve_report'` (and optional `expires_at`) so a single case can be paid while the user stays free elsewhere.
+
+**Gate before showing “Generate report”:**
+
+- Call **`supabase.rpc('get_case_eligibility', { p_case_id })`**.
+- Require **`eligible_actions.run_report_selfserve === true`** (and/or `features.self_serve_report`) — do **not** invent parallel tier checks client-side only.
+
+**Current MVP caveat:** `run_report_selfserve_v1` still expects **`simulation_key`** in the body for non-JWT simulation — remove/replace when you attach real auth.
+
+**Fathom deep link (entitlements / Stripe):** [~47:50](https://fathom.video/share/KkxEZBoYQNK1VtHNzMoaQ5kNYG1WnL5f?timestamp=2869.9999)
+
+---
+
+## 5. Regulatory frameworks (ABS / UPG / SRF)
+
+**Product intent:** Analysis should be grounded in **ABS** (Australian Banking Code style practice), **UPG** (unauthorised payment / protected-account style framing), and **SRF** (Singapore shared responsibility / scam-assisted flows).
+
+**Schema reality:** There is **no separate ABS table**. Authoritative text and clause units live in **`regulatory_documents`** and **`regulatory_clauses`**, with **`embedding`** populated (e.g. via [[backfill embeddings v1]]) so **`match_regulatory_clauses`** / **`match_regulatory_clauses_threshold`** can retrieve context for decisioning.
+
+**Action:** ingest ABS / other corpora into those tables + embeddings — same pipeline as other regulators.
+
+---
+
+## 6. UX polish from the session
+
+Add **grey placeholder prompts** on the first narrative field to improve first-pass data quality (jurisdiction, dates, amounts, what the user clicked/shared).
+
+**Fathom deep link:** [~32:58](https://fathom.video/share/KkxEZBoYQNK1VtHNzMoaQ5kNYG1WnL5f?timestamp=1977.9999)
+
+---
+
+## 7. Ownership checklist (verbatim action items)
+
+| Owner | Item |
+|-------|------|
+| **Elena (frontend)** | Transcription + save to **`cases.primary_narrative`**; call **`run_case_extract_v3`**; parse gaps; prompt; re-run extract loop. |
+| **Elena** | Move evidence upload early; call **`evidence_processed_v2`**; show **`extracted_json` / verification**; prompt re-upload when rejected. |
+| **Elena** | Intake guidance (grey prompts) on initial input. |
+| **Elena** | Implement entitlements: default free; Stripe → **`self_serve_report`** (and/or `features`); gate **`run_report_selfserve_v1`** using **`get_case_eligibility`**. |
+| **Elena** | Call **`bright-function`** for freemium tier‑0; call **`run_report_selfserve_v1`** only when eligible. |
+| **Maria** | Upload ABS (and related) documents into **`regulatory_documents`** / **`regulatory_clauses`** + embeddings. |
+| **Maria** | Clean up legacy Edge Function versions in the repo / Supabase dashboard once the frontend is pinned to v3 + `evidence_processed_v2`. |
+
+---
+
+## See also
+
+- [[GuideBuoy Data Schema Reference]] — audit principles, view grains, table roles.
+- [[Data Model Overview]] — entity index.
+- [[run case extract v3]], [[run report selfserve v1]], [[tier‐0 narrative generator]], [[backfill embeddings v1]], [[evidence_processed_v2]].
+
+
+---
+
+<a id="wiki-page-data-model-overview"></a>
+
+**Wiki page:** `Data-Model-Overview.md`
+
+# Data Model Overview
+
+## Purpose
+This section explains the core database structure of GuideBuoy.
+
+The system is centered around a **case lifecycle**, from intake → evidence → extraction → decision → reporting.
+
+**Start here for architecture + governance:** [[GuideBuoy Data Schema Reference]] — design principles, pipeline boundaries, and **schema truth** notes (what is deployed vs roadmap).
+
+**Frontend (Elena) handover:** [[Frontend Integration Handover]] — which Edge Functions to call, which tables to read for gaps / documents / tier‑0 / paid report, and entitlement RPCs.
+
+---
+
+## Core Entities
+
+
+- [[cases table]]
+- [[case_narratives table]]
+- [[case_intake table]]
+- [[case_events table]]
+- [[case_extract_runs table]]
+- [[case_validation_runs table]]
+- [[case_decision_runs table]]
+- [[case_entitlements table]]
+- [[case_documents table]]
+- [[case_document_chunks table]]
+- [[case_documents_content table]]
+- [[case_document_extractions table]]
+- [[case_document_verifications table]]
+- [[case_documents_enriched view]]
+- [[public_decisions table]]
+- [[v_latest_validation view]]
+- [[v_latest_validation_run view]]
+- [[regulatory_documents table]]
+- [[regulatory_clauses table]]
+- [[case_outcomes table]]
+- [[decision_sources_inbox table]]
+- [[user_entitlements table]]
+- [[reports table]]
+- [[backfill_embeddings_v1]]
+- [[evidence_processed_v2]]
+- [[run_case_extract_v3]]
+- [[run_case_decision_v1]]
+- [[tier‐0 narrative generator]]
+- [[run_report_selfserve_v1]]
+- [[decision_url_inbox]]
+
+---
+
+## Data Flow (High Level)
+
+1. Case is created
+2. Documents are uploaded
+3. Documents are chunked
+4. Extraction runs process evidence
+5. Decision runs evaluate eligibility/strength
+6. Reports are generated
+
+---
+
+## Important Notes
+
+- The database is designed for **AI-driven workflows**
+- Most tables support **multi-stage processing**
+- JSON fields are used for flexible AI outputs
+- **Ground truth & learning** (`case_outcomes`, external precedents) are isolated from the **live** eligibility path — see [[GuideBuoy Data Schema Reference]] §0–§2.11
+- **`v_latest_validation`** views are keyed by **`extract_run_id`**, not `case_id` — see [[v_latest validation view]]
+
+
+---
+
+<a id="wiki-page-backfill-embeddings-v1"></a>
+
+**Wiki page:** `backfill_embeddings_v1.md`
+
+# Edge Function - `backfill_embeddings_v1`
+
+## Purpose
+
+`backfill_embeddings_v1` generates missing vector embeddings for knowledge-base records.
+
+It enriches:
+
+- `regulatory_clauses`
+- `public_decisions`
+
+This enables:
+
+- semantic search
+- similarity matching
+- retrieval-augmented generation (RAG)
+
+---
+
+## Function Type
+
+Backend maintenance / enrichment function  
+Not user-facing
+
+---
+
+## Trigger Method
+
+**POST only**
+
+---
+
+## Inputs
+
+### Request Body Example
+
+```json
+{
+  "table": "regulatory_clauses",
+  "limit": 50,
+  "force": false,
+  "model": "text-embedding-3-small"
+}
+
+### Fields
+
+#### `table` (required)
+
+Allowed values:
+
+- `regulatory_clauses`
+- `public_decisions`
+
+#### `limit` (optional)
+
+- Default: `50`
+- Range: `1–200`
+
+#### `force` (optional)
+
+- `false` — only rows without embeddings
+- `true` — regenerate embeddings
+
+#### `model` (optional)
+
+- Default: `text-embedding-3-small`
+
+## Environment Variables
+
+### Required
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `GuideBuoy_EdgeFunction` (OpenAI key)
+
+---
+
+## What It Reads
+
+### `regulatory_clauses`
+
+- `clause_ref`
+- `title`
+- `clause_type`
+- `source_ref`
+- `text_content`
+
+### `public_decisions`
+
+- `forum_name`
+- `case_number`
+- `decision_at`
+- `outcome`
+- `outcome_favours`
+- `issues`
+- `summary`
+
+---
+
+## What It Writes
+
+- `embedding` (vector)
+
+Stored as:
+
+```text
+[0.1, 0.2, ...]
+
+## Processing Flow
+
+1. Validate environment variables
+2. Reject non-POST requests
+3. Parse request body
+4. Validate table name
+5. Fetch candidate rows
+6. Build embedding text
+7. Skip rows with short or empty content
+8. Call OpenAI embeddings
+9. Update embedding column
+10. Return summary
+
+---
+
+## Output Example
+
+```json
+{
+  "ok": true,
+  "table": "regulatory_clauses",
+  "processed": 50,
+  "updated": 47,
+  "failed_count": 3,
+  "embedding_model": "text-embedding-3-small"
+}
+
+## Why It Exists
+
+Without embeddings:
+
+- no semantic search
+- weak retrieval
+- poor precedent matching
+
+With embeddings:
+
+- meaningful similarity search
+- better decision support
+- stronger report generation
+
+---
+
+## Tier / Access
+
+**Internal only**
+
+Should **NOT** be:
+
+- exposed to frontend
+- tied to user tiers
+
+Used by:
+
+- admin
+- cron jobs
+- maintenance workflows
+
+---
+
+## Dependencies
+
+- Supabase (service role client)
+- OpenAI embeddings API
+- pgvector-compatible embedding column
+
+---
+
+## Risks
+
+- high API cost (especially with `force = true`)
+- overwriting embeddings without versioning
+- poor text quality → poor embeddings
+- silent skips for short text
+
+---
+
+## Suggested Improvements
+
+- `embedded_at`
+- `embedding_model`
+- `embedding_version`
+- retry handling
+- batching / pagination
+- admin auth guard
+
+
+---
+
+<a id="wiki-page-case-decision-runs-table"></a>
+
+**Wiki page:** `case_decision_runs-table.md`
+
+# case_decision_runs table
+
+## Purpose
+
+`case_decision_runs` stores **versioned outputs of the decision engine** for a case: structured `decision_json`, coarse `eligibility_status`, optional `strength_score_value`, and provenance (`model_name`, `prompt_version`, `extract_run_id`, `validation_run_id`, `created_at`).
+
+Each insert (or controlled update when `force` is used in edge logic) represents one **decision execution** against a particular extraction snapshot.
+
+---
+
+## Key fields (deployed)
+
+| Column | Notes |
+|--------|--------|
+| `id` | PK |
+| `case_id` | FK → `cases` |
+| `decision_json` | Required; for `case_decision_v1` must satisfy table CHECKs (includes `eligibility` + `references` with score/status). |
+| `eligibility_status` | Coarse label (e.g. low / medium / high banding used by product — align with edge function normalisation). |
+| `strength_score_value` | Optional integer score for sorting/filtering. |
+| `model_name`, `prompt_version` | Model and prompt lineage. |
+| `extract_run_id` | Optional FK → `case_extract_runs`; binds decision to an extract snapshot. |
+| `validation_run_id` | Optional FK → `case_validation_runs` (nullable; `ON DELETE SET NULL` in migration). |
+| `created_at` | Run timestamp. |
+
+---
+
+## Constraints & idempotency
+
+- **Partial unique index:** `(case_id, extract_run_id)` **unique where** `extract_run_id IS NOT NULL` — prevents duplicate decision rows for the same case + extract pair when extract is set.
+- **CHECK** constraints enforce presence of required keys inside `decision_json` when `decision_version` is `case_decision_v1`.
+
+---
+
+## How to read “latest”
+
+Use SQL helper `get_latest_decision_run(p_case_id)` (latest by `created_at DESC`) or mirror that ordering in application code.
+
+---
+
+## Relationship to other tables
+
+| Table | Relationship |
+|--------|----------------|
+| `case_extract_runs` | Input snapshot (`extract_run_id`). |
+| `case_validation_runs` | Optional validation snapshot used at decision time. |
+| `case_narratives` | May reference `decision_run_id` for derived narratives. |
+| `reports` | `source_decision_run_id` links generated artefacts to a decision run. |
+| `case_outcomes` | **Separate** — real-world outcomes; never substitute for `decision_json` in live eligibility. |
+
+---
+
+## Operational notes
+
+- Treat as **append-first**; edge function may **update** an existing row when `force=true` and a row already exists for `(case_id, extract_run_id)` — document operational choice vs pure append-only ideal.
+- **RLS** is enabled on the table — confirm policies for each role.
+
+---
+
+## See also
+
+- [[run case decision v1]] — full HTTP contract, evidence ranking, RPC retrieval, score/status enforcement.
+- [[GuideBuoy Data Schema Reference]] — design principles and lineage with self-serve report flow.
+
+
+---
+
+<a id="wiki-page-case-document-chunks-table"></a>
+
+**Wiki page:** `case_document_chunks-table.md`
+
+# case_document_chunks table
+
+## Purpose
+The `case_document_chunks` table stores segmented pieces of document content.
+
+It converts:
+→ full documents  
+into  
+→ smaller, structured chunks suitable for AI processing  
+
+This is required because LLMs cannot process large documents efficiently in one pass.
+
+---
+
+## Key Concept
+
+Documents are broken into chunks so they can be:
+- processed by AI models
+- embedded into vector space
+- searched and retrieved efficiently
+
+Each chunk represents a **small, addressable unit of content**.
+
+---
+
+## Core Fields
+
+### Identity
+- `id` — unique chunk identifier
+- `content_id` — reference to the parent content/document version
+
+---
+
+### Chunk Content
+- `chunk_index` — order within the document
+- `chunk_text` — actual text content
+
+---
+
+### Positioning
+- `page_start`
+- `page_end`
+- `char_start`
+- `char_end`
+
+These allow mapping back to the original document.
+
+---
+
+### Structure
+- `section_title` — logical section
+- `chunk_type` — type of content (text, table, header, etc.)
+
+---
+
+### Metadata
+- `metadata` — additional structured info (JSON)
+- `created_at`
+
+---
+
+## How It Is Used
+
+Chunks are:
+
+1. Created after document ingestion
+2. Used for:
+   - AI extraction
+   - embeddings / vector search
+   - retrieval-augmented generation (RAG)
+   - highlighting source references
+
+---
+
+## Relationship to Other Tables
+
+- `case_documents` → original file
+- `case_document_chunks` → processed text segments
+- downstream:
+  - extraction runs
+  - embeddings tables
+  - evidence processing
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **scalable AI processing**
+- **precise referencing of evidence**
+- **RAG pipelines**
+- **explainability (source grounding)**
+
+Without chunking:
+→ large documents become unusable for LLM workflows  
+
+---
+
+## Important Pattern
+
+Chunks must be:
+
+- ordered (`chunk_index`)
+- traceable (page + char positions)
+- consistent in size
+
+This ensures:
+→ reliable downstream processing
+
+---
+
+## Risks / Things to Watch
+
+- poor chunk size (too large or too small)
+- loss of context across chunks
+- incorrect page/character mapping
+- inconsistent `chunk_type` usage
+
+
+---
+
+<a id="wiki-page-case-document-extractions-table"></a>
+
+**Wiki page:** `case_document_extractions-table.md`
+
+# case_document_extractions table
+
+## Purpose
+The `case_document_extractions` table stores structured information extracted from documents using AI.
+
+It converts:
+→ unstructured document content  
+into  
+→ structured, queryable data  
+
+This is where evidence becomes **machine-understandable facts**.
+
+---
+
+## Key Concept
+
+Documents contain valuable signals, but they are:
+
+- messy
+- inconsistent
+- unstructured
+
+Extraction transforms them into:
+
+- entities (amounts, dates, parties)
+- events (transactions, communications)
+- claims (what happened)
+
+---
+
+## Core Fields
+
+### Identity
+- `id`
+- `case_id`
+- `document_id`
+- `content_id` — ties extraction to a specific parsed version
+
+---
+
+### Extraction Definition
+- `extraction_type` — what is being extracted (e.g. transactions, timeline, parties)
+- `schema_version` — structure of expected output
+
+---
+
+### Output
+- `extracted_json` — structured data (primary output)
+- `extracted_text` — optional human-readable version
+
+---
+
+### Quality
+- `confidence` — model confidence score
+- `validation_status` — validated / pending / rejected
+- `validation_notes`
+
+---
+
+### Evidence Linking
+- `citations` — references back to chunks/pages
+
+This is critical for:
+→ explainability  
+→ auditability  
+
+---
+
+### Processing Metadata
+- `model`
+- `prompt_version`
+- `created_at`
+
+---
+
+## How It Is Used
+
+Extractions feed:
+
+- `case_events` (timeline building)
+- `case_summary`
+- decision engines
+- regulatory mapping
+- escalation packs
+
+---
+
+## Relationship to Other Tables
+
+- `case_documents` → raw file
+- `case_documents_content` → parsed content
+- `case_document_chunks` → segmented content
+- `case_document_extractions` → structured insights
+
+This is the **intelligence layer on top of content**.
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **AI-driven understanding of evidence**
+- **automated timeline construction**
+- **decision support systems**
+- **structured outputs for reports**
+
+Without this:
+→ everything remains text, not usable data  
+
+---
+
+## Important Pattern
+
+Always tie extraction to:
+
+- `document_id`
+- `content_id`
+- `schema_version`
+
+This ensures:
+→ reproducibility  
+→ version control  
+→ auditability  
+
+---
+
+## Extraction Types (Examples)
+
+- transaction extraction
+- communication timeline
+- contract terms
+- scam indicators
+- regulatory breaches
+
+---
+
+## Risks / Things to Watch
+
+- schema drift across versions
+- inconsistent `extraction_type`
+- missing citations (reduces trust)
+- over-reliance on low-confidence outputs
+
+
+---
+
+<a id="wiki-page-case-document-verifications-table"></a>
+
+**Wiki page:** `case_document_verifications-table.md`
+
+# case_document_verifications table
+
+## Purpose
+The `case_document_verifications` table stores the results of verifying a document’s type and credibility.
+
+It checks whether an uploaded document matches what it is supposed to be, for example:
+- bank statement
+- email
+- receipt
+- letter
+- screenshot
+
+This helps prevent weak or misclassified evidence from flowing into downstream pipelines.
+
+---
+
+## Key Concept
+
+A user may label a document one way, but the system may infer something different.
+
+This table compares:
+- declared document type
+- predicted document type
+
+and records:
+- confidence
+- decision
+- reason
+- supporting evidence spans
+
+---
+
+## Core Fields
+
+### Identity
+- `id`
+- `document_id`
+- `content_id` — verification tied to a specific parsed content version
+
+---
+
+### Type Comparison
+- `declared_document_type` — what the user/system said it was
+- `predicted_document_type` — what the model inferred
+
+---
+
+### Verification Result
+- `decision` — final decision (accepted, rejected, needs review, etc.)
+- `reason` — explanation for the decision
+- `confidence` — confidence score
+
+---
+
+### Evidence Support
+- `evidence_spans` — JSON references to supporting text/locations
+
+This is important for:
+→ explainability  
+→ auditability  
+
+---
+
+### Processing Metadata
+- `model`
+- `prompt_version`
+- `verified_at`
+
+---
+
+## How It Is Used
+
+Verification records are used to:
+
+1. improve document classification
+2. decide whether a document should proceed into extraction
+3. support review workflows
+4. surface confidence and reasons to operators
+
+---
+
+## Relationship to Other Tables
+
+- `case_documents` → original uploaded file
+- `case_documents_content` → parsed text/content
+- `case_document_verifications` → type/credibility judgment
+
+This is a trust-control layer before deeper AI use.
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **document trust assessment**
+- **stronger evidence quality control**
+- **reduced downstream noise**
+- **better explainability for evidence selection**
+
+Without verification:
+→ extraction may run on poor or irrelevant files  
+
+---
+
+## Important Pattern
+
+Verification should be tied to:
+- the specific document
+- the specific parsed content version
+- the model/prompt used
+
+This preserves:
+→ reproducibility  
+→ auditability  
+→ comparability over time  
+
+---
+
+## Risks / Things to Watch
+
+- weak `decision` taxonomy
+- missing evidence spans
+- high-confidence wrong classifications
+- not re-verifying when content parsing changes
+
+
+---
+
+<a id="wiki-page-case-documents-content-table"></a>
+
+**Wiki page:** `case_documents_content-table.md`
+
+# case_documents_content table
+
+## Purpose
+The `case_documents_content` table stores the parsed and normalized content of a document.
+
+It represents the transformation from:
+→ raw file (PDF, image, etc.)  
+to  
+→ structured, machine-readable content  
+
+This is the foundation for chunking and downstream AI processing.
+
+---
+
+## Key Concept
+
+A document is not directly usable by AI.
+
+It must first be:
+1. parsed (OCR / text extraction)
+2. normalized
+3. structured
+
+Each parsing attempt creates a **new content version**.
+
+---
+
+## Core Fields
+
+### Identity
+- `id` — unique content record
+- `document_id` — parent document
+
+---
+
+### Parsing / Processing
+- `model` — model used for parsing (OCR / AI)
+- `prompt_version` — parsing prompt version
+- `pipeline_version` — overall pipeline version
+
+---
+
+### Content
+- `text_content` — full extracted text
+- `content_json` — structured representation of content
+
+---
+
+### Metadata
+- `language`
+- `page_count`
+- `parsed_at`
+
+---
+
+### Status
+- `parse_status` — success / failed / partial
+- `parse_errors` — errors encountered
+
+---
+
+### Integrity
+- `content_sha256` — hash of parsed content
+
+---
+
+## How It Is Used
+
+Content records are:
+
+1. Created after document upload
+2. Used as input for:
+   - chunking (`case_document_chunks`)
+   - extraction pipelines
+   - embeddings / RAG
+
+---
+
+## Relationship to Other Tables
+
+- `case_documents` → raw file
+- `case_documents_content` → parsed content
+- `case_document_chunks` → segmented content
+
+This is the **middle transformation layer**.
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **versioned parsing**
+- **reprocessing with improved models**
+- **traceability of parsing logic**
+- **stable downstream chunking**
+
+Without this layer:
+→ reprocessing would overwrite previous results  
+
+---
+
+## Important Pattern
+
+Never overwrite parsed content.
+
+Always:
+→ create a new content record when:
+- model changes
+- pipeline improves
+- parsing logic is updated
+
+---
+
+## Risks / Things to Watch
+
+- inconsistent `content_json` structure
+- missing linkage to latest content (`content_latest_id`)
+- poor OCR quality affecting downstream pipelines
+- not reprocessing documents when pipeline improves
+
+
+---
+
+<a id="wiki-page-case-documents-enriched-view"></a>
+
+**Wiki page:** `case_documents_enriched-view.md`
+
+# case_documents_enriched view
+
+## Purpose
+The `case_documents_enriched` view provides a unified, denormalised representation of document intelligence.
+
+It combines:
+
+- extraction outputs
+- verification results
+
+into a single, queryable structure.
+
+This simplifies downstream usage by avoiding complex joins.
+
+---
+
+## Key Concept
+
+Instead of querying multiple tables:
+
+- `case_document_extractions`
+- `case_document_verifications`
+
+this view presents a **single enriched record per document/content**.
+
+---
+
+## What It Contains
+
+### Extraction Data
+- `extraction_id`
+- `extracted_text`
+- `extracted_json`
+- `extraction_confidence`
+- `extraction_created_at`
+
+---
+
+### Verification Data
+- `declared_document_type`
+- `predicted_document_type`
+- `verification_confidence`
+- `verification_decision`
+- `verification_reason`
+- `verification_spans`
+- `verified_at`
+
+---
+
+### Linkage
+- `case_id`
+- `document_id`
+- `content_id`
+
+---
+
+## How It Is Built
+
+This view likely joins:
+
+- `case_document_extractions`
+- `case_document_verifications`
+
+on:
+- `document_id`
+- `content_id`
+- possibly `case_id`
+
+---
+
+## How It Is Used
+
+This view is used for:
+
+### 1. UI / Frontend
+- displaying document insights
+- showing classification + extracted data together
+
+---
+
+### 2. Decision Engines
+- evaluating evidence strength
+- filtering valid documents
+- feeding escalation logic
+
+---
+
+### 3. Reporting
+- generating summaries
+- building evidence tables
+- exporting structured outputs
+
+---
+
+## Design Significance
+
+This view enables:
+
+- **simplified data access**
+- **faster queries**
+- **clean API responses**
+- **reduced application complexity**
+
+Without this:
+→ every consumer must manually join multiple tables  
+
+---
+
+## Important Pattern
+
+This is a **read model (projection)**.
+
+Rules:
+
+- do NOT write into this view
+- always derive from source tables
+- keep logic consistent and deterministic
+
+---
+
+## Risks / Things to Watch
+
+- duplication if multiple extractions per document
+- mismatch between extraction and verification versions
+- stale joins if content versions change
+- unclear “latest” record selection logic
+
+---
+
+## Recommendation
+
+Ensure the view enforces:
+
+- latest extraction per document/content
+- latest verification per document/content
+
+Example strategies:
+- max(created_at)
+- version flags
+- ranking window functions
+
+---
+
+## Big Picture
+
+This is part of your:
+
+→ **AI Read Layer**
+
+Pipeline becomes:
+
+raw → parsed → chunked → extracted → verified → **enriched (this view)** → decisions
+
+
+---
+
+<a id="wiki-page-case-documents-table"></a>
+
+**Wiki page:** `case_documents-table.md`
+
+# case_documents table
+
+## Purpose
+The `case_documents` table stores uploaded evidence files linked to a case.
+
+It is the system’s main record of:
+- what evidence was uploaded
+- where it is stored
+- whether it has been processed
+- how it was classified and verified
+
+This table is the entry point into the evidence processing pipeline.
+
+---
+
+## Key Concept
+
+A case can have many supporting documents:
+- bank statements
+- screenshots
+- emails
+- letters
+- receipts
+- PDFs
+- other uploaded evidence
+
+This table tracks each document as a managed evidence object.
+
+---
+
+## Core Fields
+
+### Identity
+- `id` — unique document identifier
+- `case_id` — parent case
+
+---
+
+### File Details
+- `filename` — stored filename
+- `original_filename` — original user-uploaded filename
+- `file_size`
+- `mime_type`
+
+---
+
+### Classification
+- `document_type` — claimed or assigned type
+- `verified_document_type` — verified / system-inferred type
+- `exhibit_label` — human-friendly evidence label
+
+---
+
+### Upload / Storage
+- `upload_date`
+- `file_url`
+- `storage_provider`
+- `storage_bucket`
+- `storage_path`
+
+---
+
+### Processing State
+- `is_processed`
+- `processing_status`
+- `processing_error`
+
+---
+
+### Verification
+- `verification_status`
+- `verification_confidence`
+
+---
+
+### Integrity / Linking
+- `sha256` — content hash
+- `content_latest_id` — latest related content/version record
+
+---
+
+## How It Is Used
+
+Documents are:
+
+1. Uploaded by users or the system
+2. Stored in Supabase Storage or another storage layer
+3. Classified and verified
+4. Passed into:
+   - chunking
+   - extraction
+   - evidence processing
+   - reporting
+
+---
+
+## Relationship to Other Tables
+
+- `cases` → parent case
+- `case_documents` → evidence file registry
+- downstream likely includes:
+  - chunks
+  - extracted content
+  - evidence processing results
+
+This table is the bridge between:
+→ stored files  
+and  
+→ structured evidence intelligence  
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **evidence traceability**
+- **storage governance**
+- **processing orchestration**
+- **document verification**
+
+Without it, evidence handling becomes:
+→ ad hoc and untraceable
+
+With it, evidence becomes:
+→ structured, auditable, and pipeline-ready
+
+---
+
+## Risks / Things to Watch
+
+- mismatch between `document_type` and `verified_document_type`
+- broken storage references
+- duplicate uploads without hash handling
+- processing failures not surfaced clearly
+- missing linkage to downstream extracted content
+- txt files cant be not processed downstream
+
+
+---
+
+<a id="wiki-page-case-entitlements-table"></a>
+
+**Wiki page:** `case_entitlements-table.md`
+
+# case_entitlements table
+
+## Purpose
+The `case_entitlements` table defines what a specific case is allowed to do based on the purchased or assigned plan.
+
+It is the core mechanism for:
+→ tier separation  
+→ feature gating  
+→ monetisation control  
+
+---
+
+## Key Concept
+
+Entitlements are applied **per case**, not just per user.
+
+This allows:
+- different cases to have different plans
+- upgrades on a per-case basis
+- fine-grained control over functionality
+
+---
+
+## Core Fields
+
+### Identity
+- `case_id` — the case this entitlement applies to
+
+---
+
+### Plan
+- `plan` — plan name (e.g. free, self_serve_report, escalation_pack)
+
+---
+
+### Feature Control
+- `features` — JSON defining allowed capabilities
+
+Examples:
+- allow_extraction
+- allow_decisioning
+- allow_report_generation
+
+---
+
+### Lifecycle
+- `purchased_at`
+- `expires_at`
+
+---
+
+### Source Tracking
+- `source` — where entitlement came from (purchase, admin, system)
+- `purchase_ref` — reference to payment or transaction
+
+---
+
+### Metadata
+- `created_at`
+- `updated_at`
+
+---
+
+## How It Is Used
+
+Entitlements are:
+
+1. Checked before:
+   - running Edge Functions
+   - generating reports
+   - performing decisioning
+
+2. Used by:
+   - RPC functions (e.g. get_effective_entitlement)
+   - Edge Functions enforcing tier logic
+
+---
+
+## Relationship to Other Tables
+
+- `cases` → base entity
+- `case_entitlements` → controls capabilities of that case
+
+Also interacts with:
+- `user_entitlements` (if present)
+- feature flags in Edge Functions
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **strict tier separation**
+- **prevention of capability leakage**
+- **controlled upgrades**
+- **per-case monetisation strategy**
+
+This is critical for:
+→ product integrity  
+→ revenue protection  
+→ compliance  
+
+---
+
+## Important Pattern
+
+Always derive effective permissions via logic, e.g.:
+
+- case-level entitlement
+- fallback to user-level entitlement
+
+Do NOT rely on:
+→ hardcoded checks in frontend
+
+---
+
+## Risks / Things to Watch
+
+- inconsistent `features` schema
+- bypassing entitlement checks in Edge Functions
+- expired entitlements not enforced
+- mixing plan logic across multiple layers
+
+
+---
+
+<a id="wiki-page-case-events-table"></a>
+
+**Wiki page:** `case_events-table.md`
+
+# case_events table
+
+## Purpose
+The `case_events` table stores a **structured timeline of events** related to a case.
+
+It represents what actually happened:
+- transactions
+- communications
+- actions
+- incidents
+
+This is a key bridge between:
+→ narrative (text)
+→ evidence (documents)
+→ decisioning (AI)
+
+---
+
+## Key Concept
+
+A case is not just a story — it is a **sequence of events**.
+
+This table converts:
+- unstructured narrative
+- extracted document data
+
+into:
+→ structured, time-ordered events
+
+---
+
+## Core Fields
+
+### Identity
+- `id` — unique event identifier
+- `case_id` — parent case
+
+---
+
+### Event Definition
+- `event_type` — type of event (transaction, call, email, etc.)
+- `description` — human-readable explanation
+
+---
+
+### Time
+- `event_time` — when the event occurred
+- `event_sequence` — ordering if timestamps are unclear
+
+---
+
+### Financial Data
+- `amount`
+- `currency`
+
+---
+
+### Actors
+- `actor` — who performed the action
+
+---
+
+### References
+- `reference` — transaction ID / external reference
+- `source_ref` — origin of this event (document, AI, user)
+
+---
+
+### Metadata
+- `created_at`
+- `source` — ingestion source
+- `confidence` — AI confidence score (if extracted)
+
+---
+
+## How It Is Used
+
+Events are:
+
+1. Derived from:
+   - user narratives
+   - uploaded documents
+   - extraction pipelines
+
+2. Used for:
+   - decision logic
+   - fraud pattern detection
+   - timeline reconstruction
+   - reporting
+
+---
+
+## Relationship to Other Tables
+
+- `case_narratives` → provides raw story
+- `case_documents` → provides evidence
+- `case_events` → provides structured timeline
+
+This is the **normalization layer** between text and decisions.
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **timeline-based reasoning**
+- **evidence-backed decisions**
+- **explainable outputs**
+
+Without this table, the system would rely on:
+→ unstructured text (high risk)
+
+With it:
+→ structured, auditable logic
+
+---
+
+## Risks / Things to Watch
+
+- inconsistent `event_type` definitions
+- missing or unreliable timestamps
+- duplicate events from multiple sources
+- low-quality AI extraction without confidence handling
+
+
+---
+
+<a id="wiki-page-case-extract-runs-table"></a>
+
+**Wiki page:** `case_extract_runs-table.md`
+
+# case_extract_runs table
+
+## Purpose
+The `case_extract_runs` table stores the output of AI extraction processes.
+
+Each record represents a **single extraction attempt** on a case using a specific model and prompt.
+
+This is where:
+→ raw inputs (documents + intake + narratives)  
+become  
+→ structured machine-readable data  
+
+---
+
+## Key Concept
+
+Extraction is not one-time.
+
+A case can have **multiple extract runs**, for example:
+- different models (Gemini, GPT, etc.)
+- different prompt versions
+- retries or improvements
+
+This table tracks all of them.
+
+---
+
+## Core Fields
+
+### Identity
+- `id` — unique extract run ID
+- `case_id` — parent case
+
+---
+
+### Extraction Output
+- `extract_json` — structured output from the model
+
+---
+
+### Missing Information
+- `missing_fields` — fields the model could not extract
+
+---
+
+### Model Tracking
+- `model_name` — which model was used
+- `prompt_version` — version of the prompt
+
+---
+
+### Pipeline Links
+- `intake_id` — related intake input
+
+---
+
+### Metadata
+- `created_at`
+
+---
+
+## How It Is Used
+
+Extract runs are:
+
+1. Triggered by:
+   - Edge Functions (e.g. run_case_extract_v1/v2/v3)
+
+2. Consumed by:
+   - decision pipelines
+   - narrative generation
+   - event extraction
+   - reporting
+
+---
+
+## Relationship to Other Tables
+
+- `case_documents` → raw evidence input
+- `case_intake` → structured intake input
+- `case_extract_runs` → structured extracted data
+- `case_events` → normalized timeline derived from extraction
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **multi-model experimentation**
+- **prompt iteration tracking**
+- **reproducibility of AI outputs**
+- **auditability of extraction logic**
+
+This is critical for:
+→ debugging  
+→ regulatory defensibility  
+→ model comparison  
+
+---
+
+## Important Pattern
+
+Do NOT overwrite extraction results.
+
+Always:
+→ create a new extract run
+
+This preserves:
+- history
+- model comparison
+- traceability
+
+---
+
+## Risks / Things to Watch
+
+- inconsistent `extract_json` schema
+- lack of validation on extracted data
+- not tracking prompt versions properly
+- relying on latest run without evaluation
+
+
+---
+
+<a id="wiki-page-case-intake-table"></a>
+
+**Wiki page:** `case_intake-table.md`
+
+# case_intake table
+
+## Purpose
+The `case_intake` table stores the structured intake record for a case.
+
+It represents the information gathered during the intake flow before or alongside deeper extraction and decision pipelines.
+
+This table is important because it preserves:
+- what the user provided
+- how the intake was structured
+- whether the user confirmed the intake content
+
+---
+
+## Key Concept
+
+A case may go through one or more intake passes.
+
+The intake record captures:
+- raw or semi-structured narrative text
+- structured answers
+- intake version
+- user confirmation state
+
+This makes it the system’s main record of **captured intake input**.
+
+---
+
+## Core Fields
+
+### Identity
+- `id` — unique intake identifier
+- `case_id` — parent case
+
+---
+
+### Narrative / Source
+- `narrative_text` — intake narrative content
+- `source` — where the intake came from
+
+---
+
+### Intake Structure
+- `intake_type` — type of intake flow
+- `answers_json` — structured question/answer payload
+
+---
+
+### Metadata
+- `created_at`
+- `version`
+- `language`
+- `timezone`
+
+---
+
+### User Confirmation
+- `is_user_confirmed` — whether the user confirmed the intake content
+
+---
+
+## How It Is Used
+
+The intake record is:
+
+1. Created during the intake flow
+2. Used to preserve user-provided answers
+3. Used as input for:
+   - case narrative generation
+   - extraction pipelines
+   - decision pipelines
+
+---
+
+## Relationship to Other Tables
+
+- `cases` = overall case record
+- `case_intake` = intake-stage structured input
+- `case_narratives` = evolving narrative outputs derived from intake and later processing
+
+---
+
+## Design Significance
+
+This table is critical for:
+
+- preserving intake provenance
+- separating raw intake from later AI-derived outputs
+- supporting confirmation workflows
+
+It helps answer:
+→ What did the user actually provide?  
+→ Was it confirmed?  
+→ Which version of intake drove later processing?
+
+---
+
+## Risks / Things to Watch
+
+- unclear `intake_type` definitions
+- missing version discipline
+- weak validation of `answers_json`
+- treating intake content as final truth without confirmation
+
+
+---
+
+<a id="wiki-page-case-narratives-table"></a>
+
+**Wiki page:** `case_narratives-table.md`
+
+# case_narratives table
+
+## Purpose
+The `case_narratives` table stores **structured narrative outputs** related to a case.
+
+Unlike `cases.primary_narrative`, this table supports:
+- multiple versions
+- multiple sources
+- multiple processing stages
+
+This makes it the **canonical place for narrative evolution**.
+
+---
+
+## Key Concept
+
+A single case can have **many narratives**, generated at different stages:
+
+- initial user input
+- refined summaries
+- AI-generated structured narratives
+- outputs tied to extraction or decision runs
+
+---
+
+## Core Fields
+
+### Identity
+- `id` — unique narrative identifier
+- `case_id` — reference to the parent case
+
+---
+
+### Narrative Content
+- `narrative_type` — type of narrative (e.g. intake, summary, AI_refined)
+- `title` — optional label
+- `text_content` — full narrative text
+
+---
+
+### Source Tracking
+- `source_ref` — origin of the narrative (e.g. user, AI, system)
+
+---
+
+### Versioning
+- `version` — version number of the narrative
+
+---
+
+### Pipeline Links
+These fields connect narratives to processing stages:
+
+- `intake_id` — intake process reference
+- `extract_run_id` — extraction pipeline reference
+- `decision_run_id` — decision pipeline reference
+
+---
+
+### Metadata
+- `language`
+- `audience`
+- `created_at`
+
+---
+
+## How It Is Used
+
+Narratives are:
+
+1. Created during intake (user input)
+2. Refined during extraction
+3. Rewritten or summarized during decisioning
+4. Used in:
+   - reports
+   - escalation packs
+   - audit trails
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **traceability** of narrative changes
+- **multi-step AI processing**
+- **version control for text outputs**
+
+It is critical for:
+→ reproducibility  
+→ auditability  
+→ regulatory defensibility  
+
+---
+
+## Relationship to `cases`
+
+- `cases.primary_narrative` = current / simplified view
+- `case_narratives` = full history and structured evolution
+
+---
+
+## Risks / Things to Watch
+
+- Not enforcing clear `narrative_type` values
+- Overwriting instead of versioning
+- Losing linkage to extract/decision runs
+
+
+---
+
+<a id="wiki-page-case-outcomes-table"></a>
+
+**Wiki page:** `case_outcomes-table.md`
+
+# case_outcomes table
+
+## Purpose
+The `case_outcomes` table stores the **actual resolved outcomes of cases**.
+
+It represents the **real-world result** of a case after:
+- resolution
+- settlement
+- escalation
+- external decision (e.g. FIDReC, AFCA)
+
+This is the system’s **ground truth layer** for measuring success and validating predictions.
+
+---
+
+## Key Concept
+
+While:
+
+- `case_decision_runs` = predicted / inferred outcomes  
+- `public_decisions` = external precedent  
+
+👉 `case_outcomes` = **what actually happened**
+
+---
+
+## Structure
+
+### Identity
+- `id`
+- `case_id`
+
+---
+
+### Outcome Classification
+- `outcome_type`
+
+Examples:
+- "resolved_internally"
+- "escalated"
+- "won"
+- "lost"
+- "partial_success"
+- "withdrawn"
+
+---
+
+### Financial Outcome
+- `amount_recovered`
+
+Represents:
+- compensation received
+- refunds
+- settlement amount
+
+---
+
+### Timing
+- `outcome_date`
+
+Used for:
+- lifecycle tracking
+- performance metrics
+- duration analysis
+
+---
+
+### Additional Context
+- `notes`
+
+Free-text explanation such as:
+- settlement conditions
+- negotiation details
+- partial recovery explanation
+
+---
+
+### Metadata
+- `created_at`
+
+---
+
+## How It Is Used
+
+### 1. Performance Measurement
+Compare:
+
+- predicted outcome vs actual outcome
+- expected compensation vs actual recovery
+
+---
+
+### 2. Model Evaluation (VERY IMPORTANT)
+
+This table enables:
+
+- accuracy tracking
+- bias detection
+- continuous improvement
+
+Example:
+→ “We predicted strong case, but outcome was lost”
+
+---
+
+### 3. User Value Tracking
+
+- total money recovered
+- success rates
+- resolution timelines
+
+---
+
+### 4. Product Analytics
+
+Feeds:
+- dashboards
+- ROI metrics
+- investor reporting
+- governance scoring (Lemonade Index)
+
+---
+
+## Relationship to Other Tables
+
+- `cases` → parent entity  
+- `case_decision_runs` → predicted outcome  
+- `public_decisions` → comparable precedent  
+
+---
+
+## Design Significance
+
+This table is critical for:
+
+- **closing the feedback loop**
+- **training better decision systems**
+- **proving product value**
+- **building trust with users and regulators**
+
+Without this:
+→ system cannot learn  
+
+With this:
+→ system becomes **self-improving**
+
+---
+
+## Important Pattern
+
+- One case can have multiple outcomes (e.g. interim + final)
+- Should support updates over time (append or versioned)
+- Must be reliable and verified (not AI-generated)
+
+---
+
+## Risks / Things to Watch
+
+- inconsistent outcome_type values
+- missing financial data
+- delayed updates after resolution
+- mixing predicted vs actual outcomes
+
+
+---
+
+<a id="wiki-page-case-validation-runs-table"></a>
+
+**Wiki page:** `case_validation_runs-table.md`
+
+# case_validation_runs table
+
+## Purpose
+The `case_validation_runs` table stores the results of validating extracted data before it is used for decisioning.
+
+It acts as a **quality control layer** between:
+→ extraction (case_extract_runs)  
+→ decisioning (case_decision_runs)  
+
+---
+
+## Key Concept
+
+AI extraction is not perfect.
+
+This table captures:
+- missing information
+- ambiguities
+- questions that must be resolved
+
+It enables:
+→ human-in-the-loop workflows  
+→ user clarification loops  
+
+---
+
+## Core Fields
+
+### Identity
+- `id` — unique validation run ID
+- `case_id` — parent case
+
+---
+
+### Pipeline Links
+- `extract_run_id` — source extraction
+- `intake_id` — related intake
+
+---
+
+### Validation Results
+- `missing_fields` — required data not found
+- `ambiguities` — unclear or conflicting data
+- `questions_to_user` — questions for clarification
+
+---
+
+### Summary
+- `validation_summary` — human-readable explanation
+- `status` — validation status (pending, resolved, etc.)
+- `is_valid` — whether data is sufficient for next stage
+
+---
+
+### Model Tracking
+- `model_name`
+- `prompt_version`
+- `schema_version`
+
+---
+
+### Raw Output
+- `raw_output` — full model response
+- `error_message` — errors if validation failed
+
+---
+
+### Metadata
+- `source`
+- `created_at`
+
+---
+
+## How It Is Used
+
+Validation runs are:
+
+1. Triggered after extraction
+2. Used to:
+   - identify missing or weak data
+   - generate user clarification questions
+   - gate progression to decisioning
+
+---
+
+## Relationship to Other Tables
+
+- `case_extract_runs` → produces extracted data
+- `case_validation_runs` → checks quality and completeness
+- `case_decision_runs` → consumes validated data
+
+This is a **critical gating layer**.
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **controlled progression of cases**
+- **user feedback loops**
+- **higher-quality decisioning**
+- **reduced hallucination risk**
+
+It is essential for:
+→ trust  
+→ accuracy  
+→ regulatory defensibility  
+
+---
+
+## Important Pattern
+
+Do NOT skip validation.
+
+Decisioning should only proceed when:
+→ `is_valid = true`
+
+---
+
+## Risks / Things to Watch
+
+- ignoring `missing_fields`
+- weak or unclear `questions_to_user`
+- inconsistent validation criteria
+- allowing invalid data into decision stage
+
+
+---
+
+<a id="wiki-page-cases-table"></a>
+
+**Wiki page:** `cases-table.md`
+
+# cases table
+
+## Purpose
+The `cases` table is the central entity of the system.
+
+It represents a **single user dispute / complaint case** and acts as the anchor for:
+- documents
+- AI extraction runs
+- decisioning
+- reporting
+
+Every downstream process links back to `cases.id`.
+
+---
+
+## Key Concepts
+
+A case contains:
+- user-provided narrative
+- claim details (amount, type, institution)
+- lifecycle status
+- AI-derived outputs (eligibility, strength)
+
+---
+
+## Core Fields
+
+### Identity
+- `id` — unique case identifier
+- `user_id` — owner of the case
+- `owner_user_id` — current owner (for collaboration)
+- `creator_user_id` — who created the case
+
+---
+
+### Claim Details
+- `claim_type` — type of dispute
+- `claim_amount` — monetary value
+- `claim_currency` — currency of claim
+- `institution_name` — financial institution involved
+- `jurisdiction` — country / regulatory context
+
+---
+
+### Timeline
+- `incident_date` — when issue occurred
+- `incident_datetime` — more precise timestamp
+- `created_at`
+- `updated_at`
+
+---
+
+### Narrative
+- `case_summary` — short structured summary
+- `primary_narrative` — full user narrative
+
+---
+
+### Status & Lifecycle
+- `status` — general status
+- `case_status` — more detailed lifecycle state
+
+---
+
+### AI Outputs
+- `eligibility_status` — eligibility result
+- `strength_score` — textual score
+- `strength_score_value` — numeric score
+
+---
+
+### Privacy / Compliance
+- `is_anonymous`
+- `anonymization_requested`
+- `anonymization_completed_at`
+- `data_retention_policy`
+
+---
+
+### System / Internal
+- `router_session_id` — session tracking
+- `case_key` — external or internal reference key
+
+---
+
+## How It Is Used
+
+The `cases` table is:
+
+1. Created during intake
+2. Enriched by:
+   - extraction runs
+   - decision runs
+3. Referenced by:
+   - documents
+   - reports
+   - analytics
+
+---
+
+## Important Design Notes
+
+- This table mixes:
+  - user input
+  - system metadata
+  - AI outputs
+
+- AI outputs should be treated as:
+  → derived, not source-of-truth
+
+- Lifecycle transitions should be controlled via:
+  → Edge Functions (not manual updates)
+
+---
+
+## Risks / Things to Watch
+
+- Overloading this table with too many responsibilities
+- Confusion between:
+  - `status` vs `case_status`
+- Storing AI outputs directly without versioning
+
+
+---
+
+<a id="wiki-page-decision-sources-inbox-table"></a>
+
+**Wiki page:** `decision_sources_inbox-table.md`
+
+# decision_sources_inbox table
+
+## Purpose
+The `decision_sources_inbox` table acts as the **ingestion queue for external decision sources**.
+
+It stores discovered decision URLs before they are:
+- fetched
+- parsed
+- structured
+- inserted into `public_decisions`
+
+This is the **entry point of the precedent ingestion pipeline**.
+
+---
+
+## Key Concept
+
+This table represents:
+
+→ "We found a decision, but haven’t processed it yet"
+
+It separates:
+
+- discovery
+- processing
+- storage
+
+This is critical for building a scalable and reliable ingestion system.
+
+---
+
+## Core Fields
+
+### Identity
+- `id`
+
+---
+
+### Source Identification
+- `source_system`
+- `source_url` (canonical)
+- `source_url_raw`
+- `source_host`
+- `source_path`
+- `source_doc_id`
+
+Used for:
+- deduplication
+- traceability
+- crawl control
+
+---
+
+### Classification
+- `jurisdiction_code`
+- `forum_name`
+- `domain`
+
+---
+
+### Discovery Metadata
+- `discovered_at`
+
+Represents when the source was identified (not processed).
+
+---
+
+### Processing State
+- `status`
+
+Typical values:
+- `new`
+- `queued`
+- `processing`
+- `processed`
+- `failed`
+- `skipped`
+
+---
+
+### Notes / Debugging
+- `notes`
+
+Used for:
+- error messages
+- manual review notes
+- processing comments
+
+---
+
+## How It Is Used
+
+### 1. Discovery Phase
+Sources are inserted here via:
+- crawlers
+- APIs
+- manual input
+
+---
+
+### 2. Processing Pipeline
+
+Edge functions or jobs:
+
+1. pick records with `status = 'new'`
+2. fetch content from `source_url`
+3. extract structured data
+4. insert into `public_decisions`
+5. update status → `processed`
+
+---
+
+### 3. Failure Handling
+
+If something goes wrong:
+
+- `status = 'failed'`
+- `notes` contains error details
+
+Allows:
+→ retries  
+→ debugging  
+→ monitoring  
+
+---
+
+## Relationship to Other Tables
+
+- feeds → `public_decisions`
+- complements → `regulatory_documents` ingestion (if similar pipeline exists)
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **asynchronous ingestion**
+- **retryable pipelines**
+- **scalable crawling**
+- **clear separation of concerns**
+
+Without this:
+→ ingestion becomes fragile  
+
+With this:
+→ ingestion becomes production-grade  
+
+---
+
+## Important Pattern
+
+This is a **queue table**.
+
+Best practices:
+- never delete records (audit trail)
+- always update `status`
+- process in batches
+- avoid duplicate URLs
+
+---
+
+## Risks / Things to Watch
+
+- duplicate `source_url`
+- stuck records in `processing`
+- missing retry logic
+- inconsistent status values
+- lack of monitoring/alerts
+
+---
+
+## Future Enhancements (Optional)
+
+- add `retry_count`
+- add `last_attempt_at`
+- add `priority`
+- add `processing_duration`
+
+
+---
+
+<a id="wiki-page-decision-url-inbox"></a>
+
+**Wiki page:** `decision_url_inbox.md`
+
+# Edge Function - `decision_url_inbox`
+
+## Purpose
+
+`decision_url_inbox` is a server-side URL inbox for published decisions.
+
+It is designed to:
+
+- upsert published decision source URLs into `public.decision_sources_inbox`
+- normalize and canonicalize URLs before storage
+- optionally return the next N inbox items to process
+- mark inbox items as `ingested`, `skipped`, or `error`
+
+This function is part of the decision-source ingestion pipeline. It is an internal operational utility and is not meant to be exposed directly to clients.
+
+---
+
+## Function Type
+
+Backend inbox and queue-management function  
+Internal processing workflow  
+Not user-facing
+
+---
+
+## Trigger Method
+
+**POST only**
+
+The function rejects non-POST requests and returns:
+
+```json
+{
+  "ok": false,
+  "error": "Use POST"
+}
+```
+
+with HTTP `405`.
+
+---
+
+## Supported Actions
+
+The function uses the `action` query parameter on the request URL.
+
+Supported actions are:
+
+- `upsert` - default action
+- `next`
+- `mark`
+
+Example endpoints:
+
+- `POST /decision_url_inbox?action=upsert`
+- `POST /decision_url_inbox?action=next`
+- `POST /decision_url_inbox?action=mark`
+
+If `action` is not provided, the function defaults to:
+
+- `upsert`
+
+If the action is unknown, the function returns HTTP `400`.
+
+---
+
+## Authentication Model
+
+This function is designed for **server-side use only**.
+
+It uses:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+The source code explicitly notes:
+
+- do not expose to client
+
+There is no JWT or end-user auth flow inside the function itself. Safe usage depends on keeping the endpoint behind trusted server-side orchestration.
+
+---
+
+## Environment Variables
+
+### Required
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+If either is missing, the function returns:
+
+```json
+{
+  "ok": false,
+  "error": "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env var"
+}
+```
+
+with HTTP `500`.
+
+---
+
+## Inbox Status Values
+
+The function supports these status values:
+
+- `new`
+- `ingested`
+- `skipped`
+- `error`
+
+These values are used both for filtering and for marking processing outcomes.
+
+---
+
+## High-Level Flow
+
+1. Validate that the request method is `POST`
+2. Validate required environment variables
+3. Create a Supabase service-role client
+4. Read the `action` query parameter, defaulting to `upsert`
+5. Parse the request JSON body, defaulting to an empty object on parse failure
+6. Route to one of three handlers:
+   - `upsert`
+   - `next`
+   - `mark`
+7. Execute the corresponding database operation
+8. Return structured JSON output
+
+---
+
+## URL Normalization and Canonicalization
+
+Before URLs are stored or matched, the function canonicalizes them.
+
+### Canonicalization Rules
+
+The function:
+
+- trims the input
+- forces the protocol to `https:`
+- removes known tracking parameters
+- sorts remaining query parameters alphabetically
+- removes trailing slash for non-root paths
+- preserves root `/` paths as-is
+
+### Tracking Parameters Removed
+
+The canonicalization logic strips these parameters when present:
+
+- `utm_source`
+- `utm_medium`
+- `utm_campaign`
+- `utm_term`
+- `utm_content`
+- `gclid`
+- `fbclid`
+- `mc_cid`
+- `mc_eid`
+- `session`
+- `sid`
+
+This reduces duplicate records caused by marketing or session parameters.
+
+### Canonicalization Output
+
+The helper returns:
+
+- `canonical`
+- `host`
+- `path`
+
+These values are used for storage and deduplication.
+
+---
+
+## Source Document ID Extraction
+
+The function tries to derive a `source_doc_id` from the canonical URL.
+
+### Extraction Rules
+
+It first checks:
+
+- `?id=...`
+
+If not found, it falls back to:
+
+- the last non-empty path segment
+
+The fallback path segment is only accepted if its length is between:
+
+- `8`
+- `80`
+
+If no plausible ID is found, `source_doc_id` becomes `null`.
+
+This is a heuristic only; it does not guarantee a true upstream document ID.
+
+---
+
+## Input Validation
+
+The helper `requireString` validates required string fields.
+
+A value is considered invalid if it is:
+
+- missing
+- not a string
+- an empty or whitespace-only string
+
+When validation fails, the function throws an error like:
+
+```text
+Missing or invalid 'field_name'
+```
+
+The outer catch returns that error in JSON with HTTP `400`.
+
+---
+
+## Action: `upsert`
+
+### Purpose
+
+Adds or updates one or more decision source URLs in `decision_sources_inbox`.
+
+### Request Shapes
+
+The function accepts either:
+
+#### Single-item payload
+
+```json
+{
+  "source_url": "https://example.com/decision/123",
+  "source_url_raw": "https://example.com/decision/123?utm_source=test",
+  "source_system": "AFCA",
+  "jurisdiction_code": "AU",
+  "forum_name": "AFCA",
+  "domain": "financial",
+  "notes": "optional note"
+}
+```
+
+#### Batch payload
+
+```json
+{
+  "items": [
+    {
+      "source_url": "https://example.com/decision/123",
+      "source_system": "AFCA",
+      "jurisdiction_code": "AU",
+      "forum_name": "AFCA",
+      "domain": "financial"
+    }
+  ]
+}
+```
+
+### Required Fields Per Item
+
+- `source_url` or `source_url_raw`
+- `source_system`
+- `jurisdiction_code`
+- `forum_name`
+- `domain`
+
+### Derived Fields Written
+
+For each item, the function derives:
+
+- `source_url` - canonical URL
+- `source_url_raw`
+- `source_host`
+- `source_path`
+- `source_doc_id`
+- `status = "new"`
+
+### Database Operation
+
+The function performs:
+
+- `.upsert(rows, { onConflict: "source_url", ignoreDuplicates: false })`
+
+This means:
+
+- the canonical `source_url` is the conflict key
+- duplicate canonical URLs are updated rather than ignored
+
+### Fields Selected in Response
+
+After upsert, it returns:
+
+- `source_url`
+- `status`
+- `discovered_at`
+
+### Success Response Example
+
+```json
+{
+  "ok": true,
+  "inserted_or_updated": 1,
+  "items": [
+    {
+      "source_url": "https://example.com/decision/123",
+      "status": "new",
+      "discovered_at": "2026-03-21T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+## Action: `next`
+
+### Purpose
+
+Returns the next N inbox rows to process.
+
+### Request Body
+
+```json
+{
+  "limit": 10,
+  "status": "new",
+  "source_system": "AFCA",
+  "jurisdiction_code": "AU",
+  "forum_name": "AFCA",
+  "domain": "financial"
+}
+```
+
+### Fields
+
+#### `limit` (optional)
+
+Number of rows to return.
+
+- Default: `10`
+- Minimum enforced: `1`
+- Maximum enforced: `50`
+
+#### `status` (optional)
+
+Inbox status filter.
+
+- Default: `new`
+
+#### `source_system` (optional)
+
+Optional equality filter.
+
+#### `jurisdiction_code` (optional)
+
+Optional equality filter.
+
+#### `forum_name` (optional)
+
+Optional equality filter.
+
+#### `domain` (optional)
+
+Optional equality filter.
+
+### Database Query Behavior
+
+The function queries `decision_sources_inbox` and:
+
+- filters by `status`
+- optionally filters by `source_system`, `jurisdiction_code`, `forum_name`, and `domain`
+- orders by `discovered_at` ascending
+- limits results to the requested amount
+
+This makes it behave like a simple work-queue fetch for oldest matching items first.
+
+### Fields Returned
+
+Each returned item includes:
+
+- `source_system`
+- `source_url`
+- `source_url_raw`
+- `source_doc_id`
+- `source_host`
+- `source_path`
+- `jurisdiction_code`
+- `forum_name`
+- `domain`
+- `discovered_at`
+- `status`
+- `notes`
+
+### Success Response Example
+
+```json
+{
+  "ok": true,
+  "count": 2,
+  "items": [
+    {
+      "source_system": "AFCA",
+      "source_url": "https://example.com/decision/123",
+      "source_url_raw": "https://example.com/decision/123",
+      "source_doc_id": "123",
+      "source_host": "example.com",
+      "source_path": "/decision/123",
+      "jurisdiction_code": "AU",
+      "forum_name": "AFCA",
+      "domain": "financial",
+      "discovered_at": "2026-03-21T00:00:00.000Z",
+      "status": "new",
+      "notes": null
+    }
+  ]
+}
+```
+
+---
+
+## Action: `mark`
+
+### Purpose
+
+Updates the status of a canonical source URL.
+
+### Request Body
+
+```json
+{
+  "source_url": "https://example.com/decision/123",
+  "status": "ingested",
+  "notes": "processed successfully"
+}
+```
+
+### Required Fields
+
+- `source_url`
+- `status`
+
+### Allowed Status Values
+
+- `new`
+- `ingested`
+- `skipped`
+- `error`
+
+If the provided status is not one of those values, the function returns:
+
+```json
+{
+  "ok": false,
+  "error": "Invalid status"
+}
+```
+
+with HTTP `400`.
+
+### Matching Behavior
+
+The function canonicalizes the provided `source_url` before updating, so callers do not need to send a perfectly normalized URL as long as it canonicalizes to the stored form.
+
+### Database Operation
+
+The function updates:
+
+- `status`
+- `notes`
+
+for rows matching the canonical `source_url`.
+
+### Fields Selected in Response
+
+It returns:
+
+- `source_url`
+- `status`
+- `notes`
+
+### Success Response Example
+
+```json
+{
+  "ok": true,
+  "updated": 1,
+  "rows": [
+    {
+      "source_url": "https://example.com/decision/123",
+      "status": "ingested",
+      "notes": "processed successfully"
+    }
+  ]
+}
+```
+
+---
+
+## What It Reads
+
+### `decision_sources_inbox`
+
+The function reads from this table in two main ways:
+
+#### During `next`
+
+It reads:
+
+- `source_system`
+- `source_url`
+- `source_url_raw`
+- `source_doc_id`
+- `source_host`
+- `source_path`
+- `jurisdiction_code`
+- `forum_name`
+- `domain`
+- `discovered_at`
+- `status`
+- `notes`
+
+#### During `mark`
+
+It matches rows by:
+
+- `source_url`
+
+---
+
+## What It Writes
+
+### `decision_sources_inbox`
+
+During `upsert`, the function writes:
+
+- `source_system`
+- `source_url`
+- `source_url_raw`
+- `source_host`
+- `source_path`
+- `source_doc_id`
+- `jurisdiction_code`
+- `forum_name`
+- `domain`
+- `notes`
+- `status`
+
+During `mark`, the function updates:
+
+- `status`
+- `notes`
+
+---
+
+## Error Handling
+
+### Method Errors
+
+Non-POST requests return HTTP `405`.
+
+### Validation Errors
+
+Missing or invalid input fields return HTTP `400`.
+
+### Unknown Action
+
+Unknown actions return HTTP `400`.
+
+### Database Errors
+
+Supabase query or mutation errors return HTTP `500` inside a JSON response.
+
+### Outer Catch
+
+Unhandled thrown errors return:
+
+```json
+{
+  "ok": false,
+  "error": "message"
+}
+```
+
+with HTTP `400`.
+
+This means some operational errors return `400` while Supabase failures inside the action handlers return `500`.
+
+---
+
+## Why It Exists
+
+Without this function:
+
+- decision source URLs would need to be inserted manually
+- duplicate URLs with tracking parameters could create noisy records
+- there would be no simple queue-like way to fetch the next URLs to process
+- downstream ingestion workflows would have no standard way to mark source URLs as completed or failed
+
+With this function:
+
+- source URLs are normalized before storage
+- canonical URL deduplication becomes consistent
+- workers can fetch the oldest pending inbox items
+- processing status can be updated in a simple, standard way
+- the decision ingestion pipeline gets a lightweight operational inbox
+
+---
+
+## Tier / Access
+
+**Internal only**
+
+This function should not be exposed directly to clients.
+
+It uses:
+
+- service-role Supabase access
+- direct writes to operational ingestion tables
+
+It is suited for:
+
+- backend orchestration
+- ingestion workers
+- admin tooling
+- scheduled jobs
+- internal crawl or scrape pipelines
+
+---
+
+## Dependencies
+
+- Supabase Edge Functions
+- `@supabase/supabase-js`
+- `decision_sources_inbox`
+
+---
+
+## Risks
+
+- no built-in auth guard beyond possession of the endpoint and server secrets
+- `source_doc_id` extraction is heuristic and may be inaccurate for some source systems
+- `next` does not lock rows, so multiple workers could fetch the same `new` items concurrently
+- `mark` updates by canonical URL only and does not enforce single-row expectations explicitly
+- upsert always resets written rows to `status = "new"`, which may unintentionally reopen previously processed items if reused carelessly
+- parse-failure fallback to `{}` may hide malformed request bodies until field validation runs
+- outer catch returns `400` for thrown errors, which may blur caller vs server fault boundaries
+
+---
+
+## Suggested Improvements
+
+- add explicit internal auth beyond service-role environment use
+- add row claiming or lease-based locking for worker concurrency
+- preserve prior non-`new` status on selected upserts when appropriate
+- support bulk marking
+- store ingestion attempt counters and timestamps
+- store processor metadata such as worker name or job ID
+- return structured error codes consistently
+- support stronger source-specific document ID extraction rules
+- add optional dedupe by `(source_system, source_doc_id)` when available
+
+---
+
+## Current Hard-Coded Defaults
+
+- default action: `upsert`
+- default `next.limit`: `10`
+- maximum `next.limit`: `50`
+- default `next.status`: `new`
+- protocol normalization: `https`
+- default upsert status: `new`
+
+---
+
+## Example Requests
+
+### Upsert One URL
+
+```json
+{
+  "source_url": "https://example.com/decisions/123?utm_source=test",
+  "source_system": "AFCA",
+  "jurisdiction_code": "AU",
+  "forum_name": "AFCA",
+  "domain": "financial"
+}
+```
+
+### Fetch Next Items
+
+```json
+{
+  "limit": 10,
+  "status": "new",
+  "source_system": "AFCA"
+}
+```
+
+### Mark an Item
+
+```json
+{
+  "source_url": "https://example.com/decisions/123",
+  "status": "ingested",
+  "notes": "decision imported successfully"
+}
+```
+
+
+---
+
+<a id="wiki-page-evidence-processed-v2"></a>
+
+**Wiki page:** `evidence_processed_v2.md`
+
+# Edge Function - Evidence Document Parsing and Verification
+
+## Purpose
+
+This edge function processes uploaded case documents for scam or financial dispute cases.
+
+It performs the following tasks:
+
+- classifies each document into a controlled evidence type
+- extracts readable text from the document
+- captures supporting evidence spans
+- extracts transactions when present
+- verifies whether the predicted type matches the declared document type
+- chunks extracted text for downstream retrieval
+- writes structured extraction outputs for later analytics and decisioning
+
+This function is part of the document ingestion and evidence-indexing pipeline. It is not a user-facing function. It is an internal processing workflow used after document upload.
+
+---
+
+## Function Type
+
+Backend enrichment and verification function  
+Internal processing workflow  
+Not user-facing
+
+---
+
+## Trigger Method
+
+**POST only**
+
+The function accepts a JSON request body and can run in one of two modes:
+
+- single document mode
+- case batch mode
+
+It rejects requests with invalid JSON and returns an error if neither `document_id` nor `case_id` is provided.
+
+---
+
+## Purpose in the Pipeline
+
+This function sits between file upload and downstream case reasoning.
+
+It turns raw uploaded files into:
+
+- normalized evidence classification
+- extracted text content
+- verification records
+- text chunks
+- structured document summaries
+- structured transaction extractions
+
+That makes the document usable for search, retrieval, analytics, evidence review, and later decision support.
+
+---
+
+## Supported Evidence Types
+
+The function classifies documents into exactly one of these evidence types:
+
+- `PHISHING_EMAIL_COPY_OR_DESCRIPTION`
+- `BANK_ACCOUNT_STATEMENT_SHOWING_TRANSACTIONS`
+- `CREDIT_CARD_STATEMENT_SHOWING_TRANSACTIONS`
+- `SMS_LOG_ALL_TRANSACTION_NOTIFICATIONS`
+- `SMS_LOG_TOKEN_BINDING_NOTIFICATIONS`
+- `SMS_LOG_BANK_ACCOUNT_LIMIT_NOTIFICATIONS`
+- `SMS_LOG_CREDIT_CARD_BLOCKING_NOTIFICATIONS`
+- `BANK_SCAM_FRAUD_HOTLINE_CALL_LOG`
+- `BANK_SCAM_FRAUD_HOTLINE_CALL_RECORDING`
+- `POLICE_REPORT_OF_FRAUD_SCAM`
+- `TRANSACTIONS_DISPUTE_REPORT_RAISED_WITH_BANK`
+- `BANK_DISPUTED_TRANSACTIONS_OFFICIAL_RESPONSE_COPY`
+- `BANK_SRF_INVESTIGATION_REPORT_OR_OFFICIAL_RESPONSE`
+- `BANK_EMAILS_OR_COMMUNICATIONS_ADDITIONAL`
+- `RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA`
+- `TIMELINE_NOTES`
+- `CYBER_EXPERT_REPORT`
+- `OTHER`
+
+Legacy UI values are also mapped into the new enum where possible. For example, values such as `BANK_STATEMENT`, `POLICE_REPORT`, `DISPUTE_FORM`, and `LOGIN_LOGS` are normalized into the newer evidence taxonomy.
+
+---
+
+## Duty Category Mapping
+
+After classification, the function maps the evidence type into a duty category.
+
+Possible categories include:
+
+- `FI_NOTIFICATION_DUTY`
+- `FI_RESPONSE_DUTY`
+- `FI_INVESTIGATION_DUTY`
+- `FI_MONITORING_DUTY`
+- `SCAM_ORIGIN_EVIDENCE`
+- `LAW_ENFORCEMENT_EVIDENCE`
+- `USER_ASSERTION_EVIDENCE`
+- `EXPERT_EVIDENCE`
+- `GENERAL`
+
+Examples:
+
+- SMS notification evidence maps to `FI_NOTIFICATION_DUTY`
+- hotline call records map to `FI_RESPONSE_DUTY`
+- SRF investigation responses map to `FI_INVESTIGATION_DUTY`
+- login and IP data maps to `FI_MONITORING_DUTY`
+- phishing material maps to `SCAM_ORIGIN_EVIDENCE`
+
+---
+
+## Tier Flags
+
+The function also derives tier-related flags for downstream use.
+
+### `critical`
+
+Marked `true` for evidence such as:
+
+- bank account statements
+- credit card statements
+- police reports
+- raw bank login and IP data
+- dispute reports raised with the bank
+
+### `escalation_grade`
+
+Marked `true` for evidence such as:
+
+- SRF investigation reports
+- bank hotline call recordings
+- cyber expert reports
+- official disputed transaction responses from the bank
+
+These flags are stored with content and chunk metadata so downstream workflows do not have to recalculate them.
+
+---
+
+## Environment Variables
+
+### Required
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `GEMINI_API_KEY`
+
+If any of these are missing, the function returns HTTP 500 with an error message.
+
+---
+
+## Request Body
+
+### Single Document Mode
+
+```json
+{
+  "document_id": "uuid",
+  "force": false
+}
+```
+
+### Case Batch Mode
+
+```json
+{
+  "case_id": "uuid",
+  "force": false,
+  "continue_on_error": true,
+  "max_docs": 100,
+  "reprocess_errors_only": false
+}
+```
+
+### Fields
+
+#### `document_id` (optional)
+
+Processes one specific document.
+
+#### `case_id` (optional)
+
+Processes documents belonging to one case.
+
+#### `force` (optional)
+
+- `false` -> reuse existing parsed content where available
+- `true` -> rerun parsing and overwrite current derived content for the active model and pipeline version
+
+#### `continue_on_error` (optional)
+
+- `true` -> continue processing remaining case documents if one fails
+- `false` -> stop on first failure in batch mode
+
+#### `max_docs` (optional)
+
+Maximum number of case documents to inspect in batch mode.
+
+- Default: `100`
+- Allowed range enforced by code: `1-500`
+
+#### `reprocess_errors_only` (optional)
+
+When `true`, batch mode only targets documents already marked as failed or holding a processing error.
+
+---
+
+## Processing Modes
+
+### Single Document Mode
+
+When `document_id` is provided, the function processes one document and returns a single result object.
+
+### Case Batch Mode
+
+When `case_id` is provided, the function:
+
+1. loads documents for the case
+2. sorts them by upload date
+3. filters out in-flight documents
+4. optionally filters to failed documents only
+5. skips already ready documents unless `force = true`
+6. processes selected documents one by one
+
+This lets the function operate both as a targeted reprocessor and as a case-level batch worker.
+
+---
+
+## What It Reads
+
+### From `case_documents`
+
+- `id`
+- `case_id`
+- `document_type`
+- `mime_type`
+- `original_filename`
+- `filename`
+- `storage_bucket`
+- `storage_path`
+
+### From `case_documents_content`
+
+- `id`
+- `text_content`
+- `content_json`
+
+### From Supabase Storage
+
+The uploaded binary file from the specified bucket and path.
+
+---
+
+## What It Writes
+
+### `case_documents`
+
+Status and result fields are updated throughout the workflow, including:
+
+- `processing_status`
+- `processing_error`
+- `is_processed`
+- `content_latest_id`
+- `verified_document_type`
+- `verification_status`
+- `verification_confidence`
+
+### `case_documents_content`
+
+Stores parsed content and metadata, including:
+
+- `document_id`
+- `model`
+- `prompt_version`
+- `pipeline_version`
+- `text_content`
+- `content_json`
+- `parse_status`
+- `parse_errors`
+
+### `case_document_verifications`
+
+Stores the verification record, including:
+
+- declared document type
+- predicted document type
+- confidence
+- decision
+- reason
+- evidence spans
+- model
+- prompt version
+
+### `case_document_chunks`
+
+Stores paragraph-style chunks with metadata such as:
+
+- request ID
+- creation timestamp
+- evidence type
+- duty category
+- tier flags
+
+### `case_document_extractions`
+
+Writes at least one summary extraction and, where available, a transactions extraction.
+
+---
+
+## Reuse vs Reprocessing Logic
+
+If a matching content row already exists for the same:
+
+- `document_id`
+- `model`
+- `prompt_version`
+- `pipeline_version`
+
+and `force` is `false`, the function reuses the stored parsed content instead of calling Gemini again.
+
+If no matching content exists, or `force` is `true`, the function downloads the binary file and reprocesses it. This reduces repeated model cost when content has already been parsed.
+
+---
+
+## MIME Detection
+
+The function attempts to determine MIME type using:
+
+1. the existing stored MIME type if valid
+2. file signature inspection for:
+   - PDF
+   - PNG
+   - JPEG
+3. file extension fallback
+
+If none of those work, it defaults to `image/jpeg`.
+
+---
+
+## Gemini Processing
+
+The function sends the file to Gemini with a prompt that instructs the model to:
+
+1. extract readable text as `raw_text`
+2. assign exactly one `predicted_document_type`
+3. return a confidence score
+4. provide 3 to 6 evidence spans
+5. extract transactions if present
+
+The model is called through:
+
+- model: `gemini-3-pro-preview`
+- generation mode: strict JSON output
+- temperature: `0.1`
+
+The function then parses the returned JSON safely and falls back to a minimal structure if parsing fails.
+
+---
+
+## Verification Logic
+
+The function compares:
+
+- the declared document type from the UI
+- the predicted document type from Gemini
+- the confidence score
+
+It then assigns one of these decisions:
+
+- `accepted`
+- `rejected`
+- `needs_review`
+
+Rules:
+
+- matching declared and predicted type with confidence >= `0.8` -> `accepted`
+- mismatching declared and predicted type with confidence >= `0.8` -> `rejected`
+- low confidence or missing data -> `needs_review`
+
+If the declared type came from an older legacy enum, the reason string records the mapping used.
+
+---
+
+## Chunking Logic
+
+After parsing, the function chunks text into paragraph-style segments.
+
+Chunking behavior:
+
+- target size: roughly `1100` characters
+- respects paragraph boundaries where possible
+- skips chunk creation if no text exists
+
+Chunks are written to `case_document_chunks` with metadata to support retrieval and analytics.
+
+---
+
+## Extractions Written
+
+### `doc_summary_v3`
+
+Always written after successful processing.
+
+Includes fields such as:
+
+- `predicted_document_type`
+- `confidence`
+- `declared_document_type`
+- `declared_document_type_mapped`
+- `verification_decision`
+- `verification_reason`
+- `evidence_spans`
+- `has_transactions`
+- `duty_category`
+- `tier_flags`
+
+### `transactions_v1`
+
+Written only if transaction-like entries were extracted.
+
+Includes:
+
+- structured transactions array
+- predicted document type
+
+---
+
+## Processing Status Values
+
+The function updates `case_documents.processing_status` as it moves through stages:
+
+- `parsing`
+- `verifying`
+- `chunking`
+- `extracting`
+- `ready`
+- `failed`
+
+If any error occurs, the function records the error text, marks the document as failed, and sets `is_processed = false`.
+
+---
+
+## Processing Flow
+
+1. Validate required environment variables
+2. Parse JSON request body
+3. Determine whether request is single-document or case-batch mode
+4. Load the target document or case documents
+5. Mark the document as `parsing`
+6. Check whether parsed content already exists for the active model and pipeline version
+7. Reuse prior content if available and `force = false`
+8. Otherwise download the file from Supabase Storage
+9. Infer MIME type
+10. Call Gemini to classify and extract
+11. Normalize evidence type
+12. Compute duty category and tier flags
+13. Store parsed content in `case_documents_content`
+14. Compare declared and predicted document type
+15. Write verification result
+16. Chunk extracted text
+17. Write summary extraction
+18. Write transactions extraction if transactions were found
+19. Update the document to `ready`
+20. Return structured result data
+
+In case batch mode, this flow repeats for each selected document.
+
+---
+
+## Example Success Output - Single Document
+
+```json
+{
+  "ok": true,
+  "requestId": "uuid",
+  "mode": "single",
+  "result": {
+    "ok": true,
+    "document_id": "uuid",
+    "content_id": "uuid",
+    "gemini_ran": true,
+    "mime_used": "application/pdf",
+    "predicted_document_type": "BANK_ACCOUNT_STATEMENT_SHOWING_TRANSACTIONS",
+    "duty_category": "GENERAL",
+    "tier_flags": {
+      "critical": true,
+      "escalation_grade": false
+    },
+    "verification_status": "accepted",
+    "chunks_created": 8,
+    "transactions_extracted": 12
+  }
+}
+```
+
+---
+
+## Example Success Output - Case Mode
+
+```json
+{
+  "ok": true,
+  "requestId": "uuid",
+  "mode": "case",
+  "case_id": "uuid",
+  "listed": 5,
+  "selected": 3,
+  "failed": 0,
+  "results": [
+    {
+      "ok": true,
+      "document_id": "uuid",
+      "content_id": "uuid",
+      "predicted_document_type": "POLICE_REPORT_OF_FRAUD_SCAM"
+    }
+  ]
+}
+```
+
+These examples reflect the response structure used by the function, though exact values vary by run.
+
+---
+
+## Why It Exists
+
+Without this function:
+
+- uploaded documents remain largely unstructured
+- evidence type quality depends entirely on UI selection
+- downstream retrieval lacks reliable chunked text
+- later case reasoning has weaker document grounding
+- transaction data remains buried inside raw documents
+
+With this function:
+
+- evidence is normalized to a controlled taxonomy
+- declared document type can be checked against model prediction
+- extracted text becomes retrievable
+- evidence spans provide traceability
+- transactions become machine-readable
+- downstream case review and analytics become more reliable
+
+---
+
+## Internal Access
+
+This is an internal processing function.
+
+It should not be exposed directly to the frontend for arbitrary public use without additional guardrails, because it uses:
+
+- service role access
+- storage reads
+- model calls
+- internal tables for parsing, verification, and extraction
+
+It is best suited for internal workflows, admin actions, controlled triggers, or queue-driven processing.
+
+---
+
+## Dependencies
+
+- Supabase Edge Functions
+- `@supabase/supabase-js`
+- Supabase Storage
+- Gemini Generative Language API
+- case document tables in Postgres
+- structured extraction tables for chunks, content, and verifications
+
+---
+
+## Risks
+
+- repeated reprocessing can increase model cost
+- defaulting unknown MIME types to JPEG may mis-handle unusual files
+- strict evidence typing can still produce `OTHER` for ambiguous documents
+- legacy enum mapping may hide UI inconsistencies if not monitored
+- in-flight documents are skipped in case mode, so stuck records may need separate operational handling
+- verification depends on confidence threshold and may still require manual review
+- failed parsing writes error text but does not implement retry backoff by itself
+
+---
+
+## Suggested Improvements
+
+- add auth guardrails for who may invoke batch processing
+- add request-level idempotency handling
+- add retry strategy and backoff for Gemini failures
+- add explicit support for more MIME types
+- add metrics for accepted, rejected, and needs-review outcomes
+- add monitoring for legacy enum usage
+- add queue or job orchestration for large case batches
+- track token usage and model cost
+- add versioned extraction schemas for future compatibility
+- add dead-letter handling for repeatedly failing documents
+
+---
+
+## Current Hard-Coded Settings
+
+- model: `gemini-3-pro-preview`
+- prompt version: `sota_v3_evidence_index_exact`
+- pipeline version: `fanout_v3_evidence_index_exact`
+- chunk target size: about `1100` characters
+- verification confidence threshold: `0.8`
+
+
+---
+
+<a id="wiki-page-public-decisions-table"></a>
+
+**Wiki page:** `public_decisions-table.md`
+
+# public_decisions table
+
+## Purpose
+The `public_decisions` table stores external published decisions that can be used as precedent, reference material, and regulatory intelligence.
+
+It functions as a structured knowledge base of:
+- dispute decisions
+- rulings
+- forum outcomes
+- publicly available case reasoning
+
+This table is not part of the live case workflow itself.  
+It supports the system by providing external reference material.
+
+---
+
+## Key Concept
+
+GuideBuoy does not only process a user’s own evidence.
+
+It also needs a corpus of external decisions to support:
+- benchmarking
+- analogical reasoning
+- issue mapping
+- likely outcome analysis
+- escalation support
+
+This table is that corpus.
+
+---
+
+## Core Fields
+
+### Identity / Source
+- `id`
+- `source_system`
+- `source_url` — canonical source URL
+- `source_url_raw`
+- `source_host`
+- `source_path`
+- `source_doc_id`
+
+---
+
+### Jurisdiction / Forum
+- `jurisdiction_code`
+- `forum_name`
+- `forum_type`
+
+---
+
+### Case Metadata
+- `case_number`
+- `domain`
+- `case_type`
+- `title`
+- `language`
+
+---
+
+### Parties
+- `claimant_role`
+- `respondent_role`
+- `respondent_entity_type`
+- `respondent_name`
+- `industry`
+- `claimant_representation`
+
+---
+
+### Timing
+- `published_at`
+- `decision_at`
+- `filed_at`
+- `incident_at`
+
+---
+
+### Text / Structure
+- `summary`
+- `full_text`
+- `sections`
+
+---
+
+### Legal / Analytical Content
+- `issues`
+- `keywords`
+- `decision_summary_overview`
+- `issue_findings`
+- `decision_terms`
+- `timeline`
+- `authorities`
+- `evidence`
+- `control_findings`
+- `signals`
+
+---
+
+### Outcome / Remedy
+- `outcome`
+- `outcome_favours`
+- `orders`
+- `amounts`
+- `compensation_amount`
+- `compensation_currency`
+- `non_monetary_remedy`
+- `costs_amount`
+- `costs_currency`
+
+---
+
+### Search / ML
+- `content_hash`
+- `embedding_ref`
+- `embedding`
+
+---
+
+### System Metadata
+- `created_at`
+- `updated_at`
+- `inbox_id`
+
+---
+
+## How It Is Used
+
+Public decisions are used for:
+
+1. Precedent search
+2. Similar-case retrieval
+3. Outcome benchmarking
+4. Regulatory / forum pattern analysis
+5. Support for case decisioning and reporting
+
+---
+
+## Relationship to Other Tables
+
+This table is conceptually linked to:
+
+- `regulatory_clauses`
+- decision engines
+- retrieval / embedding systems
+- report generation
+
+It is usually **not directly part of the per-case transaction flow**.
+
+Instead, it supports:
+→ reasoning  
+→ reference retrieval  
+→ explainability  
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **precedent-aware AI**
+- **retrieval-augmented reasoning**
+- **forum intelligence**
+- **structured external case analysis**
+
+This is a major strategic asset because it transforms the product from:
+→ simple intake automation  
+into  
+→ knowledge-backed dispute intelligence  
+
+---
+
+## Important Pattern
+
+This table should be treated as a curated external corpus.
+
+Key rules:
+- preserve source provenance
+- avoid duplicate decision ingestion
+- keep structured fields stable
+- version enrichment carefully
+
+---
+
+## Risks / Things to Watch
+
+- duplicate decisions under multiple URLs
+- inconsistent issue taxonomy
+- poor quality summaries
+- missing source provenance
+- embedding drift when text changes
+
+
+---
+
+<a id="wiki-page-regulatory-clauses-table"></a>
+
+**Wiki page:** `regulatory_clauses-table.md`
+
+# regulatory_clauses table
+
+## Purpose
+The `regulatory_clauses` table stores individual clauses extracted or normalized from regulatory documents.
+
+It breaks larger regulatory documents into smaller, addressable units such as:
+- duties
+- obligations
+- definitions
+- rule statements
+- loss-sharing provisions
+
+This makes regulatory reasoning more precise and searchable.
+
+---
+
+## Key Concept
+
+Whole regulatory documents are too large and too broad for precise matching.
+
+This table turns them into:
+→ clause-level knowledge units
+
+That enables:
+- targeted retrieval
+- clause-level citation
+- precise rule mapping to case facts
+
+---
+
+## Deployed vs roadmap
+
+The **production** table (see `supabase/migrations/*_remote_schema.sql`) currently stores: `id`, `document_id`, `clause_ref`, `clause_type`, `title`, `text_content`, `source_ref`, `created_at`, `embedding`. Richer clause metadata (structured `conditions` / `exceptions`, applicability windows, etc.) may be added later — treat such fields as **roadmap** until they appear in a migration. Narrative in [[GuideBuoy Data Schema Reference]] §1 describes this split explicitly.
+
+---
+
+## Core Fields
+
+### Identity
+- `id`
+- `document_id` — parent regulatory document
+
+---
+
+### Clause Identity
+- `clause_ref` — stable clause reference
+- `clause_type` — type of clause (duty, definition, remedy, etc.)
+- `title`
+
+---
+
+### Content
+- `text_content` — the actual clause text
+
+---
+
+### Source Tracking
+- `source_ref` — provenance / source location
+
+---
+
+### Metadata
+- `created_at`
+
+---
+
+### Search / Retrieval
+- `embedding` — vector representation for semantic retrieval
+
+---
+
+## How It Is Used
+
+Clauses are used for:
+
+1. matching case facts to obligations
+2. grounding decision logic
+3. supporting report citations
+4. retrieval-augmented generation
+5. regulatory explanation in outputs
+
+---
+
+## Relationship to Other Tables
+
+- `regulatory_documents` → full source document
+- `regulatory_clauses` → clause-level rule units
+
+Also conceptually linked to:
+- decision runs
+- policy decisions
+- report generation
+- retrieval systems
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **fine-grained regulatory retrieval**
+- **clause-level explainability**
+- **better semantic search**
+- **more precise legal / policy grounding**
+
+Without this table:
+→ the system must reason over full documents, which is noisy and imprecise
+
+With it:
+→ the system can cite specific rule units
+
+---
+
+## Important Pattern
+
+Clauses should be:
+
+- traceable to a source document
+- stable in reference
+- typed consistently
+- embedding-ready
+
+This preserves:
+→ reproducibility  
+→ trust  
+→ explainability  
+
+---
+
+## Risks / Things to Watch
+
+- inconsistent `clause_type` taxonomy
+- weak `clause_ref` stability
+- missing linkage back to source document sections
+- embedding drift if clause text changes
+- duplicate clauses across versions of the same document
+
+
+---
+
+<a id="wiki-page-regulatory-documents-table"></a>
+
+**Wiki page:** `regulatory_documents-table.md`
+
+# regulatory_documents table
+
+## Purpose
+The `regulatory_documents` table stores regulatory and policy source documents used by the system as reference material.
+
+It acts as a structured knowledge base for:
+- laws
+- guidance
+- regulator publications
+- industry codes
+- duty frameworks
+
+This table supports rule-aware reasoning and retrieval.
+
+---
+
+## Key Concept
+
+A dispute case is not judged only against facts.
+
+It is also evaluated against:
+- legal definitions
+- regulatory duties
+- conduct obligations
+- loss-sharing rules
+- industry expectations
+
+This table stores those source materials in a form the system can search and use.
+
+---
+
+## Core Fields
+
+### Identity
+- `id`
+- `document_key` — stable logical key for the regulatory document
+
+---
+
+### Source Metadata
+- `source`
+- `regulator`
+- `jurisdiction`
+
+---
+
+### Document Identity
+- `document_title`
+- `version`
+- `issue_date`
+- `effective_date`
+
+---
+
+### Structured Regulatory Content
+- `definitions`
+- `duties_fi`
+- `duties_telco`
+- `loss_sharing_rules`
+
+These fields suggest the document is not just stored raw, but partially normalized into key legal / operational sections.
+
+---
+
+### Raw / Searchable Content
+- `raw_json` — structured original representation
+- `full_text` — searchable text representation
+- `embedding` — vector representation for semantic retrieval
+
+---
+
+### Metadata
+- `created_at`
+- `updated_at`
+
+---
+
+## How It Is Used
+
+Regulatory documents are used for:
+
+1. retrieval of relevant clauses
+2. rule-aware case analysis
+3. report generation with legal grounding
+4. mapping evidence to obligations / duties
+
+---
+
+## Relationship to Other Tables
+
+This table is conceptually linked to:
+
+- `public_decisions`
+- `regulatory_clauses` (if present)
+- decisioning tables / rule engines
+- retrieval systems using embeddings
+
+It is part of the external knowledge layer, not the per-case operational workflow.
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **regulation-aware AI**
+- **retrieval-augmented reasoning**
+- **grounded clause referencing**
+- **jurisdiction-specific logic**
+
+This is strategically important because it turns the product from:
+→ case management  
+into  
+→ case intelligence under a rules framework  
+
+---
+
+## Important Pattern
+
+Treat these documents as:
+
+- curated source material
+- version-sensitive
+- jurisdiction-sensitive
+- regulator-sensitive
+
+Always preserve provenance and effective dates.
+
+---
+
+## Risks / Things to Watch
+
+- outdated regulatory versions
+- mixing jurisdictions
+- weak normalization of duties / definitions
+- embedding drift when texts are updated
+- poor traceability to the exact source document version
+
+
+---
+
+<a id="wiki-page-reports-table"></a>
+
+**Wiki page:** `reports-table.md`
+
+# reports table
+
+## Purpose
+The `reports` table stores **generated outputs delivered to the user**.
+
+These are structured reports produced by the system based on:
+- extracted evidence
+- validated inputs
+- decision engine outputs
+
+This is the **primary user-facing artifact layer**.
+
+---
+
+## Key Concept
+
+This table represents:
+
+→ “What the system produced for the user”
+
+While:
+
+- `case_document_extractions` → raw structured data  
+- `v_latest_validation` → cleaned/validated data  
+- `case_decision_runs` → reasoning & decisions  
+
+👉 `reports` = **final packaged output**
+
+---
+
+## Core Fields
+
+### Identity
+- `id`
+- `user_id`
+- `case_id`
+
+---
+
+### Report Type
+- `report_type`
+
+Examples:
+- `case_summary` (Tier 0)
+- `self_serve_report` (Tier 1)
+- `escalation_pack` (Tier 2)
+
+---
+
+### Status
+- `status`
+
+Typical values:
+- `draft`
+- `generating`
+- `completed`
+- `failed`
+
+---
+
+### Report Content
+- `report_json`
+
+Structured output containing:
+- narrative
+- findings
+- recommendations
+- citations
+- next steps
+
+---
+
+### Decision Link
+- `source_decision_run_id`
+
+Links the report to:
+→ the decision engine output used to generate it
+
+---
+
+### Idempotency / Versioning
+- `inputs_hash`
+
+Used to:
+- detect duplicate generation
+- ensure reproducibility
+- avoid unnecessary recomputation
+
+---
+
+### Metadata
+- `created_at`
+- `updated_at`
+
+---
+
+## How It Is Used
+
+### 1. User Output Delivery
+
+This is what users:
+- read
+- download
+- act on
+
+---
+
+### 2. Tier Differentiation (CRITICAL)
+
+Each report type corresponds to a product tier:
+
+| Tier | Report |
+|------|-------|
+| free | basic summary |
+| self_serve_report | structured report + evidence |
+| escalation_pack | full decision + escalation-ready output |
+
+---
+
+### 3. Regeneration / Idempotency
+
+Before generating a report:
+
+- check `inputs_hash`
+- reuse existing report if identical
+
+---
+
+### 4. Auditability
+
+Reports should always be traceable to:
+- inputs
+- decision runs
+- entitlements
+
+---
+
+## Relationship to Other Tables
+
+- `cases` → parent entity  
+- `case_decision_runs` → source reasoning  
+- `evidence` / `case_documents` → supporting data  
+- `case_entitlements` → determines allowed report types  
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **product output layer**
+- **tiered deliverables**
+- **reproducible AI outputs**
+- **user value realisation**
+
+This is where your product becomes tangible.
+
+---
+
+## Important Pattern
+
+Reports should be:
+
+- deterministic (same inputs → same output)
+- versionable (track changes over time)
+- tied to decision runs
+- aligned with entitlement rules
+
+---
+
+## Critical Rule
+
+Report generation must be gated by:
+
+- `case_entitlements`
+- NOT frontend logic
+
+Example:
+
+```text
+if NOT allow_report_generation:
+    block
+
+
+---
+
+<a id="wiki-page-run-case-decision-v1"></a>
+
+**Wiki page:** `run_case_decision_v1.md`
+
+# Edge Function - `run_case_decision_v1`
+
+## Purpose
+
+`run_case_decision_v1` generates a structured case decision from the latest case extraction, enriched document evidence, retrieved regulatory clauses, and retrieved public decisions.
+
+It is designed to:
+
+- read the latest `case_extract_runs` record for a case
+- reuse an existing decision when the same `(case_id, extract_run_id)` has already been processed
+- rank enriched document evidence and prefer stronger evidence sources
+- embed normalized case facts and evidence snippets for retrieval
+- retrieve relevant regulatory clauses and public decisions
+- ask OpenAI to produce a strict JSON decision
+- enforce server-side invariants on score, status, gaps, and references
+- write the final decision into `case_decision_runs`
+
+This function is an internal backend decisioning workflow. It is not a frontend user-facing function.
+
+---
+
+## Function Type
+
+Backend decisioning and retrieval function  
+Internal processing workflow  
+Not user-facing
+
+---
+
+## Trigger Method
+
+**POST only**
+
+The function rejects all non-POST requests with HTTP `405`.
+
+---
+
+## Request Body Example
+
+```json
+{
+  "case_id": "uuid",
+  "force": false,
+  "top_k_clauses": 10,
+  "top_k_decisions": 10,
+  "clause_similarity_threshold": 0.12,
+  "prompt_version": "decision_v1.2_spans_doc_types"
+}
+```
+
+---
+
+## Inputs
+
+### Fields
+
+#### `case_id` (required)
+
+The case to evaluate.
+
+#### `force` (optional)
+
+Controls idempotent reuse behavior.
+
+- `false` -> if a decision already exists for the same `(case_id, extract_run_id)`, return the existing decision
+- `true` -> if a decision already exists for the same `(case_id, extract_run_id)`, update it with a newly generated decision
+
+#### `top_k_clauses` (optional)
+
+Number of regulatory clause matches to retrieve.
+
+- Default: `10`
+- Allowed range: `1-20`
+
+#### `top_k_decisions` (optional)
+
+Number of public decision matches to retrieve.
+
+- Default: `10`
+- Allowed range: `1-20`
+
+#### `clause_similarity_threshold` (optional)
+
+Similarity threshold for clause retrieval.
+
+- Default: `0.12`
+- Allowed range: `0-1`
+
+#### `prompt_version` (optional)
+
+Label stored with the decision run.
+
+- Default: `decision_v1.2_spans_doc_types`
+
+---
+
+## Environment Variables
+
+### Required
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `GuideBuoy_EdgeFunction`
+
+### Optional
+
+- `CASE_DECISION_MODEL`
+
+Default model if not provided:
+
+- `gpt-4.1-mini`
+
+---
+
+## Idempotency Behavior
+
+The function uses the combination of:
+
+- `case_id`
+- `extract_run_id`
+
+as the effective decision idempotency key.
+
+Behavior:
+
+- if an existing `case_decision_runs` row exists and `force = false`, the function returns that row unchanged
+- if an existing row exists and `force = true`, the function updates that row
+- if no existing row exists, the function inserts a new row
+
+This supports repeat-safe operation for the latest extraction state.
+
+---
+
+## High-Level Flow
+
+1. Validate required environment variables
+2. Reject non-POST requests
+3. Parse the request body
+4. Validate `case_id`
+5. Load the latest `case_extract_runs` row for the case
+6. Check whether a decision already exists for `(case_id, extract_run_id)`
+7. Reuse the existing decision if allowed
+8. Load enriched document evidence from `case_documents_enriched`
+9. Rank evidence and build evidence snippets
+10. Normalize core case facts from `extract_json`
+11. Build retrieval text from facts and evidence
+12. Generate an embedding using OpenAI
+13. Retrieve regulatory clauses by vector similarity
+14. Retrieve public decisions by vector similarity
+15. Infer server-side gaps only from null or undefined fields
+16. Compute server-side score guidance
+17. Call OpenAI Responses API using a locked JSON schema
+18. Enforce server-side invariants on the returned decision
+19. Insert or update `case_decision_runs`
+20. Return the decision together with retrieval and scoring debug data
+
+---
+
+## Locked Decision Schema
+
+The function requires the model to output JSON matching a locked schema named:
+
+- `case_decision_v1`
+
+The schema version stored in the output is:
+
+- `decision_version = "case_decision_v1"`
+
+### Required Top-Level Fields
+
+- `decision_version`
+- `case_id`
+- `generated_at`
+- `summary`
+- `eligibility`
+- `critical_flags`
+- `gaps`
+- `recommended_actions`
+- `references`
+- `diagnostics`
+
+### Eligibility Structure
+
+`eligibility` includes:
+
+- `status` -> `low`, `medium`, or `high`
+- `score` -> integer from `0` to `100`
+- `rationale`
+
+### Critical Flags
+
+Each item includes:
+
+- `code`
+- `severity` -> `info`, `warning`, or `critical`
+- `title`
+- `detail`
+- `evidence_refs`
+
+### Gaps
+
+Each gap includes:
+
+- `field`
+- `question`
+- `why_needed`
+- `priority` -> `p0`, `p1`, or `p2`
+- `expected_type`
+- `allowed_values`
+- `example_answer`
+
+### Recommended Actions
+
+Each action includes:
+
+- `action`
+- `why`
+- `priority`
+- `depends_on_gaps`
+- `reference_refs`
+
+### References
+
+`references` contains:
+
+- `regulatory_clauses`
+- `public_decisions`
+- `evidence`
+
+### Diagnostics
+
+`diagnostics` contains:
+
+- `assumptions`
+- `limits`
+
+---
+
+## What It Reads
+
+### `case_extract_runs`
+
+The function loads the latest extraction run for the case:
+
+- `id`
+- `case_id`
+- `extract_json`
+- `missing_fields`
+- `created_at`
+
+If no extract run exists, the function returns HTTP `404`.
+
+### `case_decision_runs`
+
+The function checks for an existing row using:
+
+- `case_id`
+- `extract_run_id`
+
+### `case_documents_enriched`
+
+The function reads enriched evidence rows, including:
+
+- `extraction_id`
+- `case_id`
+- `document_id`
+- `content_id`
+- `extracted_text`
+- `extracted_json`
+- `extraction_confidence`
+- `extraction_created_at`
+- `declared_document_type`
+- `predicted_document_type`
+- `verification_confidence`
+- `verification_decision`
+- `verification_reason`
+- `verification_spans`
+- `verified_at`
+
+### Retrieval RPCs
+
+The function calls:
+
+- `match_regulatory_clauses_threshold(query_embedding, match_count, similarity_threshold)`
+- `match_public_decisions(query_embedding, match_count)`
+
+The clause retrieval RPC uses an explicit threshold. The public decisions RPC does not accept a threshold parameter in this function.
+
+---
+
+## What It Writes
+
+### `case_decision_runs`
+
+The function inserts or updates a row with:
+
+- `case_id`
+- `extract_run_id`
+- `decision_json`
+- `eligibility_status`
+- `strength_score_value`
+- `model_name`
+- `prompt_version`
+- `created_at` on insert
+
+---
+
+## Evidence Selection Strategy
+
+The function builds decision evidence from:
+
+- the latest case extraction JSON
+- top-ranked enriched document evidence
+
+### Ranking Preferences
+
+Evidence ranking prefers:
+
+- `CYBER_REPORT` document type
+- content mentioning cyber, forensic, expert, or malware terms
+- content suggesting no credentials or no OTP sharing
+- content mentioning unauthorised activity
+- verified documents
+- documents with evidence spans
+
+### Useful Content Rule
+
+A document is considered useful if it has either:
+
+- one or more evidence spans, or
+- at least about `80` characters of extracted text
+
+### Spans-First Evidence
+
+For each selected document, the function prefers:
+
+1. `verification_spans`
+2. `extracted_json.evidence_spans`
+3. fallback to `extracted_text`
+
+This means page-aware quoted spans are preferred over raw text.
+
+### Evidence Source Types
+
+The final evidence array can include:
+
+- `case_extract_run`
+- `case_document_extraction`
+
+---
+
+## Normalized Facts
+
+The function extracts normalized facts from `extract_json`, including:
+
+### Case Metadata
+
+- `jurisdiction`
+- `institution_name`
+- `claim_type`
+- `claim_amount`
+- `claim_currency`
+
+### Timeline
+
+- `incident_at`
+- `reported_to_institution_at`
+- `reported_to_police_at`
+
+### Customer Actions
+
+- `shared_otp`
+- `provided_credentials`
+- `clicked_phishing_link`
+- `approved_push_notification`
+- `installed_remote_access_software`
+
+### Institution Actions
+
+- `payee_added`
+- `limits_changed`
+- `step_up_authentication_used`
+- `transaction_block_attempted`
+
+### Evidence Confidence
+
+- `evidence_status.confidence`
+
+These facts are used both for retrieval and for score guidance.
+
+---
+
+## Retrieval Pipeline
+
+The function converts normalized facts and evidence snippets into a retrieval text block.
+
+### Embedding Model
+
+Uses:
+
+- `text-embedding-3-small`
+
+### Regulatory Clause Retrieval
+
+Calls:
+
+- `match_regulatory_clauses_threshold`
+
+Parameters:
+
+- `query_embedding`
+- `match_count`
+- `similarity_threshold`
+
+### Public Decision Retrieval
+
+Calls:
+
+- `match_public_decisions`
+
+Parameters:
+
+- `query_embedding`
+- `match_count`
+
+### Retrieval Payload
+
+The model input includes:
+
+- normalized facts
+- full `extract_json`
+- evidence snippets
+- server-inferred gaps
+- scoring guidance
+- retrieved regulatory clause candidates
+- retrieved public decision candidates
+- constraints for gap creation
+
+---
+
+## Gap Inference Rules
+
+The function generates server-side gaps only when fields are:
+
+- `null`, or
+- `undefined`
+
+It never creates gaps for fields that are explicitly `false`.
+
+### Candidate Gap Paths
+
+The built-in inferred gaps target fields such as:
+
+- `customer_actions.clicked_phishing_link`
+- `customer_actions.provided_credentials`
+- `customer_actions.approved_push_notification`
+- `customer_actions.installed_remote_access_software`
+- `institution_actions.limits_changed`
+
+Each inferred gap includes:
+
+- a user-facing question
+- why the value is needed
+- priority
+- expected type
+- allowed values
+- example answer
+
+---
+
+## Score Guidance Rules
+
+The function computes server-side scoring guidance before calling the model.
+
+It examines:
+
+- evidence confidence
+- whether the customer appears to have taken no risky authorising actions
+- whether institutional control facts remain unknown
+
+### No-Customer-Fault Rule
+
+`no_customer_fault` becomes true only when all of these are explicitly `false`:
+
+- `shared_otp`
+- `provided_credentials`
+- `clicked_phishing_link`
+- `approved_push_notification`
+- `installed_remote_access_software`
+
+### Suggested Score Rules
+
+Default suggested score starts at `50`.
+
+It increases under stronger evidence conditions, for example:
+
+- `75` when confidence is high and there is no customer fault
+- `85` when confidence is high, there is no customer fault, and the institution-side gap is not the only remaining issue
+
+The function also computes a `suggested_min_score`.
+
+If confidence is high and there is no customer fault, the model should not go below that minimum without citing contradictory evidence.
+
+---
+
+## OpenAI Decision Generation
+
+The function calls the OpenAI Responses API and requests strict JSON schema output.
+
+### Model Prompt Rules
+
+The system instructions require the model to:
+
+- output strict JSON matching the supplied schema
+- avoid inventing facts
+- use only provided inputs
+- create gaps only for null, unknown, or missing values
+- avoid creating gaps for explicit true or false values
+- avoid negative claims unless supported by evidence quotes
+- cite only retrieved candidates that were actually provided
+- set unavailable candidate fields to `null`
+- treat cross-jurisdiction public decisions as weaker guidance when relevant
+
+### Output Format
+
+The API call uses:
+
+- `text.format.type = "json_schema"`
+- schema name: `case_decision_v1`
+
+---
+
+## Server-Side Invariants
+
+After the model returns a decision, the function enforces several invariants.
+
+### Fixed Fields
+
+The function overwrites:
+
+- `decision_version`
+- `case_id`
+- `generated_at`
+
+### Gap Merge
+
+The function merges:
+
+- model-generated gaps
+- server-inferred gaps
+
+Deduplication is performed by `field`.
+
+### Required Containers
+
+The function ensures these exist and are arrays or objects as expected:
+
+- `critical_flags`
+- `recommended_actions`
+- `references`
+- `references.regulatory_clauses`
+- `references.public_decisions`
+- `references.evidence`
+- `diagnostics`
+- `diagnostics.assumptions`
+- `diagnostics.limits`
+
+### Evidence Injection
+
+If the model returns an empty `references.evidence`, the function injects the server-built evidence list and records that in diagnostics.
+
+### Score Clamp
+
+The function makes the server authoritative for the final score:
+
+- converts the score to an integer
+- clamps the value to `0-100`
+
+### Score Floor
+
+If the model score is below the server `suggested_min_score`, the function raises the score to the minimum and records that adjustment in diagnostics.
+
+### Status Derivation
+
+The function forces `eligibility.status` to match the final score:
+
+- `low` for score less than `40`
+- `medium` for score from `40` to `84`
+- `high` for score `85` or above
+
+### Language Cleanup
+
+The function also rewrites contradictory wording in:
+
+- `summary`
+- `eligibility.rationale`
+
+For example, if the final status is `medium`, it normalizes phrases like:
+
+- `high eligibility` -> `moderate to strong eligibility`
+- `assessed as high` -> `assessed as medium`
+
+---
+
+## Database Columns Derived from Decision
+
+The function stores these DB-level decision fields separately from `decision_json`:
+
+- `eligibility_status`
+- `strength_score_value`
+
+These are always derived from the final server-authoritative score and status.
+
+---
+
+## Response Behavior
+
+### Reused Existing Decision
+
+When a matching decision already exists and `force = false`, the function returns:
+
+- `ok: true`
+- `reused: true`
+- existing `decision_run_id`
+- `case_id`
+- `extract_run_id`
+- `eligibility_status`
+- `strength_score_value`
+- `decision_json`
+
+### Newly Generated or Updated Decision
+
+When the function generates a new decision or updates an existing one, it returns:
+
+- `ok: true`
+- `reused: false`
+- `updated_existing`
+- `decision_run_id`
+- `case_id`
+- `extract_run_id`
+- `eligibility_status`
+- `strength_score_value`
+- `decision_json`
+- `debug`
+
+### Debug Payload
+
+The debug block includes:
+
+- `clause_threshold`
+- retrieved clause count
+- retrieved decision count
+- top clause similarity values
+- top decision similarity values
+- evidence document extraction IDs used
+- top ranked document types and confidences
+- scoring guidance
+
+### Fatal Errors
+
+On errors, the function returns plain text with HTTP `500`.
+
+The error text includes:
+
+- error name
+- message
+- stack trace where available
+
+---
+
+## Why It Exists
+
+Without this function:
+
+- case extraction remains disconnected from precedent and regulatory retrieval
+- evidence ranking is not standardized
+- decision outputs may be inconsistent across repeated runs
+- gaps may be over-generated for explicit false values
+- score and status may drift apart
+- database decision fields may not match JSON decision content
+
+With this function:
+
+- the latest extraction is converted into a structured decision record
+- retrieval is grounded in vector similarity over facts and evidence
+- evidence spans are preferred over weaker raw text
+- gaps are restricted to truly missing values
+- score, status, and wording are kept internally consistent
+- decisions can be safely reused or force-refreshed
+
+---
+
+## Tier / Access
+
+**Internal only**
+
+This function should not be exposed directly to end users.
+
+It uses:
+
+- service-role Supabase access
+- internal extraction and enriched document views
+- retrieval RPCs
+- OpenAI embeddings and decision generation
+
+It is best suited for:
+
+- backend orchestration
+- controlled internal workflows
+- admin-triggered processing
+- case pipeline decision stages
+
+---
+
+## Dependencies
+
+- Supabase Edge Functions
+- `@supabase/supabase-js`
+- OpenAI Embeddings API
+- OpenAI Responses API
+- `case_extract_runs`
+- `case_decision_runs`
+- `case_documents_enriched`
+- `match_regulatory_clauses_threshold`
+- `match_public_decisions`
+
+---
+
+## Risks
+
+- reusing only the latest extract run may hide older but still relevant extraction history
+- evidence ranking heuristics may overweight specific document types such as cyber reports
+- public decision retrieval has no threshold in this function, so weaker matches may still be included
+- score floor logic can override the model's lower score when the server rule applies
+- wording normalization may flatten nuance in the model narrative
+- empty or low-quality extracted evidence reduces retrieval quality
+- fatal errors return plain text rather than structured error JSON
+- cross-jurisdiction precedents may still be over-read if relevance text is weak
+
+---
+
+## Suggested Improvements
+
+- add explicit auth guardrails for invocation
+- add structured JSON error responses
+- persist retrieval candidates and final evidence mapping separately for auditability
+- track model cost and token usage
+- store retrieval embedding metadata for observability
+- add thresholding or post-filtering for public decision matches
+- expand scoring guidance rules beyond the current no-customer-fault pattern
+- add richer provenance between references and exact evidence items used
+- add request-level tracing or run-stage markers similar to extraction workflows
+
+---
+
+## Current Hard-Coded Defaults
+
+- decision schema version: `case_decision_v1`
+- embedding model: `text-embedding-3-small`
+- default decision model: `gpt-4.1-mini`
+- default prompt version: `decision_v1.2_spans_doc_types`
+- default `top_k_clauses`: `10`
+- default `top_k_decisions`: `10`
+- default `clause_similarity_threshold`: `0.12`
+- maximum selected evidence documents: `6`
+- maximum evidence items built per selected document: `6`
+
+---
+
+## Example Success Response
+
+```json
+{
+  "ok": true,
+  "reused": false,
+  "updated_existing": false,
+  "decision_run_id": "uuid",
+  "case_id": "uuid",
+  "extract_run_id": "uuid",
+  "eligibility_status": "medium",
+  "strength_score_value": 75,
+  "decision_json": {
+    "decision_version": "case_decision_v1",
+    "case_id": "uuid",
+    "generated_at": "2026-03-21T00:00:00.000Z",
+    "summary": "The case shows moderate to strong eligibility based on the extracted evidence and retrieved guidance.",
+    "eligibility": {
+      "status": "medium",
+      "score": 75,
+      "rationale": "The available evidence supports a medium-strength case, subject to the documented limits and remaining gaps."
+    },
+    "critical_flags": [],
+    "gaps": [],
+    "recommended_actions": [],
+    "references": {
+      "regulatory_clauses": [],
+      "public_decisions": [],
+      "evidence": []
+    },
+    "diagnostics": {
+      "assumptions": [],
+      "limits": []
+    }
+  },
+  "debug": {
+    "clause_threshold": 0.12,
+    "retrieved_clause_count": 10,
+    "retrieved_decision_count": 10,
+    "top_clause_similarity": [0.71, 0.69],
+    "top_decision_similarity": [0.65, 0.62]
+  }
+}
+```
+
+
+---
+
+<a id="wiki-page-run-case-extract-v3"></a>
+
+**Wiki page:** `run_case_extract_v3.md`
+
+# Edge Function - `run_case_extract_v3`
+
+## Purpose
+
+`run_case_extract_v3` builds a structured case extraction from case data, intake data, narratives, and document-derived evidence.
+
+It is designed to:
+
+- assemble a single extraction payload for a case
+- compute key facts from evidence before model inference
+- send a curated evidence digest to OpenAI in strict JSON mode
+- enforce server-computed values back into the extraction result
+- write the extraction run to the database
+- optionally trigger validation through `run_validation_v1`
+
+This function is an internal backend workflow in the case-processing pipeline. It is not a frontend user-facing function.
+
+---
+
+## Function Type
+
+Backend extraction and orchestration function  
+Internal processing workflow  
+Not user-facing
+
+---
+
+## Trigger Method
+
+### `GET`
+
+Used as a healthcheck.
+
+Returns:
+
+- `ok`
+- `version`
+- `request_id`
+
+### `POST`
+
+Runs the extraction workflow.
+
+---
+
+## Version
+
+Current hard-coded version string:
+
+```text
+run_case_extract_v3::v2.1.3::two-tier-evidence+loss-keyword-override+txn-dedupe-filter+reporting-dates(first-report+type-aware)::atomic-rpc+stages
+```
+
+The embedded change notes indicate that this version includes:
+
+- first-report prioritisation for institution reporting dates
+- type-aware evidence preference
+- two-tier evidence handling
+- transaction deduplication and filtering
+- loss override logic
+- atomic validation RPC handling
+- diagnostic stage markers
+
+---
+
+## Inputs
+
+### Request Body Example
+
+```json
+{
+  "case_id": "uuid",
+  "skip_validation": false
+}
+```
+
+### Fields
+
+#### `case_id` (required)
+
+The case to extract.
+
+#### `skip_validation` (optional)
+
+- `false` -> run extraction and then call `run_validation_v1`
+- `true` -> run extraction only and skip validation
+
+---
+
+## Environment Variables
+
+### Required
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `GuideBuoy_EdgeFunction`
+
+### Optional
+
+- `CASE_EXTRACT_MODEL`
+
+Default model if not provided:
+
+- `gpt-4.1-mini`
+
+---
+
+## High-Level Flow
+
+1. Validate environment variables
+2. Accept `GET` healthcheck or `POST` extraction request
+3. Parse request body
+4. Load the case
+5. Load latest intake row
+6. Load latest narrative row
+7. Load evidence from document tables
+8. Compute server-side facts from all available evidence
+9. Select a curated evidence subset for the LLM prompt
+10. Build a strict JSON template
+11. Call OpenAI Responses API
+12. Retry once if model output is not valid JSON
+13. Post-process and enforce server-computed facts
+14. Insert a row into `case_extract_runs`
+15. Optionally call `run_validation_v1`
+16. Return extraction result, validation result, and debug metadata
+
+---
+
+## What It Reads
+
+### `cases`
+
+The function loads the target case using:
+
+- `id`
+
+It then reads the full case row for use in extraction.
+
+### `case_intake`
+
+Loads the latest intake row for the case by:
+
+- highest `version`
+- latest `created_at`
+
+### `case_narratives`
+
+Loads the latest narrative row for the case by:
+
+- latest `created_at`
+
+### `case_documents`
+
+Reads document metadata for the case, including:
+
+- `id`
+- `filename`
+- `verified_document_type`
+- `processing_status`
+- `is_processed`
+
+### `case_document_extractions`
+
+Reads prior document extraction outputs, including:
+
+- `id`
+- `document_id`
+- `confidence`
+- `extracted_json`
+- `extracted_text`
+- `created_at`
+
+The function keeps the best extraction per document using:
+
+- highest confidence
+- latest timestamp as tie-breaker
+
+---
+
+## What It Writes
+
+### `case_extract_runs`
+
+Inserts a new extraction run with:
+
+- `case_id`
+- `extract_json`
+- `missing_fields`
+- `model_name`
+- `prompt_version`
+- `intake_id`
+
+### Validation RPC
+
+If validation is not skipped, the function calls:
+
+- `run_validation_v1`
+
+using:
+
+- `p_extract_run_id`
+
+This returns a validation run ID when successful.
+
+---
+
+## Evidence Handling
+
+The function uses a **two-tier evidence approach**.
+
+### Tier 1 - All Evidence for Server Computation
+
+It loads the best available extraction for every document in the case and uses that full evidence set to compute facts such as:
+
+- institution name guess
+- reported loss
+- transaction totals
+- reported-to-police date
+- reported-to-institution date
+
+### Tier 2 - Curated Evidence for the Prompt
+
+It selects a smaller subset of documents for the LLM prompt.
+
+Prompt evidence selection rules include:
+
+- maximum of `16` documents
+- snippet size capped at about `900` characters per document
+- higher preference for police, bank, statement, dispute, form, SMS, and phishing/email evidence
+- confidence contributes to ranking
+
+This keeps the prompt focused while preserving broader server-side evidence computation.
+
+---
+
+## OpenAI Extraction
+
+The function calls the OpenAI Responses API and requests strict JSON output.
+
+### Model
+
+Uses:
+
+- `CASE_EXTRACT_MODEL`, or
+- `gpt-4.1-mini` by default
+
+### Extraction Rules Given to the Model
+
+The system prompt requires the model to:
+
+- return only valid JSON
+- match the supplied template exactly
+- avoid extra keys
+- use `null` when unknown
+- avoid legal conclusions
+- avoid inventing documents
+
+### Retry Logic
+
+If the first model output is not valid JSON:
+
+- the function performs one retry
+- the retry prompt includes the invalid prior output
+- the function again asks for only a valid JSON object
+
+---
+
+## JSON Template Produced
+
+The extraction template includes these top-level areas:
+
+- `losses`
+- `timeline`
+- `case_meta`
+- `evidence_status`
+- `customer_actions`
+- `institution_actions`
+- `incident_date`
+- `reported_loss`
+
+### Timeline Fields
+
+Includes:
+
+- `incident_at`
+- `discovered_at`
+- `reported_to_police_at`
+- `reported_to_institution_at`
+
+### Case Metadata Fields
+
+Includes:
+
+- `claim_type`
+- `claim_amount`
+- `jurisdiction`
+- `claim_currency`
+- `institution_name`
+
+### Evidence Status Fields
+
+Includes:
+
+- `confidence`
+- `missing_facts`
+- `documents_missing`
+- `documents_present`
+
+### Customer Actions
+
+Includes fields such as:
+
+- `shared_otp`
+- `provided_credentials`
+- `clicked_phishing_link`
+- `approved_push_notification`
+- `installed_remote_access_software`
+
+### Institution Actions
+
+Includes fields such as:
+
+- `payee_added`
+- `limits_changed`
+- `step_up_authentication_used`
+- `transaction_block_attempted`
+
+---
+
+## Server-Computed Facts
+
+Before the LLM response is accepted, the function computes several facts directly from evidence.
+
+### Institution Name Guess
+
+It scans evidence text for institution keywords, including:
+
+- `DBS`
+- `POSB`
+- `OCBC`
+- `UOB`
+- `CITIBANK`
+
+It then chooses the best-scoring institution guess.
+
+### Reported Loss
+
+It extracts transactions from evidence and computes loss by:
+
+1. collecting transactions from document extraction JSON
+2. normalising amounts and currencies
+3. deduplicating transactions
+4. dropping likely noise transactions such as:
+   - declined
+   - reversed
+   - refund
+5. summing totals by currency
+6. preferring case claim amount when present and non-zero
+
+The reported loss object includes:
+
+- `amount`
+- `currency`
+- `source`
+
+Possible sources include:
+
+- `case_claim_amount`
+- `sum_transactions_deduped_filtered`
+- `unknown`
+
+### Reported-to-Police Date
+
+The function searches evidence for police-related keywords such as:
+
+- `POLICE REPORT`
+- `REPORT TO POLICE`
+- `SPF`
+- `SINGAPORE POLICE`
+- `E-REPORT`
+- `POLICE CASE`
+
+It extracts nearby dates and scores candidates by keyword relevance, document type, confidence, and position.
+
+### Reported-to-Institution Date
+
+The function applies a more nuanced institution-reporting strategy.
+
+It prioritises **first-report** language over acknowledgements and late-stage outcome language.
+
+Examples of first-report phrases include:
+
+- `WE RECEIVED YOUR SCAM REPORT`
+- `WE HAVE RECEIVED YOUR REPORT`
+- `THANK YOU FOR REPORTING`
+- `SCAM REPORT SUBMITTED`
+- `REFERENCE NUMBER`
+- `DISPUTE SUBMITTED`
+- `TRANSACTION DISPUTE`
+
+It prefers the **earliest plausible date** on or after incident date when first-report candidates exist.
+
+It also applies type-aware scoring so that bank communications and dispute forms outrank later official responses and decisions.
+
+### Date Parsing Supported
+
+The function can parse nearby dates in formats such as:
+
+- `YYYY-MM-DD`
+- `DD/MM/YYYY`
+- month-name formats such as `16 Oct 2025`
+- French month-name formats such as `16 octobre 2025`
+
+---
+
+## Enforcement of Server Facts
+
+After the LLM returns JSON, the function post-processes the result and enforces server-computed values.
+
+It ensures these values are applied when available:
+
+- `reported_loss.amount`
+- `reported_loss.currency`
+- `case_meta.institution_name` if missing
+- `timeline.reported_to_police_at`
+- `timeline.reported_to_institution_at`
+
+It also ensures validator-compatible keys exist, including:
+
+- `incident_date`
+- `reported_loss`
+
+If no `losses` array is present but server-computed loss exists, the function creates a summary loss item.
+
+It also ensures default structures exist for:
+
+- `timeline`
+- `case_meta`
+- `evidence_status`
+- `customer_actions`
+- `institution_actions`
+
+---
+
+## Missing Fields Tracking
+
+Before inserting the extraction run, the function records missing required fields.
+
+It specifically checks:
+
+- `incident_date`
+- `reported_loss.amount`
+- `case_meta.institution_name`
+
+Any missing values are written into `case_extract_runs.missing_fields`.
+
+---
+
+## Status and Diagnostics
+
+The function generates:
+
+- `request_id`
+- current `stage`
+- an array of stage markers in `debug_marks`
+
+Stage markers are used for diagnostic tracing and include timestamps and optional metadata.
+
+Examples of stage names include:
+
+- `01_env`
+- `02_parse`
+- `03_case`
+- `04_intake`
+- `05_narrative`
+- `06_evidence_all_start`
+- `06b_server_compute_start`
+- `08_openai_start`
+- `09_insert_extract_run_start`
+- `10_rpc_start`
+
+---
+
+## Response Behaviour
+
+### Healthcheck Response
+
+```json
+{
+  "ok": true,
+  "version": "run_case_extract_v3::v2.1.3::two-tier-evidence+loss-keyword-override+txn-dedupe-filter+reporting-dates(first-report+type-aware)::atomic-rpc+stages",
+  "request_id": "uuid"
+}
+```
+
+### Successful Extraction With Validation
+
+Returns fields including:
+
+- `ok`
+- `version`
+- `request_id`
+- `stage`
+- `extract_run`
+- `validation_run_id`
+- `rpc_error`
+- `evidence_docs_used`
+- `server_computed`
+- `debug_counts`
+- `debug_marks`
+
+### Successful Extraction With Validation Skipped
+
+Returns the same extraction payload but with:
+
+- `validation_run_id: null`
+- warning indicating validation was skipped
+
+### Successful Extraction But Validation RPC Failed
+
+The function still returns `ok: true` for the extraction itself and includes:
+
+- `validation_run_id: null`
+- `rpc_error`
+- warning indicating validation failed or timed out
+
+### Fatal Error Response
+
+On unhandled errors, returns:
+
+- `ok: false`
+- `version`
+- `request_id`
+- `stage`
+- `error`
+
+with HTTP `500`.
+
+---
+
+## Why It Exists
+
+Without this function:
+
+- case evidence remains fragmented across tables
+- extraction quality depends entirely on raw model inference
+- important dates and losses may be inconsistently inferred
+- downstream validation lacks a consistent extraction run payload
+- evidence sent to the model may be noisy or oversized
+
+With this function:
+
+- evidence is consolidated into one case extraction
+- server-computed facts can override weaker model guesses
+- prompt evidence is curated while broader evidence is still used
+- missing critical fields are tracked explicitly
+- extraction and validation can run as one controlled workflow
+- debugging is easier through stage markers and structured return payloads
+
+---
+
+## Tier / Access
+
+**Internal only**
+
+This function should not be exposed directly to end users.
+
+It uses:
+
+- service-role Supabase access
+- internal evidence tables
+- OpenAI model calls
+- internal validation RPCs
+
+It is best suited for:
+
+- backend orchestration
+- admin-controlled workflows
+- queue or trigger-driven processing
+- internal case pipeline operations
+
+---
+
+## Dependencies
+
+- Supabase Edge Functions
+- `@supabase/supabase-js`
+- OpenAI Responses API
+- `cases`
+- `case_intake`
+- `case_narratives`
+- `case_documents`
+- `case_document_extractions`
+- `case_extract_runs`
+- `run_validation_v1`
+
+---
+
+## Risks
+
+- server-side heuristics may still choose the wrong institution or date in ambiguous cases
+- curated prompt evidence may omit useful low-ranked documents
+- transaction deduplication rules may suppress valid edge-case transactions
+- keyword-based reporting-date detection may miss unusual wording
+- OpenAI output can still fail JSON parsing even with retry
+- validation may fail independently after extraction succeeds
+- debug metadata may expose more internal processing detail than desired if surfaced too broadly
+
+---
+
+## Suggested Improvements
+
+- add explicit auth guardrails for invocation
+- add idempotency handling for repeat requests
+- persist more detailed evidence provenance for server-computed facts
+- add better observability for extraction failures and retries
+- track model usage and cost per extraction run
+- broaden institution detection patterns
+- add more robust multilingual reporting-date detection
+- add queue-based orchestration for heavy workloads
+- version the extraction schema independently from the prompt version
+
+---
+
+## Example Request
+
+```json
+{
+  "case_id": "123e4567-e89b-12d3-a456-426614174000",
+  "skip_validation": false
+}
+```
+
+## Example Success Response
+
+```json
+{
+  "ok": true,
+  "version": "run_case_extract_v3::v2.1.3::two-tier-evidence+loss-keyword-override+txn-dedupe-filter+reporting-dates(first-report+type-aware)::atomic-rpc+stages",
+  "request_id": "uuid",
+  "stage": "10_rpc_ok",
+  "extract_run": {
+    "id": "uuid",
+    "case_id": "uuid"
+  },
+  "validation_run_id": "uuid",
+  "rpc_error": null,
+  "evidence_docs_used": ["uuid-1", "uuid-2"],
+  "server_computed": {
+    "institution_name_guess": "DBS/POSB",
+    "reported_loss": {
+      "amount": 5000,
+      "currency": "SGD",
+      "source": "case_claim_amount"
+    }
+  },
+  "debug_counts": {
+    "all_unique_docs": 8,
+    "prompt_docs": 6
+  }
+}
+```
+
+
+---
+
+<a id="wiki-page-run-report-selfserve-v1"></a>
+
+**Wiki page:** `run_report_selfserve_v1.md`
+
+# Edge Function - `run_report_selfserve_v1`
+
+## Purpose
+
+`run_report_selfserve_v1` generates a structured self-serve complaint report from the latest case decision and its linked case extraction.
+
+It is designed to:
+
+- run without JWT authentication
+- require a simulation key in the request body
+- reuse an existing report for the case unless `force = true`
+- load the latest `case_decision_runs` row for the case
+- load the linked `case_extract_runs` row
+- build a report input from `extract_json`, `decision_json`, and derived facts
+- call OpenAI to generate a strict JSON self-serve report
+- apply server-side safety rewrites and normalization
+- insert the final report into `public.reports` with status `COMPLETED`
+
+This function is part of the self-serve report generation workflow. It produces a complaint-style report intended for a bank complaints team, written in first person and constrained by strict server guardrails.
+
+---
+
+## Function Type
+
+Backend report-generation function  
+Internal processing workflow  
+Produces user-facing report content
+
+---
+
+## Trigger Method
+
+**POST only**
+
+The function rejects all non-POST requests with HTTP `405`.
+
+---
+
+## Authentication Model
+
+This function explicitly runs in **no-JWT mode**.
+
+Instead of bearer-token authentication, it requires:
+
+- `simulation_key` in the request body
+- `SIMULATION_KEY` in environment secrets
+
+If the provided simulation key does not match the secret, the function returns:
+
+```json
+{
+  "ok": false,
+  "error": "missing_or_invalid_simulation_key"
+}
+```
+
+with HTTP `401`.
+
+---
+
+## Request Body Example
+
+```json
+{
+  "case_id": "uuid",
+  "force": false,
+  "prompt_version": "selfserve_v1.6_exec_summary_normalize_and_checklist_fix",
+  "simulation_key": "secret",
+  "user_id": "uuid-or-null"
+}
+```
+
+---
+
+## Inputs
+
+### Fields
+
+#### `case_id` (required)
+
+The case for which to generate the self-serve report.
+
+#### `force` (optional)
+
+Controls reuse behavior.
+
+- `false` -> reuse the most recent existing report for the case if available
+- `true` -> generate a new report even if one already exists
+
+#### `prompt_version` (optional)
+
+Prompt-version label passed into the model instructions and returned in debug output.
+
+- Default: `selfserve_v1.6_exec_summary_normalize_and_checklist_fix`
+
+#### `simulation_key` (required)
+
+Shared secret used instead of JWT authentication.
+
+#### `user_id` (optional)
+
+User identifier written into the inserted report row if provided.
+
+---
+
+## Environment Variables
+
+### Required
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `GuideBuoy_EdgeFunction`
+- `SIMULATION_KEY`
+
+### Optional
+
+- `SELF_SERVE_REPORT_MODEL`
+
+Default model if not provided:
+
+- `gpt-4.1-mini`
+
+If any required secret is missing, the function returns plain text with HTTP `500`.
+
+---
+
+## High-Level Flow
+
+1. Validate required environment variables
+2. Reject non-POST requests
+3. Parse request body
+4. Validate `simulation_key`
+5. Validate `case_id`
+6. Reuse the latest existing report for the case if `force = false`
+7. Load the latest `case_decision_runs` row for the case
+8. Load the linked `case_extract_runs` row using `extract_run_id`
+9. Build the report input from decision data, extraction data, and derived facts
+10. Call OpenAI Responses API with a locked JSON schema
+11. Enforce server-side invariants on report metadata
+12. Apply broad text scrub guardrails
+13. Apply fact-derived guardrails for authorisation and payee attribution
+14. Enrich missing facts with confirmation requests
+15. Run final sanitization and enum enforcement
+16. Normalize lists, defaults, and disputed transactions
+17. Insert the report into `reports`
+18. Return the completed report JSON with debug metadata
+
+---
+
+## Report Schema
+
+The function uses a locked schema version:
+
+- `self_serve_report_v1`
+
+The server also enforces:
+
+- `report_version = "self_serve_report_v1"`
+
+### Required Top-Level Fields
+
+- `report_version`
+- `case_id`
+- `generated_at`
+- `title`
+- `executive_summary`
+- `timeline`
+- `scam_nature`
+- `disputed_transactions`
+- `totals`
+- `key_responsibility_points`
+- `requested_resolution`
+- `evidence_checklist`
+- `disclaimers`
+- `limitations`
+- `missing_facts`
+
+### Timeline Item Shape
+
+Each timeline entry contains:
+
+- `at`
+- `label`
+- `detail`
+
+### Disputed Transaction Shape
+
+Each disputed transaction contains:
+
+- `label`
+- `amount`
+- `currency`
+- `authorised`
+- `notes`
+
+The `authorised` field is later enforced server-side to only allow:
+
+- `yes`
+- `no`
+- `unclear`
+- `null`
+
+### Totals Shape
+
+`totals` contains:
+
+- `total_amount`
+- `currency`
+
+---
+
+## What It Reads
+
+### `reports`
+
+The function checks for the latest report for the case when `force = false` and reads:
+
+- `id`
+- `user_id`
+- `case_id`
+- `status`
+- `report_json`
+- `created_at`
+- `updated_at`
+
+If a report already exists and contains `report_json`, it is returned immediately.
+
+### `case_decision_runs`
+
+The function loads the latest decision row for the case and reads:
+
+- `id`
+- `case_id`
+- `decision_json`
+- `extract_run_id`
+- `created_at`
+
+If no decision row exists, the function returns HTTP `404`.
+
+### `case_extract_runs`
+
+The function loads the extraction row referenced by `decisionRun.extract_run_id` and reads:
+
+- `id`
+- `case_id`
+- `extract_json`
+- `missing_fields`
+- `created_at`
+
+If no extract row exists, the function returns HTTP `404`.
+
+---
+
+## What It Writes
+
+### `reports`
+
+The function inserts a new row with:
+
+- `user_id`
+- `case_id`
+- `status = "COMPLETED"`
+- `report_json`
+- `created_at`
+- `updated_at`
+
+It does not update an existing report row. Reuse happens only by returning the latest prior report when `force = false`.
+
+---
+
+## Idempotency and Reuse Behavior
+
+The function uses **latest report by case** as its practical reuse rule.
+
+### When `force = false`
+
+It selects the latest `reports` row for the case:
+
+- ordered by `created_at` descending
+- limited to one row
+
+If that row contains `report_json`, the function returns it and does not generate a new report.
+
+### When `force = true`
+
+It skips reuse and always generates and inserts a fresh report row.
+
+This means report generation is append-only when forced.
+
+---
+
+## Model Input Construction
+
+The function builds a model input object from:
+
+- `case_id`
+- `user_id`
+- `extract_run_id`
+- `decision_run_id`
+- `extract_json`
+- `decision_json`
+- `missing_fields`
+
+It also derives a compact `derived` block with fields such as:
+
+- `institution_name`
+- `jurisdiction`
+- `claim_type`
+- `incident_at`
+- `discovered_at`
+- `reported_to_institution_at`
+- `losses`
+- `currency`
+
+These values are taken mainly from:
+
+- `extract_json.case_meta`
+- `extract_json.timeline`
+- `extract_json.losses`
+
+---
+
+## OpenAI Report Generation
+
+The function calls the OpenAI Responses API.
+
+### Model
+
+Uses:
+
+- `SELF_SERVE_REPORT_MODEL`, or
+- `gpt-4.1-mini` by default
+
+### Generation Settings
+
+- `temperature: 0.2`
+
+### Output Format
+
+The function requires strict JSON schema output using:
+
+- `text.format.type = "json_schema"`
+- schema name: `self_serve_report_v1`
+
+### Prompt Rules
+
+The system instructions require the model to:
+
+- write in first person as the complainant
+- use only `extract_json` and `decision_json`
+- not invent facts
+- use `null` or `unclear` when facts are missing
+- add missing information to `missing_facts`
+- avoid legal conclusions and predictions
+- avoid asserting bank or scammer actions unless explicitly confirmed
+- avoid the word `unauthorized`
+- describe OTP, credential, or phishing-link involvement neutrally
+- keep tone factual and respectful
+- aim the output at a bank complaints team
+- include disclaimers and limitations
+
+---
+
+## Server-Side Invariants
+
+After model generation, the server overwrites:
+
+- `report_version`
+- `case_id`
+- `generated_at`
+
+These become server-authoritative regardless of the model output.
+
+---
+
+## Guardrail Layers
+
+The function applies several post-generation guardrails by walking all strings in the report and rewriting risky phrasing.
+
+### Legal Conclusion Removal
+
+It rewrites statements such as:
+
+- the bank is liable
+- the bank is not liable
+- likely to be reimbursed
+- unlikely to be refunded
+
+into neutral assessment language.
+
+### Unauthorized Language Neutralization
+
+It rewrites terms such as:
+
+- `unauthorized`
+- `unauthorised transactions`
+- `unauthorized transfers`
+
+into more neutral terms such as:
+
+- `disputed`
+- `disputed transfers`
+- `loss due to scam`
+
+### Bank Action Assertion Neutralization
+
+It rewrites claims about absent controls into confirmation requests.
+
+Examples include converting phrases like:
+
+- lack of transaction block attempt
+- no step-up authentication was used
+- bank did not attempt to block
+
+into requests such as:
+
+- Please confirm whether any transaction monitoring/blocks were triggered
+- Please confirm whether any step-up authentication/additional verification was triggered
+
+### Authorisation Narrative Neutralization
+
+It removes wording that implies the user knowingly authorised the transfers and rewrites that language into neutral scam-loss phrasing.
+
+### Payee Attribution Neutralization
+
+If a new payee was added but the responsible agent is unknown, the function rewrites attribution claims so it does not say:
+
+- the bank added the payee
+- the scammer added the payee
+
+Instead it uses neutral language such as:
+
+- a new payee was added
+
+### Artefact Cleanup
+
+It fixes awkward text artefacts such as malformed plural phrases and glued sentences.
+
+### Checklist-Specific Cleanup
+
+It applies extra cleanup to evidence checklist items to remove repeated or malformed wording.
+
+---
+
+## Fact-Derived Guardrails
+
+The function computes additional protections from extraction facts.
+
+### OTP / Credentials / Link Rule
+
+If any of these are explicitly true in `extract_json.customer_actions`:
+
+- `shared_otp`
+- `provided_credentials`
+- `clicked_phishing_link`
+
+then every disputed transaction is forced to:
+
+- `authorised = "unclear"`
+
+and a neutral note is appended explaining that the user did not intend the transfers and was deceived during the phishing incident.
+
+### Payee Agent Unknown Rule
+
+If:
+
+- `institution_actions.payee_added = true`
+- `institution_actions.payee_added_agent` is unknown or blank
+
+then the function:
+
+- strips attribution claims about who added the payee
+- adds missing-facts requests asking for channel, device, IP, time, and alert details
+
+### Controls Confirmation Requests
+
+The function always enriches `missing_facts` with requests for:
+
+- confirmation of step-up authentication or additional verification
+- confirmation of monitoring, blocks, and investigation findings
+
+These are phrased as confirmation requests rather than accusations.
+
+---
+
+## Authorised Enum Enforcement
+
+For every item in `disputed_transactions`, the function enforces:
+
+- `yes`
+- `no`
+- `unclear`
+- `null`
+
+If the model returns any other value:
+
+- the original value is moved into transaction notes as context
+- `authorised` is reset to `unclear`
+
+If `authorised` is a non-string non-null value, it is also reset to `unclear`.
+
+---
+
+## Final Shaping and Defaults
+
+The function then normalizes the report structure.
+
+### Default Containers
+
+It ensures these fields are present with safe defaults:
+
+- `title`
+- `executive_summary`
+- `timeline`
+- `disputed_transactions`
+- `key_responsibility_points`
+- `requested_resolution`
+- `evidence_checklist`
+- `disclaimers`
+- `limitations`
+- `missing_facts`
+
+### List Dedupe
+
+It deduplicates:
+
+- `key_responsibility_points`
+- `requested_resolution`
+- `evidence_checklist`
+- `disclaimers`
+- `limitations`
+- `missing_facts`
+
+Dedupe uses normalized text keys so near-duplicates collapse.
+
+### Transaction Limits
+
+The function limits `disputed_transactions` to at most:
+
+- `5` items
+
+### Transaction Defaults
+
+For each disputed transaction:
+
+- empty labels become `Disputed transfer(s) due to phishing scam`
+- labels are artefact-cleaned
+- non-string notes become strings or `null`
+- missing authorisation defaults to `unclear`
+
+---
+
+## Response Behavior
+
+### Reused Existing Report
+
+When an existing report is reused, the function returns:
+
+- `ok: true`
+- `reused: true`
+- `report_id`
+- `case_id`
+- `user_id`
+- `status`
+- `report_json`
+
+### Newly Generated Report
+
+When a report is generated, the function returns:
+
+- `ok: true`
+- `reused: false`
+- `report_id`
+- `case_id`
+- `user_id`
+- `status`
+- `report_json`
+- `debug`
+
+### Debug Payload
+
+The debug section includes:
+
+- `decision_run_id`
+- `extract_run_id`
+- `prompt_version`
+- `model`
+
+It also returns derived booleans and facts such as:
+
+- `payee_added`
+- `payee_added_agent`
+- `provided_otp_or_creds_or_link`
+- `step_up_authentication_used`
+- `transaction_block_attempted`
+
+### Fatal Errors
+
+On failures, the function returns plain text with HTTP `500`.
+
+The error response includes:
+
+- error name
+- message
+- stack trace when available
+
+---
+
+## Why It Exists
+
+Without this function:
+
+- self-serve reports would have to be assembled manually from extraction and decision outputs
+- complaint language might drift into legal conclusions or unsafe assertions
+- transaction authorisation wording could become misleading
+- payee attribution might be stated more strongly than the facts allow
+- repeated prompt output could contain duplicate checklist or disclaimer items
+- the final report might not follow a stable schema
+
+With this function:
+
+- extraction and decision outputs are converted into a structured complaint report
+- output is constrained by a locked JSON schema
+- server-side guardrails reduce legal-risky or over-assertive phrasing
+- disputed transaction wording is normalized
+- checklist, disclaimer, and limitation lists are deduplicated
+- final report rows are stored centrally in `reports`
+
+---
+
+## Tier / Access
+
+This function generates a **self-serve report**.
+
+It is not Tier-0 summary logic and it is not a decisioning function by itself. It relies on earlier pipeline outputs from:
+
+- `case_extract_runs`
+- `case_decision_runs`
+
+Operationally, it is still an internal backend function because it uses:
+
+- service-role Supabase access
+- a simulation shared secret instead of JWT
+- direct OpenAI API calls
+- internal decision and extract outputs
+
+It is suited for:
+
+- controlled backend workflows
+- internal testing
+- simulation mode report generation
+- tightly controlled frontend orchestration only if wrapped by stronger auth
+
+---
+
+## Dependencies
+
+- Supabase Edge Functions
+- `@supabase/supabase-js`
+- OpenAI Responses API
+- `reports`
+- `case_decision_runs`
+- `case_extract_runs`
+
+---
+
+## Risks
+
+- the function uses no JWT and relies entirely on a shared simulation key
+- the simulation key is passed in the request body, which may be risky if not tightly controlled
+- reuse is by latest case report only, not by prompt version or decision version
+- forced regeneration always inserts a new report row, which can create multiple completed reports per case
+- string-rewrite guardrails may occasionally over-normalize nuanced wording
+- fatal errors return plain text instead of structured JSON
+- there is no explicit rate limiting or request idempotency token
+- the function assumes prior extraction and decision stages are already correct and complete
+
+---
+
+## Suggested Improvements
+
+- add real auth guardrails instead of simulation-key-only access
+- move simulation mode behind a safer internal wrapper
+- add structured JSON error responses
+- store model name and prompt version directly in the report row for auditability
+- add request-level idempotency keys
+- consider versioned report records or soft supersession rules
+- persist more provenance about which decision and extract facts shaped each section
+- add observability for which guardrails triggered on each run
+- make reuse aware of prompt version and model version
+
+---
+
+## Current Hard-Coded Defaults
+
+- report schema version: `self_serve_report_v1`
+- default model: `gpt-4.1-mini`
+- default prompt version: `selfserve_v1.6_exec_summary_normalize_and_checklist_fix`
+- OpenAI temperature: `0.2`
+- maximum disputed transactions kept: `5`
+
+---
+
+## Example Request
+
+```json
+{
+  "case_id": "123e4567-e89b-12d3-a456-426614174000",
+  "force": false,
+  "prompt_version": "selfserve_v1.6_exec_summary_normalize_and_checklist_fix",
+  "simulation_key": "secret",
+  "user_id": "123e4567-e89b-12d3-a456-426614174111"
+}
+```
+
+## Example Success Response
+
+```json
+{
+  "ok": true,
+  "reused": false,
+  "report_id": "uuid",
+  "case_id": "uuid",
+  "user_id": "uuid",
+  "status": "COMPLETED",
+  "report_json": {
+    "report_version": "self_serve_report_v1",
+    "case_id": "uuid",
+    "generated_at": "2026-03-21T00:00:00.000Z",
+    "title": "Complaint Report",
+    "executive_summary": "I was deceived during a phishing scam which resulted in disputed transfers and loss.",
+    "timeline": [],
+    "scam_nature": "Phishing scam",
+    "disputed_transactions": [],
+    "totals": {
+      "total_amount": null,
+      "currency": null
+    },
+    "key_responsibility_points": [],
+    "requested_resolution": [],
+    "evidence_checklist": [],
+    "disclaimers": [],
+    "limitations": [],
+    "missing_facts": []
+  },
+  "debug": {
+    "decision_run_id": "uuid",
+    "extract_run_id": "uuid",
+    "prompt_version": "selfserve_v1.6_exec_summary_normalize_and_checklist_fix",
+    "model": "gpt-4.1-mini",
+    "derived": {
+      "payee_added": null,
+      "payee_added_agent": null,
+      "provided_otp_or_creds_or_link": false,
+      "step_up_authentication_used": null,
+      "transaction_block_attempted": null
+    }
+  }
+}
+```
+
+
+---
+
+<a id="wiki-page-tier-0-narrative-generator"></a>
+
+**Wiki page:** `tier‐0-narrative-generator.md`
+
+# Edge Function - `run_tier0_summary_v1`
+
+## Purpose
+
+`run_tier0_summary_v1` generates Tier-0 user-facing narrative outputs from existing case facts, intake data, and timeline narrative content.
+
+It is designed to:
+
+- load core case facts from the `cases` table
+- load the latest intake record for the case
+- load the latest `timeline_raw` narrative if present
+- build a fact-only input snapshot
+- call OpenAI to generate a neutral Tier-0 summary
+- generate a simple evidence checklist
+- write both outputs into `case_narratives`
+- update existing generated narratives when the same `source_ref` already exists
+
+This function is part of the early-stage case summarisation workflow. It is intended to create a plain-language user summary without legal conclusions or advanced evidence reasoning.
+
+---
+
+## Function Type
+
+Backend summarisation function  
+Internal processing workflow  
+Produces user-facing narrative content
+
+---
+
+## Trigger Method
+
+**POST only**
+
+The function rejects non-POST requests with HTTP `405`.
+
+---
+
+## Request Body Example
+
+```json
+{
+  "case_id": "uuid",
+  "prompt_version": "v0.1"
+}
+```
+
+---
+
+## Inputs
+
+### Fields
+
+#### `case_id` (required)
+
+The case to summarise.
+
+#### `prompt_version` (optional)
+
+Used to build the narrative `source_ref`.
+
+- Default: `v0.1`
+
+The resulting `source_ref` format is:
+
+```text
+tier0:<prompt_version>
+```
+
+Example:
+
+```text
+tier0:v0.1
+```
+
+---
+
+## Environment Variables
+
+### Required
+
+- `GUIDEBUOY_URL`
+- `GUIDEBUOY_SERVICE_ROLE_KEY`
+- `GuideBuoy_EdgeFunction`
+
+These are used for:
+
+- Supabase project connection
+- service-role database access
+- OpenAI API access
+
+If any are missing, the function throws an error and returns HTTP `500`.
+
+---
+
+## High-Level Flow
+
+1. Validate required environment variables
+2. Reject non-POST requests
+3. Parse request body
+4. Validate `case_id`
+5. Load the target case row
+6. Load the latest `case_intake` row
+7. Load the latest `timeline_raw` narrative from `case_narratives`
+8. Build a fact-only input snapshot
+9. Call OpenAI to generate strict JSON output
+10. Upsert `tier0_summary` into `case_narratives`
+11. Upsert `tier0_evidence_checklist` into `case_narratives`
+12. Return success with `case_id` and `source_ref`
+
+---
+
+## What It Reads
+
+### `cases`
+
+The function loads one case using `case_id` and reads:
+
+- `id`
+- `jurisdiction`
+- `institution_name`
+- `claim_amount`
+- `claim_currency`
+- `incident_date`
+- `incident_datetime`
+- `primary_narrative`
+
+### `case_intake`
+
+The function loads the latest intake row for the case, ordered by `created_at` descending, and reads:
+
+- `id`
+- `narrative_text`
+- `answers_json`
+- `language`
+- `created_at`
+
+Only the most recent intake row is used.
+
+### `case_narratives`
+
+The function tries to load the latest narrative row where:
+
+- `case_id` matches
+- `narrative_type = "timeline_raw"`
+
+It reads:
+
+- `text_content`
+
+If none exists, `timeline_raw` is treated as `null`.
+
+---
+
+## Input Snapshot Sent to the Model
+
+Before the model call, the function builds an input object with four sections:
+
+### `case`
+
+Contains:
+
+- `id`
+- `jurisdiction`
+- `institution_name`
+- `claim_amount`
+- `claim_currency`
+- `incident_date`
+- `incident_datetime`
+
+### `intake`
+
+Contains, when an intake row exists:
+
+- `intake_id`
+- `narrative_text`
+- `answers_json`
+- `language`
+
+If no intake row exists, this section is `null`.
+
+### `primary_narrative`
+
+Pulled directly from the `cases` table.
+
+### `timeline_raw`
+
+Pulled from the latest `case_narratives` row of type `timeline_raw`, if present.
+
+The function explicitly labels this as a facts-only input snapshot.
+
+---
+
+## OpenAI Generation
+
+The function calls OpenAI through the Chat Completions API.
+
+### Model
+
+Hard-coded model:
+
+- `gpt-4o-mini`
+
+### Generation Settings
+
+- `temperature: 0.2`
+- `response_format: { "type": "json_object" }`
+
+### Prompt Rules
+
+The system prompt instructs the model to:
+
+- generate a Tier-0 consumer dispute report
+- use only facts in the provided JSON
+- not invent dates, amounts, actions, parties, or outcomes
+- write `"not provided"` where information is missing
+- remain neutral and chronological
+- avoid legal conclusions
+
+### Required Output Shape
+
+The model must return strict JSON with:
+
+```json
+{
+  "summary": "string",
+  "evidence_checklist": "string"
+}
+```
+
+If the API returns no content, or invalid JSON, the function throws an error.
+
+---
+
+## What It Writes
+
+The function writes two records into `case_narratives` using update-if-exists, insert-if-missing logic.
+
+### Narrative 1 - Tier-0 Summary
+
+Written with:
+
+- `narrative_type = "tier0_summary"`
+- `title = "Incident summary (Tier-0)"`
+- `text_content = llm.summary`
+
+### Narrative 2 - Tier-0 Evidence Checklist
+
+Written with:
+
+- `narrative_type = "tier0_evidence_checklist"`
+- `title = "Evidence checklist (Tier-0)"`
+- `text_content = llm.evidence_checklist ?? ""`
+
+### Shared Written Fields
+
+Both writes include:
+
+- `case_id`
+- `source_ref`
+- `version = 1`
+- `language`
+- `audience = "user"`
+- `intake_id`
+
+The `language` defaults to intake language if available, otherwise `en`.
+
+The `intake_id` is copied from the latest intake row when present, otherwise `null`.
+
+---
+
+## Upsert Behavior
+
+The helper function `upsertNarrative` first tries to update an existing row matching:
+
+- `case_id`
+- `narrative_type`
+- `source_ref`
+
+If no row is updated, it inserts a new row.
+
+This means the function behaves like an application-level upsert keyed by:
+
+- case
+- narrative type
+- source reference
+
+This allows the same prompt version to be rerun without creating duplicates for the same generated narrative type.
+
+---
+
+## Output Response
+
+On success, the function returns:
+
+```json
+{
+  "ok": true,
+  "case_id": "uuid",
+  "source_ref": "tier0:v0.1"
+}
+```
+
+### Returned Fields
+
+- `ok`
+- `case_id`
+- `source_ref`
+
+On failure, the function returns:
+
+```json
+{
+  "ok": false,
+  "error": "..."
+}
+```
+
+with HTTP `500`.
+
+If `case_id` is missing, it returns the same JSON error shape with HTTP `400`.
+
+---
+
+## Why It Exists
+
+Without this function:
+
+- early-stage case information remains scattered across tables
+- users may not receive a consistent incident summary
+- intake and timeline content are not automatically turned into a clean narrative
+- evidence follow-up prompts may be inconsistent
+- frontends would need to assemble raw facts themselves
+
+With this function:
+
+- raw case and intake facts are consolidated into a readable Tier-0 narrative
+- the summary stays grounded in stored facts only
+- the evidence checklist can guide the user on what to provide next
+- generated narratives are stored centrally in `case_narratives`
+- the same prompt version can refresh content without uncontrolled duplication
+
+---
+
+## Tier / Access
+
+This function creates **Tier-0** content.
+
+That means:
+
+- it is intended for the basic summary layer
+- it avoids legal conclusions
+- it does not perform decisioning
+- it does not retrieve regulatory clauses
+- it does not rely on advanced evidence analysis
+
+Operationally, it is still an internal backend function because it uses:
+
+- service-role database access
+- direct OpenAI API calls
+- internal narrative storage
+
+It may be invoked by backend orchestration, controlled frontend actions, or workflow triggers.
+
+---
+
+## Dependencies
+
+- Supabase Edge Functions
+- `@supabase/supabase-js`
+- OpenAI Chat Completions API
+- `cases`
+- `case_intake`
+- `case_narratives`
+
+---
+
+## Risks
+
+- the function depends on a service-role key, so direct public exposure would be risky
+- there is no explicit auth guard inside the function itself
+- update-then-insert upsert logic is not fully atomic under concurrent calls
+- `version` is hard-coded to `1`
+- the model is hard-coded to `gpt-4o-mini`
+- the function does not validate whether returned strings are empty or low quality
+- if the latest intake row is incomplete, the generated summary may still be sparse
+- the function does not store the raw model response or prompt for auditability
+- the function assumes `response_format: json_object` is sufficient and does not implement retry logic for malformed JSON
+
+---
+
+## Suggested Improvements
+
+- add explicit auth guardrails before execution
+- add idempotency or locking for concurrent runs
+- make the model configurable through an environment variable
+- store prompt version and model name more explicitly in output metadata
+- add retry logic for invalid model JSON
+- add better validation for summary quality and checklist quality
+- store provenance metadata for which inputs were used
+- support version incrementing rather than fixed `version = 1`
+- add structured observability for model latency and failures
+
+---
+
+## Current Hard-Coded Defaults
+
+- default `prompt_version`: `v0.1`
+- source reference prefix: `tier0:`
+- summary model: `gpt-4o-mini`
+- temperature: `0.2`
+- language fallback: `en`
+- narrative version written: `1`
+- audience written: `user`
+
+---
+
+## Example Request
+
+```json
+{
+  "case_id": "123e4567-e89b-12d3-a456-426614174000",
+  "prompt_version": "v0.1"
+}
+```
+
+## Example Success Response
+
+```json
+{
+  "ok": true,
+  "case_id": "123e4567-e89b-12d3-a456-426614174000",
+  "source_ref": "tier0:v0.1"
+}
+```
+
+
+---
+
+<a id="wiki-page-user-entitlements-table"></a>
+
+**Wiki page:** `user_entitlements-table.md`
+
+# user_entitlements table
+
+## Purpose
+The `user_entitlements` table defines what a user is generally allowed to access across the product.
+
+It is the **user-level entitlement layer**, which can then be refined or overridden by `case_entitlements`.
+
+This table is used for:
+- base plan assignment
+- feature access defaults
+- account-level capability control
+
+---
+
+## Key Concept
+
+Entitlements can exist at two levels:
+
+1. **User level** → general access across the account
+2. **Case level** → per-case override or purchased upgrade
+
+`user_entitlements` provides the default capability set for a user.
+
+---
+
+## Core Fields
+
+### Identity
+- `user_id`
+
+---
+
+### Plan
+- `plan` — base plan assigned to the user
+
+Examples:
+- `free`
+- `self_serve_report`
+- `escalation_pack`
+- future team/admin plans
+
+---
+
+### Feature Control
+- `features` — JSON of allowed features and flags
+
+Examples:
+- allow_case_creation
+- allow_extraction
+- allow_decisioning
+- allow_report_generation
+- allow_escalation_pack
+
+---
+
+### Metadata
+- `created_at`
+- `updated_at`
+
+---
+
+## How It Is Used
+
+This table is used to determine a user’s default access before checking case-specific overrides.
+
+Typical logic:
+
+1. load user entitlement
+2. check if case-specific entitlement exists
+3. derive effective entitlement
+
+---
+
+## Relationship to Other Tables
+
+- `user_entitlements` → account-level defaults
+- `case_entitlements` → case-level overrides
+- `cases` → entity affected by effective entitlements
+
+Often consumed through:
+- entitlement RPCs
+- Edge Functions
+- feature gating logic
+
+---
+
+## Design Significance
+
+This table enables:
+
+- **account-level access control**
+- **default tier behavior**
+- **clean separation of user-level vs case-level rights**
+- **scalable monetisation logic**
+
+This is important because not all upgrades need to be global.
+
+---
+
+## Important Pattern
+
+Do not hardcode feature access in the frontend.
+
+Always derive access from:
+1. `user_entitlements`
+2. `case_entitlements` if present
+
+That keeps entitlement logic:
+→ consistent  
+→ auditable  
+→ enforceable server-side  
+
+---
+
+## Risks / Things to Watch
+
+- inconsistent `features` schema
+- mismatch between user-level and case-level logic
+- relying on UI checks instead of backend enforcement
+- unclear precedence rules between user and case entitlements
+
+
+---
+
+<a id="wiki-page-v-latest-validation-run-view"></a>
+
+**Wiki page:** `v_latest_validation_run-view.md`
+
+# v_latest_validation_run view
+
+## Purpose
+
+`v_latest_validation_run` is documented as a **convenience projection** for the most recent validation row tied to an **extraction run**, including `raw_output` and errors — useful for QA and internal tooling.
+
+---
+
+## Deployed definition (current)
+
+In the checked-in migration, this view is **the same** as [[v_latest validation view]]:
+
+- `DISTINCT ON (extract_run_id) … ORDER BY extract_run_id, created_at DESC` over `case_validation_runs`.
+
+So both views currently return **one row per `extract_run_id`**, with identical columns.
+
+---
+
+## Intended future differentiation (non-binding)
+
+Product intent may eventually split:
+
+| View | Possible future intent |
+|------|-------------------------|
+| `v_latest_validation` | Stable “state” for orchestration / UI |
+| `v_latest_validation_run` | Full fidelity including experimental runs |
+
+Until a migration changes the definitions, **do not rely on them being different**.
+
+---
+
+## Usage notes
+
+- Prefer **`extract_run_id`** from the decision or extract you are reasoning about, then look up the matching row in this view (or use `case_validation_runs` directly).
+- Not a substitute for the append-only history table when auditing “what changed over time?”.
+
+
+---
+
+<a id="wiki-page-v-latest-validation-view"></a>
+
+**Wiki page:** `v_latest_validation-view.md`
+
+# v_latest_validation view
+
+## Purpose
+
+`v_latest_validation` is a **read-only projection** over `case_validation_runs` so callers do not each re-implement “pick the latest row” logic.
+
+---
+
+## Deployed definition (important)
+
+In the current migration snapshot, the view is defined as:
+
+```sql
+SELECT DISTINCT ON (extract_run_id) …
+FROM case_validation_runs
+ORDER BY extract_run_id, created_at DESC;
+```
+
+So the grain is **one row per `extract_run_id`**, not one row per `case_id`.
+
+- A case can have **many** extract runs over time; each extract run has **at most one** validation row (enforced by `UNIQUE (extract_run_id)` on `case_validation_runs`).
+- To answer “what validation applies to the extract the **latest decision** used?”, join through that decision’s `extract_run_id` (same lineage as `get_case_eligibility` / `run_report_selfserve_v1`), not only `case_id`.
+
+---
+
+## Relationship to `v_latest_validation_run`
+
+Today **`v_latest_validation` and `v_latest_validation_run` are identical** in SQL. The duplicate exists so product semantics can diverge later (e.g. “state” vs “debug run”) without breaking callers. Until they differ, treat both as **latest validation per extract run**.
+
+---
+
+## Columns
+
+Mirrors `case_validation_runs`: `id`, `case_id`, `extract_run_id`, `intake_id`, `missing_fields`, `ambiguities`, `questions_to_user`, `validation_summary`, `status`, `source`, `model_name`, `prompt_version`, `schema_version`, `is_valid`, `raw_output`, `error_message`, `created_at`.
+
+---
+
+## Usage
+
+- **UI / gating tied to a known extract** — safe to read this view keyed by `extract_run_id`.
+- **Forensics** — use base table `case_validation_runs` for full history.
+
+---
+
+## Risks
+
+- Misinterpreting grain as **per case** will hide older extract validations for the same `case_id`.
+- `raw_output` may contain PII — retention and access control matter.
+
+
+---
+
