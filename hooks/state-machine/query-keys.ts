@@ -15,6 +15,10 @@ export const qk = {
     eligibility: (caseId: string) => ['case', caseId, 'eligibility'] as const,
     extract: (caseId: string) => ['case', caseId, 'extract'] as const,
     validation: (caseId: string) => ['case', caseId, 'validation'] as const,
+    validationGapItems: (caseId: string, validationRunId?: string | null) =>
+      validationRunId
+        ? (['case', caseId, 'validation', 'gap-items', validationRunId] as const)
+        : (['case', caseId, 'validation', 'gap-items'] as const),
     documents: (caseId: string) => ['case', caseId, 'documents'] as const,
     narratives: (caseId: string) => ['case', caseId, 'narratives'] as const,
     decision: (caseId: string) => ['case', caseId, 'decision'] as const,

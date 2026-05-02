@@ -4,7 +4,8 @@
 
 **Status.** Ready to execute. Slices 0–3D are ready or done. Slices 4A–7 are fully specified (2026-04-21 PM). **Slice 8** (L3 / Tier 2 **commerce** — SGD 99/800) added 2026-04-26 — see **§10.6**; after **Stripe Tier-1** (5–6), ideally after **7**.
 **Binding contracts.** [docs/Front-to-Back-End-Integration-Summary.md](./Front-to-Back-End-Integration-Summary.md) and [docs/State-Machine-Workflow.md](./State-Machine-Workflow.md). This plan cites specific sections (IS §, SM §, SM R#) — never re-derive a decision, always read the contract.
-**Plan owner.** Elena. **Last updated.** 2026-04-21 PM; §12.1 + §10.6 + **L3=T2** + **`app/layout.tsx` wa.me (no login) + L3 copy** 2026-04-26.
+**Test plan.** Use [docs/Test-Plan.md](./Test-Plan.md) for the quick local QA checklist. The milestone E2E gates in §12.1 remain the slice-level acceptance gates.
+**Plan owner.** Elena. **Last updated.** 2026-04-21 PM; §12.1 + §10.6 + **L3=T2** + **`app/layout.tsx` wa.me** 2026-04-26; **§4.5 structured validation gaps + evidence upload contract (no storage trigger)** 2026-05-02 (IS + SM); **frontend gap-items wiring implemented** 2026-05-02.
 
 ---
 
@@ -21,6 +22,8 @@
 5. **Layer 3 = Tier 2 (post–Tier-1) — one surface, two concerns: form + hero + commerce + WhatsApp.** In this app’s schema, **“Layer 3” and “Tier 2” refer to the same post–Tier-1 stage** (after the self-serve **report** exists). The route/shell **includes** the **human-in-the-loop** FIDReC handoff: `POST /api/contact-requests` → `upsert` (UNIQUE on `user_id + case_id`) into the contact-requests table **plus** email to Dance. **User-entered fields** and **server-captured** fields are unchanged (see IS §9.9). **No edge function** on the `contact-requests` path — **R12 in §10.2** = no `functions/v1` or `/api/edge/*` *inside* the contact route. **2026-04-26 — WhatsApp (required):** add a **persistent** WhatsApp entry point in the **root layout** so it appears on **every URL**, **including pre-login marketing, landing, and the authed app**. On **this same Layer 3 / Tier 2 view**, add **on-page** copy recommending the user **reach out to our Scam and Fraud Specialist** for **consult or Q&A** (and **book** consult if unsure on FIDReC), in addition to the always-visible widget. **R13:** WhatsApp on public pages is **third-party** (`wa.me` link) only — **no** Supabase browser client on pre-login. **No Clerk session required** to open WhatsApp — same as current **[app/layout.tsx](../app/layout.tsx)** (fixed bottom-right + footer; number `6590727915`). **Do not** add a second duplicate site-wide widget; **reuse/keep** that implementation. Optional Layer 3-only deep links: reuse **[components/state-machine/layer3/specialist-card.tsx](../components/state-machine/layer3/specialist-card.tsx)** patterns (`buildWhatsAppUrl`, prefill) where product wants richer CTAs. **LinkedIn** and generic “coming soon” waitlist framing **remain** out of scope. Storage table name per IS §10.5. **Slice 8** (§10.6) adds the **SGD 99** + **SGD 800** Stripe checkouts *onto this surface*; same `checkout.session.completed` webhook **branching** as self-serve.
 6. **Post–Tier-1 FIDReC / case-pack hero + Tier-2 SKUs (Slice 8).** *Elaboration of the same surface as locked decision 5.* Funnel copy targets users who **tried the bank, were rejected,** and may take the **FIDReC** path (to **adjudication** as last stage of mediation). **SGD 99** — 30 min with **Scam and Fraud** / **marketplace specialist** (Singapore); **SGD 800** — **case pack** prep. **Engineering** — **reuse** Tier-0→1 Stripe pattern: `create-checkout-session` + `metadata` discriminator; **`/api/webhooks/stripe`** additional branches. **R9** preserved (webhook does not call decision/report for jobs).
 
+7. **`case_validation_gap_items` frontend contract** (Phase 2, 2026-05) — `run_validation_v1` populates one row per `missing_fields[i]` with deterministic pairing to `questions_to_user` (see IS §4.5). Frontend keeps `case_validation_runs` as the parent state row, prefers `v_case_validation_gap_items` ordered by `sort_order` for gap UI, normalizes DB rows/legacy JSON into `ValidationQuestion`, falls back to `questions_to_user` when the view is empty, sends typed `response_type`, and surfaces `error_message` when `status = 'error'`. Migrations: `supabase/migrations/20260502133000_case_validation_gap_items.sql`, `20260502150000_run_validation_v1_gap_items.sql`. **Evidence:** auto-insert from `storage.objects` is **disabled**; only **`POST /api/evidence/upload`** creates `case_documents` after Storage write (IS §4.2).
+
 ---
 
 ## 2. Slice map and status
@@ -34,7 +37,7 @@
 | 3B | Transition UI components | Done |
 | 3C | Layer 2 UI components | Done |
 | 3D | Layer 3 UI components (rewritten 2026-04-21 PM late-afternoon to a human-in-the-loop form — identity + age + employment + two FIDReC-qualification booleans + optional message; amount lost + FI shown read-only. See Slice 4D for the hook) | Done |
-| 4A | Layer 1 data hooks (**8** hooks — see §4 below; no CT/CL hooks) | Pending |
+| 4A | Layer 1 data hooks (**8** hooks — see §4 below; no CT/CL hooks). **2026-05-02:** validation gap-items query + normalization + cache invalidation wired. | Done / verify in E2E |
 | 4B | Transition hooks (2 hooks) | Pending |
 | 4C | Layer 2 hooks (4 hooks, includes `useJobStatus`) | Pending |
 | 4D | Layer 3 hook (`useSubmitContactRequest` — was `useSubmitWaitlist`) | Pending |
@@ -67,19 +70,21 @@ New files under `hooks/state-machine/layer1/`, all client hooks using TanStack Q
 
 **Scope reminder (2026-04-21 PM).** These hooks cover the **3-function Tier-0 sequence** (`evidence_processed_v2` → `run_case_extract_v4` → `bright-function`). There are **no** hooks for `candidate-transactions` or `compute-loss` — those are Masha-internal fallbacks fired from the Supabase Dashboard (Locked decision 2). There is **no** "validation function" hook — validation rows are populated by a Postgres trigger on `case_extract_runs` (SM R5). There is **no** Layer 1 decision hook — decision runs in Layer 2 only, on the Render worker (SM R9).
 
-- `use-submit-intake.ts` — `useMutation` POST `/api/edge/extract` (IS §4.1). Fires on the first extract call after bootstrap (SM R11 clause a) and on every gap-question answer (SM R11 clause b). On success invalidate `qk.case.extract`, `qk.case.validation`, `qk.case.eligibility`, `qk.case.narratives`.
+- `use-submit-intake.ts` — `useMutation` POST `/api/edge/extract` (IS §4.1). Fires on the first extract call after bootstrap (SM R11 clause a) and on every gap-question answer (SM R11 clause b). On success invalidate `qk.case.extract`, `qk.case.validation`, `qk.case.validationGapItems`, `qk.case.eligibility`, `qk.case.narratives`.
 - `use-case-eligibility.ts` — `useQuery` calling RPC `get_case_eligibility(p_case_id)` (IS §10.4, SM R5). Returns `CaseEligibilityResponse`. `staleTime: 5000`.
-- `use-validation-run.ts` — two-step read per SM R5: `eligibility.resolved_ids.validation_run_id`, then `SELECT * FROM case_validation_runs WHERE id = :validation_run_id`. Never calls a "validation edge function" — validation is a Postgres trigger.
-- `use-upload-evidence.ts` — `useMutation`: upload to Storage, insert `case_documents` row, POST `/api/edge/evidence` (IS §4.3, SM R11 clause c). MIME whitelist already in the UI component (PDF / PNG / JPEG / DOCX per SM R7).
+- `use-validation-run.ts` — two-step read per SM R5: `eligibility.resolved_ids.validation_run_id`, then `SELECT * FROM case_validation_runs WHERE id = :validation_run_id`. Also query preferred **`v_case_validation_gap_items`** **`WHERE validation_run_id = :id ORDER BY sort_order, created_at`** (IS §4.5), normalize rows into `ValidationQuestion`, and fallback to `questions_to_user` JSON only when the view returns zero rows. Never calls a "validation edge function".
+- `use-upload-evidence.ts` — `useMutation`: **`POST /api/evidence/upload`** (multipart: Storage + **`INSERT case_documents`** per IS §4.2 — assumes storage auto-insert disabled), then **`POST /api/edge/evidence`** with returned `document_id` (SM R11 clause c). MIME whitelist stays in the UI (PDF / PNG / JPEG / DOCX per SM R7).
 - `use-case-documents-realtime.ts` — `postgres_changes` on `case_documents` filtered by `case_id` (SM R8). Updates `qk.case.documents(caseId)` cache directly. Auto-reconnect on `CHANNEL_ERROR`.
 - `use-tier0-draft.ts` — `useQuery` reading all rows from `case_narratives` where `case_id = :caseId`. Renders whichever rows exist (SM R6). No dependency on a decision run (SM R9 — `bright-function` is *not* gated on decision).
 - `use-auto-refire-extract.ts` — `useEffect` that re-POSTs `/api/edge/extract` on every successful `evidence_processed_v2` response that flips at least one `case_documents.processing_status` to `'ready'` (SM R11 clause c). Ref-guarded.
-- `use-tier0-auto-fire.ts` — `useEffect` that POSTs `/api/edge/tier0` **exactly once** per case, iff **all three** conditions hold (SM R10): `missing_fields.length === 0`, at least one `case_documents.processing_status === 'ready'`, and the freshness-check extract pass has completed (latest `case_extract_runs.created_at > latest ready case_documents.updated_at`). Ref-guarded via a `case_narratives` exists-check so re-mounts never re-fire.
+- `use-tier0-auto-fire.ts` — `useEffect` that POSTs `/api/edge/tier0` **exactly once** per case, iff **all four** conditions hold (SM R10): validation `status !== 'error'`, `missing_fields.length === 0`, at least one `case_documents.processing_status === 'ready'`, and the freshness-check extract pass has completed (latest `case_extract_runs.created_at > latest ready case_documents.updated_at`). Ref-guarded via a `case_narratives` exists-check so re-mounts never re-fire.
 
 **Acceptance criteria.**
 
 - No hook in `hooks/state-machine/layer1/` references `candidate-transactions`, `compute-loss`, `gemini-task`, or `run_case_extract_v{1,2,3}`.
 - Every edge-function call goes through `/api/edge/*` (SM R1); every function name comes from `lib/edge-functions.ts` (SM R2).
+- Gap-question rendering uses normalized `v_case_validation_gap_items` rows first, then normalized `questions_to_user` fallback. Saved answer keys are real field keys (`field_key` / legacy `field`) and never `undefined`.
+- `case_validation_runs.status === 'error'` displays `error_message` in the gap area and prevents Tier-0 auto-fire.
 - `use-tier0-auto-fire.ts` never sets `force: true` (SM R4) and never fires twice (idempotent via the `case_narratives` exists-check).
 - No Layer 1 hook subscribes to `case_decision_runs` or `reports` — those belong to Slice 4C.
 
@@ -265,7 +270,7 @@ New `scripts/check-state-machine-rules.sh` enforcing the [State Machine §9](./S
 - **R2 allowlist** — the five active function names (`evidence_processed_v2`, `run_case_extract_v4`, `bright-function`, `run_case_decision_v1`, `run_report_selfserve_v1`) only appear in `lib/edge-functions.ts`, `app/api/edge/*/route.ts`, docs, and test files.
 - **R2 blocklist (2026-04-21 PM)** — `candidate-transactions`, `compute-loss`, `gemini-task`, `run_case_extract_v1`, `run_case_extract_v2`, `run_case_extract_v3` only appear in `lib/edge-functions.ts` as audit-only guard constants or in `docs/`. **Zero hits** in `app/`, `components/`, `hooks/`, `services/`, `worker/`, or anywhere else under application source.
 - **R4** — no `force:\s*true` anywhere under `app/` or `lib/`.
-- **R5** — no `v_latest_validation` hits under `app/` or `lib/`; no reference to a "validation edge function" (validation is a Postgres trigger).
+- **R5** — no `v_latest_validation` hits under `app/` or `lib/`; no reference to a "validation edge function" (validation is a Postgres trigger). Manual/code review: `use-validation-run` keeps the parent `case_validation_runs` PK read, queries `v_case_validation_gap_items` by `validation_run_id`, and exposes normalized questions with JSON fallback.
 - **R6** — Tier-0 draft component renders each narrative panel independently (manual check).
 - **R8** — no `setInterval.*case_documents` hits.
 - **R9** — Stripe webhook does not reference `/api/edge/decision` or `/api/edge/report` (must be worker-only).
@@ -291,6 +296,8 @@ Wire as `pnpm check:sm` and into the pre-deploy pipeline.
 ### 10.5 Appendix B.10 E2E smoke
 
 Execute the 9-step reviewer walkthrough in [docs/State-Machine-Workflow.md Appendix B](./State-Machine-Workflow.md). All nine steps must pass for Slice 7 to be done. **Add steps 10–11** below (2026-04-21 PM + 2026-04-26 L3 = Tier 2 + WhatsApp):
+
+**Structured validation gap checks are part of Appendix B.10 step 5.** Confirm `v_case_validation_gap_items` renders in `sort_order`, legacy `questions_to_user` fallback still renders when the view is empty, answer payload keys are real field keys (`incident_date`, `reported_loss.amount`, etc.), typed controls save `response_type` from `field_type`, and `case_validation_runs.status = 'error'` displays `error_message` instead of normal questions.
 
 10. Submit a Layer 3 contact form with the full field set (first name, last name, email, phone, age, employment status, both FIDReC-qualification booleans, optional message). Confirm one row lands in the contact-requests storage table with `user_id = auth.uid()`, the correct `age` + `employment_status` + both booleans, and server-captured `amount_lost_sgd` + `financial_institution` matching what the latest `case_extract_runs.extract_json` holds. Confirm Dance receives the notification email with all those fields. Re-submit the form with `fi_issued_final_response` flipped from `false` to `true` and confirm the `UNIQUE (user_id, case_id)` constraint upserts the existing row (one row total per user per case). Confirm the UI shows the "Thanks — we'll be in touch within 1–2 business days" confirmation state.
 
@@ -428,7 +435,7 @@ sequenceDiagram
 
 **Seven targeted smokes (one per slice).**
 
-- **4A (Layer 1):** No `candidate-transactions`, `compute-loss`, `gemini-task`, or `run_case_extract_v1|v2|v3` in `hooks/state-machine/layer1/`. All edge from these hooks via `/api/edge/*` only. `use-tier0-auto-fire`: no `force: true`, idempotent. No Layer 1 subscription to `case_decision_runs` or `reports`. Eligibility + validation: R5 two-step (RPC + `case_validation_runs` row) — no validation edge function.
+- **4A (Layer 1):** No `candidate-transactions`, `compute-loss`, `gemini-task`, or `run_case_extract_v1|v2|v3` in `hooks/state-machine/layer1/`. All edge from these hooks via `/api/edge/*` only. `use-tier0-auto-fire`: no `force: true`, idempotent, and blocked when validation `status === 'error'`. No Layer 1 subscription to `case_decision_runs` or `reports`. Eligibility + validation: R5 two-step (RPC + `case_validation_runs` parent row) — no validation edge function. Gap UI: `v_case_validation_gap_items` preferred by `validation_run_id` + `sort_order`; `questions_to_user` fallback; answer keys never `undefined`; response type follows normalized `field_type`.
 - **4B (Transition):** `use-create-checkout-session` and `use-payment-status` only; payment poll stops when `case_entitlements.plan === 'self_serve_report'`. No decision/report side effects in transition hooks.
 - **4C (Layer 2):** Realtime updates TanStack `qk` for decision and report. `use-job-status` polls the job-status API only — browser never calls `/api/edge/decision` or `/api/edge/report`. `use-latest-report` never uses `force: true`.
 - **4D (Layer 3 hook = Tier 2):** `use-submit-contact-request` sends only the client field set; body must not include `user_id`, `amount_lost_sgd`, or `financial_institution`. Hook does not import `lib/edge-functions.ts`. **Tier-2 labelling:** Layer 3 hook serves the **post–Tier-1** contact path (same schema stage as **Tier 2**).

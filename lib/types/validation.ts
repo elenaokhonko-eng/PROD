@@ -8,14 +8,60 @@
 
 export type ValidationSource = 'model' | 'rules' | 'hybrid'
 
+export type ValidationAnswerType =
+  | 'text'
+  | 'date'
+  | 'datetime'
+  | 'money'
+  | 'number'
+  | 'boolean'
+  | 'single_choice'
+  | 'multi_choice'
+  | 'file_upload'
+  | 'textarea'
+  | 'long_text'
+
+export type ValidationAnswerValue = string | boolean | string[]
+
+export type MissingFieldEntry =
+  | string
+  | {
+      field?: string
+      reason?: string
+      severity?: 'required' | 'recommended' | 'optional' | string
+      suggested_question?: string
+      [extra: string]: unknown
+    }
+
 export interface ValidationQuestion {
   /** Stable key the UI uses to map answers back to intake. */
   key: string
   question: string
   /** UI hint. Not all runs populate this. */
-  field_type?: string
+  field_type?: ValidationAnswerType | string
   required?: boolean
+  options?: unknown[]
+  severity?: string
+  help_text?: string | null
   [extra: string]: unknown
+}
+
+export interface ValidationGapItemRow {
+  id: string
+  validation_run_id: string
+  case_id: string
+  extract_run_id: string | null
+  field_key: string
+  field_label: string | null
+  gap_type: string
+  severity: 'required' | 'recommended' | 'optional' | string
+  question_text: string
+  help_text: string | null
+  expected_answer_type: ValidationAnswerType | string | null
+  answer_options: unknown[]
+  source: string
+  sort_order: number
+  created_at: string
 }
 
 export interface CaseValidationRunRow {
@@ -23,8 +69,8 @@ export interface CaseValidationRunRow {
   case_id: string
   extract_run_id: string
   intake_id: string | null
-  /** Array of field keys the model still needs answered. */
-  missing_fields: string[]
+  /** Dynamic missing-field records. Older rows may still contain strings. */
+  missing_fields: MissingFieldEntry[]
   /** Array of ambiguous-field records. Shape is dynamic. */
   ambiguities: unknown[]
   /** The dynamic gap-question list the UI renders. */

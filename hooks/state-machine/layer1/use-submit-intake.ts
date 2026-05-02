@@ -41,6 +41,7 @@ export function useSubmitIntake() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: qk.case.extract(caseId) }),
         queryClient.invalidateQueries({ queryKey: qk.case.validation(caseId) }),
+        queryClient.invalidateQueries({ queryKey: qk.case.validationGapItems(caseId) }),
         queryClient.invalidateQueries({ queryKey: qk.case.eligibility(caseId) }),
         queryClient.invalidateQueries({ queryKey: qk.case.narratives(caseId) }),
       ])

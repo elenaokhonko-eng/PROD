@@ -33,6 +33,11 @@ import { useDecisionRunRealtime } from '@/hooks/state-machine/layer2/use-decisio
 import { useReportRealtime } from '@/hooks/state-machine/layer2/use-report-realtime'
 import { useJobStatus } from '@/hooks/state-machine/layer2/use-job-status'
 import { useSubmitContactRequest } from '@/hooks/state-machine/layer3/use-submit-contact-request'
+import {
+  getValidationResponseTypes,
+  serializeValidationAnswer,
+} from '@/lib/validation-gaps'
+import type { ValidationAnswerValue } from '@/lib/types/validation'
 
 type DashboardClientProps = {
   caseId: string
@@ -99,7 +104,20 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
     [searchParams],
   )
 
-  async function saveResponses(answers: Record<string, string>) {
+  const gapQuestions = validationQuery.questions
+  const gapResponseTypes = useMemo(
+    () => getValidationResponseTypes(gapQuestions),
+    [gapQuestions],
+  )
+  const validationErrorMessage =
+    validationQuery.data?.status === 'error'
+      ? validationQuery.data.error_message ?? 'Validation failed while preparing follow-up questions.'
+      : null
+
+  async function saveResponses(
+    answers: Record<string, ValidationAnswerValue>,
+    responseTypes: Record<string, string> = {},
+  ) {
     const token = await getToken({ template: 'supabase' })
     // #region agent log
     fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H1',location:'dashboard-client.tsx:94',message:'saveResponses getToken resolved',data:{hasToken:Boolean(token),caseIdPresent:Boolean(caseId)},timestamp:Date.now()})}).catch(()=>{})
@@ -110,8 +128,8 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
 
     const responses = Object.entries(answers).map(([question_key, response_value]) => ({
       question_key,
-      response_value,
-      response_type: 'text',
+      response_value: serializeValidationAnswer(response_value),
+      response_type: responseTypes[question_key] ?? 'text',
     }))
 
     const response = await fetch(`/api/cases/${caseId}/responses`, {
@@ -138,7 +156,7 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
     // #region agent log
     fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'progression-debug',hypothesisId:'H14',location:'dashboard-client.tsx:128',message:'handleIntakeSubmit invoked',data:{answerCount:Object.keys(answers).length,caseIdPresent:Boolean(caseId)},timestamp:Date.now()})}).catch(()=>{})
     // #endregion
-    await saveResponses(answers as Record<string, string>)
+    await saveResponses(answers as Record<string, ValidationAnswerValue>)
     setIntakeCompleted(true)
     await submitIntake.mutateAsync({ caseId, runExtract: false })
     // #region agent log
@@ -146,8 +164,8 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
     // #endregion
   }
 
-  async function handleGapSave(answers: Record<string, string>) {
-    await saveResponses(answers)
+  async function handleGapSave(answers: Record<string, ValidationAnswerValue>) {
+    await saveResponses(answers, gapResponseTypes)
     setIntakeCompleted(true)
     await submitIntake.mutateAsync({ caseId, runExtract: true })
   }
@@ -231,9 +249,9 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
               onSubmit: handleIntakeSubmit,
             }}
             gapLoop={{
-              questions: validationQuery.data?.questions_to_user ?? [],
+              questions: validationErrorMessage ? [] : gapQuestions,
               isSavingAnswers: submitIntake.isPending,
-              answersError: submitIntake.error?.message ?? null,
+              answersError: validationErrorMessage ?? submitIntake.error?.message ?? null,
               onSaveAnswers: handleGapSave,
             }}
             evidence={
@@ -277,7 +295,7 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
             <EligibilityGate
               eligibility={eligibilityQuery.data}
               onResult={(result) => {
-                if (!result.eligible) {
+                if (result.eligible === false) {
                   setGateBlocked({ missing: result.missing, reason: result.blockedReason })
                 } else {
                   setGateBlocked(null)

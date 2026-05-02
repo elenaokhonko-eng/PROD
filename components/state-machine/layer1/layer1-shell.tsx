@@ -24,7 +24,7 @@ import { IntakeForm, type IntakeAnswers } from '@/components/state-machine/layer
 import { Tier0DraftView } from '@/components/state-machine/layer1/tier0-draft-view'
 import type { CaseDocumentRow } from '@/lib/types/documents'
 import type { Tier0DraftBundle } from '@/lib/types/narratives'
-import type { ValidationQuestion } from '@/lib/types/validation'
+import type { ValidationAnswerValue, ValidationQuestion } from '@/lib/types/validation'
 
 export type Layer1Node =
   | 'S1-IntakeForm'
@@ -54,7 +54,7 @@ export interface Layer1ShellProps {
     questions: ValidationQuestion[]
     isSavingAnswers?: boolean
     answersError?: string | null
-    onSaveAnswers: (answers: Record<string, string>) => void
+    onSaveAnswers: (answers: Record<string, ValidationAnswerValue>) => void
   }
 
   evidence?: {

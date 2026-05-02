@@ -118,7 +118,7 @@ export async function POST(request: Request) {
           : false,
     })
 
-    // Build storage path expected by the storage sync trigger.
+    // Storage path: cases/{caseId}/documents/{generatedName}
     const originalName = (file as File).name ?? "upload"
     const fileExt = originalName.includes(".") ? originalName.split(".").pop() : undefined
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}${fileExt ? `.${fileExt}` : ""}`
@@ -176,103 +176,36 @@ export async function POST(request: Request) {
       filePath,
     })
 
-    // TEMPORARY DEVIATION FROM Front-to-Back-End-Integration-Summary.md §4.2:
-    // the contract says the server route owns the `case_documents` INSERT.
-    // The DB currently has trigger `public.sync_case_document_from_storage()`
-    // which auto-inserts a row when an object lands in `case_evidence` and
-    // collides with our INSERT via `case_documents_storage_unique`. Until
-    // Masha removes that trigger, we read-after-trigger: select the row by
-    // (storage_bucket, storage_path) and patch the metadata fields the
-    // trigger leaves blank. Revert to the §4.2 INSERT once the trigger is
-    // dropped. See "Temporary deviation" note in §4.2 of the integration doc.
-    const { data: caseDoc, error: caseDocError } = await supabase
+    // IS §4.2: this route owns the `case_documents` row after Storage write.
+    // Supabase storage auto-insert (`sync_case_document_from_storage`) is off in prod.
+    const { data: insertedDoc, error: insertErr } = await supabase
       .from("case_documents")
-      .select("id")
-      .eq("storage_bucket", uploadedBucket)
-      .eq("storage_path", filePath)
-      .maybeSingle()
-
-    debugLog("H29", "evidence/upload/route.ts:lookup", "case_documents row after storage", {
-      hasRow: Boolean(caseDoc?.id),
-      uploadedBucket,
-      runId: "slice5-verify",
-    })
-
-    if (caseDocError) {
-      console.error("[evidence/upload] case_documents lookup failed:", caseDocError)
-      debugLog("H28", "evidence/upload/route.ts:200", "case_documents lookup failed", {
-        message: caseDocError.message,
-        code: (caseDocError as { code?: unknown }).code ?? null,
-      })
-      return NextResponse.json({ error: "Failed to locate case document record" }, { status: 500 })
-    }
-    if (!caseDoc?.id) {
-      // Trigger disabled or path/bucket mismatch — fall back to the §4.2 INSERT.
-      const { data: insertedDoc, error: insertErr } = await supabase
-        .from("case_documents")
-        .insert({
-          case_id: caseId,
-          filename: originalName,
-          original_filename: originalName,
-          file_size: (file as File).size,
-          mime_type: (file as File).type,
-          document_type: null,
-          storage_bucket: uploadedBucket,
-          storage_path: filePath,
-          processing_status: "uploaded",
-          is_processed: false,
-        })
-        .select("id")
-        .single()
-      if (insertErr || !insertedDoc?.id) {
-        console.error("[evidence/upload] case_documents fallback insert failed:", insertErr)
-        debugLog("H28", "evidence/upload/route.ts:230", "case_documents fallback insert failed", {
-          message: insertErr?.message ?? null,
-          code: (insertErr as { code?: unknown } | null)?.code ?? null,
-        })
-        return NextResponse.json({ error: "Failed to create case document record" }, { status: 500 })
-      }
-      debugLog("H22", "evidence/upload/route.ts:240", "case_documents created via fallback insert", {
-        hasCaseDocumentId: true,
-        caseId,
-        uploadedBucket,
-      })
-      return NextResponse.json({
-        evidence: {
-          case_id: caseId,
-          filename: originalName,
-          file_path: filePath,
-          file_type: (file as File).type,
-          file_size: (file as File).size,
-          description: description || originalName,
-          category,
-        },
-        caseDocumentId: insertedDoc.id,
-      })
-    }
-
-    // Patch trigger-created row with metadata only the app knows.
-    const { error: patchErr } = await supabase
-      .from("case_documents")
-      .update({
+      .insert({
+        case_id: caseId,
         filename: originalName,
         original_filename: originalName,
         file_size: (file as File).size,
         mime_type: (file as File).type,
-        processing_status: "uploaded",
+        document_type: null,
+        storage_bucket: uploadedBucket,
+        storage_path: filePath,
+        processing_status: "pending",
         is_processed: false,
       })
-      .eq("id", caseDoc.id)
-    if (patchErr) {
-      // Non-fatal: pipeline can still proceed with the trigger-set defaults.
-      console.warn("[evidence/upload] case_documents metadata patch failed:", patchErr)
-      debugLog("H28", "evidence/upload/route.ts:265", "case_documents metadata patch failed", {
-        message: patchErr.message,
-        code: (patchErr as { code?: unknown }).code ?? null,
+      .select("id")
+      .single()
+
+    if (insertErr || !insertedDoc?.id) {
+      console.error("[evidence/upload] case_documents insert failed:", insertErr)
+      debugLog("H28", "evidence/upload/route.ts:insert", "case_documents insert failed", {
+        message: insertErr?.message ?? null,
+        code: (insertErr as { code?: unknown } | null)?.code ?? null,
       })
+      return NextResponse.json({ error: "Failed to create case document record" }, { status: 500 })
     }
-    debugLog("H22", "evidence/upload/route.ts:270", "case_documents read-after-trigger succeeded", {
-      hasCaseDocumentId: Boolean(caseDoc.id),
+
+    debugLog("H22", "evidence/upload/route.ts:insertOk", "case_documents created", {
+      hasCaseDocumentId: true,
       caseId,
       uploadedBucket,
     })
@@ -287,7 +220,7 @@ export async function POST(request: Request) {
         description: description || originalName,
         category,
       },
-      caseDocumentId: caseDoc?.id ?? null,
+      caseDocumentId: insertedDoc.id,
     })
   } catch (err) {
     console.error("[evidence/upload] Unexpected error:", err)

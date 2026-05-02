@@ -78,6 +78,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   }
 
   if (!narratives?.tier0_summary && !narratives?.tier0_evidence_checklist && !narratives?.tier0_srf_signal) {
+    if (validation?.status === 'error') return 'S1-GapLoop'
     const missing = validation?.missing_fields ?? []
     if (Array.isArray(missing) && missing.length > 0) return 'S1-GapLoop'
     if (!isIntakeSubmitted && !hasSubmittedIntake) return 'S1-IntakeForm'

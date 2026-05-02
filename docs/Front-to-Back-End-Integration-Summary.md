@@ -1,10 +1,13 @@
 # Front-to-Back End Integration Summary
 
 > ✅ **2026-04-21 PM — Masha feedback reconciliation complete + Layer 3 human-in-the-loop refinement.** Masha confirmed the canonical 5-function sequence (3 Tier-0 + 2 Tier-1). `candidate-transactions` and `compute-loss` are **Masha-internal fallbacks only** (invoked from the Supabase Dashboard when `run_case_extract_v4` can't compute the loss number) — the frontend does NOT call them. `gemini-task` is **archived**. Legacy `run_case_extract_v1` / `_v2` / `_v3` are **archived** in Supabase; repo-folder deletion pending Masha. **Layer 3 (late-afternoon 2026-04-21 PM refinement):** the terminal contact form shown right after the Tier-1 report now also captures **age**, **employment status** (professional / retiree / student / other), and **two FIDReC-qualification checkboxes** (≥ 30 days since last FI reply? FI issued final response?). The server snapshots `amount_lost_sgd` + `financial_institution` from the latest `case_extract_runs` row at insert time, so Dance's triage view always matches the number the user saw. See §9.9 + §10.5. The binding contract is [`2026-04-21-Masha-Feedback-Reconciliation.md`](./2026-04-21-Masha-Feedback-Reconciliation.md) §0 (canonical sequence) and §6 (end-to-end workflow). This Integration Summary has been rewritten to match.
+> ✅ **2026-04-26 / 2026-05-02 updates.** Layer 3 and Tier 2 now refer to the same post-Tier-1 surface: FIDReC handoff form plus specialist consult/case-pack commerce, with the persistent WhatsApp `wa.me` widget kept in the root layout and no duplicate global widget. The contact form path still has **no edge function**. Structured validation gaps now use `v_case_validation_gap_items` as the preferred UI source with `questions_to_user` fallback (§4.5). The quick QA checklist is in [`Test-Plan.md`](./Test-Plan.md).
 
 **Purpose.** This document is the single source of truth for the frontend (Elena) on how to call Masha's Supabase backend. It enumerates **every Edge Function the app must invoke**, the **exact JSON payload** each function expects, the **response shape** it returns, the **frontend layer (1 / 2 / 3) that triggers it**, and the **tables the UI must read back** to render state.
 
 It is intentionally written so it can feed directly into a follow-up **State Machine / Workflow Document** (e.g. `User clicks "Get my free draft" (Layer 1) → frontend calls bright-function → poll case_narratives → render Tier-0 draft screen`).
+
+**Test plan.** The standalone execution checklist lives in [`Test-Plan.md`](./Test-Plan.md). Keep it aligned with §4.5, §8, §9, and the state-machine Appendix B walkthrough.
 
 **Scope and source of truth.**
 
@@ -18,10 +21,10 @@ It is intentionally written so it can feed directly into a follow-up **State Mac
 - All edge function calls are **HTTPS POST** unless the row labelled "Method" says otherwise.
 - All payloads are JSON (`Content-Type: application/json`).
 - Auth model varies per function — see **Auth** column. Most are documented as "internal only" today; the frontend should call them through a thin Next.js Route Handler / server action that holds the service-role key, **not** by exposing the function directly to the browser.
-- "Layer" in this document refers to the **frontend product layer** the user is in when the call is triggered. Layers 1 and 2 map 1:1 to backend tiers and `plan` values in `user_entitlements` / `case_entitlements`; Layer 3 is a human-handoff terminal with no backend tier:
+- "Layer" in this document refers to the **frontend product layer** the user is in when the call is triggered. Layers 1 and 2 map 1:1 to the current backend tiers and entitlement values in `user_entitlements` / `case_entitlements`; Layer 3 is the post-Tier-1 / Tier-2 surface:
   - **Layer 1 = Tier 0 = `free`** (everything pre-payment: Tier-0 freemium report)
   - **Layer 2 = Tier 1 = `self_serve_report`** (paid self-serve FIDReC report)
-  - **Layer 3 = FIDReC handoff contact form** — *no backend tier, no `plan` value.* Human-in-the-loop contact form shown immediately after the Tier-1 self-serve report (identity + age + employment status + two FIDReC-qualification checkboxes + optional message; server-side snapshot of amount lost + FI name). Writes to the contact-requests storage table + notification email to Dance. (2026-04-21 PM decision — the earlier "escalation_pack Tier-2" framing is deprecated.)
+  - **Layer 3 = Tier 2 post-report surface** — human-in-the-loop FIDReC contact form plus specialist consult / case-pack commerce. The contact form has no edge function and writes to the contact-requests storage table + notification email to Dance. The persistent WhatsApp link is a third-party `wa.me` entry point in the root layout. Slice 8 adds SGD 99 / SGD 800 Stripe checkouts on the same surface (§10.6).
 
 ---
 
@@ -31,7 +34,7 @@ It is intentionally written so it can feed directly into a follow-up **State Mac
 |---|---|---|---|---|---|
 | **Layer 1 — Free intake + Tier-0 draft** | **Tier 0** | `free` | Free | (a) Pre-login: typing/recording their story on the public landing page (client-side only, no Supabase write); (b) post-Clerk-login: the server materialises the case from the client-held narrative; (c) uploading evidence; (d) iterating gap-question loop; (e) reviewing the free Tier-0 draft (summary + evidence checklist + minimal SRF signal). | **Three functions, in this order:** `evidence_processed_v2` → `run_case_extract_v4` (fires multiple times through the gap loop) → `bright-function`. |
 | **Layer 2 — Paid Self-Serve Report** | **Tier 1** | `self_serve_report` | Paid | Paying via Stripe; (optionally) adding more documents or editing the narrative; reviewing the decision; generating and viewing/downloading the formal complaint report. | **Two functions, in this order (on the Render worker):** `run_case_decision_v1` → `run_report_selfserve_v1`. Conditional re-runs of `evidence_processed_v2` + `run_case_extract_v4` happen **only** if the user added new documents or edited the narrative in the Tier-1 upgrade screen. All gated by `get_case_eligibility` RPC. |
-| **Layer 3 — FIDReC handoff** *(human-in-the-loop for MVP)* | *(no backend tier)* | *(no entitlement row)* | Free contact | After their Tier-1 self-serve report is generated, the user is shown a human-in-the-loop screen: leave details (name, phone, email, age, employment status) + answer two FIDReC-qualification checkboxes (≥ 30 days since last FI reply? FI issued final response?) to request manual help preparing a FIDReC submission. | **No edge function.** MVP UX is a terminal contact form. Server-side snapshots `user_id`, `case_id`, `amount_lost_sgd`, `financial_institution` from the latest `case_extract_runs` row; user supplies identity, demographics, qualification booleans, optional message. Writes to the contact-requests storage table, notifies Dance by email. See §9.9. |
+| **Layer 3 / Tier 2 — FIDReC handoff + specialist commerce** | **Tier 2 surface** | Contact form has no entitlement; paid add-on plan names are finalized in Stripe metadata / Slice 8 | Free contact + optional paid add-ons | After the Tier-1 self-serve report, the user can submit the FIDReC handoff form, use the persistent WhatsApp link, and, after Slice 8, buy specialist consult / case-pack prep. | **No edge function for the contact form.** Server snapshots `user_id`, `case_id`, `amount_lost_sgd`, `financial_institution`; user supplies identity, demographics, qualification booleans, optional message. Writes to contact-requests storage and emails Dance. WhatsApp is third-party `wa.me`; paid add-ons reuse Stripe checkout/webhook patterns (§10.6). |
 
 **Canonical happy-path sequence (Masha-confirmed 2026-04-21 PM).**
 
@@ -62,7 +65,7 @@ Layer 2 unlocks only after Stripe success upgrades the case to `plan = 'self_ser
 | 4 | `run_case_decision_v1` | `POST` | **Layer 2 (Tier 1, paid)** — runs on the Render worker after Stripe webhook, immediately before step 5. | Stripe success → webhook queues a `jobs` row → Render worker runs conditional upstream re-runs (steps 1 + 2 if new docs/narrative) then calls decision. | None enforced inside function — service role used. **Wrap behind server route (called by Render worker).** |
 | 5 | `run_report_selfserve_v1` | `POST` | **Layer 2 (Tier 1, paid Self-Serve Report)** | Render worker calls it immediately after step 4 succeeds. | **`simulation_key` in body** vs env `SIMULATION_KEY` (no JWT). MVP only. **Server route must inject the key.** |
 
-**Layer 3 (FIDReC handoff)** is a static contact-form screen — no edge function involved. See §9.9.
+**Layer 3 / Tier 2** has no Supabase edge function for the contact form. It uses `/api/contact-requests` for the handoff, the root-layout `wa.me` link for WhatsApp, and, after Slice 8, Stripe routes for specialist add-ons. See §9.9 and §10.6.
 
 **No longer in the active set** (2026-04-21 — do NOT call from the frontend — see reconciliation doc §0.2, §4):
 
@@ -150,9 +153,11 @@ Each section follows the same template:
 - `case_extract_runs` row identified by the returned `extract_run.id`:
   - `extract_json` — render to drive the gap questionnaire (timeline, case_meta, customer_actions, institution_actions, losses, evidence_status).
   - `missing_fields` — array of explicitly-missing required fields (`incident_date`, `reported_loss.amount`, `case_meta.institution_name`).
-- `case_validation_runs` (or view `v_latest_validation` keyed by `extract_run_id`):
-  - `questions_to_user` — machine-generated user-facing questions for each gap.
-  - `missing_fields`, `ambiguities`, `validation_summary`, `is_valid`.
+- `case_validation_runs` selected by `validation_run_id` from `get_case_eligibility`:
+  - Parent state: `status`, `missing_fields`, `ambiguities`, `questions_to_user`, `validation_summary`, `is_valid`, `error_message`.
+- `v_case_validation_gap_items` selected by the same `validation_run_id`, ordered by `sort_order`:
+  - Preferred ordered UI gaps: `field_key`, `question_text`, `expected_answer_type`, `answer_options`, `severity`, `help_text`.
+  - Fallback to parent `questions_to_user` only when the view returns zero rows.
 
 **Latency expectation:** seconds (one OpenAI call + optional retry + one RPC). Show a loading spinner; do not block other UI.
 
@@ -235,7 +240,7 @@ Render:
 **Layer:** **Layer 1 (Tier 0, free).** Per Masha's handover ("move evidence upload early"), evidence collection happens **before** payment so the free Tier-0 draft can lean on real documents.
 
 **User action that triggers it:**
-- User uploads a document on the evidence screen. Frontend first inserts a row into `case_documents` (with declared `document_type`, `storage_bucket`, `storage_path`) and uploads the blob to Supabase Storage, **then** calls this function.
+- User uploads a document on the evidence screen. The app calls **`POST /api/evidence/upload`**, which uploads the blob to Supabase Storage and **`INSERT`s `case_documents`** (declared `document_type`, `storage_bucket`, `storage_path`, `processing_status: 'pending'` — IS §4.2), **then** calls this function with `{ document_id }`.
 - "Re-process my evidence" button — call with `case_id` (batch mode).
 
 **Endpoint (deployed):** `POST {SUPABASE_URL}/functions/v1/evidence_processed_v2`
@@ -680,7 +685,7 @@ const { data: doc } = await supabase.from('case_documents').insert({
   document_type,              // user-declared, normalised to evidence taxonomy
   upload_date: new Date().toISOString(),
   storage_provider: 'supabase',
-  storage_bucket: 'case-evidence',
+  storage_bucket: 'case-evidence',   // prod route tries `case_evidence` then `evidence` — whichever succeeds
   storage_path,
   is_processed: false,
   processing_status: 'pending',
@@ -689,7 +694,7 @@ const { data: doc } = await supabase.from('case_documents').insert({
 // Then call evidence_processed_v2 with { document_id: doc.id }
 ```
 
-> ⚠️ **Temporary deviation (pending Masha — 2026-05-01).** The DB currently has trigger `public.sync_case_document_from_storage()` on `storage.objects` which auto-inserts a `case_documents` row whenever an object lands in bucket `case_evidence`. That collides with the §4.2 contract above (route INSERT fails with `23505` on `case_documents_storage_unique`). Until the trigger is removed (email sent to Masha 2026-05-01 requesting either dropping the trigger or rebinding it to a manual-only bucket), `app/api/evidence/upload/route.ts` performs **read-after-trigger** instead of an INSERT: it selects the trigger-created row by `(storage_bucket, storage_path)` and patches the metadata fields the trigger leaves blank (`filename`, `original_filename`, `file_size`, `mime_type`, `processing_status: 'uploaded'`, `is_processed: false`). A fallback INSERT path is kept for the case where the trigger is disabled / a different bucket is used. **Revert to the §4.2 INSERT-only flow once Masha removes the trigger.**
+**Production app path.** The Next.js handler [`app/api/evidence/upload/route.ts`](../app/api/evidence/upload/route.ts) uploads to Storage (`case_evidence`, then fallback `evidence`) and performs this **same INSERT** immediately after a successful blob write. **Supabase no longer auto-inserts** `case_documents` from `storage.objects` — the dashboard trigger `sync_case_document_from_storage` was **disabled** (2026‑05); only the app INSERT creates the row, so `case_documents_storage_unique` collisions from dual writers are gone.
 
 ### 4.3 Before calling `run_case_decision_v1` (Layer 2, Tier 1, server-side)
 
@@ -702,6 +707,36 @@ const { data: doc } = await supabase.from('case_documents').insert({
 - Stripe success → server inserts/updates `case_entitlements` (or `user_entitlements`) so `plan = 'self_serve_report'`.
 - Server must verify `get_case_eligibility(:case_id).eligible_actions.run_report_selfserve === true`.
 
+### 4.5 Structured validation gaps (Phase 2 DB — migrations `20260502133000_case_validation_gap_items.sql`, `20260502150000_run_validation_v1_gap_items.sql`)
+
+Validation after each extract remains **inside Postgres** (trigger on `case_extract_runs` invoking `run_validation_v1`). **Additive Phase 2 (2026‑05‑02):** the canonical JSON arrays on **`case_validation_runs`** (`missing_fields`, `questions_to_user`, …) are **unchanged** for backward compatibility.
+
+**Row-level gaps (preferred for deterministic UI)**
+
+- **`case_validation_gap_items`** — One row per user-facing gap for a validation run.
+  - **Keys / FKs:** `validation_run_id` → `case_validation_runs(id)` (CASCADE delete), `case_id` → `cases(id)`, optional `extract_run_id` → `case_extract_runs(id)`.
+  - **Identity / ordering:** `field_key` (text, required), **`sort_order` int** (default 0); **unique** `(validation_run_id, field_key, sort_order)` so multiple questions for the same field are allowed when `sort_order` differs.
+  - **Presentation:** `question_text`, optional `help_text`, `severity` (`required` | `recommended` | `optional`), `gap_type` (e.g. `missing_required_field`, `ambiguous_field`, `contradiction`, `needs_confirmation`, `evidence_gap`), `expected_answer_type`, **`answer_options` jsonb array**, `source` (default `'run_validation_v1'`).
+  - **Audit / debug:** `raw_gap` jsonb (element from `missing_fields`), `raw_question` jsonb (matched question object or null).
+- **`v_case_validation_gap_items`** — Read view over the stable columns (exposes the same semantic fields without requiring clients to parse raw blobs).
+
+**`run_validation_v1` behaviour (dual write + deterministic pairing)**
+
+1. Builds `missing_fields` and `questions_to_user` jsonb arrays (same semantics as before) and **`INSERT`s `case_validation_runs`** (`status`, `missing_fields`, `questions_to_user`, …).
+2. For each element **`missing_fields[i]`** (`i = 0 .. n-1`), inserts **exactly one** **`case_validation_gap_items`** row with **`sort_order = i`**:
+   - **Question text** comes from the **first** matching entry in **`questions_to_user`** with the same **`field`**, ordered by **array position** (`jsonb_array_elements … WITH ORDINALITY`, first match wins). That removes the old “dual array” nondeterminism.
+   - If no usable match: synthetic `question_text` and `expected_answer_type = 'text'` / empty options.
+3. **Integrity check:** inserted gap-item **count must equal `n`**; mismatch raises an exception and the function marks the parent **`case_validation_runs`** row **`status = 'error'`**, **`is_valid = false`**, **`error_message`** set (nested block `EXCEPTION WHEN OTHERS`).
+
+**Frontend implementation contract (updated 2026-05-02).**
+
+- Keep **`case_validation_runs`** as the parent validation state. The state machine still reads `status`, `missing_fields`, `questions_to_user`, `is_valid`, and `error_message` from the parent row selected by primary key.
+- For the gap-question UI, prefer **`v_case_validation_gap_items`** filtered by **`validation_run_id`** and ordered by **`sort_order`**, then `created_at`. Use the base table only for backend/debug work.
+- Normalize DB rows into the UI question shape before rendering: `field_key`/legacy `field` -> `key`; `question_text`/legacy `question` -> `question`; `expected_answer_type`/legacy `answer_type` -> `field_type`; `answer_options`/legacy `options` -> `options`; `severity === 'required'`/legacy `required === true` -> `required`.
+- If the view returns zero rows, fall back to the parent JSON **`questions_to_user`** so older validation runs and partially migrated environments still render.
+- If the parent row has **`status = 'error'`**, do not render normal gap questions. Surface **`error_message`** in the gap area and block Tier-0 auto-fire.
+- Gap-answer saves still go through the existing responses path, but the frontend should send `response_type` from the normalized `field_type` instead of hard-coding `text`.
+
 ---
 
 ## 5. Frontend read contracts (where the UI reads state for each layer)
@@ -710,13 +745,13 @@ const { data: doc } = await supabase.from('case_documents').insert({
 |---|---|---|---|
 | Layer 1 (Tier 0) | Intake form | `cases` (own row) | Pre-fill on edit. |
 | Layer 1 (Tier 0) | "Analysing your story…" loader after submit | `case_extract_runs` (latest by `case_id`, `created_at DESC`) | Detect when `run_case_extract_v4` finished and gather `extract_json` + `missing_fields`. |
-| Layer 1 (Tier 0) | Gap-question screen | `case_extract_runs.extract_json`, `case_extract_runs.missing_fields`, `v_latest_validation` (keyed by `extract_run_id`).`questions_to_user` | Build the dynamic question list. |
+| Layer 1 (Tier 0) | Gap-question screen | `case_extract_runs.extract_json`; two-step **`case_validation_runs`** by PK (`status`, `missing_fields`, `questions_to_user`, `error_message`); preferred **`v_case_validation_gap_items`** filtered by `validation_run_id`, **`ORDER BY sort_order, created_at`** (§4.5); JSON fallback from `questions_to_user` when the view returns no rows | Parent validation row drives state and errors. Preferred view rows drive ordered UI questions after normalization; legacy JSON keeps older runs working. |
 | Layer 1 (Tier 0) | Evidence screen | `case_documents`, `case_documents_enriched` (joined view) | Per-doc status, verification, extracted facts. |
 | Layer 1 (Tier 0) | Tier-0 free draft screen | `case_narratives` rows where `narrative_type IN ('tier0_summary', 'tier0_evidence_checklist', 'tier0_srf_signal')` | Render free draft. |
 | Layer 1 → Layer 2 transition | Pre-checkout gate ("Upgrade to full report") | RPC `get_case_eligibility(case_id)` | Confirm `eligible_actions.run_report_selfserve` before showing the "Buy report" CTA. |
 | Layer 2 (Tier 1) | "Analysing case…" / "Drafting report…" progress | `case_decision_runs` (latest, or via `get_latest_decision_run(:case_id)`) | Score, status, rationale, references — surface progressively while `run_report_selfserve_v1` runs. |
 | Layer 2 (Tier 1) | Report viewer | `reports` (latest by `case_id`, `created_at DESC`) | Render `report_json`. |
-| Layer 3 (FIDReC handoff — no backend tier) | Human-in-the-loop contact form terminal node | Writes only (one `upsert` into the contact-requests storage table — currently `escalation_waitlist`, UNIQUE on `user_id + case_id`); no edge function reads. Server-side snapshot read of latest `case_extract_runs.extract_json` (for `amount_lost_sgd` + `financial_institution`) happens inside the `/api/contact-requests` route, not from the client. | Per §9.9 — human-in-the-loop triage form (identity + age + employment + two FIDReC-qualification booleans + optional message), server-captured amount + FI, `upsert`, email notification to Dance, confirmation screen. |
+| Layer 3 / Tier 2 (post-report handoff + commerce) | Human-in-the-loop contact form, specialist recommendation copy, persistent WhatsApp link, and Slice 8 paid add-ons | Contact form writes only (one `upsert` into the contact-requests storage table — currently `escalation_waitlist`, UNIQUE on `user_id + case_id`); no edge function reads. Server-side snapshot read of latest `case_extract_runs.extract_json` happens inside `/api/contact-requests`, not from the client. WhatsApp is a third-party `wa.me` link. Paid add-ons use Stripe checkout/webhook routes. | Per §9.9 and §10.6 — triage form, server-captured amount + FI, email notification to Dance, confirmation screen, root-layout WhatsApp, and optional SGD 99 / SGD 800 specialist add-ons. |
 | All layers | Header / nav badges | `user_entitlements` (own row); `case_entitlements` (this case); RPC `get_effective_entitlement(case_id)` | Show plan label and feature flags. |
 
 **Realtime tip:** subscribe to `case_documents` (filter `case_id = eq.<id>`) for live `processing_status` updates instead of polling.
@@ -778,8 +813,8 @@ This is the minimum sequence the State Machine document will need to expand.
 
 1. User completes Clerk sign-up / sign-in. Clerk returns a Supabase-compatible JWT (Pattern C, Slice 0 runbook); `handle_new_user()` trigger auto-creates `auth.users` + `profiles` with the same UUID.
 2. First authenticated page load: client sends the `sessionStorage` / Clerk `unsafeMetadata` narrative in the body of a `POST /api/cases/bootstrap` call. The server uses `createUserClient()` to `INSERT` into `cases` (RLS `WITH CHECK (user_id = auth.uid())` fills `user_id` automatically) and into `case_intake` (`intake_type = 'initial'`). Returns `caseId`. Client clears the sessionStorage.
-3. Evidence upload screen opens. User uploads documents → blob to Supabase Storage → frontend `INSERT case_documents` → server route `POST /api/edge/evidence` (which calls `/functions/v1/evidence_processed_v2` `{ document_id }`) per upload. Read `case_documents_enriched` for per-doc verification + extractions.
-4. Once the minimum intake is present (institution, rough incident description, claim amount, date — Masha's explicit guidance) the server fires the first `POST /api/edge/extract` (`/functions/v1/run_case_extract_v4`) with `{ case_id }`. On success, client reads the new `case_extract_runs` row + `v_latest_validation` row (the Postgres trigger on `case_extract_runs` has populated it) to drive the gap questionnaire.
+3. Evidence upload screen opens. User uploads documents → `POST /api/evidence/upload` (Storage write + **`INSERT case_documents`**, §4.2) → server route `POST /api/edge/evidence` (`/functions/v1/evidence_processed_v2` `{ document_id }`) per upload. Read `case_documents_enriched` for per-doc verification + extractions.
+4. Once the minimum intake is present (institution, rough incident description, claim amount, date — Masha's explicit guidance) the server fires the first `POST /api/edge/extract` (`/functions/v1/run_case_extract_v4`) with `{ case_id }`. On success, client reads the new `case_extract_runs` row plus validation via **gotcha 6** (RPC + **`case_validation_runs`** PK). The gap UI then prefers **`v_case_validation_gap_items`** rows (§4.5) in deterministic `sort_order`, with `questions_to_user` JSON as fallback.
 5. **Gap loop (still Layer 1):** for each gap question answered, frontend `INSERT`s a new `case_intake` row (`intake_type = 'gap_response'`) and re-fires `run_case_extract_v4`. Each new document upload also re-fires `run_case_extract_v4` after its `evidence_processed_v2` completes. Read updated `extract_json` + `missing_fields` after each run.
 6. Once the user clicks "generate my free draft" (or has answered / skipped all gaps), the server runs one final **freshness-check** pass of `run_case_extract_v4`, then fires `POST /api/edge/tier0` (`/functions/v1/bright-function`) `{ case_id }`. **`bright-function` runs once.**
 7. Frontend reads `case_narratives` rows (`tier0_summary`, `tier0_evidence_checklist`, optionally `tier0_srf_signal`) and renders the free draft screen.
@@ -797,9 +832,9 @@ This is the minimum sequence the State Machine document will need to expand.
 13. Worker calls `run_report_selfserve_v1` `{ case_id, simulation_key, user_id }` (loading state: "Drafting report…").
 14. Frontend subscribes to `jobs.status` + latest `reports` row via Realtime and renders `report_json` when it lands. Subsequent visits read the latest `reports` row for the case.
 
-**Layer 3 — FIDReC handoff contact form (no backend tier)**
+**Layer 3 / Tier 2 — FIDReC handoff, specialist copy, and optional commerce**
 
-15. **Terminal node — no edge function.** User reaches the Layer 3 screen (entered via a CTA on the Tier-1 report viewer: "Need help escalating to FIDReC? → Get help from a specialist"). Per §9.9 it is a single human-in-the-loop contact form. **User-entered:** name, email, phone, age (integer), employment status (professional / retiree / student / other), two FIDReC-qualification checkboxes (≥ 30 days since last FI reply? FI issued final response?), optional message. **Auto-captured server-side (never trusted from the client):** `user_id` (from JWT), `case_id` (from route context), `amount_lost_sgd` + `financial_institution` (snapshotted from the latest `case_extract_runs` row at insert time). Submit POSTs to `/api/contact-requests`, which performs an RLS-scoped ownership probe + snapshot read + `upsert` into the contact-requests storage table (UNIQUE on `user_id + case_id`) and emails Dance. Confirmation screen: *"Thanks — we'll be in touch within 1–2 business days to help you prepare your FIDReC submission."* No payment, no further automation.
+15. **Contact path — no edge function.** User reaches the Layer 3 / Tier 2 screen (entered via a CTA on the Tier-1 report viewer: "Need help escalating to FIDReC? -> Get help from a specialist"). Per §9.9 it includes a human-in-the-loop contact form. **User-entered:** name, email, phone, age (integer), employment status (professional / retiree / student / other), two FIDReC-qualification checkboxes (>= 30 days since last FI reply? FI issued final response?), optional message. **Auto-captured server-side (never trusted from the client):** `user_id` (from JWT), `case_id` (from route context), `amount_lost_sgd` + `financial_institution` (snapshotted from the latest `case_extract_runs` row at insert time). Submit POSTs to `/api/contact-requests`, which performs an RLS-scoped ownership probe + snapshot read + `upsert` into the contact-requests storage table (UNIQUE on `user_id + case_id`) and emails Dance. The same surface keeps the root-layout WhatsApp entry point and, after Slice 8, adds SGD 99 / SGD 800 Stripe add-ons (§10.6). The contact route itself remains no-edge-function.
 
 ---
 
@@ -813,10 +848,10 @@ All seven gotchas plus two cross-cutting questions are now resolved. The table b
 |---|---|---|---|---|
 | 1 | **SRF signal in Tier-0 draft** | Tier-0 draft screen renders **whatever `case_narratives` rows exist** for the case. Do not block on a specific count. | Eliminates a hidden "hang forever" failure path if `bright-function` doesn't write `tier0_srf_signal` on every run. | Tier-0 draft node's condition: *"On any `case_narratives` insert/update, re-render panels from whichever rows exist."* Panels: `tier0_summary` (required), `tier0_evidence_checklist` (required), `tier0_srf_signal` (conditional — render only if row is present). |
 | 2 | **Edge function auth** | **Every edge function call goes through a Next.js server route.** No direct browser → edge function calls, ever. | Keeps `simulation_key` and service-role key out of the browser; provides a single place to enforce Clerk auth + "does this user own this case" checks. | Every call arrow is a **3-hop arrow**: `browser → Next.js server route → Supabase edge function`. Never draw a 2-hop arrow for edge functions. (Direct `supabase-js` reads on RLS-protected tables from the browser remain fine.) |
-| 3 | **Layer 3 / FIDReC handoff** | Single terminal screen with a **human-in-the-loop contact form** shown immediately after the Tier-1 report. User enters name, email, phone, **age**, **employment status** (professional / retiree / student / other), and two **FIDReC-qualification checkboxes** (≥ 30 days since last FI reply? FI issued final response?) plus an optional message. Server snapshots `user_id`, `case_id`, `amount_lost_sgd`, `financial_institution` from the latest `case_extract_runs` row at insert time. Submit POSTs to `/api/contact-requests`, writes one row to the contact-requests storage table, emails Dance, shows confirmation. **No specialist card, no WhatsApp / LinkedIn CTAs, no "coming soon" waitlist, no payment, no edge function.** | 2026-04-21 PM late-afternoon refinement: Dance wants the table to answer "who is this person, what did they lose, which FI, and are they FIDReC-ready?" at a glance — so the minimal 4-field form was expanded with demographics + qualification booleans. Specialist-card / waitlist framing from earlier drafts remains deprecated. | Layer 3 is a **3-state terminal branch** `L3-FormFilling → L3-Submitting → L3-Confirmed`. The only action is an `upsert` (UNIQUE on `user_id + case_id`) into the contact-requests storage table via `/api/contact-requests`. No edge function, no branching beyond form validation. |
+| 3 | **Layer 3 / Tier 2 FIDReC handoff** | Post-Tier-1 surface with a **human-in-the-loop contact form** plus specialist recommendation copy. User enters name, email, phone, **age**, **employment status** (professional / retiree / student / other), and two **FIDReC-qualification checkboxes** (>= 30 days since last FI reply? FI issued final response?) plus an optional message. Server snapshots `user_id`, `case_id`, `amount_lost_sgd`, `financial_institution` from the latest `case_extract_runs` row at insert time. Submit POSTs to `/api/contact-requests`, writes one row to the contact-requests storage table, emails Dance, shows confirmation. WhatsApp is required as the existing persistent root-layout `wa.me` link. Slice 8 adds SGD 99 / SGD 800 Stripe add-ons on this same surface. **No LinkedIn CTA, no generic coming-soon waitlist, no contact-route edge function.** | 2026-04-21 PM late-afternoon refinement added demographics + qualification booleans. 2026-04-26 update: Layer 3 = Tier 2 surface, persistent WhatsApp remains, and specialist consult / case-pack commerce is added through Stripe, not Supabase edge functions. | Contact form remains a **3-state branch** `L3-FormFilling → L3-Submitting → L3-Confirmed`. The form action is an `upsert` (UNIQUE on `user_id + case_id`) via `/api/contact-requests`. WhatsApp is a third-party link. Paid add-ons use Stripe checkout/webhook routes. |
 | 4 | **Evidence file types** | Frontend upload UI **only accepts PDF, PNG, JPEG, DOCX.** Reject `.txt` (and everything else) at the file-picker step — do not upload to Storage. | Stops silent mis-processing by Gemini (which coerces unknown MIMEs to `image/jpeg`). DOCX is covered here pending confirmation that Gemini accepts it; see §10 residual items. | Upload node annotation: *"Accepted types: PDF, PNG, JPEG, DOCX. Client-side validation rejects everything else before upload."* Future-work annotation (out of MVP scope): *"Backend to extend MIME detection so `.txt` can be accepted natively."* |
 | 5 | **Legacy extract function versions (`v1`, `v2`, `v3`)** | **Frontend pins `run_case_extract_v4`** via a single constants file (see §9.1). Masha archived v1/v2/v3 from Supabase on 2026-04-21 (see reconciliation doc §4); remaining work is to delete the `supabase/functions/run_case_extract_v{1,2,3}` folders from the repo. | Prevents accidental wiring to the wrong version and documents the cleanup debt. | Every reference in the State Machine diagram uses the literal string **`run_case_extract_v4`**. A note in the diagram margin reads: *"v1, v2, v3 are archived — do not call. v4's internal version string reads `v3.2555…`; the folder name is still the contract."* |
-| 6 | **Validation read is a two-step lookup** | Use **`get_case_eligibility(case_id)`** as the single source of truth for current run IDs. Read `resolved_ids.validation_run_id`, then `SELECT * FROM case_validation_runs WHERE id = :validation_run_id`. | The RPC already does the join correctly. Writing a one-shot query on `case_id` silently returns the wrong row or nothing. | Every validation / gap-question read is annotated as a **two-step pattern**:<br>Step 1: `rpc('get_case_eligibility', { p_case_id })` → take `resolved_ids.validation_run_id`.<br>Step 2: `from('case_validation_runs').select('*').eq('id', validation_run_id).single()`. |
+| 6 | **Validation read is a two-step lookup plus preferred gap rows** | Use **`get_case_eligibility(case_id)`** as the single source of truth for current run IDs. Read `resolved_ids.validation_run_id`, then `SELECT * FROM case_validation_runs WHERE id = :validation_run_id`. For the gap UI, additionally read `v_case_validation_gap_items WHERE validation_run_id = :id ORDER BY sort_order, created_at`; fallback to parent `questions_to_user` only when the view returns zero rows. | The RPC already does the join correctly. Writing a one-shot query on `case_id` silently returns the wrong row or nothing. The view gives deterministic order and stable `field_key`/answer metadata for rendering. | Every validation / gap-question read is annotated as: Step 1: `rpc('get_case_eligibility', { p_case_id })` -> take `resolved_ids.validation_run_id`. Step 2: parent `case_validation_runs` by PK for state/errors. Step 3: `v_case_validation_gap_items` by `validation_run_id` for ordered questions, normalized into the UI shape. |
 | 7 | **`force` flag semantics** | **Do not expose `force: true` anywhere in the MVP UI.** Every re-run is "natural" — user changes input (answers a gap, uploads a new doc, edits intake) → the frontend calls the function **without** `force`. | Sidesteps three incompatible re-run behaviours. When a force flag is eventually needed (admin tool / support), it will be a separate internal surface, not user-facing. | For each re-run path in the diagram, annotate:<br>• **Extract node:** *"Re-run always appends a new `case_extract_runs` row. No `force` flag."*<br>• **Decision node:** *"Re-run without `force` reuses the existing decision via the `(case_id, extract_run_id)` partial unique index. `force: true` is NOT called in MVP UI."* **TODO (post-MVP):** add audit-trail table in Supabase so overwrites from `force: true` preserve prior versions.<br>• **Report node:** *"`force: false` reuses the latest completed report. UI always renders `SELECT * FROM reports WHERE case_id = :id ORDER BY created_at DESC LIMIT 1`."* |
 
 ### 8.2 Cross-cutting decisions
@@ -826,7 +861,7 @@ All seven gotchas plus two cross-cutting questions are now resolved. The table b
 | A | **Polling vs Realtime** | **Realtime** for `case_documents.processing_status` (users stare at the upload UI). **Single-shot read after the explicit "Submit" spinner completes** for `case_extract_runs` — no subscription. | Live upload feedback is critical UX. Extract is a deliberate user action with a short spinner; polling/subscribing adds complexity without user benefit. | Evidence node transition: *"On Supabase Realtime message (table: `case_documents`, filter: `case_id = eq.<id>`), advance per-document state (`pending → parsing → verifying → chunking → extracting → ready`/`failed`)."* Extract transition: *"After `run_case_extract_v4` POST returns `200`, re-read `case_extract_runs` once + run the two-step validation read (see gotcha 6)."* |
 | B | **Stripe webhook fan-out** | **Background job.** Stripe webhook handler does only: (1) verify signature, (2) upgrade `case_entitlements` / `user_entitlements`, (3) enqueue a background job that fires `run_case_decision_v1` → `run_report_selfserve_v1`, (4) return `200` to Stripe in <1 second. Frontend watches the `reports` table for the new row via Realtime. | Stripe's ~10s webhook timeout would otherwise cause retries and duplicate report generation (40s combined decision + report latency). Background job also gives us a clean "Analysing case… / Drafting report…" progress UX. | Post-payment flow in the diagram has **three sequential states** (not one): **S-pay → S-decision-running → S-report-drafting → S-report-ready**. The frontend enters **S-decision-running** immediately after Stripe returns success, and advances on Realtime events:<br>• To **S-report-drafting** when a new `case_decision_runs` row appears.<br>• To **S-report-ready** when a new `reports` row with `status = 'COMPLETED'` appears. |
 | C | **When does `bright-function` fire?** | **Auto-fire** once the gap loop has no blocking `missing_fields` **and** at least one document has reached `processing_status = 'ready'`. Re-fire-able via an explicit "Refresh draft" button on the Tier-0 screen. | Handover doc's "move evidence upload early" guidance plus the design intent that Tier-0 draft should reflect real evidence. | Transition into Tier-0 draft node is **automatic** when both conditions are true. The Tier-0 node also has a **self-loop** labelled *"User clicks 'Refresh draft' → re-POST `bright-function`"*. |
-| D | **Does `run_case_extract_v4` auto-re-fire after each document?** | **Yes.** Every time an `evidence_processed_v2` call completes with `ok: true`, the Next.js server route also re-fires `run_case_extract_v4` for that `case_id`. No user action required. | Keeps `extract_json` / `missing_fields` / `questions_to_user` in sync with newly-processed evidence automatically. | Evidence node has a **fan-out transition**: on `evidence_processed_v2` success, the server route additionally calls `run_case_extract_v4` and the frontend updates via Realtime/single-shot read on `case_extract_runs`. |
+| D | **Does `run_case_extract_v4` auto-re-fire after each document?** | **Yes.** Every time an `evidence_processed_v2` call completes with `ok: true`, the Next.js server route also re-fires `run_case_extract_v4` for that `case_id`. No user action required. | Keeps `extract_json`, parent validation JSON, and `v_case_validation_gap_items` rows in sync with newly processed evidence automatically. | Evidence node has a **fan-out transition**: on `evidence_processed_v2` success, the server route additionally calls `run_case_extract_v4` and the frontend updates via Realtime/single-shot read on `case_extract_runs` plus the validation two-step read. |
 
 ---
 
@@ -967,17 +1002,28 @@ const { data: extract } = await supabase
   .eq('id', extractRunId)
   .single();
 
-// Step 2b: read the matching validation (drives questions_to_user)
+// Step 2b: read the matching validation parent row (drives state/errors)
 const { data: validation } = await supabase
   .from('case_validation_runs')
   .select('*')
   .eq('id', validationRunId)
   .single();
+
+// Step 2c: read preferred structured gap rows for UI questions
+const { data: gapItems } = await supabase
+  .from('v_case_validation_gap_items')
+  .select('*')
+  .eq('validation_run_id', validationRunId)
+  .order('sort_order', { ascending: true })
+  .order('created_at', { ascending: true });
+
+// Render normalized gapItems when present; otherwise normalize
+// validation.questions_to_user for backward compatibility.
 ```
 
 **Never** write a one-shot query on `case_id` against `v_latest_validation` — it is keyed by `extract_run_id`.
 
-**State Machine mention.** The gap-questionnaire node is annotated: *"Two-step read. Step 1: `rpc('get_case_eligibility', { p_case_id })` → take `resolved_ids.extract_run_id` and `resolved_ids.validation_run_id`. Step 2: fetch the matching rows by primary key. Do not query `v_latest_validation` or `case_validation_runs` by `case_id` directly."*
+**State Machine mention.** The gap-questionnaire node is annotated: *"Two-step read. Step 1: `rpc('get_case_eligibility', { p_case_id })` -> take `resolved_ids.extract_run_id` and `resolved_ids.validation_run_id`. Step 2: fetch the matching parent rows by primary key. Step 3: fetch `v_case_validation_gap_items` by `validation_run_id`, ordered by `sort_order`, and normalize to the UI question shape; fallback to parent `questions_to_user` if the view returns zero rows. Do not query `v_latest_validation` or `case_validation_runs` by `case_id` directly."*
 
 ### 9.5 Tier-0 draft screen: render-whatever-exists
 
@@ -1038,11 +1084,11 @@ The frontend, meanwhile, has been redirected to `/app/case/[id]/report` after St
 
 **State Machine mention.** Decision node margin note: *"TODO (post-MVP, Supabase backlog): add audit-trail table so `force: true` overwrites preserve prior versions."*
 
-### 9.9 Layer 3 terminal node — FIDReC handoff contact form (human-in-the-loop)
+### 9.9 Layer 3 / Tier 2 — FIDReC handoff contact form (human-in-the-loop)
 
-**Action.** The Layer 3 screen has **no edge function calls**. It is a single human-in-the-loop contact form that the user sees **immediately after the Tier-1 self-serve report is generated**. It offers the user the option of having Dance (the human specialist) help them prepare a FIDReC submission, and captures the information Dance needs to triage the request at a glance — who the person is, which FI is involved, how much they lost, whether they are even at a stage where FIDReC will accept the case, and some light demographics.
+**Action.** The Layer 3 / Tier 2 screen has **no edge function calls for the contact form**. It is the post-Tier-1 surface the user sees after the self-serve report is generated. It includes the human-in-the-loop FIDReC contact form, specialist recommendation copy, the persistent root-layout WhatsApp entry point, and, after Slice 8, specialist consult / case-pack Stripe add-ons (§10.6). The form captures the information Dance needs to triage the request at a glance — who the person is, which FI is involved, how much they lost, whether they are even at a stage where FIDReC will accept the case, and some light demographics.
 
-Dance's 2026-04-21 PM decision (refined by the 2026-04-21 PM late-afternoon Layer 3 spec expansion — see reconciliation doc §0.4): "Show a human-in-the-loop screen as the last thing the user sees after their self-serve report. Capture name, phone, email, age, employment status, case_id, user_id, amount lost, and two yes/no FIDReC-qualification questions. Write to the contact-requests storage table, email me, show a 'we'll be in touch' confirmation. No payment, no further automation."
+Dance's 2026-04-21 PM decision (refined by the 2026-04-21 PM late-afternoon Layer 3 spec expansion — see reconciliation doc §0.4): "Show a human-in-the-loop screen as the last thing the user sees after their self-serve report. Capture name, phone, email, age, employment status, case_id, user_id, amount lost, and two yes/no FIDReC-qualification questions. Write to the contact-requests storage table, email me, show a 'we'll be in touch' confirmation." The 2026-04-26 product update keeps that form and adds persistent WhatsApp plus paid specialist add-ons on the same Layer 3 / Tier 2 surface.
 
 **One screen, one form** — the user types the few fields Dance genuinely needs; everything else (case identity, amount lost, FI name, user_id) is **snapshotted server-side** from the latest `cases` + `case_extract_runs` rows at the moment of submit. The user never types or edits the amount or the FI name — those are displayed read-only so the user knows what Dance will see.
 
@@ -1111,15 +1157,17 @@ On submit, the frontend POSTs to the Next.js server route `/api/contact-requests
 
 Clicking the CTA navigates to `L3-ContactForm`.
 
-**State Machine mention.** Layer 3 is a three-state terminal branch: `L3-FormFilling` → `L3-Submitting` → `L3-Confirmed`. The only side effects are a single `INSERT` into the contact-requests storage table and one email to Dance. No edge function, no payment, no additional screens.
+**WhatsApp / specialist copy.** Keep the existing root-layout WhatsApp `wa.me/6590727915` entry point on every route, including public pages. Do not add a duplicate global widget. On the Layer 3 / Tier 2 screen, add copy recommending the user reach the Scam and Fraud Specialist for consult or Q&A. The public WhatsApp link is R13-safe because it is a third-party link only, with no Supabase client on pre-login paths.
 
-*(Deprecated from earlier 2026-04-21 PM morning design: the specialist contact card with LinkedIn / WhatsApp CTAs, and the "Escalation Pack — coming soon" waitlist framing. Deprecated from the 2026-04-21 PM mid-afternoon design: the 4-field "name / email / phone / optional message" minimal form — expanded on 2026-04-21 PM late-afternoon to capture FIDReC-qualification signals and demographics.)*
+**State Machine mention.** Layer 3 / Tier 2 keeps the contact form as a three-state branch: `L3-FormFilling` → `L3-Submitting` → `L3-Confirmed`. The form side effects are a single `INSERT` / `upsert` into the contact-requests storage table and one email to Dance. No Supabase edge function is called by the contact path. The same surface also carries the root-layout WhatsApp entry point and, after Slice 8, the specialist add-on checkout CTAs from §10.6.
+
+*(Deprecated from earlier 2026-04-21 PM morning design: LinkedIn CTAs and the generic "Escalation Pack — coming soon" waitlist framing. Deprecated from the 2026-04-21 PM mid-afternoon design: the 4-field "name / email / phone / optional message" minimal form — expanded on 2026-04-21 PM late-afternoon to capture FIDReC-qualification signals and demographics. The 2026-04-26 WhatsApp requirement supersedes the older "no WhatsApp" wording.)*
 
 ---
 
-## 10. Residual items (NOT 100% locked — verify before drafting the State Machine)
+## 10. Residual items and locked follow-ons
 
-Everything in §8 and §9 is locked for MVP. The items below are **small residual unknowns** — none of them block starting the State Machine, but each should be sanity-checked and the answer folded into the diagram.
+Everything in §8 and §9 is locked for MVP. Sections marked ✅ are settled follow-ons or schema contracts; unmarked items are residual unknowns to verify before implementation.
 
 ### 10.1 ~~Does `bright-function` actually emit `tier0_srf_signal`?~~ ✅ Confirmed present (2026-04-20)
 
@@ -1437,6 +1485,26 @@ Key route-level guarantees:
 **Notification.** `lib/email/contact-request.ts` wraps a Resend (or equivalent) call that emails `dance@guidebuoy.com` (or whatever inbox Dance chooses) with the full payload in a human-readable template. Out of scope of this doc; spec lives alongside the route in the Refactor Plan Slice 5.
 
 **State Machine impact.** None on the diagram. The `L3-Submitting` state's write target is this table; see SM Diagram 4.
+
+---
+
+### 10.6 ✅ Layer 3 = Tier 2 commerce and WhatsApp (locked 2026-04-26)
+
+**Decision.** Layer 3 and Tier 2 are the same post-Tier-1 surface. The FIDReC handoff form remains the human-in-the-loop path from §9.9. On the same screen, the product also shows specialist recommendation copy and, after Slice 8, two paid add-ons:
+
+| Add-on | Price | Notes |
+|---|---:|---|
+| Specialist consult | SGD 99 | 30-minute Scam and Fraud / marketplace specialist consult or Q&A. |
+| Case pack prep | SGD 800 | Case pack preparation for the FIDReC path. |
+
+**Frontend / backend wiring.**
+
+- Keep the existing persistent WhatsApp `wa.me/6590727915` entry point in the root layout so it is available on public and authenticated routes. Do not add a second global widget.
+- WhatsApp is a third-party link only. It is allowed on public pages because it does not instantiate a Supabase client or write anonymous rows.
+- The Layer 3 / Tier 2 page should include on-page copy recommending the Scam and Fraud Specialist for consult or Q&A.
+- The FIDReC contact form continues to submit to `/api/contact-requests`; it does not call `/api/edge/*` or any Supabase edge function.
+- Paid add-ons reuse the existing Stripe checkout + webhook pattern with product metadata distinguishing the SGD 99 consult and SGD 800 case-pack flows. The webhook branch for these add-ons must not call the Layer 2 decision/report worker.
+- LinkedIn CTAs and generic "coming soon" waitlist framing remain out of scope.
 
 ---
 

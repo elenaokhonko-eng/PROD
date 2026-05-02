@@ -32,7 +32,7 @@ export function useTier0AutoFire({ caseId, documents, enabled = true }: UseTier0
   const hasFiredRef = useRef(false)
   const canRun = Boolean(caseId) && enabled
 
-  const validationQuery = useValidationRun(caseId, { enabled: canRun })
+  const validationQuery = useValidationRun(caseId, { enabled: canRun, includeGapItems: false })
 
   const latestExtractQuery = useQuery({
     queryKey: caseId ? qk.case.extract(caseId) : ['case', 'extract', 'missing-case-id'],
@@ -95,6 +95,15 @@ export function useTier0AutoFire({ caseId, documents, enabled = true }: UseTier0
       // #region agent log
       if (latestReadyDocumentTs != null) {
         fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',hypothesisId:'TF1',location:'use-tier0-auto-fire.ts:gate',message:'tier0 blocked',data:{reason:'no-validation',caseId,latestReadyDocumentTs,extractCreatedAt:latestExtractQuery.data ?? null,hasNarratives:hasNarrativesQuery.data ?? null},timestamp:Date.now()})}).catch(()=>{})
+      }
+      // #endregion
+      return
+    }
+
+    if (validation.status === 'error') {
+      // #region agent log
+      if (latestReadyDocumentTs != null) {
+        fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',hypothesisId:'TF2E',location:'use-tier0-auto-fire.ts:gate',message:'tier0 blocked',data:{reason:'validation-error',caseId,latestReadyDocumentTs,errorMessage:validation.error_message ?? null},timestamp:Date.now()})}).catch(()=>{})
       }
       // #endregion
       return
