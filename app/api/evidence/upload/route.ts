@@ -66,26 +66,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to save evidence metadata" }, { status: 500 })
     }
 
-    const { error: caseDocError } = await supabaseService
-      .from("case_documents")
-      .insert({
-        case_id: caseId,
-        filename: originalName,
-        original_filename: originalName,
-        file_size: (file as File).size,
-        mime_type: (file as File).type,
-        document_type: null,
-        storage_bucket: STORAGE_BUCKET,
-        storage_path: filePath,
-        processing_status: "uploaded",
-        is_processed: false,
-      })
-
-    if (caseDocError) {
-      console.error("[evidence/upload] case_documents insert failed:", caseDocError)
-      return NextResponse.json({ error: "Failed to create case document record" }, { status: 500 })
-    }
-
     return NextResponse.json({ evidence })
   } catch (err) {
     console.error("[evidence/upload] Unexpected error:", err)

@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server"
 
 import { getOrCreateProfile } from "@/lib/auth"
+import {
+  EVIDENCE_STORAGE_BUCKET,
+  getProfileCaseAccess,
+  registerCaseDocumentFromEvidenceV1,
+} from "@/lib/case-documents/register-from-evidence-v1"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const runtime = "nodejs"
-
-const STORAGE_BUCKET = "evidence"
 
 type ProcessRequest = {
   evidenceIds?: string[]
@@ -37,42 +40,28 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
   const evidenceIds = Array.isArray(body.evidenceIds) ? body.evidenceIds.filter(Boolean) : []
 
   const service = createServiceClient()
-  const { data: caseRow, error: caseError } = await service
-    .from("cases")
-    .select("id, user_id")
-    .eq("id", caseId)
-    .single()
-
-  if (caseError || !caseRow) {
+  const caseAccess = await getProfileCaseAccess(service, caseId, user.profileId)
+  if (caseAccess === "not_found") {
     return NextResponse.json({ error: "Case not found" }, { status: 404 })
   }
-
-  if (caseRow.user_id !== user.profileId) {
-    const { data: collaborator } = await service
-      .from("case_collaborators")
-      .select("user_id")
-      .eq("case_id", caseId)
-      .eq("user_id", user.profileId)
-      .eq("status", "active")
-      .maybeSingle()
-
-    if (!collaborator) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
+  if (caseAccess === "forbidden") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   let evidenceRows: Array<{
     id: string
+    case_id: string
     filename: string
     file_path: string
     file_type: string
     file_size: number
+    category: string
   }> = []
 
   if (evidenceIds.length > 0) {
     const { data, error } = await service
       .from("evidence")
-      .select("id, filename, file_path, file_type, file_size")
+      .select("id, case_id, filename, file_path, file_type, file_size, category")
       .eq("case_id", caseId)
       .in("id", evidenceIds)
 
@@ -84,7 +73,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
   } else {
     const { data, error } = await service
       .from("evidence")
-      .select("id, filename, file_path, file_type, file_size")
+      .select("id, case_id, filename, file_path, file_type, file_size, category")
       .eq("case_id", caseId)
 
     if (error) {
@@ -174,7 +163,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
       .from("case_documents")
       .select("id, is_processed, processing_status")
       .eq("case_id", caseId)
-      .eq("storage_bucket", STORAGE_BUCKET)
+      .eq("storage_bucket", EVIDENCE_STORAGE_BUCKET)
       .eq("storage_path", evidence.file_path)
       .maybeSingle()
 
@@ -196,36 +185,32 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
       continue
     }
 
-    let documentId = existingDoc?.id ?? null
-    if (!documentId) {
-      const { data: createdDoc, error: createError } = await service
-        .from("case_documents")
-        .insert({
-          case_id: caseId,
-          filename: evidence.filename,
-          original_filename: evidence.filename,
-          file_size: evidence.file_size,
-          mime_type: evidence.file_type,
-          document_type: null,
-          storage_bucket: STORAGE_BUCKET,
-          storage_path: evidence.file_path,
-          processing_status: "uploaded",
-          is_processed: false,
-        })
-        .select("id")
-        .single()
+    const registered = await registerCaseDocumentFromEvidenceV1(service, {
+      caseId,
+      profileId: user.profileId,
+      evidence: {
+        id: evidence.id,
+        case_id: evidence.case_id,
+        filename: evidence.filename,
+        file_path: evidence.file_path,
+        file_type: evidence.file_type,
+        file_size: evidence.file_size,
+        category: evidence.category,
+      },
+      storageBucket: EVIDENCE_STORAGE_BUCKET,
+      initialProcessingStatus: "uploaded",
+    })
 
-      if (createError || !createdDoc) {
-        results.push({
-          evidence_id: evidence.id,
-          ok: false,
-          error: createError?.message ?? "Failed to create case document record",
-        })
-        continue
-      }
-
-      documentId = createdDoc.id
+    if (registered.ok === false) {
+      results.push({
+        evidence_id: evidence.id,
+        ok: false,
+        error: registered.error,
+      })
+      continue
     }
+
+    const documentId = registered.document_id
 
     const { error: statusError } = await service
       .from("case_documents")
