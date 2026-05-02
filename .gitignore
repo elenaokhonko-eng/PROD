@@ -18,3 +18,6 @@ docs/implementation-plan.md
 
 # Local GitHub wiki import scratch (nested git repo)
 docs/.wiki-import/
+
+# Cursor IDE (local workspace, logs)
+.cursor/

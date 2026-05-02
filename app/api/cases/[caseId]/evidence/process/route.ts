@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { getOrCreateProfile } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const runtime = "nodejs"
@@ -21,7 +21,7 @@ type ProcessResult = {
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
-  const user = await getOrCreateProfile()
+  const user = await getCurrentUser()
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
@@ -47,12 +47,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
     return NextResponse.json({ error: "Case not found" }, { status: 404 })
   }
 
-  if (caseRow.user_id !== user.profileId) {
+  if (caseRow.user_id !== user.supabaseUuid) {
     const { data: collaborator } = await service
       .from("case_collaborators")
       .select("user_id")
       .eq("case_id", caseId)
-      .eq("user_id", user.profileId)
+      .eq("user_id", user.supabaseUuid)
       .eq("status", "active")
       .maybeSingle()
 

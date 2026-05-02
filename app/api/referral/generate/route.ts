@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getOrCreateProfile } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 
 function generateReferralCode(userId: string): string {
@@ -11,7 +11,7 @@ function generateReferralCode(userId: string): string {
 
 export async function POST() {
   try {
-    const user = await getOrCreateProfile()
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -19,14 +19,14 @@ export async function POST() {
     const supabase = await createClient()
 
     // Check if user already has a referral code
-    const { data: profile } = await supabase.from("profiles").select("referral_code").eq("id", user.profileId).single()
+    const { data: profile } = await supabase.from("profiles").select("referral_code").eq("id", user.supabaseUuid).single()
 
     if (profile?.referral_code) {
       return NextResponse.json({ referralCode: profile.referral_code })
     }
 
     // Generate new referral code
-    let referralCode = generateReferralCode(user.profileId)
+    let referralCode = generateReferralCode(user.supabaseUuid)
     let attempts = 0
     const maxAttempts = 5
 
@@ -36,12 +36,12 @@ export async function POST() {
 
       if (!existing) break
 
-      referralCode = generateReferralCode(user.profileId)
+      referralCode = generateReferralCode(user.supabaseUuid)
       attempts++
     }
 
     // Update profile with referral code
-    const { error } = await supabase.from("profiles").update({ referral_code: referralCode }).eq("id", user.profileId)
+    const { error } = await supabase.from("profiles").update({ referral_code: referralCode }).eq("id", user.supabaseUuid)
 
     if (error) {
       throw error

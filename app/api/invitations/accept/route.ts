@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { getOrCreateProfile } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 
 const acceptSchema = z.object({
@@ -9,7 +9,7 @@ const acceptSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getOrCreateProfile()
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -46,8 +46,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invitation has expired" }, { status: 400 })
     }
 
+    const { data: profile } = await supabase.from("profiles").select("email").eq("id", user.supabaseUuid).maybeSingle()
+    const userEmail = profile?.email ?? null
+
     // Check if user email matches invitation
-    if (!user.email || user.email.toLowerCase() !== String(invitation.invitee_email).toLowerCase()) {
+    if (!userEmail || userEmail.toLowerCase() !== String(invitation.invitee_email).toLowerCase()) {
       return NextResponse.json({ error: "Email mismatch" }, { status: 403 })
     }
 
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     const { error: collaboratorError } = await supabase.from("case_collaborators").insert({
       case_id: invitation.case_id,
-      user_id: user.profileId,
+      user_id: user.supabaseUuid,
       role,
       invited_by: invitation.inviter_user_id,
       accepted_at: new Date().toISOString(),
@@ -77,7 +80,7 @@ export async function POST(request: NextRequest) {
       .from("invitations")
       .update({
         status: "accepted",
-        accepted_by: user.profileId,
+        accepted_by: user.supabaseUuid,
         accepted_at: new Date().toISOString(),
       })
       .eq("id", invitation.id)
@@ -89,10 +92,10 @@ export async function POST(request: NextRequest) {
         .select("user_id")
         .eq("id", invitation.case_id)
         .single()
-      if (caseRow && caseRow.user_id !== user.profileId) {
+      if (caseRow && caseRow.user_id !== user.supabaseUuid) {
         await supabase
           .from("cases")
-          .update({ user_id: user.profileId, updated_at: new Date().toISOString() })
+          .update({ user_id: user.supabaseUuid, updated_at: new Date().toISOString() })
           .eq("id", invitation.case_id)
       }
     }

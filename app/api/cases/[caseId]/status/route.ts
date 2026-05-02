@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getOrCreateProfile } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ caseId: string }> }
 ) {
-  const user = await getOrCreateProfile()
+  const user = await getCurrentUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -20,7 +20,7 @@ export async function PATCH(
     .from('cases')
     .update({ status, updated_at: new Date().toISOString() })
     .eq('id', caseId)
-    .eq('user_id', user.profileId)
+    .eq('user_id', user.supabaseUuid)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

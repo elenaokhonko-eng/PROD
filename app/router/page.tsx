@@ -10,6 +10,7 @@ import { Mic, MicOff, Loader2, ArrowRight, FileText, RotateCcw } from "lucide-re
 import Link from "next/link"
 import { createRouterSession, getSessionToken, getRouterSession, updateRouterSession, clearSessionToken } from "@/lib/router-session"
 import { SiteHeader } from "@/components/site-header"
+import { persistPendingNarrative } from "@/components/landing/hero-capture"
 
 type CatchUpState =
   | { type: "none" }
@@ -135,6 +136,7 @@ export default function RouterPage() {
       await updateRouterSession(sessionToken, {
         dispute_narrative: narrative,
       })
+      persistPendingNarrative({ narrative })
 
       // Redirect to classification page
       router.push("/router/classify")
