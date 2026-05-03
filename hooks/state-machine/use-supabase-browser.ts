@@ -28,21 +28,12 @@ export function useSupabaseBrowser(): SupabaseClient {
     () =>
       createBrowserClient(async () => {
         if (typeof window === 'undefined') {
-          // #region agent log
-          fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H1',location:'use-supabase-browser.ts:32',message:'useSupabaseBrowser token fetch skipped on server',data:{hasWindow:false},timestamp:Date.now()})}).catch(()=>{})
-          // #endregion
           return Promise.resolve(null)
         }
         try {
           const token = await getToken({ template: 'supabase' })
-          // #region agent log
-          fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H1',location:'use-supabase-browser.ts:38',message:'useSupabaseBrowser getToken resolved',data:{hasToken:Boolean(token),hasWindow:true},timestamp:Date.now()})}).catch(()=>{})
-          // #endregion
           return token
         } catch (error) {
-          // #region agent log
-          fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H1',location:'use-supabase-browser.ts:43',message:'useSupabaseBrowser getToken threw',data:{errorMessage:error instanceof Error ? error.message : 'unknown'},timestamp:Date.now()})}).catch(()=>{})
-          // #endregion
           return null
         }
       }),

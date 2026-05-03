@@ -95,9 +95,6 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
     isContactSubmitting: submitContact.isPending,
     isContactSubmitted: contactSubmitted,
   })
-  // #region agent log
-  fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'progression-debug',hypothesisId:'H13',location:'dashboard-client.tsx:86',message:'state machine node resolved',data:{node,isIntakePending:submitIntake.isPending,hasSubmittedIntake:intakeCompleted,hasEligibility:Boolean(eligibilityQuery.data),eligibilityPlan:eligibilityQuery.data?.plan ?? null,hasValidation:Boolean(validationQuery.data),missingFieldsCount:validationQuery.data?.missing_fields?.length ?? 0,hasNarrativeSummary:Boolean(tier0DraftQuery.data?.tier0_summary),hasNarrativeChecklist:Boolean(tier0DraftQuery.data?.tier0_evidence_checklist),hasNarrativeSignal:Boolean(tier0DraftQuery.data?.tier0_srf_signal),documentCount:documentsQuery.data?.length ?? 0,readyDocCount:documentsQuery.data?.filter((d)=>d.processing_status==='ready').length ?? 0},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
 
   const isPaymentReturn = useMemo(
     () => searchParams.get('session_id') || searchParams.get('payment') === 'success',
@@ -119,9 +116,6 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
     responseTypes: Record<string, string> = {},
   ) {
     const token = await getToken({ template: 'supabase' })
-    // #region agent log
-    fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H1',location:'dashboard-client.tsx:94',message:'saveResponses getToken resolved',data:{hasToken:Boolean(token),caseIdPresent:Boolean(caseId)},timestamp:Date.now()})}).catch(()=>{})
-    // #endregion
     if (!token) {
       throw new Error('Missing Supabase token')
     }
@@ -140,28 +134,16 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
       },
       body: JSON.stringify({ responses }),
     })
-    // #region agent log
-    fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H2',location:'dashboard-client.tsx:113',message:'saveResponses fetch completed',data:{status:response.status,ok:response.ok},timestamp:Date.now()})}).catch(()=>{})
-    // #endregion
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as { error?: string } | null
-      // #region agent log
-      fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H2',location:'dashboard-client.tsx:117',message:'saveResponses non-OK body',data:{status:response.status,error:body?.error ?? null},timestamp:Date.now()})}).catch(()=>{})
-      // #endregion
       throw new Error(body?.error ?? 'Failed to save responses')
     }
   }
 
   async function handleIntakeSubmit(answers: IntakeAnswers) {
-    // #region agent log
-    fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'progression-debug',hypothesisId:'H14',location:'dashboard-client.tsx:128',message:'handleIntakeSubmit invoked',data:{answerCount:Object.keys(answers).length,caseIdPresent:Boolean(caseId)},timestamp:Date.now()})}).catch(()=>{})
-    // #endregion
     await saveResponses(answers as Record<string, ValidationAnswerValue>)
     setIntakeCompleted(true)
     await submitIntake.mutateAsync({ caseId, runExtract: false })
-    // #region agent log
-    fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'progression-debug',hypothesisId:'H14',location:'dashboard-client.tsx:131',message:'handleIntakeSubmit finished',data:{caseIdPresent:Boolean(caseId)},timestamp:Date.now()})}).catch(()=>{})
-    // #endregion
   }
 
   async function handleGapSave(answers: Record<string, ValidationAnswerValue>) {

@@ -43,9 +43,6 @@ export function useAutoRefireExtract({
       }
     },
     onSuccess: async (_data, id) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',hypothesisId:'RF1',location:'use-auto-refire-extract.ts:onSuccess',message:'auto-refire extract OK',data:{caseId:id},timestamp:Date.now()})}).catch(()=>{})
-      // #endregion
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: qk.case.extract(id) }),
         queryClient.invalidateQueries({ queryKey: qk.case.validation(id) }),

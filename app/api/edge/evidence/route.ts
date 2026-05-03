@@ -68,39 +68,6 @@ export async function POST(request: Request) {
     probe: async () => ({ ok: true }),
   })
 
-  // #region agent log
-  ;(async () => {
-    try {
-      const clone = res.clone()
-      const status = clone.status
-      const j = (await clone.json().catch(() => null)) as
-        | { ok?: boolean; error?: string; result?: { ok?: boolean } }
-        | null
-      fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5b59f2' },
-        body: JSON.stringify({
-          sessionId: '5b59f2',
-          runId: 'gemini-flash-verify',
-          hypothesisId: 'H30',
-          location: 'edge/evidence/route.ts:after-proxy',
-          message: 'evidence_processed_v2 proxy response',
-          data: {
-            httpStatus: status,
-            bodyOk: typeof j?.ok === 'boolean' ? j.ok : null,
-            resultOk: typeof j?.result?.ok === 'boolean' ? j.result.ok : null,
-            errorSnippet:
-              typeof j?.error === 'string' ? j.error.slice(0, 160) : null,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {})
-    } catch {
-      /* ignore */
-    }
-  })()
-  // #endregion
-
   // If the evidence call succeeded, auto-fire extract for the owning case.
   // Fire-and-forget: do not await. Log any failure server-side.
   if (res.ok) {

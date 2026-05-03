@@ -60,9 +60,6 @@ export async function proxyEdgeFunction({
   // 1) Clerk session -> 401 if missing.
   const { userId, getToken } = await auth()
   const userSupabaseJwt = userId ? await getToken({ template: 'supabase' }) : null
-  // #region agent log
-  fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'extract-debug-2',hypothesisId:'H6',location:'edge-proxy.ts:63',message:'proxyEdgeFunction auth evaluated',data:{hasUserId:Boolean(userId),hasSupabaseJwt:Boolean(userSupabaseJwt),fnName},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
   if (!userId || !userSupabaseJwt) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -112,9 +109,6 @@ export async function proxyEdgeFunction({
     if (!own) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
-    // #region agent log
-    fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'extract-debug-2',hypothesisId:'H8',location:'edge-proxy.ts:115',message:'proxyEdgeFunction ownership probe passed',data:{fnName,caseIdPresent:typeof caseId==='string'&&caseId.length>0},timestamp:Date.now()})}).catch(()=>{})
-    // #endregion
   } else {
     return NextResponse.json(
       {
@@ -156,9 +150,6 @@ export async function proxyEdgeFunction({
       return null
     }
   })()
-  // #region agent log
-  fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'extract-debug-3',hypothesisId:'H9',location:'edge-proxy.ts:166',message:'proxyEdgeFunction jwt/url compatibility snapshot',data:{fnName,urlHost,jwtAud:jwtPayload?.aud ?? null,jwtIssPrefix:(jwtPayload?.iss ?? '').slice(0,80),jwtRole:jwtPayload?.role ?? null},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
 
   const edgeRes = await fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
     method: 'POST',
@@ -173,9 +164,6 @@ export async function proxyEdgeFunction({
   // Preserve the edge function's status code. Parse JSON defensively — some
   // failure paths return non-JSON.
   const text = await edgeRes.text()
-  // #region agent log
-  fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'extract-debug-2',hypothesisId:'H7',location:'edge-proxy.ts:153',message:'proxyEdgeFunction edge response received',data:{fnName,status:edgeRes.status,ok:edgeRes.ok,responsePrefix:text.slice(0,120)},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
   let data: unknown
   try {
     data = text.length > 0 ? JSON.parse(text) : null

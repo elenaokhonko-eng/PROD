@@ -24,7 +24,7 @@ export const qk = {
     decision: (caseId: string) => ['case', caseId, 'decision'] as const,
     report: (caseId: string) => ['case', caseId, 'report'] as const,
     job: (caseId: string) => ['case', caseId, 'job'] as const,
+    contactRequest: (caseId: string) => ['case', caseId, 'contact-request'] as const,
   },
   entitlement: (caseId: string) => ['entitlement', caseId] as const,
-  waitlist: (caseId: string) => ['waitlist', caseId] as const,
 } as const

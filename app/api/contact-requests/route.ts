@@ -16,7 +16,9 @@ const Body = z.object({
   thirty_days_since_last_fi_reply: z.boolean(),
   fi_issued_final_response: z.boolean(),
   message: z.string().max(500).optional(),
-})
+}).strict()
+
+const FORBIDDEN_CLIENT_FIELDS = ['user_id', 'amount_lost_sgd', 'financial_institution'] as const
 
 export async function POST(req: Request) {
   const user = await getCurrentUser()
@@ -24,7 +26,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  const parsed = Body.safeParse(await req.json())
+  const rawBody: unknown = await req.json()
+  const forbiddenFields =
+    rawBody && typeof rawBody === 'object' && !Array.isArray(rawBody)
+      ? FORBIDDEN_CLIENT_FIELDS.filter((field) => Object.prototype.hasOwnProperty.call(rawBody, field))
+      : []
+
+  if (forbiddenFields.length > 0) {
+    return NextResponse.json(
+      {
+        error: 'forbidden_client_fields',
+        details: {
+          fields: forbiddenFields,
+          message: 'Server-owned fields must not be sent by the client.',
+        },
+      },
+      { status: 400 },
+    )
+  }
+
+  const parsed = Body.safeParse(rawBody)
   if (!parsed.success) {
     return NextResponse.json({ error: 'invalid_body', details: parsed.error.flatten() }, { status: 400 })
   }

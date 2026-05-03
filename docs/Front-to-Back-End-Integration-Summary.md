@@ -696,6 +696,8 @@ const { data: doc } = await supabase.from('case_documents').insert({
 
 **Production app path.** The Next.js handler [`app/api/evidence/upload/route.ts`](../app/api/evidence/upload/route.ts) uploads to Storage (`case_evidence`, then fallback `evidence`) and performs this **same INSERT** immediately after a successful blob write. **Supabase no longer auto-inserts** `case_documents` from `storage.objects` — the dashboard trigger `sync_case_document_from_storage` was **disabled** (2026‑05); only the app INSERT creates the row, so `case_documents_storage_unique` collisions from dual writers are gone.
 
+**2026-05-03 trigger decision.** The storage auto-insert trigger disablement is treated as a hosted Supabase operational setting. No Git migration is required at this point.
+
 ### 4.3 Before calling `run_case_decision_v1` (Layer 2, Tier 1, server-side)
 
 - `case_extract_runs` must exist (call `run_case_extract_v4` first).

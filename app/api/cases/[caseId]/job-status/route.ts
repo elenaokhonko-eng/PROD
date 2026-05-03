@@ -29,18 +29,12 @@ export async function GET(
 ) {
   const authHeader = request.headers.get('authorization')
   const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
-  // #region agent log
-  fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H3',location:'job-status/route.ts:33',message:'job-status route auth header inspection',data:{hasAuthHeader:Boolean(authHeader),hasBearer:Boolean(bearer)},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
   if (!bearer) {
     return NextResponse.json({ error: 'Missing bearer token' }, { status: 401 })
   }
 
   const payload = decodeJwtPayload(bearer)
   const supabaseUuid = typeof payload?.supabase_uuid === 'string' ? payload.supabase_uuid : null
-  // #region agent log
-  fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H4',location:'job-status/route.ts:41',message:'job-status route JWT claim inspection',data:{hasPayload:Boolean(payload),hasSupabaseUuid:Boolean(supabaseUuid)},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
   if (!supabaseUuid) {
     return NextResponse.json({ error: 'Invalid token: missing supabase_uuid claim' }, { status: 401 })
   }
@@ -63,9 +57,6 @@ export async function GET(
     .eq('id', caseId)
     .eq('user_id', supabaseUuid)
     .maybeSingle()
-  // #region agent log
-  fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H5',location:'job-status/route.ts:63',message:'job-status route case ownership lookup',data:{hasCaseRow:Boolean(caseRow),caseErrCode:caseErr?.code ?? null,caseErrMessage:caseErr?.message ?? null},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
 
   if (caseErr) {
     return NextResponse.json({ error: caseErr.message }, { status: 500 })
@@ -81,9 +72,6 @@ export async function GET(
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  // #region agent log
-  fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'post-fix',hypothesisId:'H10',location:'job-status/route.ts:84',message:'job-status jobs lookup result',data:{hasJob:Boolean(job),jobErrCode:jobErr?.code ?? null,jobErrMessage:jobErr?.message ?? null},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
 
   if (jobErr) {
     // jobs table may not exist in pre-slice-6 envs; keep contract stable.

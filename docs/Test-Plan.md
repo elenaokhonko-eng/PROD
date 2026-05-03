@@ -1,6 +1,6 @@
 # Test Plan
 
-Last updated: 2026-05-02
+Last updated: 2026-05-03
 
 This document consolidates the project test plan. The canonical workflow contract still lives in [State-Machine-Workflow.md](./State-Machine-Workflow.md), and implementation gates still live in [State-Machine-Refactor-Plan.md](./State-Machine-Refactor-Plan.md). This file is the quick execution checklist for local QA.
 
@@ -44,7 +44,20 @@ Run after a case produces validation gaps from `run_validation_v1`.
 - On the Layer 3 / Tier 2 screen, confirm Scam and Fraud Specialist consult / Q&A recommendation copy is visible.
 - After Slice 8, run SGD 99 specialist consult and SGD 800 case-pack Stripe test checkouts; confirm the webhook branches do not enqueue the Layer 2 decision/report worker.
 
-## 5. Static Checks
+## 5. Slice 5 Retest Scenarios
+
+Run these before calling Slice 5 done.
+
+- Evidence upload direct insert: upload one supported document and confirm exactly one `case_documents` row is created by `POST /api/evidence/upload`.
+- Evidence processing handoff: confirm the returned `caseDocumentId` is sent to `/api/edge/evidence`, then the document progresses from `pending` to `ready`.
+- Trigger safety: confirm there is no duplicate `case_documents` row from the disabled Supabase storage auto-insert trigger.
+- Validation gaps with new table: run a case with rows in `v_case_validation_gap_items`; confirm questions render in `sort_order`.
+- Validation gap answer keys: save answers and confirm the request body uses concrete keys such as `incident_date` or `reported_loss.amount`, never `undefined`.
+- Validation fallback: use or simulate an older validation run with zero gap-item rows and confirm normalized `questions_to_user` JSON still renders.
+- Validation error path: set or encounter `case_validation_runs.status = 'error'` and confirm `error_message` is shown instead of a normal gap panel.
+- State gates: confirm non-empty `missing_fields` still blocks Tier-0 auto-fire, and empty gaps plus fresh ready evidence allows the Tier-0 path.
+
+## 6. Static Checks
 
 - `rg "v_latest_validation" app lib` should have no production hits.
 - `rg "candidate-transactions|compute-loss|gemini-task|run_case_extract_v1|run_case_extract_v2|run_case_extract_v3" app components hooks lib services worker` should have no production call-path hits.

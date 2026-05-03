@@ -117,7 +117,7 @@ export function useSubmitContactRequest() {
       return { ok: true, id }
     },
     onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: qk.waitlist(variables.case_id) })
+      await queryClient.invalidateQueries({ queryKey: qk.case.contactRequest(variables.case_id) })
     },
   })
 }

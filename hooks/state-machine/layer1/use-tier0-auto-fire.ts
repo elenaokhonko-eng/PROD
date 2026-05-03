@@ -92,30 +92,15 @@ export function useTier0AutoFire({ caseId, documents, enabled = true }: UseTier0
 
     const validation = validationQuery.data
     if (!validation) {
-      // #region agent log
-      if (latestReadyDocumentTs != null) {
-        fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',hypothesisId:'TF1',location:'use-tier0-auto-fire.ts:gate',message:'tier0 blocked',data:{reason:'no-validation',caseId,latestReadyDocumentTs,extractCreatedAt:latestExtractQuery.data ?? null,hasNarratives:hasNarrativesQuery.data ?? null},timestamp:Date.now()})}).catch(()=>{})
-      }
-      // #endregion
       return
     }
 
     if (validation.status === 'error') {
-      // #region agent log
-      if (latestReadyDocumentTs != null) {
-        fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',hypothesisId:'TF2E',location:'use-tier0-auto-fire.ts:gate',message:'tier0 blocked',data:{reason:'validation-error',caseId,latestReadyDocumentTs,errorMessage:validation.error_message ?? null},timestamp:Date.now()})}).catch(()=>{})
-      }
-      // #endregion
       return
     }
 
     const missingFields = validation.missing_fields ?? []
     if (Array.isArray(missingFields) && missingFields.length > 0) {
-      // #region agent log
-      if (latestReadyDocumentTs != null) {
-        fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',hypothesisId:'TF2',location:'use-tier0-auto-fire.ts:gate',message:'tier0 blocked',data:{reason:'missing-fields',missingCount:missingFields.length,caseId,latestReadyDocumentTs},timestamp:Date.now()})}).catch(()=>{})
-      }
-      // #endregion
       return
     }
 
@@ -123,22 +108,12 @@ export function useTier0AutoFire({ caseId, documents, enabled = true }: UseTier0
 
     const latestExtractTs = latestExtractQuery.data ? Date.parse(latestExtractQuery.data) : NaN
     if (Number.isNaN(latestExtractTs) || latestExtractTs <= latestReadyDocumentTs) {
-      // #region agent log
-      fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',hypothesisId:'TF3',location:'use-tier0-auto-fire.ts:gate',message:'tier0 blocked',data:{reason:'extract-not-fresh-after-ready',caseId,latestExtractRaw:latestExtractQuery.data ?? null,latestExtractTs:Number.isNaN(latestExtractTs)?null:latestExtractTs,latestReadyDocumentTs,strictFresh:Number.isFinite(latestExtractTs)&&latestExtractTs>latestReadyDocumentTs},timestamp:Date.now()})}).catch(()=>{})
-      // #endregion
       return
     }
 
     if (hasNarrativesQuery.data) {
-      // #region agent log
-      fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',hypothesisId:'TF4',location:'use-tier0-auto-fire.ts:gate',message:'tier0 skip',data:{reason:'narratives-exist',caseId},timestamp:Date.now()})}).catch(()=>{})
-      // #endregion
       return
     }
-
-    // #region agent log
-    fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',hypothesisId:'TF5',location:'use-tier0-auto-fire.ts:fire',message:'tier0 auto-fire mutate',data:{caseId,latestExtractTs,latestReadyDocumentTs},timestamp:Date.now()})}).catch(()=>{})
-    // #endregion
     hasFiredRef.current = true
     fireTier0.mutate(caseId, {
       onError: () => {

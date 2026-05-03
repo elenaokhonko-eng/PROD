@@ -1,45 +1,10 @@
 import { NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
 
 import { createUserClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
 
 const STORAGE_BUCKETS = ["case_evidence", "evidence"] as const
-const DEBUG_ENDPOINT = "http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807"
-const DEBUG_SESSION_ID = "5b59f2"
-
-function debugLog(hypothesisId: string, location: string, message: string, data: Record<string, unknown>) {
-  // #region agent log
-  fetch(DEBUG_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": DEBUG_SESSION_ID },
-    body: JSON.stringify({
-      sessionId: DEBUG_SESSION_ID,
-      runId: "upload-route-debug",
-      hypothesisId,
-      location,
-      message,
-      data,
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
-}
-
-function parseJwtSupabaseUuid(token: string | null): string | null {
-  if (!token) return null
-  const parts = token.split(".")
-  if (parts.length < 2) return null
-  try {
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/")
-    const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4))
-    const payload = JSON.parse(Buffer.from(b64 + pad, "base64").toString("utf8")) as Record<string, unknown>
-    return typeof payload.supabase_uuid === "string" ? payload.supabase_uuid : null
-  } catch {
-    return null
-  }
-}
 
 export async function POST(request: Request) {
   try {
@@ -55,29 +20,6 @@ export async function POST(request: Request) {
     if (!caseId) {
       return NextResponse.json({ error: "caseId is required" }, { status: 400 })
     }
-    debugLog("H19", "evidence/upload/route.ts:43", "route entry validated", {
-      hasFile: true,
-      caseIdPresent: Boolean(caseId),
-      fileType: (file as File).type || "unknown",
-      fileSize: (file as File).size,
-    })
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""
-    let projectRef: string | null = null
-    try {
-      projectRef = new URL(url).hostname.split(".")[0] ?? null
-    } catch {
-      projectRef = null
-    }
-    debugLog("H24", "evidence/upload/route.ts:62", "supabase project ref in route env", {
-      projectRef,
-    })
-    const { getToken } = await auth()
-    const clerkSupabaseToken = await getToken({ template: "supabase" })
-    const jwtSupabaseUuid = parseJwtSupabaseUuid(clerkSupabaseToken)
-    debugLog("H25", "evidence/upload/route.ts:69", "clerk supabase jwt claim presence", {
-      hasToken: Boolean(clerkSupabaseToken),
-      hasSupabaseUuidClaim: Boolean(jwtSupabaseUuid),
-    })
 
     let supabase
     try {
@@ -85,19 +27,14 @@ export async function POST(request: Request) {
     } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-    const { data: authUserData, error: authUserError } = await supabase.auth.getUser()
-    debugLog("H27", "evidence/upload/route.ts:82", "supabase auth.getUser before storage upload", {
-      hasAuthUser: Boolean(authUserData?.user?.id),
-      authUserIdPrefix: authUserData?.user?.id ? authUserData.user.id.slice(0, 8) : null,
-      authUserErrorMessage: authUserError?.message ?? null,
-    })
 
-    // Ownership check before storage write.
+    // RLS limits this lookup to cases owned by the authenticated user.
     const { data: caseRow, error: caseErr } = await supabase
       .from("cases")
-      .select("id,user_id")
+      .select("id")
       .eq("id", caseId)
       .maybeSingle()
+
     if (caseErr) {
       console.error("[evidence/upload] Case ownership lookup failed:", caseErr)
       return NextResponse.json({ error: "Failed to verify case ownership" }, { status: 500 })
@@ -105,20 +42,7 @@ export async function POST(request: Request) {
     if (!caseRow) {
       return NextResponse.json({ error: "Case not found" }, { status: 404 })
     }
-    debugLog("H19", "evidence/upload/route.ts:64", "ownership check passed", {
-      hasCaseRow: Boolean(caseRow),
-      caseId,
-    })
-    debugLog("H26", "evidence/upload/route.ts:95", "case ownership claim comparison", {
-      hasCaseOwnerId: Boolean(caseRow?.user_id),
-      hasSupabaseUuidClaim: Boolean(jwtSupabaseUuid),
-      claimMatchesCaseOwner:
-        typeof caseRow?.user_id === "string" && typeof jwtSupabaseUuid === "string"
-          ? caseRow.user_id === jwtSupabaseUuid
-          : false,
-    })
 
-    // Storage path: cases/{caseId}/documents/{generatedName}
     const originalName = (file as File).name ?? "upload"
     const fileExt = originalName.includes(".") ? originalName.split(".").pop() : undefined
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}${fileExt ? `.${fileExt}` : ""}`
@@ -131,31 +55,15 @@ export async function POST(request: Request) {
         cacheControl: "3600",
         upsert: false,
       })
-      debugLog("H20", "evidence/upload/route.ts:79", "bucket upload attempted", {
-        bucket,
-        filePath,
-        ok: !error,
-        errorName: error?.name ?? null,
-        errorMessage: error?.message ?? null,
-        errorStatusCode:
-          error && typeof error === "object" && "statusCode" in error ? (error as { statusCode?: unknown }).statusCode ?? null : null,
-        errorCode: error && typeof error === "object" && "error" in error ? (error as { error?: unknown }).error ?? null : null,
-      })
       if (!error) {
         uploadedBucket = bucket
         break
       }
       lastStorageError = error
     }
+
     if (!uploadedBucket) {
       console.error("[evidence/upload] Storage upload failed:", lastStorageError)
-      debugLog("H21", "evidence/upload/route.ts:93", "all bucket uploads failed", {
-        filePath,
-        errorMessage:
-          lastStorageError && typeof lastStorageError === "object" && "message" in lastStorageError
-            ? String((lastStorageError as { message?: unknown }).message)
-            : null,
-      })
       const errorMessage =
         lastStorageError && typeof lastStorageError === "object" && "message" in lastStorageError
           ? String((lastStorageError as { message?: unknown }).message ?? "")
@@ -171,12 +79,8 @@ export async function POST(request: Request) {
       }
       return NextResponse.json({ error: "Failed to upload file" }, { status: 500 })
     }
-    debugLog("H21", "evidence/upload/route.ts:102", "bucket upload succeeded", {
-      uploadedBucket,
-      filePath,
-    })
 
-    // IS §4.2: this route owns the `case_documents` row after Storage write.
+    // IS 4.2: this route owns the `case_documents` row after Storage write.
     // Supabase storage auto-insert (`sync_case_document_from_storage`) is off in prod.
     const { data: insertedDoc, error: insertErr } = await supabase
       .from("case_documents")
@@ -197,18 +101,8 @@ export async function POST(request: Request) {
 
     if (insertErr || !insertedDoc?.id) {
       console.error("[evidence/upload] case_documents insert failed:", insertErr)
-      debugLog("H28", "evidence/upload/route.ts:insert", "case_documents insert failed", {
-        message: insertErr?.message ?? null,
-        code: (insertErr as { code?: unknown } | null)?.code ?? null,
-      })
       return NextResponse.json({ error: "Failed to create case document record" }, { status: 500 })
     }
-
-    debugLog("H22", "evidence/upload/route.ts:insertOk", "case_documents created", {
-      hasCaseDocumentId: true,
-      caseId,
-      uploadedBucket,
-    })
 
     return NextResponse.json({
       evidence: {

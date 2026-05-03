@@ -21,18 +21,12 @@ export async function PUT(
 ) {
   const authHeader = request.headers.get('authorization')
   const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
-  // #region agent log
-  fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H2',location:'responses/route.ts:25',message:'responses route auth header inspection',data:{hasAuthHeader:Boolean(authHeader),hasBearer:Boolean(bearer)},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
   if (!bearer) {
     return NextResponse.json({ error: 'Missing bearer token' }, { status: 401 })
   }
 
   const payload = decodeJwtPayload(bearer)
   const supabaseUuid = typeof payload?.supabase_uuid === 'string' ? payload.supabase_uuid : null
-  // #region agent log
-  fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H4',location:'responses/route.ts:33',message:'responses route JWT claim inspection',data:{hasPayload:Boolean(payload),hasSupabaseUuid:Boolean(supabaseUuid)},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
   if (!supabaseUuid) {
     return NextResponse.json({ error: 'Invalid token: missing supabase_uuid claim' }, { status: 401 })
   }
@@ -65,9 +59,6 @@ export async function PUT(
     .eq('id', caseId)
     .eq('user_id', supabaseUuid)
     .single()
-  // #region agent log
-  fetch('http://127.0.0.1:7824/ingest/26574370-b756-4c84-85f8-f03b9a8ce807',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b59f2'},body:JSON.stringify({sessionId:'5b59f2',runId:'initial-debug',hypothesisId:'H5',location:'responses/route.ts:66',message:'responses route case ownership lookup',data:{hasCaseData:Boolean(caseData),caseErrCode:caseErr?.code ?? null,caseErrMessage:caseErr?.message ?? null},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
 
   if (!caseData) {
     return NextResponse.json({ error: 'Case not found' }, { status: 404 })
