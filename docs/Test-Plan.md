@@ -1,6 +1,6 @@
 # Test Plan
 
-Last updated: 2026-05-03
+Last updated: 2026-05-04
 
 This document consolidates the project test plan. The canonical workflow contract still lives in [State-Machine-Workflow.md](./State-Machine-Workflow.md), and implementation gates still live in [State-Machine-Refactor-Plan.md](./State-Machine-Refactor-Plan.md). This file is the quick execution checklist for local QA.
 
