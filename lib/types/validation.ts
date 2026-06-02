@@ -2,8 +2,8 @@
  * `public.case_validation_runs` row shape. Mirrors schema lines 1049–1067.
  * IS §4.2 + §9.4 two-step read pattern.
  *
- * SM R5: always read via `get_case_eligibility().resolved_ids.validation_run_id`
- * then SELECT by PK. Never query this table directly on `case_id`.
+ * SM R5: resolve the run id via `get_case_eligibility().resolved_ids.latest_validation_run_id`
+ * (see `getLatestValidationRunId`) then SELECT by PK. Never query this table on `case_id` alone.
  */
 
 export type ValidationSource = 'model' | 'rules' | 'hybrid'

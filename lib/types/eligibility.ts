@@ -14,9 +14,14 @@ export interface CaseEligibilityPrerequisites {
 }
 
 export interface CaseEligibilityResolvedIds {
-  extract_run_id: string | null
-  validation_run_id: string | null
-  decision_run_id: string | null
+  /** RPC `get_case_eligibility` returns `latest_*` keys (see migration). */
+  latest_extract_run_id?: string | null
+  latest_validation_run_id?: string | null
+  latest_decision_run_id?: string | null
+  /** Legacy / alternate client naming — prefer `latest_*` via `getLatestValidationRunId`. */
+  extract_run_id?: string | null
+  validation_run_id?: string | null
+  decision_run_id?: string | null
   [extra: string]: string | null | undefined
 }
 

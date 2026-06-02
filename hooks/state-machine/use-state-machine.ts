@@ -1,7 +1,8 @@
 'use client'
 
 import type { CaseEligibilityResponse } from '@/lib/types/eligibility'
-import type { CaseValidationRunRow } from '@/lib/types/validation'
+import type { CaseValidationRunRow, ValidationGapItemRow } from '@/lib/types/validation'
+import { deriveInGapPhase } from '@/lib/validation/gap-flow'
 import type { Tier0DraftBundle } from '@/lib/types/narratives'
 import type { CaseEntitlementPlan } from '@/lib/types/case'
 import type { ReportRow } from '@/lib/types/report'
@@ -28,6 +29,8 @@ export type StateMachineNode =
 export interface StateMachineInput {
   eligibility: CaseEligibilityResponse | null
   validation: CaseValidationRunRow | null
+  /** `undefined` = gap-items query still loading for the resolved validation run. */
+  gapItems: ValidationGapItemRow[] | undefined
   narratives: Tier0DraftBundle | null
   entitlementPlan: CaseEntitlementPlan | null
   documents: Array<Pick<CaseDocumentRow, 'id' | 'processing_status'>> | null
@@ -52,6 +55,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   const {
     eligibility,
     validation,
+    gapItems,
     narratives,
     entitlementPlan,
     documents,
@@ -78,9 +82,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   }
 
   if (!narratives?.tier0_summary && !narratives?.tier0_evidence_checklist && !narratives?.tier0_srf_signal) {
-    if (validation?.status === 'error') return 'S1-GapLoop'
-    const missing = validation?.missing_fields ?? []
-    if (Array.isArray(missing) && missing.length > 0) return 'S1-GapLoop'
+    if (deriveInGapPhase(validation, gapItems)) return 'S1-GapLoop'
     if (!isIntakeSubmitted && !hasSubmittedIntake) return 'S1-IntakeForm'
     const hasReadyDoc = documents?.some((d) => d.processing_status === 'ready') ?? false
     if (!hasReadyDoc) return 'S1-EvidenceUpload'

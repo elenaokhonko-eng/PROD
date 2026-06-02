@@ -17,6 +17,8 @@ import {
   StateMachineErrorCard,
   type StateMachineErrorKind,
 } from '@/components/state-machine/error-card'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { EvidenceUploadPanel } from '@/components/state-machine/layer1/evidence-upload-panel'
 import { GapQuestionPanel } from '@/components/state-machine/layer1/gap-question-panel'
@@ -52,6 +54,11 @@ export interface Layer1ShellProps {
 
   gapLoop?: {
     questions: ValidationQuestion[]
+    /** True while `v_case_validation_gap_items` is loading for the resolved validation run. */
+    isLoadingGapItems?: boolean
+    /** When set, render this instead of questions (missing data but no gap rows or legacy questions). */
+    missingQuestionsNotice?: string | null
+    onRetryGapLoad?: () => void
     isSavingAnswers?: boolean
     answersError?: string | null
     onSaveAnswers: (answers: Record<string, ValidationAnswerValue>) => void
@@ -101,6 +108,37 @@ export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft }: L
 
     case 'S1-GapLoop':
       if (!gapLoop) return <MissingPropsFallback prop="gapLoop" />
+      if (gapLoop.isLoadingGapItems) {
+        return (
+          <div className="mx-auto max-w-2xl">
+            <StateMachineLoading
+              size="full"
+              title="Loading follow-up questions"
+              description="One moment while we load what still needs your input."
+            />
+          </div>
+        )
+      }
+      if (gapLoop.missingQuestionsNotice) {
+        return (
+          <div className="mx-auto max-w-2xl">
+            <Card>
+              <CardHeader>
+                <CardTitle>We need a bit more</CardTitle>
+                <CardDescription>Something went wrong preparing the questions.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">{gapLoop.missingQuestionsNotice}</p>
+                {gapLoop.onRetryGapLoad ? (
+                  <Button type="button" variant="secondary" onClick={() => gapLoop.onRetryGapLoad?.()}>
+                    Try again
+                  </Button>
+                ) : null}
+              </CardContent>
+            </Card>
+          </div>
+        )
+      }
       return (
         <div className="mx-auto max-w-2xl">
           <GapQuestionPanel

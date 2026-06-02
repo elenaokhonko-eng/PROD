@@ -6,6 +6,10 @@ import { qk } from '@/hooks/state-machine/query-keys'
 import { useSupabaseBrowser } from '@/hooks/state-machine/use-supabase-browser'
 import { useValidationRun } from '@/hooks/state-machine/layer1/use-validation-run'
 import type { CaseDocumentRow } from '@/lib/types/documents'
+import {
+  hasOpenValidationQuestions,
+  validationIndicatesMissingData,
+} from '@/lib/validation/gap-flow'
 
 export interface UseTier0AutoFireInput {
   caseId: string | null | undefined
@@ -32,7 +36,7 @@ export function useTier0AutoFire({ caseId, documents, enabled = true }: UseTier0
   const hasFiredRef = useRef(false)
   const canRun = Boolean(caseId) && enabled
 
-  const validationQuery = useValidationRun(caseId, { enabled: canRun, includeGapItems: false })
+  const { gapItems, ...validationQuery } = useValidationRun(caseId, { enabled: canRun })
 
   const latestExtractQuery = useQuery({
     queryKey: caseId ? qk.case.extract(caseId) : ['case', 'extract', 'missing-case-id'],
@@ -91,18 +95,14 @@ export function useTier0AutoFire({ caseId, documents, enabled = true }: UseTier0
     if (hasFiredRef.current || fireTier0.isPending) return
 
     const validation = validationQuery.data
-    if (!validation) {
-      return
-    }
+    if (gapItems === undefined) return
+    if (!validation) return
 
-    if (validation.status === 'error') {
-      return
-    }
+    if (validation.status === 'error') return
 
-    const missingFields = validation.missing_fields ?? []
-    if (Array.isArray(missingFields) && missingFields.length > 0) {
-      return
-    }
+    if (hasOpenValidationQuestions(validation, gapItems)) return
+
+    if (validationIndicatesMissingData(validation)) return
 
     if (latestReadyDocumentTs == null) return
 
@@ -114,6 +114,7 @@ export function useTier0AutoFire({ caseId, documents, enabled = true }: UseTier0
     if (hasNarrativesQuery.data) {
       return
     }
+
     hasFiredRef.current = true
     fireTier0.mutate(caseId, {
       onError: () => {
@@ -124,6 +125,7 @@ export function useTier0AutoFire({ caseId, documents, enabled = true }: UseTier0
     canRun,
     caseId,
     fireTier0,
+    gapItems,
     hasNarrativesQuery.data,
     latestExtractQuery.data,
     latestReadyDocumentTs,

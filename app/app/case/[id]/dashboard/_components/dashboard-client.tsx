@@ -37,6 +37,10 @@ import {
   getValidationResponseTypes,
   serializeValidationAnswer,
 } from '@/lib/validation-gaps'
+import {
+  GAP_QUESTIONS_FALLBACK_NOTICE,
+  validationIndicatesMissingData,
+} from '@/lib/validation/gap-flow'
 import type { ValidationAnswerValue } from '@/lib/types/validation'
 
 type DashboardClientProps = {
@@ -81,9 +85,29 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
     })),
   })
 
+  const gapQuestions = validationQuery.questions
+  const gapResponseTypes = useMemo(
+    () => getValidationResponseTypes(gapQuestions),
+    [gapQuestions],
+  )
+  const isLoadingGapItems =
+    Boolean(validationQuery.validationRunId) && validationQuery.gapItems === undefined
+  const validationErrorMessage =
+    validationQuery.data?.status === 'error'
+      ? validationQuery.data.error_message ?? 'Validation failed while preparing follow-up questions.'
+      : null
+  const missingQuestionsNotice =
+    !isLoadingGapItems &&
+    !validationErrorMessage &&
+    gapQuestions.length === 0 &&
+    validationIndicatesMissingData(validationQuery.data ?? null)
+      ? GAP_QUESTIONS_FALLBACK_NOTICE
+      : null
+
   const node = useStateMachine({
     eligibility: eligibilityQuery.data ?? null,
     validation: validationQuery.data ?? null,
+    gapItems: validationQuery.gapItems,
     narratives: tier0DraftQuery.data ?? null,
     entitlementPlan: paymentStatusQuery.data?.plan ?? null,
     documents: documentsQuery.data ?? null,
@@ -100,16 +124,6 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
     () => searchParams.get('session_id') || searchParams.get('payment') === 'success',
     [searchParams],
   )
-
-  const gapQuestions = validationQuery.questions
-  const gapResponseTypes = useMemo(
-    () => getValidationResponseTypes(gapQuestions),
-    [gapQuestions],
-  )
-  const validationErrorMessage =
-    validationQuery.data?.status === 'error'
-      ? validationQuery.data.error_message ?? 'Validation failed while preparing follow-up questions.'
-      : null
 
   async function saveResponses(
     answers: Record<string, ValidationAnswerValue>,
@@ -232,6 +246,12 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
             }}
             gapLoop={{
               questions: validationErrorMessage ? [] : gapQuestions,
+              isLoadingGapItems,
+              missingQuestionsNotice,
+              onRetryGapLoad: () => {
+                void validationQuery.gapItemsQuery.refetch()
+                void validationQuery.refetch()
+              },
               isSavingAnswers: submitIntake.isPending,
               answersError: validationErrorMessage ?? submitIntake.error?.message ?? null,
               onSaveAnswers: handleGapSave,

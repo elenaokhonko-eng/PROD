@@ -2,7 +2,9 @@
 
 /**
  * Layer 1 gap-question loop. Renders normalized validation gaps from
- * `v_case_validation_gap_items`, with `questions_to_user` JSON as fallback.
+ * `v_case_validation_gap_items` (via `use-validation-run` + `lib/validation-gaps.ts`),
+ * with `questions_to_user` JSON as fallback. Controlled-error copy is handled in
+ * `layer1-shell.tsx` when gaps are indicated but no questions exist (`lib/validation/gap-flow.ts`).
  */
 
 import { useState, type FormEvent } from 'react'

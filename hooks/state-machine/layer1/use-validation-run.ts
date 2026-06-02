@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { qk } from '@/hooks/state-machine/query-keys'
 import { useSupabaseBrowser } from '@/hooks/state-machine/use-supabase-browser'
 import { useCaseEligibility } from '@/hooks/state-machine/layer1/use-case-eligibility'
+import { getLatestValidationRunId } from '@/lib/eligibility/resolved-ids'
 import { getPreferredValidationQuestions } from '@/lib/validation-gaps'
 import type { CaseValidationRunRow, ValidationGapItemRow } from '@/lib/types/validation'
 
@@ -19,7 +20,8 @@ export function useValidationRun(caseId: string | null | undefined, options?: Us
   const includeGapItems = options?.includeGapItems ?? true
 
   const eligibilityQuery = useCaseEligibility(caseId, { enabled })
-  const validationRunId = eligibilityQuery.data?.resolved_ids?.validation_run_id ?? null
+  const resolved = eligibilityQuery.data?.resolved_ids as Record<string, unknown> | undefined
+  const validationRunId = getLatestValidationRunId(resolved) ?? null
 
   const validationQuery = useQuery({
     queryKey: caseId ? qk.case.validation(caseId) : ['case', 'validation', 'missing-case-id'],
@@ -64,21 +66,30 @@ export function useValidationRun(caseId: string | null | undefined, options?: Us
     },
   })
 
+  const gapItems: ValidationGapItemRow[] | undefined = !includeGapItems
+    ? []
+    : !validationRunId
+      ? []
+      : gapItemsQuery.isPending
+        ? undefined
+        : (gapItemsQuery.data ?? [])
+
   const questions = useMemo(
     () =>
       getPreferredValidationQuestions(
-        gapItemsQuery.data ?? [],
+        gapItems ?? [],
         validationQuery.data?.questions_to_user ?? [],
       ),
-    [gapItemsQuery.data, validationQuery.data?.questions_to_user],
+    [gapItems, validationQuery.data?.questions_to_user],
   )
 
   return {
     ...validationQuery,
     validationRunId,
+    gapItems,
+    gapItemsQuery,
     eligibility: eligibilityQuery.data ?? null,
     eligibilityQuery,
-    gapItemsQuery,
     questions,
   }
 }
