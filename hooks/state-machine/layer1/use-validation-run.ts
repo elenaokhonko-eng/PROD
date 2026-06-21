@@ -21,7 +21,33 @@ export function useValidationRun(caseId: string | null | undefined, options?: Us
 
   const eligibilityQuery = useCaseEligibility(caseId, { enabled })
   const resolved = eligibilityQuery.data?.resolved_ids as Record<string, unknown> | undefined
-  const validationRunId = getLatestValidationRunId(resolved) ?? null
+  const validationRunIdFromEligibility = getLatestValidationRunId(resolved)
+
+  const fallbackValidationRunIdQuery = useQuery({
+    queryKey: caseId
+      ? [...qk.case.validation(caseId), 'fallback-run-id']
+      : ['case', 'validation', 'fallback-run-id', 'missing-case-id'],
+    enabled:
+      enabled &&
+      Boolean(caseId) &&
+      eligibilityQuery.isSuccess &&
+      !validationRunIdFromEligibility,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('case_validation_runs')
+        .select('id')
+        .eq('case_id', caseId as string)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (error) throw error
+      return data?.id ?? null
+    },
+  })
+
+  const validationRunId =
+    validationRunIdFromEligibility ?? fallbackValidationRunIdQuery.data ?? null
 
   const validationQuery = useQuery({
     queryKey: caseId ? qk.case.validation(caseId) : ['case', 'validation', 'missing-case-id'],

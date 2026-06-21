@@ -1,0 +1,12 @@
+{
+  "case_id": "688154e7-9cda-47ef-9cff-a27581766c3a",
+  "claimant_name": "Tang Charline Amelie Bernadette",
+  "loss_amount": "S$50,109.83",
+  "deposit_loss": "S$35,828.68",
+  "card_loss": "S$14,281.14",
+  "institution": "DBS",
+  "bank_decision": "authenticated",
+  "must_not_contain": [
+    "SGD 80,238.17"
+  ]
+}

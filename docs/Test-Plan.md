@@ -1,6 +1,6 @@
 # Test Plan
 
-Last updated: 2026-05-04
+Last updated: 2026-06-02
 
 This document consolidates the project test plan. The canonical workflow contract still lives in [State-Machine-Workflow.md](./State-Machine-Workflow.md), and implementation gates still live in [State-Machine-Refactor-Plan.md](./State-Machine-Refactor-Plan.md). This file is the quick execution checklist for local QA.
 
@@ -16,6 +16,23 @@ Run after a case produces validation gaps from `run_validation_v1`.
 - Confirm fallback: for an older validation run with no rows in `v_case_validation_gap_items`, `questions_to_user` JSON still renders after normalization.
 - Confirm error path: when `case_validation_runs.status = 'error'`, the gap area shows `error_message` and Tier-0 auto-fire does not run.
 - Confirm cache invalidation after extract includes parent validation and validation gap-items query keys.
+
+### 1.1 Controlled-error gap UI (missing questions)
+
+**Status: backend + logic validated; browser QA pending.**
+
+Validated on linked Supabase (2026-06-02):
+
+- `run_validation_v1` long smoke (`scripts/sql/run_validation_v1-smoke-long.sql`) — dual-write to `case_validation_gap_items` passes.
+- Controlled-error seed (`scripts/sql/controlled-error-seed.sql`) — parent `case_validation_runs` with `status = needs_user`, non-empty `missing_fields`, empty `questions_to_user`, zero gap rows.
+- Frontend wiring logic — `deriveInGapPhase`, `validationIndicatesMissingData`, and `GAP_QUESTIONS_FALLBACK_NOTICE` resolve to **S1-GapLoop** with the fallback notice (not the normal gap form).
+
+**Browser QA pending** (requires `.env.local` with Supabase + Clerk, signed-in case owner):
+
+- Case ID: `9eafdc9e-9431-4ba1-ae28-b62fd4da9098`
+- Dashboard: `/app/case/9eafdc9e-9431-4ba1-ae28-b62fd4da9098/dashboard`
+- Expected: card *We need a bit more* with copy *We found missing information, but couldn't generate follow-up questions. Please try again.* and **Try again**.
+- Note: `get_case_eligibility` does not return `latest_validation_run_id` until a decision exists; Layer 1 uses a fallback in `use-validation-run.ts` to load the latest validation by `case_id` when resolved ids are empty.
 
 ## 2. Layer 1 Smoke
 
@@ -55,6 +72,7 @@ Run these before calling Slice 5 done.
 - Validation gap answer keys: save answers and confirm the request body uses concrete keys such as `incident_date` or `reported_loss.amount`, never `undefined`.
 - Validation fallback: use or simulate an older validation run with zero gap-item rows and confirm normalized `questions_to_user` JSON still renders.
 - Validation error path: set or encounter `case_validation_runs.status = 'error'` and confirm `error_message` is shown instead of a normal gap panel.
+- Controlled-error path: see **§1.1** — browser QA still pending.
 - State gates: confirm non-empty `missing_fields` still blocks Tier-0 auto-fire, and empty gaps plus fresh ready evidence allows the Tier-0 path.
 
 ## 6. Static Checks
