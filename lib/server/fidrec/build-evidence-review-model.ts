@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service"
-import { buildEvidenceLinks } from "@/lib/server/fidrec/build-evidence-links"
+import { buildEvidenceLinks, type EvidencePresentationContext } from "@/lib/server/fidrec/build-evidence-links"
 import type {
   CasePackAnnexurePlaceholder,
   CasePackTheme,
@@ -132,12 +132,6 @@ const HIGH_STRENGTH_PROCESSED_TYPES = new Set([
 ])
 
 const LOW_STRENGTH_CONTENT_PATTERNS = [/\bnews\b/i, /\bitinerary\b/i, /\btravel\b/i]
-
-type DocumentPresentationContext = {
-  verifiedProcessedType: string | null
-  predictedProcessedType: string | null
-  extractedText: string | null
-}
 
 export type BuildEvidenceReviewModelInput = {
   caseId: string

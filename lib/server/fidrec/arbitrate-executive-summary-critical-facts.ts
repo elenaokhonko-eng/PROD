@@ -83,10 +83,11 @@ const ACCOUNT_SOURCE_PRIORITY: Record<FactCandidateSourceType, number> = {
   document_chunk: 4,
   evidence_label: 5,
   case_metadata: 6,
-  starting_narrative: 7,
-  police_report: 8,
-  statutory_declaration: 9,
-  case_finding: 10,
+  primary_narrative: 7,
+  starting_narrative: 8,
+  police_report: 9,
+  statutory_declaration: 10,
+  case_finding: 11,
 }
 
 const NAME_BLOCKLIST = new Set(

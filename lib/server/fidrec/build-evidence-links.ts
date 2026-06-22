@@ -7,7 +7,7 @@ import {
   type ThemeLinkCandidate,
 } from "@/lib/server/fidrec/evidence-relevance"
 import type { CasePackTheme } from "@/lib/types/fidrec-case-pack"
-import type { FidrecEvidenceType } from "@/lib/types/fidrec-evidence-labels"
+import type { EvidenceLabel, FidrecEvidenceType } from "@/lib/types/fidrec-evidence-labels"
 import type { EvidenceThemeRelationship } from "@/lib/types/fidrec-evidence-review"
 import type {
   CaseBankAssertionRow,

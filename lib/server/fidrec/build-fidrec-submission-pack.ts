@@ -2,10 +2,11 @@ import type {
   CasePackRegulatoryReference,
   CasePackTheme,
 } from "@/lib/types/fidrec-case-pack"
+import type { ChronologyEvent } from "@/lib/types/fidrec-chronology"
 import type { EvidenceLabel } from "@/lib/types/fidrec-evidence-labels"
 import type { EvidenceReviewModel, EvidenceStrength } from "@/lib/types/fidrec-evidence-review"
 import { buildBankPositionNarrative } from "@/lib/server/fidrec/build-bank-position-narrative"
-import { buildChronologyOfEvents } from "@/lib/server/fidrec/build-chronology-of-events"
+import { buildChronologyEvents } from "@/lib/server/fidrec/build-chronology-events"
 import type { EvidencePresentationContext } from "@/lib/server/fidrec/build-evidence-links"
 import { buildExecutiveSummaryNarrative } from "@/lib/server/fidrec/build-executive-summary-narrative"
 import type {
@@ -15,7 +16,6 @@ import type {
   ExecutiveSummaryCaseOverviewDiagnostics,
   ExecutiveSummaryCriticalFactDiagnostics,
   FidrecSubmissionPack,
-  SubmissionChronologyEvent,
   SubmissionAnnexure,
   SubmissionBankPosition,
   SubmissionCustomerPosition,
@@ -315,7 +315,7 @@ function buildAnnexures(evidenceLabels: EvidenceLabel[]): SubmissionAnnexure[] {
 
 function buildExecutiveSummary(
   input: BuildFidrecSubmissionPackInput,
-  chronologyEvents: SubmissionChronologyEvent[],
+  chronologyEvents: ChronologyEvent[],
 ) {
   const result = buildExecutiveSummaryNarrative({
     findings: input.findings,
@@ -342,16 +342,33 @@ function buildExecutiveSummary(
 }
 
 export function buildFidrecSubmissionPack(input: BuildFidrecSubmissionPackInput): BuildFidrecSubmissionPackResult {
-  const chronology = buildChronologyOfEvents({
+  const chronology = buildChronologyEvents({
     findings: input.findings,
     assertions: input.assertions,
     evidenceLabels: input.evidenceLabels,
     evidenceReviewModel: input.evidenceReviewModel,
     documentPresentationById: input.documentPresentationById,
+    documentChunkTextById: input.documentChunkTextById,
+    primaryNarrative: input.primaryNarrative,
+    extractJson: input.extractJson,
   })
 
   const bankPosition = buildBankPosition(input)
   const executiveSummary = buildExecutiveSummary(input, chronology.events)
+
+  const chronologyDiagnostics: ChronologyBuildDiagnostics = {
+    raw_chronology_candidates: chronology.diagnostics.raw_candidates,
+    merged_chronology_events: chronology.diagnostics.merged_events,
+    dropped_document_only_rows: chronology.diagnostics.dropped_document_only_rows,
+    duplicate_events_merged: Math.max(
+      0,
+      chronology.diagnostics.raw_candidates - chronology.diagnostics.merged_events,
+    ),
+    undated_events: chronology.events.filter((event) => !event.event_datetime).length,
+    confirmed_events: chronology.diagnostics.confirmed_events,
+    inferred_events: chronology.diagnostics.inferred_events,
+    requires_confirmation_events: chronology.diagnostics.requires_confirmation_events,
+  }
 
   return {
     pack: {
@@ -368,7 +385,7 @@ export function buildFidrecSubmissionPack(input: BuildFidrecSubmissionPackInput)
       applicable_regulatory_framework: buildRegulatoryFramework(input.regulatoryReferences),
       annexures: buildAnnexures(input.evidenceLabels),
     },
-    chronologyDiagnostics: chronology.diagnostics,
+    chronologyDiagnostics,
     bankPositionDiagnostics: bankPosition.diagnostics,
     executiveSummaryDiagnostics: executiveSummary.diagnostics,
     executiveSummaryCriticalFactDiagnostics: executiveSummary.criticalFactDiagnostics,
