@@ -1,3 +1,5 @@
+import type { ChronologyEvent } from "@/lib/types/fidrec-chronology"
+
 export type FidrecSubmissionPackVersion = "fidrec_submission_pack_v1"
 
 export type SubmissionEvidenceImportance = "high" | "medium" | "low"
@@ -74,6 +76,8 @@ export type ExecutiveSummaryCaseOverviewDiagnostics = {
   products: string[]
   bank_rejection_basis: string[]
 }
+
+export type { ChronologyEvent, ChronologyEventType, ChronologyEventStatus } from "@/lib/types/fidrec-chronology"
 
 export interface SubmissionChronologyEvent {
   event_date: string | null
@@ -159,6 +163,9 @@ export interface ChronologyBuildDiagnostics {
   dropped_document_only_rows: number
   duplicate_events_merged: number
   undated_events: number
+  confirmed_events: number
+  inferred_events: number
+  requires_confirmation_events: number
 }
 
 export interface FidrecSubmissionPack {
@@ -166,7 +173,7 @@ export interface FidrecSubmissionPack {
   generated_at: string
   pack_version: FidrecSubmissionPackVersion
   executive_summary: SubmissionExecutiveSummary
-  chronology_of_events: SubmissionChronologyEvent[]
+  chronology_of_events: ChronologyEvent[]
   customer_position: SubmissionCustomerPosition
   bank_position: SubmissionBankPosition
   issues_in_dispute: SubmissionIssueInDispute[]

@@ -843,6 +843,9 @@ export function buildChronologyOfEvents(input: BuildChronologyOfEventsInput): {
       dropped_document_only_rows: documentResult.droppedDocumentOnlyRows,
       duplicate_events_merged: Math.max(0, rawCandidates.length - mergedCandidates.length),
       undated_events: events.filter((event) => !event.event_date).length,
+      confirmed_events: 0,
+      inferred_events: 0,
+      requires_confirmation_events: 0,
     },
   }
 }

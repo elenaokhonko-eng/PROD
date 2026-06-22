@@ -2,6 +2,7 @@ import { arbitrateExecutiveSummaryCriticalFacts } from "@/lib/server/fidrec/arbi
 import type { EvidencePresentationContext } from "@/lib/server/fidrec/build-evidence-links"
 import type { CasePackTheme } from "@/lib/types/fidrec-case-pack"
 import type { EvidenceLabel } from "@/lib/types/fidrec-evidence-labels"
+import type { ChronologyEvent } from "@/lib/types/fidrec-chronology"
 import type {
   ExecutiveSummaryBankDecisionEvent,
   ExecutiveSummaryCaseOverviewDiagnostics,
@@ -11,7 +12,6 @@ import type {
   ExecutiveSummaryFactConfidence,
   ExecutiveSummaryFacts,
   FactValue,
-  SubmissionChronologyEvent,
 } from "@/lib/types/fidrec-submission-pack"
 import type { CaseBankAssertionRow, CaseFindingRow } from "@/lib/types/fidrec"
 
@@ -45,7 +45,7 @@ export type BuildExecutiveSummaryNarrativeInput = {
   evidenceLabels: EvidenceLabel[]
   documentPresentationById: Map<string, EvidencePresentationContext>
   documentChunkTextById?: Map<string, string>
-  chronologyEvents: SubmissionChronologyEvent[]
+  chronologyEvents: ChronologyEvent[]
   extractJson?: Record<string, unknown> | null
   claimAmount?: string | number | null
   claimCurrency?: string | null
@@ -555,11 +555,26 @@ function resolveTransactionDatePhrase(input: BuildExecutiveSummaryNarrativeInput
     }
   }
 
-  const disputedEvent = input.chronologyEvents.find((event) =>
-    /disputed transaction/i.test(event.event_text),
+  const disputedEvent = input.chronologyEvents.find(
+    (event) => event.event_type === "fraud_transactions",
   )
-  if (disputedEvent?.date_display) {
-    return fact(`on ${disputedEvent.date_display}`, "chronology.disputed_transactions", "high")
+  if (disputedEvent?.event_datetime) {
+    const parsed = new Date(disputedEvent.event_datetime)
+    if (!Number.isNaN(parsed.getTime())) {
+      const phrase = parsed.toLocaleDateString("en-SG", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      })
+      return fact(`on ${phrase}`, "chronology.fraud_transactions", "high")
+    }
+  }
+  if (disputedEvent?.event_text) {
+    const match = disputedEvent.event_text.match(/\bon\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})\b/i)
+    if (match?.[1]) {
+      return fact(`on ${match[1]}`, "chronology.fraud_transactions", "medium")
+    }
   }
 
   for (const finding of input.findings) {
@@ -691,13 +706,20 @@ function resolveCustomerNotificationEvent(
     )
   }
 
-  const chronologyNotification = input.chronologyEvents.find((event) =>
-    /fraud hotline|reported|notified/i.test(event.event_text),
+  const chronologyNotification = input.chronologyEvents.find(
+    (event) => event.event_type === "hotline_call",
   )
   if (chronologyNotification) {
-    const dateTimeDisplay = [chronologyNotification.event_time, chronologyNotification.date_display]
-      .filter(Boolean)
-      .join(" on ")
+    const dateTimeDisplay = chronologyNotification.event_datetime
+      ? new Date(chronologyNotification.event_datetime).toLocaleString("en-SG", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "UTC",
+        })
+      : null
     return fact(
       {
         channel: "fraud_hotline",

@@ -418,11 +418,28 @@ function printThemeRegulatoryReferences(citations: ThemeRegulatoryCitation["cita
   }
 }
 
+function formatChronologyDateTime(eventDatetime: string | null): string {
+  if (!eventDatetime) return "Undated"
+  const parsed = new Date(eventDatetime)
+  if (Number.isNaN(parsed.getTime())) return eventDatetime
+  return parsed.toLocaleString("en-SG", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  })
+}
+
 function formatChronologyTable(events: FidrecSubmissionPack["chronology_of_events"]): void {
-  console.log("Date / Time\tEvent\tEvidence")
+  console.log("Date / Time\tType\tStatus\tEvent\tEvidence\tQuestions")
   for (const event of events) {
-    const evidence = event.evidence_refs.length ? event.evidence_refs.join(", ") : "(none)"
-    console.log(`${event.date_display}\t${event.event_text}\t${evidence}`)
+    const evidence = event.supporting_evidence.length ? event.supporting_evidence.join(", ") : "(none)"
+    const questions = event.claimant_questions.length ? event.claimant_questions.join("; ") : "(none)"
+    console.log(
+      `${formatChronologyDateTime(event.event_datetime)}\t${event.event_type}\t${event.status}\t${event.event_text}\t${evidence}\t${questions}`,
+    )
   }
 }
 
@@ -562,6 +579,9 @@ function printChronologyDiagnostics(diagnostics: ChronologyBuildDiagnostics): vo
   console.log("\n=== Chronology Diagnostics ===")
   console.log(`Raw chronology candidates: ${diagnostics.raw_chronology_candidates}`)
   console.log(`Merged chronology events: ${diagnostics.merged_chronology_events}`)
+  console.log(`Confirmed events: ${diagnostics.confirmed_events}`)
+  console.log(`Inferred events: ${diagnostics.inferred_events}`)
+  console.log(`Requires confirmation events: ${diagnostics.requires_confirmation_events}`)
   console.log(`Dropped document-only rows: ${diagnostics.dropped_document_only_rows}`)
   console.log(`Duplicate events merged: ${diagnostics.duplicate_events_merged}`)
   console.log(`Undated events: ${diagnostics.undated_events}`)

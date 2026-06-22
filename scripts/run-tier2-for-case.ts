@@ -262,10 +262,13 @@ async function main() {
   if (!pack.submission_pack.chronology_of_events.length) {
     console.log("(none)")
   } else {
-    console.log("Date / Time\tEvent\tEvidence")
+    console.log("Date / Time\tType\tStatus\tEvent\tEvidence")
     for (const event of pack.submission_pack.chronology_of_events) {
-      const evidence = event.evidence_refs.length ? event.evidence_refs.join(", ") : "(none)"
-      console.log(`${event.date_display}\t${event.event_text}\t${evidence}`)
+      const evidence = event.supporting_evidence.length ? event.supporting_evidence.join(", ") : "(none)"
+      const dateTime = event.event_datetime
+        ? new Date(event.event_datetime).toLocaleString("en-SG", { timeZone: "UTC" })
+        : "Undated"
+      console.log(`${dateTime}\t${event.event_type}\t${event.status}\t${event.event_text}\t${evidence}`)
     }
   }
 
