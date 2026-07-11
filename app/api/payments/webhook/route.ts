@@ -47,11 +47,23 @@ export async function POST(request: NextRequest) {
         }
 
         if (caseId && userId) {
-          // Optional: mark case as unlocked or update status
-          await supabase
-            .from("cases")
-            .update({ status: "intake", updated_at: new Date().toISOString() })
-            .eq("id", caseId)
+          // Slice 6: one transaction upgrades the entitlement and enqueues
+          // the background job. Stripe may redeliver events, so session.id is
+          // the idempotency key that prevents duplicate jobs.
+          const { error: enqueueErr } = await supabase.rpc(
+            "enqueue_post_payment_report_generation",
+            {
+              p_case_id: caseId,
+              p_user_id: userId,
+              p_idempotency_key: session.id,
+              p_payment_row_id: paymentRowId ?? null,
+            },
+          )
+
+          if (enqueueErr) {
+            console.error("[payments] post-payment enqueue failed:", enqueueErr)
+            return new NextResponse("Webhook handler failed", { status: 500 })
+          }
         }
         break
       }

@@ -3,6 +3,7 @@
 > ✅ **2026-04-21 PM — Masha feedback reconciliation complete + Layer 3 human-in-the-loop refinement.** Masha confirmed the canonical 5-function sequence (3 Tier-0 + 2 Tier-1). `candidate-transactions` and `compute-loss` are **Masha-internal fallbacks only** (invoked from the Supabase Dashboard when `run_case_extract_v4` can't compute the loss number) — the frontend does NOT call them. `gemini-task` is **archived**. Legacy `run_case_extract_v1` / `_v2` / `_v3` are **archived** in Supabase; repo-folder deletion pending Masha. **Layer 3 (late-afternoon 2026-04-21 PM refinement):** the terminal contact form shown right after the Tier-1 report now also captures **age**, **employment status** (professional / retiree / student / other), and **two FIDReC-qualification checkboxes** (≥ 30 days since last FI reply? FI issued final response?). The server snapshots `amount_lost_sgd` + `financial_institution` from the latest `case_extract_runs` row at insert time, so Dance's triage view always matches the number the user saw. See §9.9 + §10.5. The binding contract is [`2026-04-21-Masha-Feedback-Reconciliation.md`](./2026-04-21-Masha-Feedback-Reconciliation.md) §0 (canonical sequence) and §6 (end-to-end workflow). This Integration Summary has been rewritten to match.
 > ✅ **2026-05-04 — Slice 5 wiring landed on `Version-2.0-Refactor`.** Dashboard is driven by `useStateMachine()` + Slice 4 hooks. Contact path is `POST /api/contact-requests` only (no edge function). Bootstrap is `POST /api/cases/bootstrap`. Legacy waitlist route/page removed. Run [Test-Plan.md](./Test-Plan.md) §5 before sign-off.
 > ✅ **2026-04-26 / 2026-05-02 updates.** Layer 3 and Tier 2 now refer to the same post-Tier-1 surface: FIDReC handoff form plus specialist consult/case-pack commerce, with the persistent WhatsApp `wa.me` widget kept in the root layout and no duplicate global widget. The contact form path still has **no edge function**. Structured validation gaps now use `v_case_validation_gap_items` as the preferred UI source with `questions_to_user` fallback (§4.5). The quick QA checklist is in [`Test-Plan.md`](./Test-Plan.md).
+> ✅ **2026-07-11 evidence contract update.** `POST /api/evidence/upload` now writes the uploaded blob plus an `evidence` row. The dashboard then calls `POST /api/cases/:caseId/evidence/process` with `{ evidenceIds: [evidence.id] }`; that route registers/resolves `case_documents`, queues the document processor, and returns `results[].document_id`.
 
 **Purpose.** This document is the single source of truth for the frontend (Elena) on how to call Masha's Supabase backend. It enumerates **every Edge Function the app must invoke**, the **exact JSON payload** each function expects, the **response shape** it returns, the **frontend layer (1 / 2 / 3) that triggers it**, and the **tables the UI must read back** to render state.
 
@@ -70,9 +71,9 @@ Layer 2 unlocks only after Stripe success upgrades the case to `plan = 'self_ser
 
 **No longer in the active set** (2026-04-21 — do NOT call from the frontend — see reconciliation doc §0.2, §4):
 
-- **`candidate-transactions`** — **Masha-internal fallback only.** Previously hypothesised as a Layer 1 function (Pass 1 of this doc listed it as active). Masha confirmed 2026-04-21 PM that `run_case_extract_v4` now does the loss calculation itself; `candidate-transactions` is only invoked from the Supabase Dashboard by Masha when v4 fails to compute the loss correctly. No server route, no client hook, no UI affordance. Tracked in `lib/edge-functions.ts` under `FALLBACK_ONLY_FNS` for grep-visibility only.
+- **`candidate-transactions`** — **Masha-internal fallback only.** Previously hypothesised as a Layer 1 function (Pass 1 of this doc listed it as active). Masha confirmed 2026-04-21 PM that `run_case_extract_v4` now does the loss calculation itself; `candidate-transactions` is only invoked from the Supabase Dashboard by Masha when v4 fails to compute the loss correctly. No server route, no client hook, no UI affordance.
 - **`compute-loss`** — **Masha-internal fallback only** (same rationale as `candidate-transactions`). Fires from the Supabase Dashboard after `candidate-transactions` when the v4 loss math fails.
-- **`gemini-task`** — **archived** (Dance decision 2026-04-21 PM). Previously documented here as "do not call alongside `evidence_processed_v2`"; now formally out of the active set. Tracked in `lib/edge-functions.ts` as `ARCHIVED_GEMINI_TASK_FN` with a `@deprecated` JSDoc tag for grep-visibility only.
+- **`gemini-task`** — **archived** (Dance decision 2026-04-21 PM). Previously documented here as "do not call alongside `evidence_processed_v2`"; now formally out of the active set.
 - **`backfill_embeddings_v1`** — admin tooling only (Masha cron). Not in the frontend call graph.
 - **`decision_url_inbox`** (deployed as `url_catalogue`) — admin tooling only. Not in the frontend call graph.
 
@@ -241,7 +242,7 @@ Render:
 **Layer:** **Layer 1 (Tier 0, free).** Per Masha's handover ("move evidence upload early"), evidence collection happens **before** payment so the free Tier-0 draft can lean on real documents.
 
 **User action that triggers it:**
-- User uploads a document on the evidence screen. The app calls **`POST /api/evidence/upload`**, which uploads the blob to Supabase Storage and **`INSERT`s `case_documents`** (declared `document_type`, `storage_bucket`, `storage_path`, `processing_status: 'pending'` — IS §4.2), **then** calls this function with `{ document_id }`.
+- User uploads a document on the evidence screen. The app calls **`POST /api/evidence/upload`**, which uploads the blob to Supabase Storage and **`INSERT`s an `evidence` row**. The dashboard then calls **`POST /api/cases/:caseId/evidence/process`** with `{ evidenceIds: [evidence.id] }`; that route registers/resolves the matching `case_documents` row, queues the document processor with `{ document_id }`, and returns `results[].document_id`.
 - "Re-process my evidence" button — call with `case_id` (batch mode).
 
 **Endpoint (deployed):** `POST {SUPABASE_URL}/functions/v1/evidence_processed_v2`
@@ -695,7 +696,7 @@ const { data: doc } = await supabase.from('case_documents').insert({
 // Then call evidence_processed_v2 with { document_id: doc.id }
 ```
 
-**Production app path.** The Next.js handler [`app/api/evidence/upload/route.ts`](../app/api/evidence/upload/route.ts) uploads to Storage (`case_evidence`, then fallback `evidence`) and performs this **same INSERT** immediately after a successful blob write. **Supabase no longer auto-inserts** `case_documents` from `storage.objects` — the dashboard trigger `sync_case_document_from_storage` was **disabled** (2026‑05); only the app INSERT creates the row, so `case_documents_storage_unique` collisions from dual writers are gone.
+**Production app path.** The Next.js handler [`app/api/evidence/upload/route.ts`](../app/api/evidence/upload/route.ts) uploads to Storage and inserts an `evidence` row immediately after a successful blob write. [`app/api/cases/[caseId]/evidence/process/route.ts`](../app/api/cases/%5BcaseId%5D/evidence/process/route.ts) then validates case access, registers/resolves the `case_documents` row from that evidence record, and queues processing. **Supabase no longer auto-inserts** `case_documents` from `storage.objects` — the dashboard trigger `sync_case_document_from_storage` was **disabled** (2026‑05), so `case_documents_storage_unique` collisions from dual writers are gone.
 
 **2026-05-03 trigger decision.** The storage auto-insert trigger disablement is treated as a hosted Supabase operational setting. No Git migration is required at this point.
 
@@ -816,7 +817,7 @@ This is the minimum sequence the State Machine document will need to expand.
 
 1. User completes Clerk sign-up / sign-in. Clerk returns a Supabase-compatible JWT (Pattern C, Slice 0 runbook); `handle_new_user()` trigger auto-creates `auth.users` + `profiles` with the same UUID.
 2. First authenticated page load: client sends the `sessionStorage` / Clerk `unsafeMetadata` narrative in the body of a `POST /api/cases/bootstrap` call. The server uses `createUserClient()` to `INSERT` into `cases` (RLS `WITH CHECK (user_id = auth.uid())` fills `user_id` automatically) and into `case_intake` (`intake_type = 'initial'`). Returns `caseId`. Client clears the sessionStorage.
-3. Evidence upload screen opens. User uploads documents → `POST /api/evidence/upload` (Storage write + **`INSERT case_documents`**, §4.2) → server route `POST /api/edge/evidence` (`/functions/v1/evidence_processed_v2` `{ document_id }`) per upload. Read `case_documents_enriched` for per-doc verification + extractions.
+3. Evidence upload screen opens. User uploads documents → `POST /api/evidence/upload` (Storage write + **`INSERT evidence`**, §4.2) → `POST /api/cases/:caseId/evidence/process` (`{ evidenceIds: [evidence.id] }`) → process route registers/resolves `case_documents` and queues `evidence_processed_v2` with `{ document_id }`. Read `case_documents_enriched` for per-doc verification + extractions.
 4. Once the minimum intake is present (institution, rough incident description, claim amount, date — Masha's explicit guidance) the server fires the first `POST /api/edge/extract` (`/functions/v1/run_case_extract_v4`) with `{ case_id }`. On success, client reads the new `case_extract_runs` row plus validation via **gotcha 6** (RPC + **`case_validation_runs`** PK). The gap UI then prefers **`v_case_validation_gap_items`** rows (§4.5) in deterministic `sort_order`, with `questions_to_user` JSON as fallback.
 5. **Gap loop (still Layer 1):** for each gap question answered, frontend `INSERT`s a new `case_intake` row (`intake_type = 'gap_response'`) and re-fires `run_case_extract_v4`. Each new document upload also re-fires `run_case_extract_v4` after its `evidence_processed_v2` completes. Read updated `extract_json` + `missing_fields` after each run.
 6. Once the user clicks "generate my free draft" (or has answered / skipped all gaps), the server runs one final **freshness-check** pass of `run_case_extract_v4`, then fires `POST /api/edge/tier0` (`/functions/v1/bright-function`) `{ case_id }`. **`bright-function` runs once.**
@@ -883,11 +884,6 @@ export const EXTRACT_FN = 'run_case_extract_v4';     // Tier-0 step 2 (fires mul
 export const TIER0_FN = 'bright-function';           // Tier-0 step 3 — Dashboard label "tier-0 narrative generator"
 export const DECISION_FN = 'run_case_decision_v1';   // Tier-1 step 4 (Render worker, post-Stripe)
 export const REPORT_FN = 'run_report_selfserve_v1';  // Tier-1 step 5 (Render worker)
-
-// Archived / fallback-only / do-not-call (kept here ONLY so grep finds them when auditing)
-export const LEGACY_EXTRACT_FNS = ['run_case_extract_v1', 'run_case_extract_v2', 'run_case_extract_v3'] as const;
-export const ARCHIVED_GEMINI_TASK_FN = 'gemini-task';                               // archived 2026-04-21 PM
-export const FALLBACK_ONLY_FNS = ['candidate-transactions', 'compute-loss'] as const; // Masha-internal only
 ```
 
 See the live file at [`lib/edge-functions.ts`](../lib/edge-functions.ts) — the constants above mirror it 1:1.

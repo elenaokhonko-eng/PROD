@@ -5,7 +5,7 @@
 **Status.** Slices 1–5 are implemented in code on `Version-2.0-Refactor`; run [docs/Test-Plan.md](./Test-Plan.md) §5 (Slice 5 retest) and E2E #1 before calling Slice 5 done. **Slice 6–7** remain pending. **Slice 8** (L3 / Tier 2 **commerce** — SGD 99/800) added 2026-04-26 — see **§10.6**; after **Stripe Tier-1** (6), ideally after **7**.
 **Binding contracts.** [docs/Front-to-Back-End-Integration-Summary.md](./Front-to-Back-End-Integration-Summary.md) and [docs/State-Machine-Workflow.md](./State-Machine-Workflow.md). This plan cites specific sections (IS §, SM §, SM R#) — never re-derive a decision, always read the contract.
 **Test plan.** Use [docs/Test-Plan.md](./Test-Plan.md) for the quick local QA checklist. The milestone E2E gates in §12.1 remain the slice-level acceptance gates.
-**Plan owner.** Elena. **Last updated.** 2026-05-04; **Slice 5 wiring landed** (dashboard driver, bootstrap, contact-requests, Realtime provider, error boundaries, legacy waitlist removed); **§4.5 gap-items + evidence upload contract** 2026-05-02.
+**Plan owner.** Elena. **Last updated.** 2026-07-11; **Slice 5 wiring landed** (dashboard driver, bootstrap, contact-requests, Realtime provider, error boundaries, legacy waitlist removed); **§4.5 gap-items + evidence upload contract** updated for the current `evidence` row -> process-route registration flow.
 
 ---
 
@@ -22,7 +22,7 @@
 5. **Layer 3 = Tier 2 (post–Tier-1) — one surface, two concerns: form + hero + commerce + WhatsApp.** In this app’s schema, **“Layer 3” and “Tier 2” refer to the same post–Tier-1 stage** (after the self-serve **report** exists). The route/shell **includes** the **human-in-the-loop** FIDReC handoff: `POST /api/contact-requests` → `upsert` (UNIQUE on `user_id + case_id`) into the contact-requests table **plus** email to Dance. **User-entered fields** and **server-captured** fields are unchanged (see IS §9.9). **No edge function** on the `contact-requests` path — **R12 in §10.2** = no `functions/v1` or `/api/edge/*` *inside* the contact route. **2026-04-26 — WhatsApp (required):** add a **persistent** WhatsApp entry point in the **root layout** so it appears on **every URL**, **including pre-login marketing, landing, and the authed app**. On **this same Layer 3 / Tier 2 view**, add **on-page** copy recommending the user **reach out to our Scam and Fraud Specialist** for **consult or Q&A** (and **book** consult if unsure on FIDReC), in addition to the always-visible widget. **R13:** WhatsApp on public pages is **third-party** (`wa.me` link) only — **no** Supabase browser client on pre-login. **No Clerk session required** to open WhatsApp — same as current **[app/layout.tsx](../app/layout.tsx)** (fixed bottom-right + footer; number `6590727915`). **Do not** add a second duplicate site-wide widget; **reuse/keep** that implementation. Optional Layer 3-only deep links: reuse **[components/state-machine/layer3/specialist-card.tsx](../components/state-machine/layer3/specialist-card.tsx)** patterns (`buildWhatsAppUrl`, prefill) where product wants richer CTAs. **LinkedIn** and generic “coming soon” waitlist framing **remain** out of scope. Storage table name per IS §10.5. **Slice 8** (§10.6) adds the **SGD 99** + **SGD 800** Stripe checkouts *onto this surface*; same `checkout.session.completed` webhook **branching** as self-serve.
 6. **Post–Tier-1 FIDReC / case-pack hero + Tier-2 SKUs (Slice 8).** *Elaboration of the same surface as locked decision 5.* Funnel copy targets users who **tried the bank, were rejected,** and may take the **FIDReC** path (to **adjudication** as last stage of mediation). **SGD 99** — 30 min with **Scam and Fraud** / **marketplace specialist** (Singapore); **SGD 800** — **case pack** prep. **Engineering** — **reuse** Tier-0→1 Stripe pattern: `create-checkout-session` + `metadata` discriminator; **`/api/webhooks/stripe`** additional branches. **R9** preserved (webhook does not call decision/report for jobs).
 
-7. **`case_validation_gap_items` frontend contract** (Phase 2, 2026-05) — `run_validation_v1` populates one row per `missing_fields[i]` with deterministic pairing to `questions_to_user` (see IS §4.5). Frontend keeps `case_validation_runs` as the parent state row, prefers `v_case_validation_gap_items` ordered by `sort_order` for gap UI, normalizes DB rows/legacy JSON into `ValidationQuestion`, falls back to `questions_to_user` when the view is empty, sends typed `response_type`, and surfaces `error_message` when `status = 'error'`. Migrations: `supabase/migrations/20260502133000_case_validation_gap_items.sql`, `20260502150000_run_validation_v1_gap_items.sql`. **Evidence:** auto-insert from `storage.objects` is **disabled** in the hosted Supabase project; only **`POST /api/evidence/upload`** creates `case_documents` after Storage write (IS §4.2). **2026-05-03 decision:** no Git migration is required for that trigger-disable state right now because it was handled as a Supabase-side operational setting and no repo schema/object migration is being added for it.
+7. **`case_validation_gap_items` frontend contract** (Phase 2, 2026-05) — `run_validation_v1` populates one row per `missing_fields[i]` with deterministic pairing to `questions_to_user` (see IS §4.5). Frontend keeps `case_validation_runs` as the parent state row, prefers `v_case_validation_gap_items` ordered by `sort_order` for gap UI, normalizes DB rows/legacy JSON into `ValidationQuestion`, falls back to `questions_to_user` when the view is empty, sends typed `response_type`, and surfaces `error_message` when `status = 'error'`. Migrations: `supabase/migrations/20260502133000_case_validation_gap_items.sql`, `20260502150000_run_validation_v1_gap_items.sql`. **Evidence:** auto-insert from `storage.objects` is **disabled** in the hosted Supabase project. Current code path: **`POST /api/evidence/upload`** uploads the blob and creates an `evidence` row; **`POST /api/cases/:caseId/evidence/process`** registers or resolves the matching `case_documents` row, queues processing, and returns `results[].document_id`. **2026-05-03 decision:** no Git migration is required for that trigger-disable state right now because it was handled as a Supabase-side operational setting and no repo schema/object migration is being added for it.
 
 ---
 
@@ -73,7 +73,7 @@ New files under `hooks/state-machine/layer1/`, all client hooks using TanStack Q
 - `use-submit-intake.ts` — `useMutation` POST `/api/edge/extract` (IS §4.1). Fires on the first extract call after bootstrap (SM R11 clause a) and on every gap-question answer (SM R11 clause b). On success invalidate `qk.case.extract`, `qk.case.validation`, `qk.case.validationGapItems`, `qk.case.eligibility`, `qk.case.narratives`.
 - `use-case-eligibility.ts` — `useQuery` calling RPC `get_case_eligibility(p_case_id)` (IS §10.4, SM R5). Returns `CaseEligibilityResponse`. `staleTime: 5000`.
 - `use-validation-run.ts` — two-step read per SM R5: `eligibility.resolved_ids.validation_run_id`, then `SELECT * FROM case_validation_runs WHERE id = :validation_run_id`. Also query preferred **`v_case_validation_gap_items`** **`WHERE validation_run_id = :id ORDER BY sort_order, created_at`** (IS §4.5), normalize rows into `ValidationQuestion`, and fallback to `questions_to_user` JSON only when the view returns zero rows. Never calls a "validation edge function".
-- `use-upload-evidence.ts` — `useMutation`: **`POST /api/evidence/upload`** (multipart: Storage + **`INSERT case_documents`** per IS §4.2 — assumes storage auto-insert disabled), then **`POST /api/edge/evidence`** with returned `document_id` (SM R11 clause c). MIME whitelist stays in the UI (PDF / PNG / JPEG / DOCX per SM R7).
+- `use-upload-evidence.ts` — `useMutation`: **`POST /api/evidence/upload`** (multipart: Storage + `INSERT evidence`; storage auto-insert disabled), then **`POST /api/cases/:caseId/evidence/process`** with `{ evidenceIds: [evidence.id] }`. The process route registers/resolves `case_documents`, queues the document processor, and returns `results[].document_id` for UI bookkeeping. MIME whitelist stays in the UI (PDF / PNG / JPEG / DOCX per SM R7).
 - `use-case-documents-realtime.ts` — `postgres_changes` on `case_documents` filtered by `case_id` (SM R8). Updates `qk.case.documents(caseId)` cache directly. Auto-reconnect on `CHANNEL_ERROR`.
 - `use-tier0-draft.ts` — `useQuery` reading all rows from `case_narratives` where `case_id = :caseId`. Renders whichever rows exist (SM R6). No dependency on a decision run (SM R9 — `bright-function` is *not* gated on decision).
 - `use-auto-refire-extract.ts` — `useEffect` that re-POSTs `/api/edge/extract` on every successful `evidence_processed_v2` response that flips at least one `case_documents.processing_status` to `'ready'` (SM R11 clause c). Ref-guarded.
@@ -187,14 +187,17 @@ New file `supabase/migrations/<timestamp>_add_jobs_table.sql`:
 create table public.jobs (
   id uuid primary key default gen_random_uuid(),
   case_id uuid not null references public.cases(id) on delete cascade,
-  kind text not null check (kind in ('report_generate')),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  job_type text not null check (job_type in ('post_payment_report_generation')),
   status text not null default 'queued' check (status in ('queued','running','completed','failed')),
   payload jsonb not null default '{}'::jsonb,
   error text,
   retry_count int not null default 0,
-  created_at timestamptz not null default now(),
+  locked_at timestamptz,
   started_at timestamptz,
-  completed_at timestamptz
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create index jobs_queued_created_at_idx on public.jobs (created_at) where status = 'queued';
@@ -207,49 +210,69 @@ create policy "jobs_select_own" on public.jobs
     exists (select 1 from public.cases c where c.id = jobs.case_id and c.user_id = auth.uid())
   );
 -- No insert/update policies → service-role only for writes (webhook + worker).
+
+-- Atomic claim-and-lock helper used by the Render worker.
+create or replace function public.claim_next_job()
+returns public.jobs
+language plpgsql
+as $$
+declare
+  job public.jobs;
+begin
+  select * into job
+  from public.jobs
+  where status = 'queued'
+  order by created_at asc
+  for update skip locked
+  limit 1;
+
+  if job is null then
+    return null;
+  end if;
+
+  update public.jobs
+  set status = 'running',
+      started_at = now(),
+      locked_at = now(),
+      updated_at = now()
+  where id = job.id;
+
+  return job;
+end;
+$$;
 ```
 
 ### 9.2 Stripe webhook rewrite
 
-[app/api/webhooks/stripe/route.ts](../app/api/webhooks/stripe/route.ts) on `checkout.session.completed`:
+[app/api/payments/webhook/route.ts](../app/api/payments/webhook/route.ts) on `checkout.session.completed`:
 
 1. Verify Stripe signature.
-2. Read `case_id` from `metadata`.
-3. Service-role client: `UPDATE case_entitlements SET plan='self_serve_report' WHERE case_id=:id`, then `INSERT INTO jobs (case_id, kind, status) VALUES (:id, 'report_generate', 'queued')`.
+2. Read `case_id` and `user_id` from `metadata`.
+3. Service-role client: `UPSERT case_entitlements (case_id, plan='self_serve_report')`, then `INSERT INTO jobs (case_id, user_id, job_type, status) VALUES (:case_id, :user_id, 'post_payment_report_generation', 'queued')`.
 4. Return 200 in under 1 second. No edge-function calls (SM R9).
 
 ### 9.3 Render background worker
 
-New directory `worker/` with `worker/index.ts`. Deployed as a Render background worker that loops every ~5 seconds:
+New directory `worker/` with `worker/index.ts`, started via `pnpm run worker` and deployed as a Render background worker in `render.yaml`. It loops every ~5 seconds and calls the atomic `claim_next_job()` Postgres function to lock the next queued job:
 
 ```sql
-begin;
-select * from public.jobs
-where status = 'queued'
-order by created_at asc
-for update skip locked
-limit 1;
--- if no row: commit and sleep 5s
-update public.jobs set status='running', started_at=now() where id=$1;
-commit;
+select * from public.claim_next_job();
 ```
 
 Then executes the **canonical Tier-1 sequence** per Locked decision 4 / SM R14:
 
-1. **Conditional evidence re-run (SM R14 clause a).** Query `SELECT 1 FROM case_documents WHERE case_id = :id AND (last_decision_run_at IS NULL OR updated_at > last_decision_run_at) LIMIT 1`. If any row exists, POST `/api/edge/evidence`. Otherwise skip.
-2. **Conditional extract freshness re-run (SM R14 clause b).** Query `SELECT 1 FROM case_intake WHERE case_id = :id AND (last_decision_run_at IS NULL OR created_at > last_decision_run_at) LIMIT 1` OR fall through from step 1. If either is true, POST `/api/edge/extract` (one final freshness pass). Otherwise skip.
-3. **Decision (always runs).** POST `/api/edge/decision`. Blocks until `case_decision_runs` has a row with `case_id = :id` created after the job's `started_at`.
-4. **Report (always runs).** POST `/api/edge/report`. Blocks until `reports` has a `status='COMPLETED'` row for this case.
+1. **Conditional evidence re-run (SM R14 clause a).** Query `SELECT id FROM case_documents WHERE case_id = :id AND (:cutoff IS NULL OR updated_at > :cutoff)`. For each new document, POST `/api/edge/evidence` with `{ document_id }`.
+2. **Conditional extract freshness re-run (SM R14 clause b).** Query `SELECT 1 FROM case_intake WHERE case_id = :id AND (:cutoff IS NULL OR created_at > :cutoff) LIMIT 1` OR fall through from step 1. If either is true, POST `/api/edge/extract` with `{ case_id }`.
+3. **Decision (always runs).** POST `/api/edge/decision` with `{ case_id }`.
+4. **Report (always runs).** POST `/api/edge/report` with `{ case_id, user_id }`.
 
-All four HTTP calls go through `/api/edge/*` (SM R1) — the worker never hits Supabase edge functions directly. On success: `UPDATE jobs SET status='completed', completed_at=now()`. On failure at any step: `UPDATE jobs SET status='failed', error=…, retry_count=retry_count+1`.
+All four HTTP calls go through `/api/edge/*` (SM R1) — the worker never hits Supabase edge functions directly. The worker authenticates to `/api/edge/*` with the `x-worker-secret` header matching `process.env.WORKER_SECRET`; `lib/server/edge-proxy.ts` accepts this secret as an alternative to Clerk auth.
 
-**Implementation note (SM R14 tracking).** The worker needs a "last decision run" cutoff per case to decide whether steps 1–2 should fire. Two acceptable implementations:
-- **Option A (simplest):** `SELECT MAX(created_at) FROM case_decision_runs WHERE case_id = :id` once at job start, then compare against `case_documents.updated_at` and `case_intake.created_at`. No schema change. First Tier-1 run has `NULL` cutoff → both upstream re-runs fire once (by design — this is the first freshness pass).
-- **Option B:** Add `last_decision_run_at timestamptz` columns to `case_documents` and `case_intake` that the decision edge function stamps when it runs. Slightly more writes, cleaner queries. Defer to post-MVP.
+On success: `UPDATE jobs SET status='completed', completed_at=now(), error=null`. On failure at any step: increment `retry_count`; if retries remain, reset `status='queued'` for another attempt, otherwise `status='failed'` with `error` populated.
 
-Start with **Option A** in Slice 6. No migration required.
+**Implementation note (SM R14 tracking).** The worker uses **Option A**: `SELECT MAX(created_at) FROM case_decision_runs WHERE case_id = :id` once at job start as the cutoff, then compares against `case_documents.updated_at` and `case_intake.created_at`. No schema change. First Tier-1 run has `NULL` cutoff → both upstream re-runs fire once.
 
-Add a `render.yaml` entry for a new `type: worker` service. Auth mechanism for the worker's calls into `/api/edge/*` is finalised at the start of Slice 6 (parked sub-decision — likely a service-role Supabase token plus an admin Clerk machine-to-machine token).
+Add a `render.yaml` entry for a new `type: worker` service and set `WORKER_SECRET` identically on both the web and worker services.
 
 ---
 
@@ -361,8 +384,8 @@ sequenceDiagram
         UI->>Route: POST /api/edge/extract
     end
     User->>UI: Upload evidence
-    UI->>Route: POST /api/edge/evidence
-    Route->>Supabase: invoke evidence_processed_v2
+    UI->>Route: POST /api/evidence/upload -> POST /api/cases/:caseId/evidence/process
+    Route->>Supabase: register case_documents + queue evidence_processed_v2
     Supabase-->>UI: case_documents.processing_status='ready'
     UI->>Route: POST /api/edge/extract (auto re-fire, R11c)
     Note over UI: Freshness-check extract pass (R10)
@@ -439,7 +462,7 @@ sequenceDiagram
 - **4B (Transition):** `use-create-checkout-session` and `use-payment-status` only; payment poll stops when `case_entitlements.plan === 'self_serve_report'`. No decision/report side effects in transition hooks.
 - **4C (Layer 2):** Realtime updates TanStack `qk` for decision and report. `use-job-status` polls the job-status API only — browser never calls `/api/edge/decision` or `/api/edge/report`. `use-latest-report` never uses `force: true`.
 - **4D (Layer 3 hook = Tier 2):** `use-submit-contact-request` sends only the client field set; body must not include `user_id`, `amount_lost_sgd`, or `financial_institution`. Hook does not import `lib/edge-functions.ts`. **Tier-2 labelling:** Layer 3 hook serves the **post–Tier-1** contact path (same schema stage as **Tier 2**).
-- **5 (Wiring):** `useStateMachine` + `dashboard-client` render one shell from `node`. `POST /api/cases/bootstrap` authenticated, no service-role in route. Pre-login handoff materialises one case. Realtime provider pattern sane. `POST /api/contact-requests` implements Zod + RLS + snapshot + upsert. **Retest before done:** upload creates exactly one `case_documents` row through `/api/evidence/upload` with no storage-trigger duplicate; gap UI prefers `v_case_validation_gap_items` ordered by `sort_order`; saved answers use real field keys, never `undefined`; legacy `questions_to_user` fallback still renders; `case_validation_runs.status = 'error'` shows `error_message`; non-empty `missing_fields` still blocks Tier-0 auto-fire. **WhatsApp:** keep **[app/layout.tsx](../app/layout.tsx)** (`wa.me/6590727915`); **no login** to chat; add L3 **copy** only. **R13** on public paths unchanged. **Stripe:** repurpose checkout + webhook for Tier-0 → Tier-1; `jobs` in Slice 6.
+- **5 (Wiring):** `useStateMachine` + `dashboard-client` render one shell from `node`. `POST /api/cases/bootstrap` authenticated, no service-role in route. Pre-login handoff materialises one case. Realtime provider pattern sane. `POST /api/contact-requests` implements Zod + RLS + snapshot + upsert. **Retest before done:** upload creates one `evidence` row through `/api/evidence/upload`, `/api/cases/:caseId/evidence/process` registers exactly one `case_documents` row and queues processing, and no storage-trigger duplicate appears; gap UI prefers `v_case_validation_gap_items` ordered by `sort_order`; saved answers use real field keys, never `undefined`; legacy `questions_to_user` fallback still renders; `case_validation_runs.status = 'error'` shows `error_message`; non-empty `missing_fields` still blocks Tier-0 auto-fire. **WhatsApp:** keep **[app/layout.tsx](../app/layout.tsx)** (`wa.me/6590727915`); **no login** to chat; add L3 **copy** only. **R13** on public paths unchanged. **Stripe:** repurpose checkout + webhook for Tier-0 → Tier-1; `jobs` in Slice 6.
 - **6 (Background):** `checkout.session.completed` → entitlements + `jobs` row; webhook does **not** call decision/report. Worker uses R14 conditionals, then `/api/edge/*` for Tier-1. Stripe `4242…` test path: job `queued` → `completed` with worker.
 - **7 (Cleanup):** `pnpm check:sm` passes (§10.2). Obsolete routes removed. R1: `functions/v1` not used outside `app/api/edge/*/route.ts`.
 - **8 (L3 / Tier 2 commerce, §10.6):** With self-serve report completed, **case-pack hero** + **SGD 99** and **SGD 800** test checkouts; **`checkout.session.completed`** branches correct; **WhatsApp** = shell **(persistent)** + **L3 page** specialist line (R12: still no `/api/edge` in handoff **route**; see §10.2).

@@ -6,6 +6,7 @@ import {
   getProfileCaseAccess,
   registerCaseDocumentFromEvidenceV1,
 } from "@/lib/case-documents/register-from-evidence-v1"
+import { EVIDENCE_FN } from "@/lib/edge-functions"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const runtime = "nodejs"
@@ -31,10 +32,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
 
   const { caseId } = await params
 
-  const functionName = process.env.SUPABASE_DOCUMENT_PROCESSOR_FUNCTION
-  if (!functionName) {
-    return NextResponse.json({ error: "Missing SUPABASE_DOCUMENT_PROCESSOR_FUNCTION" }, { status: 500 })
-  }
+  const functionName = EVIDENCE_FN
 
   const body = (await request.json().catch(() => ({}))) as ProcessRequest
   const evidenceIds = Array.isArray(body.evidenceIds) ? body.evidenceIds.filter(Boolean) : []

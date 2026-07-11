@@ -25,14 +25,6 @@ import { proxyEdgeFunction } from '@/lib/server/edge-proxy'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
-  // We need to know case_id for the post-success extract re-fire, but the
-  // body only has document_id. Read it up-front via the user-scoped client
-  // so RLS enforces ownership.
-  const { userId } = await auth()
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   // Clone the request so we can read the body here AND let proxyEdgeFunction
   // read it again (Request bodies are single-use).
   const clone = request.clone()
@@ -44,6 +36,29 @@ export async function POST(request: Request) {
       { error: 'document_id is required' },
       { status: 400 },
     )
+  }
+
+  const workerSecret = request.headers.get('x-worker-secret')
+  const isWorkerRequest =
+    typeof workerSecret === 'string' &&
+    workerSecret.length > 0 &&
+    workerSecret === process.env.WORKER_SECRET
+
+  if (isWorkerRequest) {
+    return proxyEdgeFunction({
+      fnName: EVIDENCE_FN,
+      request,
+      caseIdField: null,
+      probe: async () => ({ ok: true }),
+    })
+  }
+
+  // We need to know case_id for the post-success extract re-fire, but the
+  // body only has document_id. Read it up-front via the user-scoped client
+  // so RLS enforces ownership.
+  const { userId } = await auth()
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const userClient = await createUserClient()
