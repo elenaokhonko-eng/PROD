@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getOrCreateProfile } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ caseId: string }> }
 ) {
-  const user = await getOrCreateProfile()
+  const user = await getCurrentUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -19,7 +19,7 @@ export async function GET(
     .from('cases')
     .select('id')
     .eq('id', caseId)
-    .eq('user_id', user.profileId)
+    .eq('user_id', user.supabaseUuid)
     .single()
 
   if (!caseData) {

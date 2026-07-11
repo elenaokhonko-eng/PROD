@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai"
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib"
-import { getOrCreateProfile } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -70,13 +70,13 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ ca
   const { caseId } = await params
   console.log(`[Generate Pack] Request received for caseId: ${caseId}`)
 
-  const user = await getOrCreateProfile()
+  const user = await getCurrentUser()
   if (!user) {
     console.error("[Generate Pack] Authentication error: no user")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const userId = user.profileId
+  const userId = user.supabaseUuid
   console.log(`[Generate Pack] Authenticated user: ${userId}`)
 
   try {

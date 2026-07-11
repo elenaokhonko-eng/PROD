@@ -1,0 +1,512 @@
+{
+  "caseId": "0ff50621-a170-4dc5-a877-40179cf27754",
+  "generatedAt": "2026-06-07T09:44:01.957Z",
+  "counts": {
+    "bankAssertions": 3,
+    "caseFindings": 3,
+    "links": 9,
+    "investigationQuestions": 2,
+    "evidenceRequests": 3
+  },
+  "bankAssertions": [
+    {
+      "assertion_text": "3D Secure transactions are authenticated during the purchase.",
+      "assertion_type": "technical",
+      "bank_conclusion_supported": "The transaction cannot be disputed."
+    },
+    {
+      "assertion_text": "Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase.",
+      "assertion_type": "technical",
+      "bank_conclusion_supported": "The transaction cannot be disputed."
+    },
+    {
+      "assertion_text": "EMV Chip transactions require physical cards to be presented during the purchase.",
+      "assertion_type": "technical",
+      "bank_conclusion_supported": "The transaction cannot be disputed."
+    }
+  ],
+  "caseFindings": [
+    {
+      "finding_text": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+      "finding_type": "notification",
+      "confidence": "high"
+    },
+    {
+      "finding_text": "Five disputed transactions occurred within 18 minutes.",
+      "finding_type": "transaction_pattern",
+      "confidence": "high"
+    },
+    {
+      "finding_text": "A new digital token was registered before the disputed transactions.",
+      "finding_type": "authentication",
+      "confidence": "high"
+    }
+  ],
+  "links": [
+    {
+      "bank_assertion_text": "3D Secure transactions are authenticated during the purchase.",
+      "finding_text": "A new digital token was registered before the disputed transactions.",
+      "relationship": "requires_particulars",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase.",
+      "finding_text": "A new digital token was registered before the disputed transactions.",
+      "relationship": "requires_particulars",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "EMV Chip transactions require physical cards to be presented during the purchase.",
+      "finding_text": "A new digital token was registered before the disputed transactions.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "3D Secure transactions are authenticated during the purchase.",
+      "finding_text": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase.",
+      "finding_text": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "EMV Chip transactions require physical cards to be presented during the purchase.",
+      "finding_text": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "3D Secure transactions are authenticated during the purchase.",
+      "finding_text": "Five disputed transactions occurred within 18 minutes.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase.",
+      "finding_text": "Five disputed transactions occurred within 18 minutes.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "EMV Chip transactions require physical cards to be presented during the purchase.",
+      "finding_text": "Five disputed transactions occurred within 18 minutes.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    }
+  ],
+  "investigationQuestions": [
+    {
+      "question_text": "Can the bank provide transaction-level authentication records showing the authentication method, timestamps, device or wallet identifiers, and evidence of physical or digital card presentation for all disputed transactions following the new digital token registration?",
+      "question_type": "authentication_gap",
+      "priority": "critical"
+    },
+    {
+      "question_text": "Can the bank provide records showing any fraud monitoring alerts, anomaly detection notifications, or transaction velocity checks triggered by the disputed transactions, including the exact timing of these alerts relative to the customer's fraud hotline notification and subsequent containment actions?",
+      "question_type": "containment_gap",
+      "priority": "medium"
+    }
+  ],
+  "evidenceRequests": [
+    {
+      "request_text": "Please provide transaction-level authentication records including the authentication method used, timestamps, device or wallet identifiers, and any evidence of physical or digital card presentation for all disputed transactions after the new digital token was registered.",
+      "evidence_category": "authentication_record",
+      "requested_from": "bank",
+      "priority": "critical"
+    },
+    {
+      "request_text": "Please provide bank records of any fraud monitoring alerts, anomaly detection notifications, and transaction velocity checks triggered by the disputed transactions, including exact timestamps of these alerts and any related fraud containment actions taken.",
+      "evidence_category": "notification_record",
+      "requested_from": "bank",
+      "priority": "medium"
+    },
+    {
+      "request_text": "Please provide the customer's fraud hotline call log or call recording that shows the date and time the fraud was first reported to the bank.",
+      "evidence_category": "hotline_record",
+      "requested_from": "customer",
+      "priority": "medium"
+    }
+  ],
+  "case_pack_json": {
+    "case_id": "0ff50621-a170-4dc5-a877-40179cf27754",
+    "generated_at": "2026-06-07T09:44:01.949Z",
+    "pack_version": "fidrec_case_pack_v1",
+    "executive_summary": {
+      "text": "This case pack summarises 2 investigation themes identified from the case record: Authentication Chain and Digital Token Registration, Customer Notification and Fraud Containment Actions. The pack sets out the bank assertions, material findings, outstanding evidence requests, and relevant regulatory references associated with each theme. It does not determine liability or make legal conclusions."
+    },
+    "key_themes": [
+      {
+        "theme_id": "5335bafd-fb9a-4800-9b5b-3108879df909",
+        "theme_title": "Authentication Chain and Digital Token Registration",
+        "theme_type": "authentication",
+        "priority": "critical",
+        "theme_summary": "This theme consolidates assertions and findings related to the customer's authentication method, focusing on the new digital token registration before disputed transactions and the implications for 3D Secure and contactless transaction authentication.",
+        "issue": "Whether transaction-level authentication records demonstrate legitimate customer authorisation after the registration of a new digital token and proper device or wallet presentation for disputed transactions.",
+        "investigation_question": {
+          "id": "069f8ab8-94e8-4b18-b9e7-0286db5ecb50",
+          "question_text": "Can the bank provide transaction-level authentication records showing the authentication method, timestamps, device or wallet identifiers, and evidence of physical or digital card presentation for all disputed transactions following the new digital token registration?",
+          "priority": "critical"
+        },
+        "evidence_requests": [
+          {
+            "id": "3291b532-8bc3-4377-9290-5471b6087b5c",
+            "request_text": "Please provide transaction-level authentication records including the authentication method used, timestamps, device or wallet identifiers, and any evidence of physical or digital card presentation for all disputed transactions after the new digital token was registered.",
+            "evidence_category": "authentication_record",
+            "requested_from": "bank",
+            "priority": "critical",
+            "status": "open"
+          }
+        ],
+        "regulatory_references": [
+          {
+            "clause_id": "3d4c6073-4113-438c-a3b0-43c24e29ffe0",
+            "document_name": "NOTICE ON TECHNOLOGY RISK MANAGEMENT",
+            "clause_number": "MAS Notice FSM-N06 (2024)",
+            "clause_title": "FSM-N06 – Definition: Multi-Factor Authentication",
+            "clause_summary": "‘multi-factor authentication’ means the use of two or more factors to verify an account holder’s\r\nclaimed identity, including:\r\n(a) something the account holder knows (password, PIN);\r\n(b) something the account holder has (token, cryptographic device);\r\n(c) something the account holder is (biometrics or behaviour);",
+            "similarity_score": 0.535067965656908
+          },
+          {
+            "clause_id": "a37846f1-a637-4eec-81a2-8025e2224320",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FMS-N08 (2024)",
+            "clause_title": "Cyber Hygiene – Definition: Multi-Factor Authentication",
+            "clause_summary": "‘multi-factor authentication’ means the use of two or more factors to verify an account holder’s\r\nclaimed identity, including:\r\n(a) something the account holder knows (password, PIN);\r\n(b) something the account holder has (token or cryptographic device);\r\n(c) something the account holder is (biometrics or behaviour);",
+            "similarity_score": 0.526230307627076
+          },
+          {
+            "clause_id": "a6d9c0ae-a086-48d2-b4c4-c21111d43c12",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N14 (2024)",
+            "clause_title": "FSM-N14 – Definition: Multi-Factor Authentication",
+            "clause_summary": "‘multi-factor authentication’ means the use of two or more factors to verify an account holder’s\r\nclaimed identity. Such factors include, but are not limited to—\r\n(a) something that the account holder knows such as a password or a personal identification number;\r\n(b) something that the account holder has such as a cryptographic identification device or token;\r\n(c) something that the account holder is such as an account holder’s biometrics or his behaviour;",
+            "similarity_score": 0.507637397031828
+          },
+          {
+            "clause_id": "9e724291-9459-46d7-8420-d1d0a0e81d21",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N13 (2024)",
+            "clause_title": "FSM-N13 – FI Duty: Protect Customer Information from Unauthorised Access",
+            "clause_summary": "9. A relevant entity must implement IT controls to protect customer information from \r\n   unauthorised access or disclosure.",
+            "similarity_score": 0.406164052249435
+          },
+          {
+            "clause_id": "bf4cbfc9-e68a-400b-8491-79ffa903b844",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N14 (2024)",
+            "clause_title": "FSM-N14 – FI Duty: MFA Requirements",
+            "clause_summary": "A relevant entity must ensure that multi-factor authentication is implemented for:\r\n(a) all administrative accounts in respect of any operating system, database, application, \r\n    security appliance or network device that is a critical system; and\r\n(b) all accounts on any system used by the relevant entity to access customer information \r\n    through the internet.",
+            "similarity_score": 0.403042308029405
+          }
+        ]
+      },
+      {
+        "theme_id": "6dab90d3-8591-4bae-9a79-dfc3a0452ad1",
+        "theme_title": "Customer Notification and Fraud Containment Actions",
+        "theme_type": "containment",
+        "priority": "medium",
+        "theme_summary": "This theme groups the customer's fraud hotline notification and the bank's subsequent containment actions, including requests for records and logs of these interactions and any fraud detection alerts triggered by the disputed transactions.",
+        "issue": "Whether fraud monitoring systems triggered alerts or flagged anomalies in response to the velocity and pattern of the disputed transactions and the timeline of the customer’s fraud hotline notification.",
+        "investigation_question": {
+          "id": "f2af9b80-2804-4d07-bbcc-8815f48f9cff",
+          "question_text": "Can the bank provide records showing any fraud monitoring alerts, anomaly detection notifications, or transaction velocity checks triggered by the disputed transactions, including the exact timing of these alerts relative to the customer's fraud hotline notification and subsequent containment actions?",
+          "priority": "medium"
+        },
+        "evidence_requests": [
+          {
+            "id": "fab79109-0981-4a52-aca8-a3895932feff",
+            "request_text": "Please provide bank records of any fraud monitoring alerts, anomaly detection notifications, and transaction velocity checks triggered by the disputed transactions, including exact timestamps of these alerts and any related fraud containment actions taken.",
+            "evidence_category": "notification_record",
+            "requested_from": "bank",
+            "priority": "medium",
+            "status": "open"
+          },
+          {
+            "id": "0d06387d-314e-4054-aaae-1315910e9999",
+            "request_text": "Please provide the customer's fraud hotline call log or call recording that shows the date and time the fraud was first reported to the bank.",
+            "evidence_category": "hotline_record",
+            "requested_from": "customer",
+            "priority": "medium",
+            "status": "open"
+          }
+        ],
+        "regulatory_references": [
+          {
+            "clause_id": "9e724291-9459-46d7-8420-d1d0a0e81d21",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N13 (2024)",
+            "clause_title": "FSM-N13 – FI Duty: Protect Customer Information from Unauthorised Access",
+            "clause_summary": "9. A relevant entity must implement IT controls to protect customer information from \r\n   unauthorised access or disclosure.",
+            "similarity_score": 0.44048144230119
+          },
+          {
+            "clause_id": "1b7359e6-cfd4-4ce9-939b-ff96b1d8d6c1",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N14 (2024)",
+            "clause_title": "FSM-N14 – Definition: Customer Information",
+            "clause_summary": "‘customer information’ means any information relating to, or any particulars of, any customer of\r\nthe relevant entity, where a named customer or group of named customers can be identified, or\r\nis capable of being identified, from such information;",
+            "similarity_score": 0.414143316164378
+          },
+          {
+            "clause_id": "65c42ad2-8bf1-4daf-8f38-a40837af5c36",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N13 (2024)",
+            "clause_title": "FSM-N13 – FI Duty: Root Cause and Impact Analysis Report (Within 14 Days)",
+            "clause_summary": "8. A relevant entity must submit a root cause and impact analysis report to the Authority, within 14 days \r\n   or such longer period as the Authority may allow, from the discovery of the relevant incident. \r\n   The report must contain—\r\n       (a) an executive summary of the relevant incident;\r\n       (b) an analysis of the root cause which triggered the relevant incident;\r\n       (c) a description of the impact of the relevant incident on the relevant entity’s—\r\n               (i) compliance wi",
+            "similarity_score": 0.403011352806452
+          },
+          {
+            "clause_id": "a58cd4bf-e593-4772-81f6-e55d7fb89a51",
+            "document_name": "NOTICE ON TECHNOLOGY RISK MANAGEMENT",
+            "clause_number": "MAS Notice FSM-N06 (2024)",
+            "clause_title": "FSM-N06 – Definition: Customer (Expanded)",
+            "clause_summary": "‘customer’, in relation to a relevant entity, includes:\r\n(a) the Monetary Authority of Singapore;\r\n(b) any monetary authority or central bank of any other country or territory; and\r\n(c) any company which carries on a banking business, a merchant banking business,\r\n    or an investment banking business.",
+            "similarity_score": 0.401561992215282
+          },
+          {
+            "clause_id": "77e29392-b9e9-45de-afeb-c8a93b86e1d0",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N13 (2024)",
+            "clause_title": "FSM-N13 – FI Duty: Notify MAS Within 1 Hour of Relevant Incident",
+            "clause_summary": "7. A relevant entity must notify the Authority as soon as possible, but not later than 1 hour, upon \r\n   the discovery of a relevant incident.",
+            "similarity_score": 0.396137762882795
+          }
+        ]
+      }
+    ],
+    "bank_assertions_and_material_findings": [
+      {
+        "assertion_id": "f7f9f1fc-0c27-49a9-8a39-864ff3bb0052",
+        "assertion_text": "3D Secure transactions are authenticated during the purchase.",
+        "assertion_type": "technical",
+        "bank_conclusion_supported": "The transaction cannot be disputed.",
+        "material_findings": [
+          {
+            "finding_id": "b0740f94-3c37-441e-b3da-815f7c4dfddb",
+            "finding_text": "A new digital token was registered before the disputed transactions.",
+            "finding_type": "authentication",
+            "relationship": "requires_particulars",
+            "confidence": "high",
+            "explanation": "A new digital token was registered before the disputed transactions, raising questions about whether the 3D Secure transactions were authenticated during the purchase rather than proving authentication conclusively."
+          }
+        ]
+      },
+      {
+        "assertion_id": "95ee2750-b805-4d80-87a9-64332bf81a6b",
+        "assertion_text": "Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase.",
+        "assertion_type": "technical",
+        "bank_conclusion_supported": "The transaction cannot be disputed.",
+        "material_findings": [
+          {
+            "finding_id": "b0740f94-3c37-441e-b3da-815f7c4dfddb",
+            "finding_text": "A new digital token was registered before the disputed transactions.",
+            "finding_type": "authentication",
+            "relationship": "requires_particulars",
+            "confidence": "high",
+            "explanation": "The registration of a new digital token before disputed transactions raises authentication-chain questions for contactless transactions requiring physical or digital card presentation, thus further particulars are needed."
+          }
+        ]
+      },
+      {
+        "assertion_id": "6b31fba6-5f0d-4155-bf35-dc6e5c379d25",
+        "assertion_text": "EMV Chip transactions require physical cards to be presented during the purchase.",
+        "assertion_type": "technical",
+        "bank_conclusion_supported": "The transaction cannot be disputed.",
+        "material_findings": []
+      }
+    ],
+    "outstanding_evidence_requests": [
+      {
+        "theme_id": "5335bafd-fb9a-4800-9b5b-3108879df909",
+        "theme_title": "Authentication Chain and Digital Token Registration",
+        "requests": [
+          {
+            "id": "3291b532-8bc3-4377-9290-5471b6087b5c",
+            "request_text": "Please provide transaction-level authentication records including the authentication method used, timestamps, device or wallet identifiers, and any evidence of physical or digital card presentation for all disputed transactions after the new digital token was registered.",
+            "request_reason": "To verify the legitimacy and timing of customer authentication following the new token registration for disputed transactions.",
+            "evidence_category": "authentication_record",
+            "requested_from": "bank",
+            "priority": "critical",
+            "status": "open",
+            "suggested_file_types": [
+              "csv",
+              "pdf",
+              "xls"
+            ],
+            "example_documents": [
+              "authentication logs",
+              "digital token registration records",
+              "device or IP access logs"
+            ]
+          }
+        ]
+      },
+      {
+        "theme_id": "6dab90d3-8591-4bae-9a79-dfc3a0452ad1",
+        "theme_title": "Customer Notification and Fraud Containment Actions",
+        "requests": [
+          {
+            "id": "fab79109-0981-4a52-aca8-a3895932feff",
+            "request_text": "Please provide bank records of any fraud monitoring alerts, anomaly detection notifications, and transaction velocity checks triggered by the disputed transactions, including exact timestamps of these alerts and any related fraud containment actions taken.",
+            "request_reason": "To understand the bank's detection and response timeline relative to the disputed transactions.",
+            "evidence_category": "notification_record",
+            "requested_from": "bank",
+            "priority": "medium",
+            "status": "open",
+            "suggested_file_types": [
+              "pdf",
+              "csv",
+              "log files"
+            ],
+            "example_documents": [
+              "fraud alert logs",
+              "anomaly notification reports",
+              "containment action records"
+            ]
+          },
+          {
+            "id": "0d06387d-314e-4054-aaae-1315910e9999",
+            "request_text": "Please provide the customer's fraud hotline call log or call recording that shows the date and time the fraud was first reported to the bank.",
+            "request_reason": "This helps establish the precise moment the customer notified the bank of the fraud.",
+            "evidence_category": "hotline_record",
+            "requested_from": "customer",
+            "priority": "medium",
+            "status": "open",
+            "suggested_file_types": [
+              "pdf",
+              "mp3",
+              "wav"
+            ],
+            "example_documents": [
+              "hotline call log screenshot",
+              "call recording"
+            ]
+          }
+        ]
+      }
+    ],
+    "relevant_regulatory_references": [
+      {
+        "theme_id": "5335bafd-fb9a-4800-9b5b-3108879df909",
+        "theme_title": "Authentication Chain and Digital Token Registration",
+        "references": [
+          {
+            "clause_id": "3d4c6073-4113-438c-a3b0-43c24e29ffe0",
+            "document_name": "NOTICE ON TECHNOLOGY RISK MANAGEMENT",
+            "clause_number": "MAS Notice FSM-N06 (2024)",
+            "clause_title": "FSM-N06 – Definition: Multi-Factor Authentication",
+            "clause_summary": "‘multi-factor authentication’ means the use of two or more factors to verify an account holder’s\r\nclaimed identity, including:\r\n(a) something the account holder knows (password, PIN);\r\n(b) something the account holder has (token, cryptographic device);\r\n(c) something the account holder is (biometrics or behaviour);",
+            "similarity_score": 0.535067965656908
+          },
+          {
+            "clause_id": "a37846f1-a637-4eec-81a2-8025e2224320",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FMS-N08 (2024)",
+            "clause_title": "Cyber Hygiene – Definition: Multi-Factor Authentication",
+            "clause_summary": "‘multi-factor authentication’ means the use of two or more factors to verify an account holder’s\r\nclaimed identity, including:\r\n(a) something the account holder knows (password, PIN);\r\n(b) something the account holder has (token or cryptographic device);\r\n(c) something the account holder is (biometrics or behaviour);",
+            "similarity_score": 0.526230307627076
+          },
+          {
+            "clause_id": "a6d9c0ae-a086-48d2-b4c4-c21111d43c12",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N14 (2024)",
+            "clause_title": "FSM-N14 – Definition: Multi-Factor Authentication",
+            "clause_summary": "‘multi-factor authentication’ means the use of two or more factors to verify an account holder’s\r\nclaimed identity. Such factors include, but are not limited to—\r\n(a) something that the account holder knows such as a password or a personal identification number;\r\n(b) something that the account holder has such as a cryptographic identification device or token;\r\n(c) something that the account holder is such as an account holder’s biometrics or his behaviour;",
+            "similarity_score": 0.507637397031828
+          },
+          {
+            "clause_id": "9e724291-9459-46d7-8420-d1d0a0e81d21",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N13 (2024)",
+            "clause_title": "FSM-N13 – FI Duty: Protect Customer Information from Unauthorised Access",
+            "clause_summary": "9. A relevant entity must implement IT controls to protect customer information from \r\n   unauthorised access or disclosure.",
+            "similarity_score": 0.406164052249435
+          },
+          {
+            "clause_id": "bf4cbfc9-e68a-400b-8491-79ffa903b844",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N14 (2024)",
+            "clause_title": "FSM-N14 – FI Duty: MFA Requirements",
+            "clause_summary": "A relevant entity must ensure that multi-factor authentication is implemented for:\r\n(a) all administrative accounts in respect of any operating system, database, application, \r\n    security appliance or network device that is a critical system; and\r\n(b) all accounts on any system used by the relevant entity to access customer information \r\n    through the internet.",
+            "similarity_score": 0.403042308029405
+          }
+        ]
+      },
+      {
+        "theme_id": "6dab90d3-8591-4bae-9a79-dfc3a0452ad1",
+        "theme_title": "Customer Notification and Fraud Containment Actions",
+        "references": [
+          {
+            "clause_id": "9e724291-9459-46d7-8420-d1d0a0e81d21",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N13 (2024)",
+            "clause_title": "FSM-N13 – FI Duty: Protect Customer Information from Unauthorised Access",
+            "clause_summary": "9. A relevant entity must implement IT controls to protect customer information from \r\n   unauthorised access or disclosure.",
+            "similarity_score": 0.44048144230119
+          },
+          {
+            "clause_id": "1b7359e6-cfd4-4ce9-939b-ff96b1d8d6c1",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N14 (2024)",
+            "clause_title": "FSM-N14 – Definition: Customer Information",
+            "clause_summary": "‘customer information’ means any information relating to, or any particulars of, any customer of\r\nthe relevant entity, where a named customer or group of named customers can be identified, or\r\nis capable of being identified, from such information;",
+            "similarity_score": 0.414143316164378
+          },
+          {
+            "clause_id": "65c42ad2-8bf1-4daf-8f38-a40837af5c36",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N13 (2024)",
+            "clause_title": "FSM-N13 – FI Duty: Root Cause and Impact Analysis Report (Within 14 Days)",
+            "clause_summary": "8. A relevant entity must submit a root cause and impact analysis report to the Authority, within 14 days \r\n   or such longer period as the Authority may allow, from the discovery of the relevant incident. \r\n   The report must contain—\r\n       (a) an executive summary of the relevant incident;\r\n       (b) an analysis of the root cause which triggered the relevant incident;\r\n       (c) a description of the impact of the relevant incident on the relevant entity’s—\r\n               (i) compliance wi",
+            "similarity_score": 0.403011352806452
+          },
+          {
+            "clause_id": "a58cd4bf-e593-4772-81f6-e55d7fb89a51",
+            "document_name": "NOTICE ON TECHNOLOGY RISK MANAGEMENT",
+            "clause_number": "MAS Notice FSM-N06 (2024)",
+            "clause_title": "FSM-N06 – Definition: Customer (Expanded)",
+            "clause_summary": "‘customer’, in relation to a relevant entity, includes:\r\n(a) the Monetary Authority of Singapore;\r\n(b) any monetary authority or central bank of any other country or territory; and\r\n(c) any company which carries on a banking business, a merchant banking business,\r\n    or an investment banking business.",
+            "similarity_score": 0.401561992215282
+          },
+          {
+            "clause_id": "77e29392-b9e9-45de-afeb-c8a93b86e1d0",
+            "document_name": "NOTICE ON CYBER HYGIENE",
+            "clause_number": "MAS Notice FSM-N13 (2024)",
+            "clause_title": "FSM-N13 – FI Duty: Notify MAS Within 1 Hour of Relevant Incident",
+            "clause_summary": "7. A relevant entity must notify the Authority as soon as possible, but not later than 1 hour, upon \r\n   the discovery of a relevant incident.",
+            "similarity_score": 0.396137762882795
+          }
+        ]
+      }
+    ],
+    "annexure_placeholders": [
+      {
+        "annexure_label": "A1",
+        "title": "Please provide transaction-level authentication records including the authent...",
+        "source": "bank",
+        "related_theme_id": "5335bafd-fb9a-4800-9b5b-3108879df909",
+        "related_evidence_request_id": "3291b532-8bc3-4377-9290-5471b6087b5c",
+        "status": "placeholder"
+      },
+      {
+        "annexure_label": "A2",
+        "title": "Please provide bank records of any fraud monitoring alerts, anomaly detection...",
+        "source": "bank",
+        "related_theme_id": "6dab90d3-8591-4bae-9a79-dfc3a0452ad1",
+        "related_evidence_request_id": "fab79109-0981-4a52-aca8-a3895932feff",
+        "status": "placeholder"
+      },
+      {
+        "annexure_label": "A3",
+        "title": "Please provide the customer's fraud hotline call log or call recording that s...",
+        "source": "customer",
+        "related_theme_id": "6dab90d3-8591-4bae-9a79-dfc3a0452ad1",
+        "related_evidence_request_id": "0d06387d-314e-4054-aaae-1315910e9999",
+        "status": "placeholder"
+      }
+    ]
+  }
+}

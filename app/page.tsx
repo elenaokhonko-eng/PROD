@@ -17,6 +17,7 @@ import Link from "next/link"
 import { createRouterSession, getSessionToken, updateRouterSession } from "@/lib/router-session"
 import { trackClientEvent } from "@/lib/analytics/client"
 import { SiteHeader } from "@/components/site-header"
+import { persistPendingNarrative } from "@/components/landing/hero-capture"
 
 export default function LandingPage() {
   const [isRecording, setIsRecording] = useState(false)
@@ -160,6 +161,7 @@ export default function LandingPage() {
       await updateRouterSession(sessionToken, {
         dispute_narrative: narrative,
       })
+      persistPendingNarrative({ narrative })
 
       // Redirect to classification page
       router.push("/router/classify")

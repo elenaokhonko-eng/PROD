@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { getOrCreateProfile } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 import { nanoid } from "nanoid"
 
@@ -10,7 +10,7 @@ const shareSchema = z.object({
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
   try {
-    const user = await getOrCreateProfile()
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Ensure user has permission to invite
     const { data: caseData } = await supabase.from("cases").select("user_id").eq("id", caseId).single()
-    const isOwner = caseData?.user_id === user.profileId
+    const isOwner = caseData?.user_id === user.supabaseUuid
 
     let canInvite = isOwner
     if (!canInvite) {
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         .from("case_collaborators")
         .select("can_invite")
         .eq("case_id", caseId)
-        .eq("user_id", user.profileId)
+        .eq("user_id", user.supabaseUuid)
         .eq("status", "active")
         .single()
       canInvite = Boolean(collab?.can_invite)
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .from("invitations")
       .insert({
         case_id: caseId,
-        inviter_user_id: user.profileId,
+        inviter_user_id: user.supabaseUuid,
         invitee_email: email,
         role: "defendant",
         invitation_token,

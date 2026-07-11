@@ -1,0 +1,469 @@
+{
+  "caseId": "0ff50621-a170-4dc5-a877-40179cf27754",
+  "generatedAt": "2026-06-09T04:05:20.923Z",
+  "counts": {
+    "bankAssertions": 3,
+    "caseFindings": 3,
+    "links": 9,
+    "investigationQuestions": 3,
+    "evidenceRequests": 3
+  },
+  "bankAssertions": [
+    {
+      "assertion_text": "3D Secure transactions are authenticated during the purchase.",
+      "assertion_type": "technical",
+      "bank_conclusion_supported": "The transaction(s) you indicated cannot be disputed."
+    },
+    {
+      "assertion_text": "Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase.",
+      "assertion_type": "technical",
+      "bank_conclusion_supported": "The transaction(s) you indicated cannot be disputed."
+    },
+    {
+      "assertion_text": "EMV Chip transactions require physical cards to be presented during the purchase.",
+      "assertion_type": "technical",
+      "bank_conclusion_supported": "The transaction(s) you indicated cannot be disputed."
+    }
+  ],
+  "caseFindings": [
+    {
+      "finding_text": "Five disputed transactions occurred within 18 minutes.",
+      "finding_type": "transaction_pattern",
+      "confidence": "high"
+    },
+    {
+      "finding_text": "A new digital token was registered before the disputed transactions.",
+      "finding_type": "authentication",
+      "confidence": "high"
+    },
+    {
+      "finding_text": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+      "finding_type": "notification",
+      "confidence": "high"
+    }
+  ],
+  "links": [
+    {
+      "bank_assertion_text": "3D Secure transactions are authenticated during the purchase.",
+      "finding_text": "A new digital token was registered before the disputed transactions.",
+      "relationship": "requires_particulars",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase.",
+      "finding_text": "A new digital token was registered before the disputed transactions.",
+      "relationship": "requires_particulars",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "EMV Chip transactions require physical cards to be presented during the purchase.",
+      "finding_text": "A new digital token was registered before the disputed transactions.",
+      "relationship": "requires_particulars",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "3D Secure transactions are authenticated during the purchase.",
+      "finding_text": "Five disputed transactions occurred within 18 minutes.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase.",
+      "finding_text": "Five disputed transactions occurred within 18 minutes.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "EMV Chip transactions require physical cards to be presented during the purchase.",
+      "finding_text": "Five disputed transactions occurred within 18 minutes.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "3D Secure transactions are authenticated during the purchase.",
+      "finding_text": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase.",
+      "finding_text": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "EMV Chip transactions require physical cards to be presented during the purchase.",
+      "finding_text": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    }
+  ],
+  "investigationQuestions": [
+    {
+      "question_text": "Can the bank provide transaction-level authentication records showing the authentication method, device or wallet identifiers, token status, and timestamps for each disputed transaction, particularly after the new digital token registration?",
+      "question_type": "authentication_gap",
+      "priority": "critical"
+    },
+    {
+      "question_text": "Can the bank provide records of its fraud monitoring system logs, alerts generated, and incident response actions related to the five disputed transactions occurring within the 18-minute timeframe?",
+      "question_type": "containment_gap",
+      "priority": "medium"
+    },
+    {
+      "question_text": "Can the bank provide call logs or recordings of the customer’s fraud hotline call at 09:21 on 23 October along with a detailed chronology and summary of investigation and containment measures taken subsequent to the report?",
+      "question_type": "chronology_gap",
+      "priority": "medium"
+    }
+  ],
+  "evidenceRequests": [
+    {
+      "request_text": "Please provide detailed transaction-level authentication records for each disputed transaction, including the authentication method used, device or wallet identifiers, token status, and timestamps, especially after the registration of the new digital token.",
+      "evidence_category": "authentication_record",
+      "requested_from": "bank",
+      "priority": "critical"
+    },
+    {
+      "request_text": "Please provide the bank's fraud monitoring system logs, records of any alerts generated, and documentation of incident response actions taken related to the five disputed transactions within the 18-minute period.",
+      "evidence_category": "other",
+      "requested_from": "bank",
+      "priority": "medium"
+    },
+    {
+      "request_text": "Please provide call logs or recordings of the customer's fraud hotline call made at 09:21 on 23 October, along with a detailed timeline and summary of the bank's investigation and containment actions taken following the call.",
+      "evidence_category": "hotline_record",
+      "requested_from": "bank",
+      "priority": "medium"
+    }
+  ],
+  "submission_pack": {
+    "case_id": "0ff50621-a170-4dc5-a877-40179cf27754",
+    "generated_at": "2026-06-09T04:05:20.789Z",
+    "pack_version": "fidrec_submission_pack_v1",
+    "executive_summary": {
+      "narrative": "On 23 October 2024, a new digital token was registered on the customer's account shortly before five disputed transactions were processed within an 18-minute period. Upon discovering the transactions, the customer immediately contacted the DBS fraud hotline to report the suspected fraud. DBS subsequently declined the customer's dispute, relying on its position that the transactions were authenticated using 3D Secure, contactless and EMV payment mechanisms. The central issues in this dispute are whether the transactions were genuinely authorised, whether the transaction pattern should have triggered fraud detection or intervention, and whether the bank's response following the customer's notification was timely and appropriate."
+    },
+    "chronology_of_events": [
+      {
+        "event_date": "23 Oct",
+        "event_time": null,
+        "event_description": "Bank Email or Letter",
+        "evidence_labels": [
+          "E2"
+        ],
+        "sort_order": 0
+      },
+      {
+        "event_date": "23 Oct",
+        "event_time": null,
+        "event_description": "Device or IP Record",
+        "evidence_labels": [
+          "E1"
+        ],
+        "sort_order": 1
+      },
+      {
+        "event_date": "23 Oct",
+        "event_time": "09:21",
+        "event_description": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+        "evidence_labels": [
+          "E1"
+        ],
+        "sort_order": 2
+      },
+      {
+        "event_date": "23 Oct",
+        "event_time": "09:21",
+        "event_description": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+        "evidence_labels": [
+          "E2"
+        ],
+        "sort_order": 3
+      },
+      {
+        "event_date": "23 Oct",
+        "event_time": "09:21",
+        "event_description": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+        "evidence_labels": [
+          "E4"
+        ],
+        "sort_order": 4
+      },
+      {
+        "event_date": "23 Oct",
+        "event_time": "09:21",
+        "event_description": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+        "evidence_labels": [
+          "E6"
+        ],
+        "sort_order": 5
+      },
+      {
+        "event_date": "23 Oct",
+        "event_time": "09:21",
+        "event_description": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+        "evidence_labels": [
+          "E7"
+        ],
+        "sort_order": 6
+      },
+      {
+        "event_date": "6 May",
+        "event_time": null,
+        "event_description": "A new digital token was registered before the disputed transactions.",
+        "evidence_labels": [
+          "E3"
+        ],
+        "sort_order": 7
+      },
+      {
+        "event_date": null,
+        "event_time": null,
+        "event_description": "A new digital token was registered before the disputed transactions.",
+        "evidence_labels": [
+          "E5"
+        ],
+        "sort_order": 8
+      },
+      {
+        "event_date": null,
+        "event_time": null,
+        "event_description": "A new digital token was registered before the disputed transactions.",
+        "evidence_labels": [
+          "E6"
+        ],
+        "sort_order": 9
+      },
+      {
+        "event_date": null,
+        "event_time": null,
+        "event_description": "Five disputed transactions occurred within 18 minutes.",
+        "evidence_labels": [
+          "E6"
+        ],
+        "sort_order": 10
+      }
+    ],
+    "customer_position": {
+      "narrative": "Five disputed transactions occurred within 18 minutes. A new digital token was registered before the disputed transactions. Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+      "points": [
+        {
+          "statement": "Five disputed transactions occurred within 18 minutes.",
+          "evidence_labels": [
+            "E6"
+          ]
+        },
+        {
+          "statement": "A new digital token was registered before the disputed transactions.",
+          "evidence_labels": [
+            "E3",
+            "E5",
+            "E6"
+          ]
+        },
+        {
+          "statement": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+          "evidence_labels": [
+            "E1",
+            "E2",
+            "E4",
+            "E6",
+            "E7"
+          ]
+        }
+      ]
+    },
+    "bank_position": {
+      "summary": "3D Secure transactions are authenticated during the purchase. Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase. EMV Chip transactions require physical cards to be presented during the purchase.",
+      "assertions": [
+        {
+          "statement": "3D Secure transactions are authenticated during the purchase.",
+          "evidence_labels": []
+        },
+        {
+          "statement": "Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase.",
+          "evidence_labels": []
+        },
+        {
+          "statement": "EMV Chip transactions require physical cards to be presented during the purchase.",
+          "evidence_labels": []
+        }
+      ]
+    },
+    "issues_in_dispute": [
+      {
+        "issue_title": "Whether transaction-level authentication records show legitimate customer authorisation after possible token compromise.",
+        "explanation": "This theme addresses the bank's assertions regarding authentication methods for transactions (3D Secure, contactless, EMV chip) in light of the finding that a new digital token was registered before the disputed transactions. The associated assertion-finding links highlight the need for particular investigation into whether authentication was valid and whether physical or digital cards were presented as required.",
+        "customer_position": "A new digital token was registered before the disputed transactions. Five disputed transactions occurred within 18 minutes. Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+        "bank_position": "3D Secure transactions are authenticated during the purchase. Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase. EMV Chip transactions require physical cards to be presented during the purchase.",
+        "evidence_available": [
+          "E5",
+          "E6"
+        ],
+        "evidence_required": [
+          "Please provide detailed transaction-level authentication records for each disputed transaction, including the authentication method used, device or wallet identifiers, token status, and timestamps, especially after the registration of the new digital token."
+        ]
+      },
+      {
+        "issue_title": "Whether the bank’s fraud monitoring systems detected and responded to the rapid sequence of disputed transactions within 18 minutes.",
+        "explanation": "This theme focuses on the finding that five disputed transactions occurred within an 18-minute period, examining the bank's fraud monitoring, alert generation, and incident response. Assertion-finding links indicate that the transaction pattern does not directly confirm or contradict authentication assertions but is relevant for containment and investigation quality.",
+        "customer_position": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+        "bank_position": "3D Secure transactions are authenticated during the purchase. Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase. EMV Chip transactions require physical cards to be presented during the purchase.",
+        "evidence_available": [
+          "E4"
+        ],
+        "evidence_required": [
+          "Please provide the bank's fraud monitoring system logs, records of any alerts generated, and documentation of incident response actions taken related to the five disputed transactions within the 18-minute period."
+        ]
+      },
+      {
+        "issue_title": "Whether the bank’s internal timeline and actions after the customer reported the disputed transactions enabled timely containment of further unauthorized activity.",
+        "explanation": "This theme covers the customer's report of disputed transactions by calling the bank's fraud hotline shortly after discovery and relates to the bank's subsequent investigation and containment chronology.",
+        "customer_position": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions. A new digital token was registered before the disputed transactions.",
+        "bank_position": "3D Secure transactions are authenticated during the purchase. Contactless transactions require physical or digital cards (mobile wallet device) to be presented during the purchase. EMV Chip transactions require physical cards to be presented during the purchase.",
+        "evidence_available": [
+          "E1",
+          "E2",
+          "E3"
+        ],
+        "evidence_required": [
+          "Please provide call logs or recordings of the customer's fraud hotline call made at 09:21 on 23 October, along with a detailed timeline and summary of the bank's investigation and containment actions taken following the call."
+        ]
+      }
+    ],
+    "evidence_bundle": [
+      {
+        "evidence_label": "E1",
+        "title": "Fraud Hotline Call Log",
+        "summary": "Document identified as Device or IP Record. Original uploaded filename: Exhibit B Call Log DBS overseas hotline (+65 6327 2265) on 23 October 2024.jpg.",
+        "why_it_matters": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+        "supports_issues": [
+          "Customer Notification and Bank Response Timeline"
+        ],
+        "importance": "high"
+      },
+      {
+        "evidence_label": "E2",
+        "title": "DBS Customer Service Response",
+        "summary": "Document identified as Bank Email or Letter. Original uploaded filename: Exhibit C Email from DBS Customer Service (Ref OM-202410232084620) dated 23 October 2024.pdf.",
+        "why_it_matters": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+        "supports_issues": [
+          "Customer Notification and Bank Response Timeline"
+        ],
+        "importance": "medium"
+      },
+      {
+        "evidence_label": "E3",
+        "title": "DBS Customer Service Response 2",
+        "summary": "Document identified as Bank Email or Letter 2. Original uploaded filename: Exhibit H DBS Newsroom Announcement dated 6 May 2025 - Phishing Digital Bank Security Vulnerability Admission.jpg.",
+        "why_it_matters": "A new digital token was registered before the disputed transactions.",
+        "supports_issues": [
+          "Customer Notification and Bank Response Timeline"
+        ],
+        "importance": "medium"
+      },
+      {
+        "evidence_label": "E4",
+        "title": "Screenshot",
+        "summary": "Document identified as Screenshot 1. Original uploaded filename: Exhibit E Mock-up of the phishing attack DBS form.jpg.",
+        "why_it_matters": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+        "supports_issues": [
+          "Disputed Transaction Pattern and Fraud Monitoring"
+        ],
+        "importance": "low"
+      },
+      {
+        "evidence_label": "E5",
+        "title": "Exhibit G Signed report from a Cybersecurity Specialist gross technical failu...",
+        "summary": "Document identified as Exhibit G Signed report from a Cybersecurity Specialist - gross technical failur. Original uploaded filename: Exhibit G Signed report from a Cybersecurity Specialist - gross technical failures of DBS systems.pdf.",
+        "why_it_matters": "A new digital token was registered before the disputed transactions.",
+        "supports_issues": [
+          "Authentication Mechanisms and Token Registration"
+        ],
+        "importance": "high"
+      },
+      {
+        "evidence_label": "E6",
+        "title": "Pending Transactions Reported Fraudulent Not Stopped Protected Savings Bank A...",
+        "summary": "Document identified as Pending Transactions - Reported Fraudulent - Not Stopped - Protected Savings Ban. Original uploaded filename: Pending Transactions - Reported Fraudulent - Not Stopped - Protected Savings Bank Account Rapidly Draine...",
+        "why_it_matters": "Five disputed transactions occurred within 18 minutes.",
+        "supports_issues": [
+          "Authentication Mechanisms and Token Registration"
+        ],
+        "importance": "medium"
+      },
+      {
+        "evidence_label": "E7",
+        "title": "Supporting Document",
+        "summary": "Document identified as Flight Itinerary. Original uploaded filename: Exhibit A Flight Itinerary for Ms. Vera Krilova (Flight EK355 on 22 October 2024).jpg.",
+        "why_it_matters": "Customer called the bank fraud hotline at 09:21 on 23 October after discovering disputed transactions.",
+        "supports_issues": [],
+        "importance": "low"
+      }
+    ],
+    "outstanding_evidence": {
+      "requested_from_bank": [
+        "Please provide detailed transaction-level authentication records for each disputed transaction, including the authent...",
+        "Please provide the bank's fraud monitoring system logs, records of any alerts generated, and documentation of inciden...",
+        "Please provide call logs or recordings of the customer's fraud hotline call made at 09:21 on 23 October, along with a..."
+      ],
+      "requested_from_customer": []
+    },
+    "applicable_regulatory_framework": {
+      "introductory_text": "The following regulatory and industry framework provisions may be relevant to the issues in dispute. This section identifies applicable guidance only and does not state breaches or allocate liability.",
+      "provisions": [
+        {
+          "document_name": "NOTICE ON TECHNOLOGY RISK MANAGEMENT",
+          "clause_reference": "MAS Notice FSM-N06 (2024)",
+          "clause_title": "FSM-N06 – Definition: Multi-Factor Authentication"
+        },
+        {
+          "document_name": "NOTICE ON CYBER HYGIENE",
+          "clause_reference": "MAS Notice FSM-N14 (2024)",
+          "clause_title": "FSM-N14 – FI Duty: MFA Requirements"
+        },
+        {
+          "document_name": "NOTICE ON CYBER HYGIENE",
+          "clause_reference": "MAS Notice FSM-N13 (2024)",
+          "clause_title": "FSM-N13 – FI Duty: Protect Customer Information from Unauthorised Access"
+        }
+      ]
+    },
+    "annexures": [
+      {
+        "annexure_label": "A1",
+        "evidence_label": "E1",
+        "title": "Device or IP Record"
+      },
+      {
+        "annexure_label": "A2",
+        "evidence_label": "E2",
+        "title": "Bank Email or Letter"
+      },
+      {
+        "annexure_label": "A3",
+        "evidence_label": "E3",
+        "title": "Bank Email or Letter 2"
+      },
+      {
+        "annexure_label": "A4",
+        "evidence_label": "E4",
+        "title": "Screenshot 1"
+      },
+      {
+        "annexure_label": "A5",
+        "evidence_label": "E5",
+        "title": "Exhibit G Signed report from a Cybersecurity Specialist - gross technical failur"
+      },
+      {
+        "annexure_label": "A6",
+        "evidence_label": "E6",
+        "title": "Pending Transactions - Reported Fraudulent - Not Stopped - Protected Savings Ban"
+      },
+      {
+        "annexure_label": "A7",
+        "evidence_label": "E7",
+        "title": "Flight Itinerary"
+      }
+    ]
+  }
+}

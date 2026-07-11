@@ -255,6 +255,65 @@ function evidenceDefinitionsBlock() {
 - CYBER_EXPERT_REPORT: report by cyber/security expert.
 `.trim();
 }
+
+/** Default model for document classification. Override with secret `EVIDENCE_GEMINI_MODEL` after deploy. */
+const DEFAULT_EVIDENCE_GEMINI_MODEL = Deno.env.get("EVIDENCE_GEMINI_MODEL") ?? "gemini-2.5-flash";
+
+function isRetryableGeminiError(status: number, bodyText: string): boolean {
+  if (status === 429 || status === 503) return true;
+  const lower = bodyText.toLowerCase();
+  if (lower.includes("resource_exhausted") || lower.includes("resource exhausted")) return true;
+  if (lower.includes("quota") && lower.includes("exceeded")) return true;
+  try {
+    const j = JSON.parse(bodyText) as { error?: { status?: string; code?: number; message?: string } };
+    if (j?.error?.status === "RESOURCE_EXHAUSTED") return true;
+    if (j?.error?.code === 429) return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+/** REST `generateContent` with backoff on rate limits / RESOURCE_EXHAUSTED (aligned with SDK retry semantics). */
+async function geminiGenerateContentWithRetry(args: {
+  endpoint: string;
+  requestBody: string;
+  /** Total attempts = 1 + retries (default 3 retries → 4 attempts). */
+  retries?: number;
+  initialDelayMs?: number;
+}) {
+  const { endpoint, requestBody } = args;
+  let attemptsLeft = (args.retries ?? 3) + 1;
+  let delayMs = args.initialDelayMs ?? 6500;
+
+  while (attemptsLeft > 0) {
+    attemptsLeft--;
+    const resp = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: requestBody,
+    });
+    const rawErr = !resp.ok ? await resp.text().catch(() => "") : null;
+
+    if (resp.ok) {
+      return resp.json();
+    }
+
+    if (attemptsLeft > 0 && isRetryableGeminiError(resp.status, rawErr ?? "")) {
+      console.warn(
+        `[evidence_processed_v2] Gemini overloaded (${resp.status}). Retrying in ${delayMs / 1000}s… (${attemptsLeft} attempt(s) left)`,
+      );
+      await new Promise((r) => setTimeout(r, delayMs));
+      delayMs = Math.floor(delayMs * 1.5);
+      continue;
+    }
+
+    throw new Error(`Gemini failed: ${resp.status} ${rawErr ?? ""}`.trim());
+  }
+
+  throw new Error("Gemini failed after retries");
+}
+
 async function runGemini(args) {
   const { geminiKey, model, mime_type, base64, declared_document_type, file_name } = args;
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
@@ -287,37 +346,30 @@ Return STRICT JSON only (no markdown, no commentary):
 Declared document_type from UI (may be wrong): ${(declared_document_type ?? "UNKNOWN").toString()}
 File name: ${file_name}
 `.trim();
-  const resp = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: geminiPrompt
+  const requestBody = JSON.stringify({
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            text: geminiPrompt,
+          },
+          {
+            inline_data: {
+              mime_type,
+              data: base64,
             },
-            {
-              inline_data: {
-                mime_type,
-                data: base64
-              }
-            }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.1,
-        response_mime_type: "application/json"
-      }
-    })
+          },
+        ],
+      },
+    ],
+    generationConfig: {
+      temperature: 0.1,
+      response_mime_type: "application/json",
+    },
   });
-  const rawErr = !resp.ok ? await resp.text().catch(()=>"") : null;
-  if (!resp.ok) throw new Error(`Gemini failed: ${resp.status} ${rawErr ?? ""}`.trim());
-  const j = await resp.json();
+
+  const j = await geminiGenerateContentWithRetry({ endpoint, requestBody });
   const rawOutput = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
   const parsed = safeParseGeminiJson(String(rawOutput));
   const rawText = String(parsed.raw_text ?? rawOutput);
@@ -330,8 +382,8 @@ File name: ${file_name}
 // -------------------- Core Worker --------------------
 async function processOneDocument(args) {
   const { supabase, document_id, requestId, geminiKey, force } = args;
-  // SETTINGS (keep your existing style)
-  const model = "gemini-3-pro-preview";
+  // SETTINGS (keep your existing style). Model: flash-tier default; override via EVIDENCE_GEMINI_MODEL secret.
+  const model = DEFAULT_EVIDENCE_GEMINI_MODEL;
   const prompt_version = "sota_v3_evidence_index_exact";
   const pipeline_version = "fanout_v3_evidence_index_exact";
   try {
