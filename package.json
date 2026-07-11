@@ -14,7 +14,13 @@
     "regression:executive-summary-rich-case": "npx --yes tsx scripts/regression/test-executive-summary-rich-case.ts",
     "lint": "next lint",
     "test:fidrec-tier2": "npx --yes tsx scripts/test-fidrec-tier2-flow.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:slice5": "playwright test tests/e2e/slice5.spec.ts",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:auth": "playwright codegen --save-storage=tests/e2e/.auth/slice5.json http://localhost:3000/sign-in",
+    "test:e2e:auth:chrome": "playwright codegen --channel=chrome --user-data-dir=tests/e2e/.auth/chrome-profile --save-storage=tests/e2e/.auth/slice5.json http://localhost:3000/sign-in",
     "typecheck": "tsc --noEmit",
+    "worker": "tsx worker/index.ts",
     "start": "next start"
   },
   "dependencies": {
@@ -78,11 +84,13 @@
     "stripe": "^16.6.0",
     "svix": "1.86.0",
     "tailwind-merge": "^2.5.5",
+    "tsx": "^4.19.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/nodemailer": "^7.0.2",

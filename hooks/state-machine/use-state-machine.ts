@@ -22,6 +22,7 @@ export type StateMachineNode =
   | 'L2-DecisionRunning'
   | 'L2-ReportDrafting'
   | 'L2-ReportReady'
+  | 'L2-ReportFailed'
   | 'L3-FormFilling'
   | 'L3-Submitting'
   | 'L3-Confirmed'
@@ -36,6 +37,7 @@ export interface StateMachineInput {
   documents: Array<Pick<CaseDocumentRow, 'id' | 'processing_status'>> | null
   decision: CaseDecisionRunRow | null
   report: ReportRow | null
+  jobStatus?: { status?: string | null; error?: string | null } | null
   isCheckoutRedirecting?: boolean
   isIntakeSubmitted?: boolean
   hasSubmittedIntake?: boolean
@@ -61,6 +63,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
     documents,
     decision,
     report,
+    jobStatus,
     isCheckoutRedirecting = false,
     isIntakeSubmitted = false,
     hasSubmittedIntake = false,
@@ -71,14 +74,11 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   if (isContactSubmitted) return 'L3-Confirmed'
   if (isContactSubmitting) return 'L3-Submitting'
 
-  if (report?.status === 'COMPLETED') {
-    return 'L3-FormFilling'
-  }
-
   if (entitlementPlan === 'self_serve_report') {
+    if (report?.status === 'COMPLETED') return 'L2-ReportReady'
+    if (jobStatus?.status === 'failed') return 'L2-ReportFailed'
     if (!decision) return 'L2-DecisionRunning'
-    if (!report) return 'L2-ReportDrafting'
-    return 'L2-ReportReady'
+    return 'L2-ReportDrafting'
   }
 
   if (!narratives?.tier0_summary && !narratives?.tier0_evidence_checklist && !narratives?.tier0_srf_signal) {

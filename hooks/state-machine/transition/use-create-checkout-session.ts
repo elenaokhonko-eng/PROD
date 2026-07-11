@@ -1,6 +1,7 @@
 'use client'
 
 import { useMutation } from '@tanstack/react-query'
+import { useAuth } from '@clerk/nextjs'
 
 interface CreateCheckoutSessionResponse {
   url?: string | null
@@ -12,11 +13,21 @@ export interface CreateCheckoutSessionInput {
 }
 
 export function useCreateCheckoutSession() {
+  const { getToken } = useAuth()
+
   return useMutation({
     mutationFn: async ({ caseId }: CreateCheckoutSessionInput) => {
+      const token = await getToken({ template: 'supabase' })
+      if (!token) {
+        throw new Error('Missing Supabase token')
+      }
+
       const response = await fetch('/api/payments/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ caseId }),
       })
 

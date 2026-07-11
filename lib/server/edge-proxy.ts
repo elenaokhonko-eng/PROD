@@ -57,14 +57,7 @@ export async function proxyEdgeFunction({
   caseIdField = 'case_id',
   probe,
 }: ProxyOptions): Promise<Response> {
-  // 1) Clerk session -> 401 if missing.
-  const { userId, getToken } = await auth()
-  const userSupabaseJwt = userId ? await getToken({ template: 'supabase' }) : null
-  if (!userId || !userSupabaseJwt) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // 2) Parse and validate the body. The edge functions only accept JSON.
+  // 1) Parse and validate the body. The edge functions only accept JSON.
   let body: Record<string, unknown>
   try {
     body = (await request.json()) as Record<string, unknown>
@@ -72,54 +65,73 @@ export async function proxyEdgeFunction({
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  // 3) Ownership probe (RLS enforced). Either the default "case_id ∈ cases"
-  //    probe or a custom probe supplied by the caller. Missing probes
-  //    short-circuit with 400 so nobody accidentally ships an unprobed
-  //    wrapper.
-  const userClient = await createUserClient()
+  // 2) Worker bypass: the Render background worker has no Clerk session, so it
+  //    authenticates with a shared secret in the x-worker-secret header.
+  //    When the secret matches, we skip Clerk auth and the ownership probe;
+  //    the worker is responsible for only enqueuing work it has already locked.
+  const workerSecret = request.headers.get('x-worker-secret')
+  const isWorkerRequest =
+    typeof workerSecret === 'string' &&
+    workerSecret.length > 0 &&
+    workerSecret === process.env.WORKER_SECRET
 
-  if (probe) {
-    const probeResult = await probe(userClient, body)
-    if (!probeResult.ok) {
+  if (!isWorkerRequest) {
+    // 2a) Clerk session -> 401 if missing.
+    const { userId, getToken } = await auth()
+    const userSupabaseJwt = userId ? await getToken({ template: 'supabase' }) : null
+    if (!userId || !userSupabaseJwt) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // 2b) Ownership probe (RLS enforced). Either the default "case_id ∈ cases"
+    //     probe or a custom probe supplied by the caller. Missing probes
+    //     short-circuit with 400 so nobody accidentally ships an unprobed
+    //     wrapper.
+    const userClient = await createUserClient()
+
+    if (probe) {
+      const probeResult = await probe(userClient, body)
+      if (!probeResult.ok) {
+        return NextResponse.json(
+          { error: probeResult.status === 404 ? 'Not found' : 'Forbidden' },
+          { status: probeResult.status ?? 404 },
+        )
+      }
+    } else if (caseIdField) {
+      const caseId = body[caseIdField]
+      if (typeof caseId !== 'string' || caseId.length === 0) {
+        return NextResponse.json(
+          { error: `${caseIdField} is required` },
+          { status: 400 },
+        )
+      }
+
+      const { data: own, error: ownErr } = await userClient
+        .from('cases')
+        .select('id')
+        .eq('id', caseId)
+        .maybeSingle()
+
+      if (ownErr) {
+        // RLS denial typically surfaces as either no row or an error — both
+        // treated as 404 to avoid leaking the existence of the case.
+        return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      }
+      if (!own) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      }
+    } else {
       return NextResponse.json(
-        { error: probeResult.status === 404 ? 'Not found' : 'Forbidden' },
-        { status: probeResult.status ?? 404 },
+        {
+          error:
+            'proxyEdgeFunction called without caseIdField or probe — refusing to forward unauthenticated request',
+        },
+        { status: 500 },
       )
     }
-  } else if (caseIdField) {
-    const caseId = body[caseIdField]
-    if (typeof caseId !== 'string' || caseId.length === 0) {
-      return NextResponse.json(
-        { error: `${caseIdField} is required` },
-        { status: 400 },
-      )
-    }
-
-    const { data: own, error: ownErr } = await userClient
-      .from('cases')
-      .select('id')
-      .eq('id', caseId)
-      .maybeSingle()
-
-    if (ownErr) {
-      // RLS denial typically surfaces as either no row or an error — both
-      // treated as 404 to avoid leaking the existence of the case.
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-    if (!own) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-  } else {
-    return NextResponse.json(
-      {
-        error:
-          'proxyEdgeFunction called without caseIdField or probe — refusing to forward unauthenticated request',
-      },
-      { status: 500 },
-    )
   }
 
-  // 4) Mutate body with server-only secrets if needed.
+  // 3) Mutate body with server-only secrets if needed.
   const forwardBody = mutateBody ? mutateBody(body) : body
 
   // 5) Fanout to Edge Function using the caller's Supabase JWT.
@@ -132,24 +144,6 @@ export async function proxyEdgeFunction({
       { status: 500 },
     )
   }
-
-  const jwtPayload = (() => {
-    try {
-      const parts = userSupabaseJwt.split('.')
-      if (parts.length < 2) return null
-      const payload = Buffer.from(parts[1], 'base64url').toString('utf8')
-      return JSON.parse(payload) as { aud?: string; iss?: string; role?: string }
-    } catch {
-      return null
-    }
-  })()
-  const urlHost = (() => {
-    try {
-      return new URL(supabaseUrl).host
-    } catch {
-      return null
-    }
-  })()
 
   const edgeRes = await fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
     method: 'POST',

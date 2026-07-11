@@ -15,6 +15,32 @@ export interface UploadEvidenceResultItem {
   evidence: EvidenceResponse
 }
 
+type UploadEvidenceResponse =
+  | {
+      error?: string
+      evidence?: {
+        id?: string | null
+      } | null
+    }
+  | null
+
+type ProcessEvidenceResult = {
+  evidence_id: string
+  document_id?: string | null
+  ok: boolean
+  queued?: boolean
+  skipped?: boolean
+  error?: string | null
+}
+
+type ProcessEvidenceResponse =
+  | {
+      ok?: boolean
+      error?: string
+      results?: ProcessEvidenceResult[]
+    }
+  | null
+
 export function useUploadEvidence() {
   const queryClient = useQueryClient()
 
@@ -34,35 +60,45 @@ export function useUploadEvidence() {
           body: formData,
         })
 
-        const uploadJson = (await uploadResponse.json().catch(() => null)) as
-          | { error?: string; caseDocumentId?: string | null }
-          | null
+        const uploadJson = (await uploadResponse.json().catch(() => null)) as UploadEvidenceResponse
 
         if (!uploadResponse.ok) {
           throw new Error(uploadJson?.error ?? 'Failed to upload evidence')
         }
 
-        const documentId = uploadJson?.caseDocumentId
+        const evidenceId = uploadJson?.evidence?.id
 
-        if (!documentId) {
-          throw new Error(`Failed to create case document for ${file.name}`)
+        if (!evidenceId) {
+          throw new Error(`Failed to create evidence record for ${file.name}`)
         }
 
-        const evidenceResponse = await fetch('/api/edge/evidence', {
+        const processResponse = await fetch(`/api/cases/${caseId}/evidence/process`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ document_id: documentId }),
+          body: JSON.stringify({ evidenceIds: [evidenceId] }),
         })
 
-        const evidenceJson = (await evidenceResponse.json().catch(() => null)) as EvidenceResponse | null
-        if (!evidenceResponse.ok) {
-          throw new Error(evidenceJson?.error ?? 'Failed to process evidence')
+        const processJson = (await processResponse.json().catch(() => null)) as ProcessEvidenceResponse
+        if (!processResponse.ok || processJson?.ok === false) {
+          throw new Error(processJson?.error ?? 'Failed to queue evidence processing')
+        }
+
+        const processed = processJson?.results?.find((result) => result.evidence_id === evidenceId)
+
+        if (!processed?.ok) {
+          throw new Error(processed?.error ?? `Failed to queue evidence processing for ${file.name}`)
+        }
+
+        const documentId = processed.document_id
+
+        if (!documentId) {
+          throw new Error(`Failed to register case document for ${file.name}`)
         }
 
         results.push({
           documentId,
           fileName: file.name,
-          evidence: evidenceJson ?? { ok: true },
+          evidence: { ok: true },
         })
       }
 

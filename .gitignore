@@ -1,6 +1,9 @@
 node_modules
 .next
 .env*
+playwright-report/
+test-results/
+tests/e2e/.auth/
 .tools
 .aider*
 

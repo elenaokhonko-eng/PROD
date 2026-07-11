@@ -13,6 +13,7 @@ import { BlockedOnPrereq } from '@/components/state-machine/transition/blocked-o
 import { PaymentSuccessLanding } from '@/components/state-machine/transition/payment-success-landing'
 import { DecisionProgress } from '@/components/state-machine/layer2/decision-progress'
 import { ReportDrafting } from '@/components/state-machine/layer2/report-drafting'
+import { ReportFailed } from '@/components/state-machine/layer2/report-failed'
 import { ReportView } from '@/components/state-machine/layer2/report-view'
 import { WaitlistForm, type WaitlistFormValues } from '@/components/state-machine/layer3/waitlist-form'
 import { WaitlistConfirmed } from '@/components/state-machine/layer3/waitlist-confirmed'
@@ -113,6 +114,7 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
     documents: documentsQuery.data ?? null,
     decision: decisionQuery.data ?? null,
     report: reportQuery.data ?? null,
+    jobStatus: jobStatusQuery.data ?? null,
     isCheckoutRedirecting: checkoutRedirecting,
     isIntakeSubmitted: submitIntake.isPending,
     hasSubmittedIntake: intakeCompleted,
@@ -121,9 +123,16 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
   })
 
   const isPaymentReturn = useMemo(
-    () => searchParams.get('session_id') || searchParams.get('payment') === 'success',
+    () =>
+      Boolean(
+        searchParams.get('session_id') ||
+          searchParams.get('payment') === 'success' ||
+          searchParams.get('checkout') === 'success',
+      ),
     [searchParams],
   )
+  const isAwaitingPaymentConfirmation =
+    isPaymentReturn && paymentStatusQuery.data?.plan !== 'self_serve_report'
 
   async function saveResponses(
     answers: Record<string, ValidationAnswerValue>,
@@ -292,6 +301,8 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
               ),
             }}
           />
+        ) : isAwaitingPaymentConfirmation ? (
+          <PaymentSuccessLanding isConfirming />
         ) : node === 'T-EligibilityGate' ? (
           <>
             <EligibilityGate
@@ -323,12 +334,12 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
           />
         ) : node === 'T-CheckoutRedirect' ? (
           <CheckoutRedirect />
-        ) : isPaymentReturn ? (
-          <PaymentSuccessLanding isConfirming={paymentStatusQuery.data?.plan !== 'self_serve_report'} />
         ) : node === 'L2-DecisionRunning' ? (
           <DecisionProgress />
         ) : node === 'L2-ReportDrafting' ? (
           <ReportDrafting decisionPreview={decisionQuery.data?.decision_json ?? null} />
+        ) : node === 'L2-ReportFailed' ? (
+          <ReportFailed errorMessage={jobStatusQuery.data?.error ?? null} />
         ) : node === 'L2-ReportReady' ? (
           reportQuery.data ? (
             <ReportView report={reportQuery.data} decision={decisionQuery.data} />

@@ -117,11 +117,11 @@ sequenceDiagram
         SR-->>FE: 200 + caseId
         FE->>FE: Clear sessionStorage
         U->>FE: Upload document on evidence screen
-        FE->>SR: POST /api/evidence/upload — Storage + INSERT case_documents [§4.2]
-        SR->>SB: createUserClient upload + insert pending row
-        SR-->>FE: 200 + caseDocumentId
-        FE->>SR: POST /api/edge/evidence {document_id} — FUNCTION 1
-        SR->>SB: POST /functions/v1/evidence_processed_v2
+        FE->>SR: POST /api/evidence/upload — Storage + INSERT evidence [§4.2]
+        SR->>SB: service upload + insert evidence row
+        SR-->>FE: 200 + { evidence }
+        FE->>SR: POST /api/cases/:caseId/evidence/process {evidenceIds:[id]}
+        SR->>SB: register case_documents + queue evidence_processed_v2 {document_id}
         SB-->>SR: 200
         SB-->>FE: Realtime: case_documents status updates → ready
         note over FE: After ≥ minimum intake AND doc ready, fire extract (R11)
@@ -196,7 +196,7 @@ sequenceDiagram
 
 Layer 1 now has **five sub-phases** in the Masha-confirmed canonical sequence:
 - **S1-Bootstrap** — first authenticated request post-login materialises the `cases` + `case_intake` rows from the sessionStorage narrative (R13).
-- **S1-EvidenceFirstUpload** — user is prompted to upload at least one document. Each upload → `evidence_processed_v2` (R1, R7, R8). **Canonical step 1.**
+- **S1-EvidenceFirstUpload** — user is prompted to upload at least one document. Each upload creates an `evidence` row, then the process route registers `case_documents` and queues `evidence_processed_v2` (R1, R7, R8). **Canonical step 1.**
 - **S1-GapLoop** — once minimum intake is present AND ≥1 doc is `ready`, `run_case_extract_v4` fires for the first time; UI enters the gap loop. Each answer / new upload re-fires extract (R11). **Canonical step 2 (fires multiple times).**
 - **S1-FreshnessCheck** — final freshness-check extract pass right before tier-0 narrative (R10, R11 clause d).
 - **S1-Tier0DraftPending** → **S1-Tier0Draft** — `bright-function` fires once, writes `case_narratives`, rendered per R6. **Canonical step 3.**
@@ -222,7 +222,7 @@ stateDiagram-v2
         GL_Submitting --> GL_AnsweringGap: POST /api/edge/extract:err
 
         GL_Idle --> GL_Uploading: click:upload_docs
-        GL_Uploading --> GL_Processing: storage_upload:ok + INSERT case_documents
+        GL_Uploading --> GL_Processing: storage_upload:ok + INSERT evidence + process route registers case_documents
         GL_Processing --> GL_Idle: rt:case_documents:status=ready\n(auto-chain POST /api/edge/extract per R11)
         GL_Processing --> GL_Idle: rt:case_documents:status=failed\n(show retry CTA per R8)
     }
@@ -232,7 +232,7 @@ stateDiagram-v2
 
     S1_Bootstrap --> S1_EvidenceFirstUpload: POST /api/cases/bootstrap:ok\n(caseId returned; sessionStorage cleared)
 
-    S1_EvidenceFirstUpload --> S1_EvidenceFirstUpload: upload → POST /api/edge/evidence\n(evidence_processed_v2 per doc)
+    S1_EvidenceFirstUpload --> S1_EvidenceFirstUpload: upload → POST /api/cases/:caseId/evidence/process\n(evidence_processed_v2 per doc)
     S1_EvidenceFirstUpload --> S1_GapLoop: rt:case_documents:status=ready\n(≥1 doc ready AND minimum intake present → first POST /api/edge/extract)
 
     S1_GapLoop --> S1_FreshnessCheck: click:generate_draft OR auto-trigger\n(missing_fields=[] per R10)
@@ -252,7 +252,7 @@ stateDiagram-v2
 | State | What the user sees | What is running | Reads | Writes |
 |---|---|---|---|---|
 | **S1-Bootstrap** | Brief post-Clerk-login splash: *"Setting up your case…"* (≤1 s). | Client reads `sessionStorage` / `unsafeMetadata` → `POST /api/cases/bootstrap` which uses `createUserClient()`. | `sessionStorage` (`gb.narrative`, `gb.transcript`). | `INSERT cases` + `INSERT case_intake (intake_type='initial')` via user-scoped client; RLS `WITH CHECK` fills `user_id = auth.uid()`. |
-| **S1-EvidenceFirstUpload** | Upload prompt with MIME whitelist copy (R7). Each upload shows a processing chip. No gap questions yet — the form waits for the first document to come back `ready`. | Realtime channel open on `case_documents` filtered by `case_id`. **`POST /api/evidence/upload`** (Storage + INSERT `case_documents` per IS §4.2 — no DB auto-insert from storage), then server route `POST /api/edge/evidence` per file (`evidence_processed_v2`). | `case_documents_enriched` for per-doc verification + extractions. | Edge function writes `case_documents_content`, `case_document_verifications`, `case_document_chunks`, `case_document_extractions`; app owns the `case_documents` metadata row. |
+| **S1-EvidenceFirstUpload** | Upload prompt with MIME whitelist copy (R7). Each upload shows a processing chip. No gap questions yet — the form waits for the first document to come back `ready`. | Realtime channel open on `case_documents` filtered by `case_id`. **`POST /api/evidence/upload`** (Storage + `INSERT evidence`; no DB auto-insert from storage), then **`POST /api/cases/:caseId/evidence/process`** per file, which registers/resolves `case_documents` and queues `evidence_processed_v2`. | `case_documents_enriched` for per-doc verification + extractions. | Process route owns the `case_documents` metadata row; edge function writes `case_documents_content`, `case_document_verifications`, `case_document_chunks`, `case_document_extractions`. |
 | **S1-GapLoop** | Two-column UI: left = gap questions, right = evidence upload. Entered after first doc is ready + minimum intake present; at that moment the frontend fires the **first** `POST /api/edge/extract`. | Same Realtime + extract auto-chain. | Two-step read (R5): `rpc get_case_eligibility` → `case_extract_runs` + parent `case_validation_runs` by PK. Preferred question source: **`v_case_validation_gap_items`** by `validation_run_id`, `ORDER BY sort_order, created_at`, normalized to `ValidationQuestion`; fallback to parent `questions_to_user` only when no gap rows exist. If parent `status = 'error'`, show `error_message`. | On gap answer: `INSERT case_intake (intake_type='gap_response')` / response row, then re-run extract. |
 | **GL-Submitting** | Save button spinner. | POST `/api/edge/extract`. | — | Edge function appends `case_extract_runs`; trigger runs `run_validation_v1` → `case_validation_runs` + `case_validation_gap_items`. |
 | **GL-Processing** | Per-doc progress: `pending → parsing → verifying → chunking → extracting → ready/failed`. | Realtime subscription drives transitions (R8). Server route auto-chains `/api/edge/extract` on `status=ready` (R11 clause c). | `case_documents_enriched` view. | App created the `case_documents` row on upload; edge function updates statuses and writes `case_documents_content`, verifications, chunks, extractions. |
@@ -429,7 +429,7 @@ This is the TODO list the frontend engineer works through, one file/screen at a 
 | 2 | `/api/cases/bootstrap/route.ts` — accepts `{ narrative, transcript }` in body, reads Clerk session, uses `createUserClient()` to `INSERT cases + case_intake (intake_type='initial')`. No service-role write. (R13, Slice 0 Pattern C.) | IS §9.2, §10.4; runbooks/slice-0-auth-reconciliation.md §3.4 | S1-Bootstrap. |
 | 3 | `/api/edge/extract/route.ts` — Next.js server route: **Clerk session → Clerk-signed Supabase JWT → RLS-enforced 1-row case-ownership probe → service-role fetch to edge function.** No manual `owner_user_id` check (RLS handles it). See IS §9.2 reference implementation. | IS §9.2, §10.4 | S1-GapLoop (first fire + gap-answer re-fires), GL-Submitting, evidence auto-chain in GL-Processing, S1-FreshnessCheck. |
 | 4 | `/api/edge/tier0/route.ts` — same Pattern C wrapper, for `bright-function`. Fires once. | IS §9.2 | S1-Tier0DraftPending. |
-| 5 | `/api/edge/evidence/route.ts` — same Pattern C wrapper, for `evidence_processed_v2`. | IS §9.2 | S1-EvidenceFirstUpload, GL-Uploading → GL-Processing transition, L2-UpstreamReRun (called by Render worker). |
+| 5 | `/api/edge/evidence/route.ts` — same Pattern C wrapper, for `evidence_processed_v2`; retained for worker/upstream re-run paths. Browser uploads use `/api/evidence/upload` followed by `/api/cases/:caseId/evidence/process`. | IS §9.2 | L2-UpstreamReRun (called by Render worker); manual/server-side processor proxy paths only. |
 | 6 | `/api/edge/decision/route.ts` — same Pattern C wrapper, for `run_case_decision_v1` (**Layer 2 only**, called by Render worker). | IS §9.2 | L2-DecisionRunning. |
 | 7 | `/api/edge/report/route.ts` — same Pattern C wrapper, for `run_report_selfserve_v1` (called by Render worker; also injects `simulation_key`). | IS §9.2 | L2-ReportDrafting. |
 | 8 | `/api/stripe/webhook/route.ts` — verify signature, upgrade entitlement, enqueue job, return 200 in <1s. Webhook does NOT call decision/report directly (R9). | IS §9.7, §10.3 | bg-webhook (T-PaymentSuccessLanding). |
@@ -583,8 +583,8 @@ Priya answers *"Was the transfer online?"* → **"Yes"**. This moves her into **
 
 Meanwhile, in parallel, Priya drags-and-drops her DBS statement PDF onto the evidence panel (**GL-Uploading**). The uploader (R7 — §9.6 MIME whitelist):
 - Accepts the PDF (MIME `application/pdf`).
-- **`POST /api/evidence/upload`** → Supabase Storage + **`INSERT case_documents`** with `processing_status = 'pending'` (IS §4.2).
-- Calls `POST /api/edge/evidence` to fire `evidence_processed_v2`.
+- **`POST /api/evidence/upload`** → Supabase Storage + **`INSERT evidence`** (IS §4.2).
+- Calls `POST /api/cases/:caseId/evidence/process` with `{ evidenceIds: [evidence.id] }`; the process route registers/resolves `case_documents` and queues `evidence_processed_v2`.
 
 The UI transitions the card to **GL-Processing**. A **Realtime subscription on `case_documents`** (R8 — §9.3) pushes live updates: `pending → parsing → verifying → chunking → extracting → ready`. Priya sees a progress bar animate over ~8 seconds, then a green *"Verified DBS statement — transfer confirmed"* chip.
 
@@ -660,7 +660,7 @@ A sensible first E2E test script:
 1. Sign up a fresh user, confirm `auth.users` row exists with `raw_user_meta_data.sub` = the same UUID as `profiles.id`.
 2. Start a new case. Confirm `cases.user_id = auth.uid()` and RLS lets the user read back their case via the user-scoped Supabase client.
 3. Answer one gap question. Confirm `case_intake.intake_type = 'gap_response'` row exists and a *new* `case_extract_runs` row is appended (not overwritten).
-4. Upload a PDF. Confirm **`POST /api/evidence/upload`** returns **exactly one** `case_documents` row for `(storage_bucket, storage_path)` (no duplicate from storage trigger — disabled 2026‑05). Confirm `case_documents.processing_status` transitions via Realtime (`pending` → … → `ready`).
+4. Upload a PDF. Confirm **`POST /api/evidence/upload`** returns `{ evidence }`, then **`POST /api/cases/:caseId/evidence/process`** returns `results[].document_id` and creates/resolves **exactly one** `case_documents` row for `(storage_bucket, storage_path)` (no duplicate from storage trigger — disabled 2026‑05). Confirm `case_documents.processing_status` transitions via Realtime (`uploaded`/`queued` → … → `ready`).
 5. After an extract produces validation gaps, confirm **`case_validation_gap_items`** exists for `validation_run_id`, **`COUNT(*) = jsonb_array_length(missing_fields)`** on parent `case_validation_runs`, and rows sort correctly by **`sort_order`** (IS §4.5). In the UI, confirm the rendered question answer keys are real field keys such as `incident_date` / `reported_loss.amount`, never `undefined`; when `v_case_validation_gap_items` returns no rows for an old run, confirm `questions_to_user` JSON still renders. For a forced validation error, confirm `case_validation_runs.error_message` appears instead of a normal question panel.
 6. Upload a `.txt` file. Confirm the UI rejects it client-side (R7) — no request should reach the server.
 7. Reach the Tier-0 draft. Confirm all three `case_narratives` rows exist **and** that temporarily deleting any one row (e.g. `tier0_srf_signal`) and refreshing still renders the other two without breaking the screen (R6).
@@ -673,7 +673,8 @@ A sensible first E2E test script:
 ## Appendix C — Change log
 
 - **2026-05-04** — **Slice 5 wiring complete.** `useStateMachine()` drives `dashboard-client.tsx` through Layer 1 → transition → Layer 2 → Layer 3 nodes. Server routes live: `POST /api/cases/bootstrap`, `POST /api/contact-requests` (Zod + forbidden client fields + extract snapshot + `upsert` + admin email), and job-status read. Client hooks wired: all Slice 4A–4D hooks, validation gap-items preference with `questions_to_user` fallback, typed gap answers, Tier-0 auto-fire gates, and `useSubmitContactRequest`. App shell wraps `RealtimeProvider` + `ErrorBoundary`. Legacy `/api/waitlist/join` and `/app/waitlist` removed; debug instrumentation stripped from upload and edge proxy paths.
-- **2026-05-02** — **Structured validation gaps + evidence upload contract.** IS §4.5 documents **`case_validation_gap_items`**, **`v_case_validation_gap_items`**, and **`run_validation_v1` dual-write** (deterministic join of `missing_fields` ↔ `questions_to_user`). SM R5 checklist row and gap-loop read contracts updated. Frontend wiring now keeps `case_validation_runs` as the parent state row, prefers **`v_case_validation_gap_items`** ordered by `sort_order` for rendered questions, normalizes DB rows/legacy JSON into `ValidationQuestion`, falls back to `questions_to_user` for old runs, sends typed `response_type`, and surfaces `error_message` when `status = 'error'`. **Storage → `case_documents`:** auto-insert trigger disabled; **`POST /api/evidence/upload`** is the sole writer of the metadata row after blob upload (IS §4.2); master sequence and B.10 QA steps updated.
+- **2026-07-11** — **Evidence upload contract realigned to current code.** `POST /api/evidence/upload` writes Storage + `evidence`; `POST /api/cases/:caseId/evidence/process` registers/resolves `case_documents`, queues `evidence_processed_v2`, and returns `results[].document_id`. Slice 5 QA now validates this two-step browser path.
+- **2026-05-02** — **Structured validation gaps + evidence upload contract.** IS §4.5 documents **`case_validation_gap_items`**, **`v_case_validation_gap_items`**, and **`run_validation_v1` dual-write** (deterministic join of `missing_fields` ↔ `questions_to_user`). SM R5 checklist row and gap-loop read contracts updated. Frontend wiring now keeps `case_validation_runs` as the parent state row, prefers **`v_case_validation_gap_items`** ordered by `sort_order` for rendered questions, normalizes DB rows/legacy JSON into `ValidationQuestion`, falls back to `questions_to_user` for old runs, sends typed `response_type`, and surfaces `error_message` when `status = 'error'`. Storage auto-insert trigger disabled; superseded on 2026-07-11 by the current `evidence` row -> process-route registration path.
 - **2026-04-26** — **Layer 3 = Tier 2 + WhatsApp.** Layer 3 and Tier 2 are the same post-Tier-1 surface. The FIDReC contact form remains `/api/contact-requests` with no Supabase edge function; the root-layout WhatsApp `wa.me/6590727915` link is required on public and authenticated routes; Layer 3 adds Scam and Fraud Specialist recommendation copy; Slice 8 adds SGD 99 specialist consult and SGD 800 case-pack Stripe add-ons on this surface. This supersedes older "no WhatsApp" wording while keeping LinkedIn and generic coming-soon waitlist framing out of scope.
 - **2026-04-20** — **§10.4 Clerk mapping locked (Pattern C).** Verified via Dashboard: `auth.users` populated with Supabase UUIDs, `cases.user_id → auth.users.id` FK, `handle_new_user()` trigger copies UUID into `profiles`. Integration Summary §9.2 rewritten to remove manual ownership check (RLS handles it). `escalation_waitlist.user_id` retyped from `text` to `uuid` referencing `auth.users.id`. State Machine §7 checklist row 2 and §8.1 error table updated. Added Appendix B reviewer's walkthrough.
 - **2026-04-21 PM** — **Masha feedback reconciliation pass.** Canonical sequence locked to **3 Tier-0** (`evidence_processed_v2` → `run_case_extract_v4` with gap loop → `bright-function`) + **2 Tier-1** (`run_case_decision_v1` → `run_report_selfserve_v1`). `candidate-transactions` and `compute-loss` demoted to **Masha-internal fallbacks only** (no frontend wiring). `gemini-task` marked **archived**. **R9 rewritten** — decision runs in Layer 2 only, not Tier-0. **R10 rewritten** — `bright-function` fires once after the freshness-check extract pass. **R11 rewritten** — extract auto-re-fires on first upload, gap answer, and freshness check. **R12 rewritten** — Layer 3 became a simple FIDReC handoff contact form (name / email / phone / optional message) → `POST /api/contact-requests` + email Dance, with LinkedIn and generic "coming soon" waitlist framing removed. **2026-04-26 later supersedes the old WhatsApp/Tier-2 wording.** **R13 added** — pre-login landing-page narrative capture is **client-side only** (`sessionStorage` / Clerk `unsafeMetadata`) → no anonymous Supabase rows, Slice 0 Pattern C unchanged; first authenticated request calls `POST /api/cases/bootstrap`. **R14 added** — Tier-1 upstream re-runs are **conditional** on new documents / new intake rows since the last decision run. **§2 master sequence, Diagram 1, Diagram 3, Diagram 4, §7 checklist, §9 verification checklist, and Appendix B.8 all rewritten** to match. **Layer model** added a "pre-layer" (client-side only). **Diagram 2 `T-PaymentSuccessLanding`** now enters `L2-UpgradeScreen` (not `S-decision-running` directly). Binding contract: [`2026-04-21-Masha-Feedback-Reconciliation.md`](./2026-04-21-Masha-Feedback-Reconciliation.md) §0 and §6.

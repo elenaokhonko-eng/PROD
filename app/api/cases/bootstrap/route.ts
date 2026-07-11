@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getCurrentUser } from '@/lib/auth'
 import { createUserClient } from '@/lib/supabase/server'
-import { auth } from '@clerk/nextjs/server'
-import { createClient } from '@supabase/supabase-js'
 
 const BootstrapBody = z.object({
   narrative: z.string().min(1).max(20000),
@@ -24,35 +22,14 @@ export async function POST(req: Request) {
   }
   const { narrative, transcript, claim_type } = parsed.data
 
-  // Get the Clerk JWT to pass to Supabase directly
-  const { getToken } = await auth()
-  const token = await getToken({ template: 'supabase' })
-  if (!token) {
-    return NextResponse.json({ error: 'no_jwt' }, { status: 401 })
-  }
-
-  // Decode supabase_uuid from JWT
-  const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString())
-  const supabaseUuid = payload.supabase_uuid
-  if (!supabaseUuid) {
-    return NextResponse.json({ error: 'no_supabase_uuid' }, { status: 401 })
-  }
-
-  // Create Supabase client with Clerk JWT
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: { persistSession: false, autoRefreshToken: false },
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    }
-  )
+  // User-scoped Supabase client (RLS enforces auth.uid() == cases.user_id).
+  const supabase = await createUserClient()
 
   const { data: caseRow, error: caseErr } = await supabase
     .from('cases')
     .insert({
       claim_type: claim_type ?? 'phishing_scam',
-      user_id: supabaseUuid,
+      user_id: user.supabaseUuid,
       primary_narrative: narrative,
     })
     .select('id')

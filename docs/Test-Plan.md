@@ -1,6 +1,6 @@
 # Test Plan
 
-Last updated: 2026-06-02
+Last updated: 2026-07-11
 
 This document consolidates the project test plan. The canonical workflow contract still lives in [State-Machine-Workflow.md](./State-Machine-Workflow.md), and implementation gates still live in [State-Machine-Refactor-Plan.md](./State-Machine-Refactor-Plan.md). This file is the quick execution checklist for local QA.
 
@@ -19,7 +19,7 @@ Run after a case produces validation gaps from `run_validation_v1`.
 
 ### 1.1 Controlled-error gap UI (missing questions)
 
-**Status: backend + logic validated; browser QA pending.**
+**Status: Supabase backend fix confirmed by Masha; browser QA pending.**
 
 Validated on linked Supabase (2026-06-02):
 
@@ -37,7 +37,7 @@ Validated on linked Supabase (2026-06-02):
 ## 2. Layer 1 Smoke
 
 - Fresh signup creates user-owned `cases` and `case_intake` rows through the user-scoped Supabase client.
-- Upload a PDF/PNG/JPEG/DOCX. Confirm `POST /api/evidence/upload` creates exactly one `case_documents` row after Storage upload.
+- Upload a PDF/PNG/JPEG/DOCX. Confirm `POST /api/evidence/upload` creates an `evidence` row, then `POST /api/cases/:caseId/evidence/process` registers exactly one `case_documents` row and queues processing.
 - Confirm unsupported file types are rejected client-side before upload.
 - Confirm `case_documents.processing_status` progresses through Realtime, not polling.
 - Answer a gap question. Confirm a new extract run is appended and validation refreshes.
@@ -65,8 +65,8 @@ Validated on linked Supabase (2026-06-02):
 
 Run these before calling Slice 5 done.
 
-- Evidence upload direct insert: upload one supported document and confirm exactly one `case_documents` row is created by `POST /api/evidence/upload`.
-- Evidence processing handoff: confirm the returned `caseDocumentId` is sent to `/api/edge/evidence`, then the document progresses from `pending` to `ready`.
+- Evidence upload record: upload one supported document and confirm `POST /api/evidence/upload` returns `{ evidence }` with an `evidence.id`.
+- Evidence processing handoff: confirm the returned `evidence.id` is sent to `POST /api/cases/:caseId/evidence/process` as `{ evidenceIds: [id] }`, the response includes `results[].document_id`, and the document progresses from `uploaded`/`queued` to `ready`.
 - Trigger safety: confirm there is no duplicate `case_documents` row from the disabled Supabase storage auto-insert trigger.
 - Validation gaps with new table: run a case with rows in `v_case_validation_gap_items`; confirm questions render in `sort_order`.
 - Validation gap answer keys: save answers and confirm the request body uses concrete keys such as `incident_date` or `reported_loss.amount`, never `undefined`.

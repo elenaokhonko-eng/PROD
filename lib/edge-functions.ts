@@ -25,18 +25,9 @@
  *     4. run_case_decision_v1    — decision engine
  *     5. run_report_selfserve_v1 — paid report
  *
- * Every other historical function is archived / admin-only and is NOT part of
- * the frontend call graph:
- * - run_case_extract_v1 / _v2 / _v3 — archived in Supabase 2026-04-21.
- * - gemini-task                     — archived. Do not call.
- * - candidate-transactions          — Masha-internal fallback only. Fires
- *                                     from the Supabase Dashboard (by Masha)
- *                                     ONLY when run_case_extract_v4 fails to
- *                                     compute the loss amount. The frontend
- *                                     does not call it. Not wired here.
- * - compute-loss                    — Masha-internal fallback only (see above).
- * - backfill_embeddings_v1          — admin-only cron job.
- * - url_catalogue (decision_url_inbox) — admin-only.
+ * Other historical functions are archived / admin-only and are NOT part of
+ * the frontend call graph. Keep their literal names out of production code so
+ * the Slice 7 grep guards can prove they are not wired anywhere.
  *
  * NOTE on the version-number trap: the live extract function is the
  * Supabase folder `run_case_extract_v4`. Its INTERNAL version string
@@ -106,27 +97,3 @@ export const EDGE_ROUTE_TO_FN: Record<EdgeRouteKey, string> = {
   decision: DECISION_FN,
   report: REPORT_FN,
 }
-
-// ---------------------------------------------------------------------------
-// Archived / not-called-from-frontend functions. Kept here ONLY so grep
-// finds them when auditing; never import these from application code.
-// See docs/2026-04-21-Masha-Feedback-Reconciliation.md §4 (archived list).
-// ---------------------------------------------------------------------------
-
-/** @deprecated archived in Supabase 2026-04-21. Use EXTRACT_FN (v4). */
-export const LEGACY_EXTRACT_FNS = [
-  'run_case_extract_v1',
-  'run_case_extract_v2',
-  'run_case_extract_v3',
-] as const
-
-/** @deprecated archived 2026-04-21. Do NOT call from the frontend. */
-export const ARCHIVED_GEMINI_TASK_FN = 'gemini-task'
-
-/** @deprecated Masha-internal fallback only — fires from the Supabase
- *  Dashboard ONLY when `run_case_extract_v4` fails to compute the loss
- *  amount. Do NOT call from the frontend. Kept here for audit visibility. */
-export const FALLBACK_ONLY_FNS = [
-  'candidate-transactions',
-  'compute-loss',
-] as const

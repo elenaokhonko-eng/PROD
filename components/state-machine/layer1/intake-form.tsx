@@ -21,7 +21,26 @@ import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 
-export const INTAKE_FIELDS = [
+export type IntakeFieldKey =
+  | 'institution_name'
+  | 'account_details'
+  | 'incident_summary'
+  | 'financial_impact'
+  | 'desired_outcome'
+  | 'previous_contact'
+  | 'contact_details'
+
+interface IntakeField {
+  key: IntakeFieldKey
+  question: string
+  type: 'text' | 'textarea' | 'radio'
+  required: boolean
+  placeholder?: string
+  options?: readonly string[]
+  showIf?: { key: IntakeFieldKey; value: string }
+}
+
+export const INTAKE_FIELDS: readonly IntakeField[] = [
   {
     key: 'institution_name',
     question: 'What is the name of the financial institution?',
@@ -74,8 +93,6 @@ export const INTAKE_FIELDS = [
     showIf: { key: 'previous_contact', value: 'Yes' },
   },
 ] as const
-
-export type IntakeFieldKey = (typeof INTAKE_FIELDS)[number]['key']
 export type IntakeAnswers = Partial<Record<IntakeFieldKey, string>>
 
 export interface IntakeFormProps {
