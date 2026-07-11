@@ -2,11 +2,17 @@
 -- The Stripe webhook inserts rows with status='queued'.
 -- The Render worker polls, locks with FOR UPDATE SKIP LOCKED, runs the
 -- canonical Tier-1 sequence, and updates status to 'completed' or 'failed'.
+--
+-- Compatibility: jobs.user_id stores the application ownership UUID
+-- (public.profiles.id / Clerk JWT claim supabase_uuid / cases.user_id).
+-- That UUID is created by the Clerk webhook and is NOT guaranteed to exist
+-- in auth.users.id (Third-Party Auth may use JWT sub / Clerk user id instead).
+-- Therefore jobs.user_id references public.profiles(id), not auth.users(id).
 
 CREATE TABLE IF NOT EXISTS public.jobs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   case_id uuid NOT NULL REFERENCES public.cases(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   job_type text NOT NULL CHECK (job_type IN ('post_payment_report_generation')),
   idempotency_key text,
   status text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'completed', 'failed')),
@@ -63,7 +69,8 @@ END $$;
 
 -- Atomic claim-and-lock helper used by the Render worker.
 -- SELECT FOR UPDATE SKIP LOCKED prevents multiple workers from picking up the
--- same queued job; the UPDATE happens in the same transaction.
+-- same queued job; the UPDATE happens in the same transaction and RETURNING
+-- refreshes the local record so callers see status='running'.
 CREATE OR REPLACE FUNCTION public.claim_next_job()
 RETURNS public.jobs
 LANGUAGE plpgsql
@@ -83,11 +90,13 @@ BEGIN
   END IF;
 
   UPDATE public.jobs
-  SET status = 'running',
-      started_at = now(),
-      locked_at = now(),
-      updated_at = now()
-  WHERE id = job.id;
+  SET
+    status = 'running',
+    started_at = now(),
+    locked_at = now(),
+    updated_at = now()
+  WHERE id = job.id
+  RETURNING * INTO job;
 
   RETURN job;
 END;
