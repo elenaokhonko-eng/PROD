@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
 
 import { trackServerEvent } from "@/lib/analytics/server"
-import { getOrCreateProfile } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export async function POST(request: Request) {
-  const user = await getOrCreateProfile()
+  const user = await getCurrentUser()
 
   const { token } = await request.json()
   if (!token) {
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   const sessionUserId = rawSession.converted_to_user_id
-  const activeUserId = user?.profileId ?? sessionUserId
+  const activeUserId = user?.supabaseUuid ?? sessionUserId
 
   if (!activeUserId) {
     console.warn(`[Create Case] No active user for session ${token}`)
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
   const { error: profileUpsertError } = await supabaseService.from("profiles").upsert(
     {
       id: activeUserId,
-      email: user?.email ?? null,
+      email: null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" },

@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server"
 
-import { getOrCreateProfile } from "@/lib/auth"
-import { createServiceClient } from "@/lib/supabase/service"
+import { createUserClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
 
-const STORAGE_BUCKET = "evidence"
+const STORAGE_BUCKETS = ["case_evidence", "evidence"] as const
 
 export async function POST(request: Request) {
   try {
@@ -22,48 +21,63 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "caseId is required" }, { status: 400 })
     }
 
-    const user = await getOrCreateProfile()
-    if (!user) {
+    let supabase
+    try {
+      supabase = await createUserClient()
+    } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const supabaseService = createServiceClient()
+    // RLS limits this lookup to cases owned by the authenticated user.
+    const { data: caseRow, error: caseErr } = await supabase
+      .from("cases")
+      .select("id")
+      .eq("id", caseId)
+      .maybeSingle()
 
-    // Build storage path
+    if (caseErr) {
+      console.error("[evidence/upload] Case ownership lookup failed:", caseErr)
+      return NextResponse.json({ error: "Failed to verify case ownership" }, { status: 500 })
+    }
+    if (!caseRow) {
+      return NextResponse.json({ error: "Case not found" }, { status: 404 })
+    }
+
     const originalName = (file as File).name ?? "upload"
     const fileExt = originalName.includes(".") ? originalName.split(".").pop() : undefined
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}${fileExt ? `.${fileExt}` : ""}`
-    const filePath = `${caseId}/${category}/${fileName}`
+    const filePath = `cases/${caseId}/documents/${fileName}`
 
-    // Upload to storage using service role (bypasses bucket RLS)
-    const { error: storageError } = await supabaseService.storage.from(STORAGE_BUCKET).upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-    })
-    if (storageError) {
-      console.error("[evidence/upload] Storage upload failed:", storageError)
-      return NextResponse.json({ error: "Failed to upload file" }, { status: 500 })
+    let uploadedBucket: (typeof STORAGE_BUCKETS)[number] | null = null
+    let lastStorageError: unknown = null
+    for (const bucket of STORAGE_BUCKETS) {
+      const { error } = await supabase.storage.from(bucket).upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      })
+      if (!error) {
+        uploadedBucket = bucket
+        break
+      }
+      lastStorageError = error
     }
 
-    // Insert DB record using service role (bypasses table RLS)
-    const { data: evidence, error: insertError } = await supabaseService
-      .from("evidence")
-      .insert({
-        case_id: caseId,
-        user_id: user.profileId,
-        filename: originalName,
-        file_path: filePath,
-        file_type: (file as File).type,
-        file_size: (file as File).size,
-        description: description || originalName,
-        category,
-      })
-      .select()
-      .single()
-
-    if (insertError) {
-      console.error("[evidence/upload] Insert failed:", insertError)
-      return NextResponse.json({ error: "Failed to save evidence metadata" }, { status: 500 })
+    if (!uploadedBucket) {
+      console.error("[evidence/upload] Storage upload failed:", lastStorageError)
+      const errorMessage =
+        lastStorageError && typeof lastStorageError === "object" && "message" in lastStorageError
+          ? String((lastStorageError as { message?: unknown }).message ?? "")
+          : ""
+      if (errorMessage.toLowerCase().includes("row-level security policy")) {
+        return NextResponse.json(
+          {
+            error:
+              "Storage upload blocked by Supabase Storage RLS policy. Update storage.objects INSERT policy for your evidence bucket/path.",
+          },
+          { status: 403 },
+        )
+      }
+      return NextResponse.json({ error: "Failed to upload file" }, { status: 500 })
     }
 
     return NextResponse.json({ evidence })

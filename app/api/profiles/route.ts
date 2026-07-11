@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { getOrCreateProfile } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 
 export async function PUT(request: Request) {
-  const user = await getOrCreateProfile()
+  const user = await getCurrentUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -14,8 +14,7 @@ export async function PUT(request: Request) {
   const { error } = await supabase
     .from('profiles')
     .upsert({
-      id: user.profileId,
-      email: user.email,
+      id: user.supabaseUuid,
       ...body,
       updated_at: new Date().toISOString(),
     })

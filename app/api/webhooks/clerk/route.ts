@@ -68,21 +68,50 @@ export async function POST(request: Request) {
       )
     }
 
+    const profileUUID = crypto.randomUUID()
+
     const supabase = await createClient()
-    const { error } = await supabase.from('profiles').insert({
-      id: crypto.randomUUID(),
+    const { error: insertError } = await supabase.from('profiles').insert({
+      id: profileUUID,
       clerk_id: clerkId,
       email: primaryEmail,
       first_name,
       last_name,
     })
 
-    if (error) {
-      console.error('[clerk-webhook] failed to create profile:', error.message)
+    if (insertError) {
+      console.error('[clerk-webhook] failed to create profile:', insertError.message)
       return NextResponse.json(
         { error: 'Failed to create profile' },
         { status: 500 }
       )
+    }
+
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY
+    if (!clerkSecretKey) {
+      console.error('[clerk-webhook] CLERK_SECRET_KEY not set — cannot sync supabase_uuid to Clerk')
+    } else {
+      const clerkRes = await fetch(
+        `https://api.clerk.com/v1/users/${clerkId}/metadata`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${clerkSecretKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            public_metadata: { supabase_uuid: profileUUID },
+          }),
+        },
+      )
+      if (!clerkRes.ok) {
+        const bodyText = await clerkRes.text()
+        console.error(
+          '[clerk-webhook] failed to update Clerk public_metadata:',
+          clerkRes.status,
+          bodyText,
+        )
+      }
     }
   }
 

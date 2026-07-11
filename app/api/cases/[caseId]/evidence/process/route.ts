@@ -24,7 +24,7 @@ type ProcessResult = {
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
-  const user = await getOrCreateProfile()
+  const user = await getCurrentUser()
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }

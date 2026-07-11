@@ -1,56 +1,15 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { trackClientEvent } from "@/lib/analytics/client"
 
 export default function HomeClient() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
-  const [email, setEmail] = useState("")
-  const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
-
-  const handleWaitlistSignup = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email) return
-
-    setIsSubmitting(true)
-    try {
-      const res = await fetch("/api/waitlist/join", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, first_name: firstName, last_name: lastName, source: "home_page" }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to join waitlist")
-
-      await trackClientEvent({
-        eventName: "waitlist_signup",
-        eventData: {
-          email,
-          source: "home_page",
-          timestamp: new Date().toISOString(),
-        },
-      })
-
-      setIsSubmitted(true)
-    } catch {
-      // eslint-disable-next-line no-alert
-      alert("Failed to join waitlist. Please try again.")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   const handleSignOut = async () => {
     await signOut()
@@ -105,57 +64,6 @@ export default function HomeClient() {
           </div>
         </div>
       </header>
-
-      {/* Email Registration Section */}
-      <section className="bg-accent/10 border-b border-accent/20 py-8">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-2xl font-bold mb-4">Join the Waitlist</h2>
-            <p className="text-muted-foreground mb-6">
-              GuideBuoy AI is launching in December. Get 1 month free when you join our waitlist.
-            </p>
-
-            {!isSubmitted ? (
-              <form onSubmit={handleWaitlistSignup} className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-2xl mx-auto">
-                <Input
-                  type="text"
-                  placeholder="First name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
-                />
-                <Input
-                  type="text"
-                  placeholder="Last name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required
-                />
-                <div className="flex gap-3">
-                  <Input
-                    type="email"
-                    placeholder="Email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="flex-1"
-                  />
-                  <Button type="submit" disabled={isSubmitting} className="whitespace-nowrap">
-                    {isSubmitting ? "Joining..." : "Join"}
-                  </Button>
-                </div>
-              </form>
-            ) : (
-              <Card className="p-6 bg-accent/20 border-accent max-w-md mx-auto">
-                <CardContent className="p-0 text-center">
-                  <h3 className="font-semibold text-lg mb-2">You{"'"}re on the list!</h3>
-                  <p className="text-muted-foreground">We{"'"}ll notify you when GuideBuoy AI launches in December.</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      </section>
 
       {/* Prototype Banner */}
       <div className="bg-accent/20 border-b border-accent/30 py-2">
