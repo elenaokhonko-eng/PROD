@@ -1,13 +1,23 @@
--- Layer 3 / Tier 2 contact-request storage.
+-- Layer 3 / Tier 2 contact-request storage (Clerk Pattern C).
+--
+-- Ownership chain (authoritative):
+--   escalation_waitlist.case_id
+--   → cases.id
+--   → cases.user_id
+--   → public.current_app_user_id()
+--
+-- escalation_waitlist.user_id is a denormalized audit copy of cases.user_id
+-- and references public.profiles(id), never auth.users(id).
 --
 -- The browser posts to /api/contact-requests. That route first performs a
--- user-scoped RLS ownership probe on public.cases, then writes this table with
--- the service role so server-owned snapshot columns cannot be mutated directly
--- by a browser Supabase client.
+-- user-scoped RLS ownership probe on public.cases, derives user_id from
+-- cases.user_id (ignoring any request-supplied user_id), then writes this
+-- table with the service role so server-owned snapshot columns cannot be
+-- mutated directly by a browser Supabase client.
 
 CREATE TABLE IF NOT EXISTS public.escalation_waitlist (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   case_id uuid NOT NULL REFERENCES public.cases(id) ON DELETE CASCADE,
 
   first_name text NOT NULL,
@@ -36,6 +46,9 @@ CREATE TABLE IF NOT EXISTS public.escalation_waitlist (
   CONSTRAINT escalation_waitlist_user_case_unique UNIQUE (user_id, case_id)
 );
 
+COMMENT ON COLUMN public.escalation_waitlist.user_id IS
+  'Denormalized application owner UUID (profiles.id / cases.user_id). Authoritative ownership is via case_id → cases.user_id = current_app_user_id().';
+
 CREATE INDEX IF NOT EXISTS escalation_waitlist_status_idx
   ON public.escalation_waitlist (status, created_at DESC);
 
@@ -52,12 +65,18 @@ DROP POLICY IF EXISTS "users_can_update_own" ON public.escalation_waitlist;
 DROP POLICY IF EXISTS "users_can_read_own" ON public.escalation_waitlist;
 DROP POLICY IF EXISTS "escalation_waitlist_select_own" ON public.escalation_waitlist;
 
+-- Case-scoped SELECT: reports ownership via cases, not auth.uid() / JWT sub.
 CREATE POLICY "escalation_waitlist_select_own"
   ON public.escalation_waitlist
   FOR SELECT
   TO authenticated
   USING (
-    user_id = NULLIF(auth.jwt()->>'supabase_uuid', '')::uuid
+    EXISTS (
+      SELECT 1
+      FROM public.cases c
+      WHERE c.id = escalation_waitlist.case_id
+        AND c.user_id = public.current_app_user_id()
+    )
   );
 
 GRANT SELECT ON public.escalation_waitlist TO authenticated;
