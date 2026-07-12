@@ -34,9 +34,12 @@ export interface ReportRow {
 }
 
 /** Payload for `POST /api/edge/report`. The `simulation_key` is injected
- *  server-side and must NEVER be sent from the browser. */
+ *  server-side and must NEVER be sent from the browser.
+ *  Do not send `user_id` — ownership is resolved from `cases.user_id`
+ *  (Pattern C) inside `run_report_selfserve_v1`. */
 export interface ReportPayload {
   case_id: string
+  force?: boolean
 }
 
 export interface ReportResponse {

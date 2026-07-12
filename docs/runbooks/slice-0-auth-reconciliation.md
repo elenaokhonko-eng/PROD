@@ -65,13 +65,18 @@ SDK versions the refactor assumes (already pinned in `package.json`; nothing to 
      "aud": "authenticated",
      "role": "authenticated",
      "email": "{{user.primary_email_address}}",
+     "supabase_uuid": "{{user.public_metadata.supabase_uuid}}",
      "app_metadata": {},
      "user_metadata": {}
    }
    ```
 
-   Leave `sub` as Clerk's default — Clerk will sign the token with a `sub` claim that is a UUID when you have Supabase Third-Party Auth configured (see 1.3). That UUID is what ends up in `auth.users.id`.
+   Leave `sub` as Clerk's default (`user_...` is OK). RLS ownership uses
+   `public.current_app_user_id()` = `auth.jwt()->>'supabase_uuid'`, **not**
+   `auth.uid()` / `sub`. PostgREST still requires `role: "authenticated"`.
+   A token with `supabase_uuid` set but `role`/`aud` null will fail Slice 5 reads.
 4. **Name the template `supabase`** (lowercase). The frontend code in `lib/supabase/server.ts` and `lib/supabase/browser.ts` calls `getToken({ template: 'supabase' })`; the name must match exactly.
+5. **Also enable Clerk’s native Supabase integration** (Clerk Dashboard → Integrations / Connect with Supabase) so session tokens are Supabase-compatible. Hosted Supabase → Authentication → Third-Party Auth must list the **same** Clerk issuer/domain (JWKS: `https://<clerk-domain>/.well-known/jwks.json`, audience `authenticated`).
 5. Save. Copy the **JWKS endpoint URL** Clerk shows you. It looks like `https://<your-clerk-frontend-api>.clerk.accounts.dev/.well-known/jwks.json`. Paste it into the Findings table at the bottom of this runbook.
 
 ### 1.3 Enable Clerk as a Third-Party Auth provider in Supabase
