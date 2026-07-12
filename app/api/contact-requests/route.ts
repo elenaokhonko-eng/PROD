@@ -53,11 +53,14 @@ export async function POST(req: Request) {
 
   const supabase = await createUserClient()
 
+  // Pattern C: ownership probe via RLS on cases, then derive denormalized
+  // escalation_waitlist.user_id from cases.user_id (never request body / JWT alone).
   const { data: snapshot, error: snapshotErr } = await supabase
     .from('cases')
     .select(
       `
       id,
+      user_id,
       institution_name,
       claim_amount,
       latest_extract:case_extract_runs(extract_json, created_at)
@@ -73,6 +76,14 @@ export async function POST(req: Request) {
   }
   if (!snapshot) {
     return NextResponse.json({ error: 'case_not_found' }, { status: 404 })
+  }
+
+  const caseOwnerId =
+    typeof snapshot.user_id === 'string' && snapshot.user_id.length > 0
+      ? snapshot.user_id
+      : null
+  if (!caseOwnerId) {
+    return NextResponse.json({ error: 'case_missing_owner' }, { status: 500 })
   }
 
   const extract = (snapshot.latest_extract?.[0]?.extract_json ?? null) as
@@ -91,7 +102,7 @@ export async function POST(req: Request) {
     .from('escalation_waitlist')
     .upsert(
       {
-        user_id: user.supabaseUuid,
+        user_id: caseOwnerId,
         case_id: body.case_id,
         first_name: body.first_name,
         last_name: body.last_name,
