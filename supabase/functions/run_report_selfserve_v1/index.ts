@@ -891,7 +891,23 @@ function forceNeutralAuthorised(reportJson, enabled) {
       ok: false,
       error: "Missing case_id"
     }, 400);
-    const user_id = typeof body.user_id === "string" ? body.user_id : null;
+    // Pattern C: owner is cases.user_id (application UUID / profiles.id).
+    // Never trust worker/body user_id; never use auth.uid() / JWT sub.
+    const { data: caseRow, error: caseErr } = await supabaseAdmin
+      .from("cases")
+      .select("id, user_id")
+      .eq("id", case_id)
+      .maybeSingle();
+    if (caseErr) throw new Error(`cases select error: ${JSON.stringify(caseErr)}`);
+    if (!caseRow) return jsonResp({
+      ok: false,
+      error: "case_not_found"
+    }, 404);
+    const user_id = typeof caseRow.user_id === "string" ? caseRow.user_id : null;
+    if (!user_id) return jsonResp({
+      ok: false,
+      error: "case_missing_owner"
+    }, 500);
     /** 1) Idempotency: reuse latest report for case_id */ if (!force) {
       const { data: existing, error: exErr } = await supabaseAdmin.from("reports").select("id, user_id, case_id, status, report_json, created_at, updated_at").eq("case_id", case_id).order("created_at", {
         ascending: false
