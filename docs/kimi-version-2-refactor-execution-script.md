@@ -172,39 +172,60 @@ Stop after Slice 7 and hand off to Codex/Dance.
 
 ## Slice 8 - Layer 3 / Tier 2 Commerce
 
-Goal: add post-report FIDReC case-pack/specialist commerce on the existing Layer 3 surface.
+Goal: add the current Slice 8 Tier 2 path on the existing post-report Layer 3 surface.
 
 Tasks:
 
 1. Keep Layer 3 and Tier 2 as the same post-Tier-1 screen.
 2. Keep the existing global WhatsApp link in `app/layout.tsx`; do not add a duplicate global widget.
-3. Add on-page Scam and Fraud Specialist consult/Q&A recommendation copy.
-4. Add two paid add-ons:
-   - SGD 99 specialist consult / 30 min
-   - SGD 800 FIDReC case-pack prep
-5. Extend checkout creation to accept a known product key.
-6. Add Stripe metadata discriminator for product type.
-7. Add webhook branches for those add-ons.
-   - Persist entitlement/purchase state.
-   - Send any operations notification required by product.
-   - Do not enqueue the Layer 2 decision/report worker for these add-ons.
-8. Use existing FIDReC Tier-2 helpers where possible; do not invent a parallel Tier-2 URL unless product explicitly asks for one.
+3. Treat `case_entitlements.plan = 'escalation_pack'` and/or `features.allow_escalation_pack = true` as a valid Layer 3 / Tier 2 state. Do not route that case back to the old self-serve buy-report flow.
+4. Add the SGD 188 FIDReC Tier 2 pack offer with product key `fidrec_tier2_pack`.
+5. Keep the SGD 99 human consult as a separate offer with product key `human_consult_30m`. It is a human advice/direction call, not the automated pack. Do not implement call recording/transcription yet unless Masha provides the backend contract.
+6. Extend checkout creation to accept known product keys and Stripe price env vars:
+   - `self_serve_report` = Basic Case Pack, SGD 18, env `STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD`, price `price_1TsLZdFp6sSKMUXXz5xEbxrA`
+   - `fidrec_tier2_pack` = FIDREC Case Pack, SGD 188, env `STRIPE_PRICE_ID_FIDREC_TIER2_PACK_SGD`, price `price_1TsLY5Fp6sSKMUXXdHFwRsny`
+   - `human_consult_30m` = Human in the Loop Consultation, SGD 99, env `STRIPE_PRICE_ID_HUMAN_CONSULT_30M_SGD`, price `price_1SLOYUFp6sSKMUXXsTXlLdcT`
+   - Treat `STRIPE_PRICE_ID_SGD` as legacy/ambiguous. The old SGD 99 price ID has been repurposed for consultation and must not drive Tier 1.
+7. Add Stripe metadata discriminator for `product_key`, `case_id`, and `user_id`.
+8. Add webhook branches:
+   - `self_serve_report`: Basic Case Pack, enqueue Layer 2 job.
+   - `fidrec_tier2_pack`: persist purchase and set entitlement to `escalation_pack` / `allow_escalation_pack`; do not enqueue a Layer 2 job.
+   - `human_consult_30m`: persist purchase/request for operations; do not enqueue a Layer 2 job.
+9. Use the existing FIDReC Tier-2 helpers:
+   - `app/api/fidrec/tier2/case-pack-json/route.ts`
+   - `lib/server/fidrec/generate-case-pack-json.ts`
+   - `lib/server/fidrec/build-fidrec-submission-pack.ts`
+10. Harden `GET /api/fidrec/tier2/case-pack-json` so it checks ownership and `assertTier2Eligible(caseId)`.
+11. Add `GET /api/fidrec/tier2/case-pack-export?caseId=...&format=pdf|md`.
+    - PDF response: `application/pdf`, downloadable attachment.
+    - Markdown response: `text/markdown`, downloadable attachment for AI compatibility.
+    - Both exports must use the same generated pack as the JSON route.
+12. Add Layer 3 UI for Tier 2 ready state:
+    - executive summary preview
+    - chronology/timeline preview
+    - loading/error states
+    - PDF and Markdown download buttons
+13. Use Tier 2 test case `688154e7-9cda-47ef-9cff-a27581766c3a` for local/browser QA once Masha confirms hosted DB artefacts are present.
 
 Run before handoff:
 
 ```powershell
 pnpm.cmd check:sm
 pnpm.cmd exec tsc --noEmit --incremental false
-rg "specialist_consult|case_pack|tier2|fidrec" app components hooks lib supabase
+rg "fidrec_tier2_pack|human_consult_30m|escalation_pack|case-pack-export|tier2|fidrec" app components hooks lib supabase
 ```
 
 Manual/browser QA to request from Codex/Dance:
 
-1. With a completed self-serve report, Layer 3 shows the case-pack/specialist surface.
-2. SGD 99 checkout succeeds in Stripe test mode and persists the right product state.
-3. SGD 800 checkout succeeds in Stripe test mode and persists the right product state.
-4. Neither add-on enqueues the Layer 2 decision/report worker.
-5. WhatsApp remains visible globally and does not require login on public routes.
+1. With a completed self-serve report, Layer 3 shows the Tier 2 pack and consult surface.
+2. `escalation_pack` entitlement shows Tier 2 ready, not buy-report.
+3. SGD 18 `self_serve_report` checkout uses the new Basic Case Pack price and still enqueues the Layer 2 job.
+4. SGD 188 `fidrec_tier2_pack` checkout succeeds in Stripe test mode and persists entitlement state.
+5. SGD 99 `human_consult_30m` checkout succeeds in Stripe test mode and persists consult request/purchase state.
+6. Neither add-on enqueues the Layer 2 decision/report worker.
+7. Tier 2 JSON route returns executive summary and chronology.
+8. PDF and Markdown downloads work and contain the same pack content.
+9. WhatsApp remains visible globally and does not require login on public routes.
 
 Stop after Slice 8 and hand off to Codex/Dance.
 

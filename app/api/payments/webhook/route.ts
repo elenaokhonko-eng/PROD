@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
         const caseId = session.metadata?.case_id
         const userId = session.metadata?.user_id
         const paymentRowId = session.metadata?.payment_row_id
+        const productKey = session.metadata?.product_key ?? "self_serve_report"
 
         if (paymentRowId) {
           await supabase
@@ -46,10 +47,38 @@ export async function POST(request: NextRequest) {
             .eq("id", paymentRowId)
         }
 
-        if (caseId && userId) {
-          // Slice 6: one transaction upgrades the entitlement and enqueues
-          // the background job. Stripe may redeliver events, so session.id is
-          // the idempotency key that prevents duplicate jobs.
+        if (!caseId || !userId) {
+          break
+        }
+
+        if (productKey === "fidrec_tier2_pack") {
+          // Slice 8: Tier 2 pack upgrades entitlement but never enqueues Layer 2.
+          const { error: entitlementErr } = await supabase
+            .from("case_entitlements")
+            .upsert(
+              {
+                case_id: caseId,
+                plan: "escalation_pack",
+                features: { allow_escalation_pack: true },
+                source: "stripe",
+                purchase_ref: session.id,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "case_id" },
+            )
+
+          if (entitlementErr) {
+            console.error("[payments] Tier 2 entitlement upgrade failed:", entitlementErr)
+            return new NextResponse("Webhook handler failed", { status: 500 })
+          }
+        } else if (productKey === "human_consult_30m") {
+          // Slice 8: consult purchase is persisted on the payment row only.
+          // No entitlement change and no Layer 2 job.
+          // eslint-disable-next-line no-empty
+        } else {
+          // Slice 6: self-serve report. One transaction upgrades the entitlement
+          // and enqueues the background job. Stripe may redeliver events, so
+          // session.id is the idempotency key that prevents duplicate jobs.
           const { error: enqueueErr } = await supabase.rpc(
             "enqueue_post_payment_report_generation",
             {

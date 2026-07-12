@@ -3,6 +3,7 @@ import { z } from "zod"
 
 import { getCurrentUser } from "@/lib/auth"
 import { assertCaseAccess, CaseAccessDeniedError, CaseNotFoundError } from "@/lib/server/fidrec/assert-case-access"
+import { assertTier2Eligible, Tier2NotEnabledError } from "@/lib/server/fidrec/assert-tier2-eligible"
 import { generateCasePackJson } from "@/lib/server/fidrec/generate-case-pack-json"
 
 export const runtime = "nodejs"
@@ -40,6 +41,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
     return NextResponse.json({ error: "Failed to fetch case pack JSON" }, { status: 500 })
+  }
+
+  try {
+    await assertTier2Eligible(parsedQuery.caseId)
+  } catch (error) {
+    if (error instanceof Tier2NotEnabledError) {
+      return NextResponse.json({ error: "Tier 2 pack not enabled for this case" }, { status: 403 })
+    }
+    return NextResponse.json({ error: "Failed to verify Tier 2 eligibility" }, { status: 500 })
   }
 
   try {

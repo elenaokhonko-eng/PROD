@@ -24,6 +24,7 @@ export type StateMachineNode =
   | 'L2-ReportReady'
   | 'L2-ReportFailed'
   | 'L3-FormFilling'
+  | 'L3-Tier2Ready'
   | 'L3-Submitting'
   | 'L3-Confirmed'
 
@@ -73,6 +74,10 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
 
   if (isContactSubmitted) return 'L3-Confirmed'
   if (isContactSubmitting) return 'L3-Submitting'
+
+  if (entitlementPlan === 'escalation_pack') {
+    return 'L3-Tier2Ready'
+  }
 
   if (entitlementPlan === 'self_serve_report') {
     if (report?.status === 'COMPLETED') return 'L3-FormFilling'

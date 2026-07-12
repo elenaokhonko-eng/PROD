@@ -3,6 +3,8 @@
 import { useMutation } from '@tanstack/react-query'
 import { useAuth } from '@clerk/nextjs'
 
+export type ProductKey = 'self_serve_report' | 'fidrec_tier2_pack' | 'human_consult_30m'
+
 interface CreateCheckoutSessionResponse {
   url?: string | null
   error?: string
@@ -10,13 +12,14 @@ interface CreateCheckoutSessionResponse {
 
 export interface CreateCheckoutSessionInput {
   caseId: string
+  productKey: ProductKey
 }
 
 export function useCreateCheckoutSession() {
   const { getToken } = useAuth()
 
   return useMutation({
-    mutationFn: async ({ caseId }: CreateCheckoutSessionInput) => {
+    mutationFn: async ({ caseId, productKey }: CreateCheckoutSessionInput) => {
       const token = await getToken({ template: 'supabase' })
       if (!token) {
         throw new Error('Missing Supabase token')
@@ -28,7 +31,7 @@ export function useCreateCheckoutSession() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ caseId }),
+        body: JSON.stringify({ caseId, productKey }),
       })
 
       const json = (await response.json().catch(() => null)) as CreateCheckoutSessionResponse | null

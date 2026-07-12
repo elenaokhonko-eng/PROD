@@ -24,19 +24,23 @@ export function usePaymentStatus(caseId: string | null | undefined, options?: Us
     queryFn: async (): Promise<PaymentStatusResult> => {
       const { data, error } = await supabase
         .from('case_entitlements')
-        .select('plan, updated_at')
+        .select('plan, features, updated_at')
         .eq('case_id', caseId as string)
         .maybeSingle()
 
       if (error) throw error
+      const features = data?.features as Record<string, unknown> | null | undefined
+      const allowsEscalationPack = features?.allow_escalation_pack === true
+      const plan = (data?.plan as CaseEntitlementPlan | null) ?? null
+
       return {
-        plan: (data?.plan as CaseEntitlementPlan | null) ?? null,
+        plan: allowsEscalationPack ? 'escalation_pack' : plan,
         updatedAt: data?.updated_at ?? null,
       }
     },
     refetchInterval: (query) => {
       const currentPlan = query.state.data?.plan ?? null
-      if (currentPlan === 'self_serve_report') {
+      if (currentPlan === 'self_serve_report' || currentPlan === 'escalation_pack') {
         return false
       }
       return 2_000

@@ -55,6 +55,7 @@ Validated on linked Supabase (2026-06-02):
 - Worker report calls intentionally omit `user_id` for now because `reports.user_id` still references `auth.users(id)` while Clerk Pattern C case ownership uses `cases.user_id = public_metadata.supabase_uuid`; the report function supports null `user_id` and report ownership is case-scoped.
 
 - Stripe test checkout upgrades `case_entitlements.plan` to `self_serve_report`.
+- Tier 1 checkout must use the new **Basic Case Pack** Stripe price at SGD 18 via `STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD=price_1TsLZdFp6sSKMUXXz5xEbxrA`; the old SGD 99 price `price_1SLOYUFp6sSKMUXXsTXlLdcT` is now reserved for `human_consult_30m`.
 - Webhook inserts a queued `jobs` row and returns quickly; it must not call decision/report edge routes directly.
 - Render worker progresses job status and calls decision/report through `/api/edge/*`.
 - Realtime advances the UI from decision running to report drafting to report ready.
@@ -68,7 +69,22 @@ Validated on linked Supabase (2026-06-02):
 - Confirm the contact form path does not call `/api/edge/*`.
 - Confirm the persistent WhatsApp link remains available on public and authenticated routes without requiring login, and that there is no duplicate global widget.
 - On the Layer 3 / Tier 2 screen, confirm Scam and Fraud Specialist consult / Q&A recommendation copy is visible.
-- After Slice 8, run SGD 99 specialist consult and SGD 800 case-pack Stripe test checkouts; confirm the webhook branches do not enqueue the Layer 2 decision/report worker.
+- After Slice 8, run the SGD 188 `fidrec_tier2_pack` checkout and the separate SGD 99 `human_consult_30m` checkout; confirm neither branch enqueues the Layer 2 decision/report worker.
+
+## 4.1 Slice 8 - Tier 2 Pack QA
+
+Use Tier 2 case `688154e7-9cda-47ef-9cff-a27581766c3a` once Masha confirms the hosted DB has the required FIDReC helper artefacts.
+
+- Confirm a completed Tier 1 report case shows the Layer 3 / Tier 2 surface, not the Layer 1 -> Layer 2 buy-report prompt.
+- Confirm `case_entitlements.plan = escalation_pack` or `features.allow_escalation_pack = true` is treated as Tier 2 ready.
+- Confirm `POST /api/payments/create-checkout-session` accepts product key `self_serve_report`, uses the SGD 18 Basic Case Pack price, and writes Stripe metadata containing `case_id`, `user_id`, and `product_key`.
+- Confirm `POST /api/payments/create-checkout-session` accepts product key `fidrec_tier2_pack`, uses the SGD 188 FIDREC Case Pack price, and writes Stripe metadata containing `case_id`, `user_id`, and `product_key`.
+- Confirm the Stripe webhook for `fidrec_tier2_pack` upgrades entitlement to `escalation_pack` / `allow_escalation_pack`, returns quickly, and does not insert a `jobs` row.
+- Confirm `GET /api/fidrec/tier2/case-pack-json?caseId=...` requires ownership and Tier 2 entitlement, then returns `submission_pack.executive_summary.narrative` and non-empty `submission_pack.chronology_of_events`.
+- Confirm the UI renders the executive summary and chronology/timeline with status and evidence references.
+- Confirm PDF download returns `application/pdf` and Markdown download returns `text/markdown`; both must contain the executive summary and chronology.
+- Confirm cross-user or unauthenticated requests to JSON/export routes fail.
+- Confirm product key `human_consult_30m` uses the SGD 99 consult price and persists the consult purchase/request separately from the Tier 2 pack. Full consult call recording, transcription, and case-narrative insertion remain pending Masha's backend workflow.
 
 ## 5. Slice 5 Retest Scenarios
 
