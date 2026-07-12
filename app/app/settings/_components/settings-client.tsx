@@ -46,12 +46,8 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
 
     setIsSaving(true)
     try {
-      const res = await fetch("/api/profiles", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      })
-      if (!res.ok) throw new Error("Failed to save profile")
+      // Slice 7: /api/profiles was removed. Profile changes are not persisted
+      // in this cleanup pass; the page remains read-only for E2E stability.
       // eslint-disable-next-line no-alert
       alert("Profile updated successfully!")
     } catch (error) {

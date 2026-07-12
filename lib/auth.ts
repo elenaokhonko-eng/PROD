@@ -25,23 +25,19 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const { userId, getToken } = await auth()
-  console.log('[auth] userId:', userId)
   if (!userId) return null
 
   const token = await getToken({ template: 'supabase' })
-  console.log('[auth] token exists:', !!token)
   if (!token) return null
 
   let payload: Record<string, unknown>
   try {
     payload = decodeJwtPayload(token)
-  } catch (e) {
-    console.log('[auth] jwt decode error:', e)
+  } catch {
     return null
   }
 
   const supabaseUuid = payload.supabase_uuid
-  console.log('[auth] supabaseUuid:', supabaseUuid)
   if (typeof supabaseUuid !== 'string' || !supabaseUuid) return null
 
   return { userId, supabaseUuid }

@@ -38,6 +38,20 @@ const archivedFunctionFolders = [
   "supabase/functions/run_case_extract_v3",
 ]
 
+const layer3LegacyNames = [
+  "WaitlistForm",
+  "WaitlistConfirmed",
+  "waitlist-form",
+  "waitlist-confirmed",
+]
+
+const layer3LegacyPhrases = [
+  "/api/escalation-waitlist",
+  "You're on the list",
+  "You&apos;re on the list",
+  "You’re on the list",
+]
+
 function toPosix(filePath: string): string {
   return filePath.split(path.sep).join("/")
 }
@@ -125,6 +139,22 @@ for (const file of codeFiles) {
   if ((isLayer3Ui || isContactRoute) && (text.includes("/api/edge/") || text.includes("functions/v1"))) {
     add("R12", file, "Layer 3/contact path must not call edge functions")
   }
+
+  if (isLayer3Ui || isContactRoute) {
+    const legacyNameHits = includesAny(text, layer3LegacyNames)
+    if (legacyNameHits.length > 0) {
+      add("R13", file, `Layer 3/contact path must not use waitlist legacy names: ${legacyNameHits.join(", ")}`)
+    }
+
+    const legacyPhraseHits = layer3LegacyPhrases.filter((phrase) => text.includes(phrase))
+    if (legacyPhraseHits.length > 0) {
+      add("R13", file, `Layer 3/contact path must not use waitlist legacy phrasing: ${legacyPhraseHits.join(", ")}`)
+    }
+
+    if (text.includes("linkedinUrl")) {
+      add("R13", file, "Layer 3/contact path must not include LinkedIn CTA props/rendering")
+    }
+  }
 }
 
 for (const rel of archivedFunctionFolders) {
@@ -133,6 +163,41 @@ for (const rel of archivedFunctionFolders) {
       rule: "R2",
       file: rel,
       detail: "archived/fallback Supabase function folder must not live under supabase/functions",
+    })
+  }
+}
+
+// Slice 7: Pattern B remnants must not reappear in app/lib code.
+const patternBIndicators = [
+  "crypto.randomUUID",
+  "public_metadata",
+  "from('profiles').insert",
+  "clerk_id",
+]
+const clerkWebhookPath = "app/api/webhooks/clerk/route.ts"
+if (exists(clerkWebhookPath)) {
+  const webhookText = readCodeWithoutComments(path.join(root, clerkWebhookPath))
+  const webhookHits = patternBIndicators.filter((indicator) => webhookText.includes(indicator))
+  if (webhookHits.length > 0) {
+    findings.push({
+      rule: "R14",
+      file: clerkWebhookPath,
+      detail: `Clerk webhook must not contain Pattern B profile/metadata sync remnants: ${webhookHits.join(", ")}`,
+    })
+  }
+}
+
+for (const file of codeFiles) {
+  const rel = toPosix(path.relative(root, file))
+  if (!rel.startsWith("app/") && !rel.startsWith("lib/")) continue
+  if (rel === clerkWebhookPath) continue
+
+  const text = readCodeWithoutComments(file)
+  if (text.includes("crypto.randomUUID") && (text.includes("profiles") || text.includes("clerk"))) {
+    findings.push({
+      rule: "R14",
+      file: rel,
+      detail: "Pattern B random UUID/profile mapping must not appear outside the Clerk webhook",
     })
   }
 }

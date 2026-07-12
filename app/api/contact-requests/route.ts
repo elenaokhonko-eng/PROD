@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getCurrentUser } from '@/lib/auth'
-import { createUserClient } from '@/lib/supabase/server'
+import { createServiceClient, createUserClient } from '@/lib/supabase/server'
 import { ADMIN_EMAIL, EMAIL_FROM } from '@/lib/email-config'
 import { sendMail } from '@/lib/mail'
 
@@ -76,16 +76,22 @@ export async function POST(req: Request) {
   }
 
   const extract = (snapshot.latest_extract?.[0]?.extract_json ?? null) as
-    | { losses?: { reported_loss?: { amount?: number | null } }; case_meta?: { institution_name?: string | null } }
+    | {
+        reported_loss?: { amount?: number | string | null }
+        losses?: { reported_loss?: { amount?: number | string | null } } | Array<{ amount?: number | string | null }>
+        case_meta?: { claim_amount?: number | string | null; institution_name?: string | null }
+      }
     | null
 
-  const amountLostSgd = extract?.losses?.reported_loss?.amount ?? snapshot.claim_amount ?? null
+  const amountLostSgd = extractReportedLossAmount(extract) ?? coerceNumber(snapshot.claim_amount)
   const financialInstitution = extract?.case_meta?.institution_name ?? snapshot.institution_name ?? null
 
-  const { data: row, error: insertErr } = await supabase
+  const serviceSupabase = createServiceClient()
+  const { data: row, error: insertErr } = await serviceSupabase
     .from('escalation_waitlist')
     .upsert(
       {
+        user_id: user.supabaseUuid,
         case_id: body.case_id,
         first_name: body.first_name,
         last_name: body.last_name,
@@ -133,4 +139,29 @@ export async function POST(req: Request) {
   })
 
   return NextResponse.json({ ok: true, id: row.id }, { status: 201 })
+}
+
+function extractReportedLossAmount(
+  extract:
+    | {
+        reported_loss?: { amount?: number | string | null }
+        losses?: { reported_loss?: { amount?: number | string | null } } | Array<{ amount?: number | string | null }>
+        case_meta?: { claim_amount?: number | string | null }
+      }
+    | null,
+): number | null {
+  return (
+    coerceNumber(extract?.reported_loss?.amount) ??
+    coerceNumber(Array.isArray(extract?.losses) ? extract.losses[0]?.amount : extract?.losses?.reported_loss?.amount) ??
+    coerceNumber(extract?.case_meta?.claim_amount)
+  )
+}
+
+function coerceNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
 }

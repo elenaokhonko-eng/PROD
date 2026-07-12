@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Layer 3 node `L3-waitlist-form` (SM Diagram 4 / IS §9.9 + §10.5).
+ * Layer 3 node `L3-contact-request-form` (SM Diagram 4 / IS §9.9 + §10.5).
  *
  * The "Escalation Pack" is not shipped; this in-app, auto-filled form
  * captures everything a specialist needs to triage the case. All visible
@@ -17,9 +17,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 
-export interface WaitlistFormValues {
+export interface ContactRequestFormValues {
   first_name: string
   last_name: string
   email: string
@@ -31,29 +32,29 @@ export interface WaitlistFormValues {
   message: string
 }
 
-export interface WaitlistFormProps {
+export interface ContactRequestFormProps {
   caseId: string
-  initialValues?: Partial<WaitlistFormValues>
+  initialValues?: Partial<ContactRequestFormValues>
   isSubmitting?: boolean
   errorMessage?: string | null
-  onSubmit: (values: WaitlistFormValues & { case_id: string }) => void
+  onSubmit: (values: ContactRequestFormValues & { case_id: string }) => void
 }
 
-const EMPLOYMENT_STATUSES: Array<WaitlistFormValues['employment_status']> = [
+const EMPLOYMENT_STATUSES: Array<ContactRequestFormValues['employment_status']> = [
   'professional',
   'retiree',
   'student',
   'other',
 ]
 
-export function WaitlistForm({
+export function ContactRequestForm({
   caseId,
   initialValues,
   isSubmitting = false,
   errorMessage,
   onSubmit,
-}: WaitlistFormProps) {
-  const [values, setValues] = useState<WaitlistFormValues>({
+}: ContactRequestFormProps) {
+  const [values, setValues] = useState<ContactRequestFormValues>({
     first_name: initialValues?.first_name ?? '',
     last_name: initialValues?.last_name ?? '',
     email: initialValues?.email ?? '',
@@ -65,7 +66,7 @@ export function WaitlistForm({
     message: initialValues?.message ?? '',
   })
 
-  function setField<K extends keyof WaitlistFormValues>(key: K, value: WaitlistFormValues[K]) {
+  function setField<K extends keyof ContactRequestFormValues>(key: K, value: ContactRequestFormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }))
   }
 
@@ -87,16 +88,18 @@ export function WaitlistForm({
       <CardContent>
         <form className="space-y-5" onSubmit={handleSubmit} noValidate>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="First name" required>
+            <Field id="first_name" label="First name" required>
               <Input
+                id="first_name"
                 value={values.first_name}
                 onChange={(e) => setField('first_name', e.target.value)}
                 required
                 disabled={isSubmitting}
               />
             </Field>
-            <Field label="Last name" required>
+            <Field id="last_name" label="Last name" required>
               <Input
+                id="last_name"
                 value={values.last_name}
                 onChange={(e) => setField('last_name', e.target.value)}
                 required
@@ -106,8 +109,9 @@ export function WaitlistForm({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Email" required>
+            <Field id="email" label="Email" required>
               <Input
+                id="email"
                 type="email"
                 value={values.email}
                 onChange={(e) => setField('email', e.target.value)}
@@ -115,8 +119,9 @@ export function WaitlistForm({
                 disabled={isSubmitting}
               />
             </Field>
-            <Field label="Phone" required>
+            <Field id="phone" label="Phone" required>
               <Input
+                id="phone"
                 type="tel"
                 value={values.phone}
                 onChange={(e) => setField('phone', e.target.value)}
@@ -128,8 +133,9 @@ export function WaitlistForm({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Age" required>
+            <Field id="age" label="Age" required>
               <Input
+                id="age"
                 type="number"
                 min={13}
                 max={120}
@@ -139,11 +145,12 @@ export function WaitlistForm({
                 disabled={isSubmitting}
               />
             </Field>
-            <Field label="Employment status" required>
+            <Field id="employment_status" label="Employment status" required>
               <select
+                id="employment_status"
                 value={values.employment_status}
                 onChange={(e) =>
-                  setField('employment_status', e.target.value as WaitlistFormValues['employment_status'])
+                  setField('employment_status', e.target.value as ContactRequestFormValues['employment_status'])
                 }
                 disabled={isSubmitting}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -157,50 +164,25 @@ export function WaitlistForm({
             </Field>
           </div>
 
-          <Field label="Has it been at least 30 days since the FI's last reply?" required>
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant={values.thirty_days_since_last_fi_reply ? 'default' : 'outline'}
-                onClick={() => setField('thirty_days_since_last_fi_reply', true)}
-                disabled={isSubmitting}
-              >
-                Yes
-              </Button>
-              <Button
-                type="button"
-                variant={!values.thirty_days_since_last_fi_reply ? 'default' : 'outline'}
-                onClick={() => setField('thirty_days_since_last_fi_reply', false)}
-                disabled={isSubmitting}
-              >
-                No
-              </Button>
-            </div>
-          </Field>
+          <BooleanField
+            id="thirty_days_since_last_fi_reply"
+            label="Has it been at least 30 days since the FI's last reply?"
+            checked={values.thirty_days_since_last_fi_reply}
+            onCheckedChange={(checked) => setField('thirty_days_since_last_fi_reply', checked)}
+            disabled={isSubmitting}
+          />
 
-          <Field label="Has the FI issued a final response?" required>
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant={values.fi_issued_final_response ? 'default' : 'outline'}
-                onClick={() => setField('fi_issued_final_response', true)}
-                disabled={isSubmitting}
-              >
-                Yes
-              </Button>
-              <Button
-                type="button"
-                variant={!values.fi_issued_final_response ? 'default' : 'outline'}
-                onClick={() => setField('fi_issued_final_response', false)}
-                disabled={isSubmitting}
-              >
-                No
-              </Button>
-            </div>
-          </Field>
+          <BooleanField
+            id="fi_issued_final_response"
+            label="Has the FI issued a final response?"
+            checked={values.fi_issued_final_response}
+            onCheckedChange={(checked) => setField('fi_issued_final_response', checked)}
+            disabled={isSubmitting}
+          />
 
-          <Field label="Anything else we should know? (optional)">
+          <Field id="message" label="Anything else we should know? (optional)">
             <Input
+              id="message"
               value={values.message}
               onChange={(e) => setField('message', e.target.value)}
               disabled={isSubmitting}
@@ -229,21 +211,53 @@ export function WaitlistForm({
 }
 
 function Field({
+  id,
   label,
   required,
   children,
 }: {
+  id: string
   label: string
   required?: boolean
   children: React.ReactNode
 }) {
   return (
     <div className="space-y-2">
-      <Label>
+      <Label htmlFor={id}>
         {label}
         {required ? <span className="ml-1 text-destructive">*</span> : null}
       </Label>
       {children}
+    </div>
+  )
+}
+
+function BooleanField({
+  id,
+  label,
+  checked,
+  onCheckedChange,
+  disabled,
+}: {
+  id: string
+  label: string
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
+  disabled?: boolean
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+      <div className="space-y-1">
+        <Label htmlFor={id}>{label}</Label>
+        <p className="text-xs text-muted-foreground">Required</p>
+      </div>
+      <Switch
+        id={id}
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+        disabled={disabled}
+        aria-label={label}
+      />
     </div>
   )
 }
