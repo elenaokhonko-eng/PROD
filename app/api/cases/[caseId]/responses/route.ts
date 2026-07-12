@@ -58,26 +58,80 @@ export async function PUT(
     .select('id')
     .eq('id', caseId)
     .eq('user_id', supabaseUuid)
-    .single()
+    .maybeSingle()
+
+  if (caseErr) {
+    return NextResponse.json({ error: caseErr.message }, { status: 400 })
+  }
 
   if (!caseData) {
     return NextResponse.json({ error: 'Case not found' }, { status: 404 })
   }
 
-  const upsertPromises = responses.map(
-    (r: { question_key: string; response_value: string; response_type?: string }) =>
-      supabase.from('case_responses').upsert(
-        {
-          case_id: caseId,
-          question_key: r.question_key,
-          response_value: r.response_value,
-          response_type: r.response_type || 'text',
-        },
-        { onConflict: 'case_id,question_key' }
+  const saved: string[] = []
+
+  for (const response of responses as Array<{
+    question_key?: unknown
+    response_value?: unknown
+    response_type?: unknown
+  }>) {
+    const questionKey =
+      typeof response.question_key === 'string' ? response.question_key.trim() : ''
+    if (!questionKey || questionKey === 'undefined') {
+      return NextResponse.json(
+        { error: 'Invalid response: question_key is required' },
+        { status: 400 },
       )
-  )
+    }
 
-  await Promise.all(upsertPromises)
+    const responseType =
+      typeof response.response_type === 'string' && response.response_type
+        ? response.response_type
+        : 'text'
+    const responseValue =
+      typeof response.response_value === 'string'
+        ? response.response_value
+        : JSON.stringify(response.response_value ?? '')
 
-  return NextResponse.json({ ok: true })
+    const payload = {
+      response_value: responseValue,
+      response_type: responseType,
+    }
+
+    const { data: existingRows, error: updateError } = await supabase
+      .from('case_responses')
+      .update(payload)
+      .eq('case_id', caseId)
+      .eq('question_key', questionKey)
+      .select('id')
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 400 })
+    }
+
+    if (existingRows && existingRows.length > 0) {
+      saved.push(...existingRows.map((row) => row.id as string))
+      continue
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from('case_responses')
+      .insert({
+        case_id: caseId,
+        question_key: questionKey,
+        ...payload,
+      })
+      .select('id')
+      .single()
+
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message }, { status: 400 })
+    }
+
+    if (inserted?.id) {
+      saved.push(inserted.id)
+    }
+  }
+
+  return NextResponse.json({ ok: true, saved })
 }
