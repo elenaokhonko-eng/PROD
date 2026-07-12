@@ -1,6 +1,6 @@
 # Test Plan
 
-Last updated: 2026-07-11
+Last updated: 2026-07-12
 
 This document consolidates the project test plan. The canonical workflow contract still lives in [State-Machine-Workflow.md](./State-Machine-Workflow.md), and implementation gates still live in [State-Machine-Refactor-Plan.md](./State-Machine-Refactor-Plan.md). This file is the quick execution checklist for local QA.
 
@@ -19,7 +19,7 @@ Run after a case produces validation gaps from `run_validation_v1`.
 
 ### 1.1 Controlled-error gap UI (missing questions)
 
-**Status: Supabase backend fix confirmed by Masha; browser QA pending.**
+**Status: Browser QA passed locally on 2026-07-11 after Clerk `supabase` JWT template added `aud: authenticated`, `role: authenticated`, and `supabase_uuid`, and hosted RLS allowed `supabase_uuid` ownership reads.**
 
 Validated on linked Supabase (2026-06-02):
 
@@ -27,11 +27,11 @@ Validated on linked Supabase (2026-06-02):
 - Controlled-error seed (`scripts/sql/controlled-error-seed.sql`) — parent `case_validation_runs` with `status = needs_user`, non-empty `missing_fields`, empty `questions_to_user`, zero gap rows.
 - Frontend wiring logic — `deriveInGapPhase`, `validationIndicatesMissingData`, and `GAP_QUESTIONS_FALLBACK_NOTICE` resolve to **S1-GapLoop** with the fallback notice (not the normal gap form).
 
-**Browser QA pending** (requires `.env.local` with Supabase + Clerk, signed-in case owner):
+**Browser QA result** (requires `.env.local` with Supabase + Clerk, signed-in case owner):
 
 - Case ID: `9eafdc9e-9431-4ba1-ae28-b62fd4da9098`
 - Dashboard: `/app/case/9eafdc9e-9431-4ba1-ae28-b62fd4da9098/dashboard`
-- Expected: card *We need a bit more* with copy *We found missing information, but couldn't generate follow-up questions. Please try again.* and **Try again**.
+- Passed 2026-07-11: card *We need a bit more* with copy *We found missing information, but couldn't generate follow-up questions. Please try again.* and **Try again**.
 - Note: `get_case_eligibility` does not return `latest_validation_run_id` until a decision exists; Layer 1 uses a fallback in `use-validation-run.ts` to load the latest validation by `case_id` when resolved ids are empty.
 
 ## 2. Layer 1 Smoke
@@ -44,6 +44,15 @@ Validated on linked Supabase (2026-06-02):
 - Reach Tier-0 draft. Confirm `case_narratives` renders whichever of `tier0_summary`, `tier0_evidence_checklist`, and `tier0_srf_signal` exists.
 
 ## 3. Layer 2 Smoke
+
+**Status: live hosted Supabase E2E passed locally on 2026-07-12** using Masha-seeded case `01eb9245-0bb2-4b08-9469-412850d656a0`.
+
+- Stripe webhook idempotency passed with session `cs_test_slice6_20260712155646`: two signed deliveries returned `200`, exactly one `jobs` row was created.
+- `case_entitlements` was upgraded to `plan = self_serve_report`, `source = stripe`, `purchase_ref = cs_test_slice6_20260712155646`.
+- `get_case_eligibility` flipped to `eligible_actions.run_report_selfserve = true` after entitlement upgrade.
+- `WORKER_RUN_ONCE=1 pnpm.cmd worker` completed job `fd43a04a-7f04-4f97-a5cb-80bffe847421`.
+- Worker produced report row `0550ef5b-752d-4648-b428-4ee9e205a469` with `status = COMPLETED`, `report_type = self_serve_v1`.
+- Worker report calls intentionally omit `user_id` for now because `reports.user_id` still references `auth.users(id)` while Clerk Pattern C case ownership uses `cases.user_id = public_metadata.supabase_uuid`; the report function supports null `user_id` and report ownership is case-scoped.
 
 - Stripe test checkout upgrades `case_entitlements.plan` to `self_serve_report`.
 - Webhook inserts a queued `jobs` row and returns quickly; it must not call decision/report edge routes directly.
@@ -65,6 +74,12 @@ Validated on linked Supabase (2026-06-02):
 
 Run these before calling Slice 5 done.
 
+**Status: route-level retest passed locally on 2026-07-11** with corrected Clerk `supabase` JWT claims and hosted Supabase RLS:
+
+- Upload/process contract passed on fresh case `93ef50df-1850-455a-b56e-41daa99b950a`: `POST /api/evidence/upload` returned `{ evidence }`, `POST /api/cases/:caseId/evidence/process` accepted `{ evidenceIds: [evidence.id] }`, returned `results[].document_id`, and service-role verification found exactly one `case_documents` row for the uploaded storage path.
+- Gap-answer save passed on controlled case `9eafdc9e-9431-4ba1-ae28-b62fd4da9098`: `PUT /api/cases/:caseId/responses` saved `question_key = incident_date`, `response_type = date`, and service-role verification found no `undefined` / null question key.
+- Controlled-error path passed in browser; see **§1.1**.
+
 - Evidence upload record: upload one supported document and confirm `POST /api/evidence/upload` returns `{ evidence }` with an `evidence.id`.
 - Evidence processing handoff: confirm the returned `evidence.id` is sent to `POST /api/cases/:caseId/evidence/process` as `{ evidenceIds: [id] }`, the response includes `results[].document_id`, and the document progresses from `uploaded`/`queued` to `ready`.
 - Trigger safety: confirm there is no duplicate `case_documents` row from the disabled Supabase storage auto-insert trigger.
@@ -72,7 +87,7 @@ Run these before calling Slice 5 done.
 - Validation gap answer keys: save answers and confirm the request body uses concrete keys such as `incident_date` or `reported_loss.amount`, never `undefined`.
 - Validation fallback: use or simulate an older validation run with zero gap-item rows and confirm normalized `questions_to_user` JSON still renders.
 - Validation error path: set or encounter `case_validation_runs.status = 'error'` and confirm `error_message` is shown instead of a normal gap panel.
-- Controlled-error path: see **§1.1** — browser QA still pending.
+- Controlled-error path: see **§1.1** — browser QA passed locally on 2026-07-11.
 - State gates: confirm non-empty `missing_fields` still blocks Tier-0 auto-fire, and empty gaps plus fresh ready evidence allows the Tier-0 path.
 
 ## 6. Static Checks

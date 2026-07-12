@@ -107,17 +107,21 @@ test.describe('Slice 5 browser QA', () => {
 
     const request = await requestPromise
     const body = request.postDataJSON() as {
-      question_key?: unknown
-      response_type?: unknown
-      response_value?: unknown
+      responses?: Array<{
+        question_key?: unknown
+        response_type?: unknown
+        response_value?: unknown
+      }>
     }
+    const firstResponse = body.responses?.[0]
 
-    expect(typeof body.question_key).toBe('string')
-    expect(body.question_key).not.toBe('')
-    expect(body.question_key).not.toBe('undefined')
-    expect(typeof body.response_type).toBe('string')
-    expect(body.response_type).not.toBe('')
-    expect(body.response_value).toBeDefined()
+    expect(firstResponse).toBeDefined()
+    expect(typeof firstResponse?.question_key).toBe('string')
+    expect(firstResponse?.question_key).not.toBe('')
+    expect(firstResponse?.question_key).not.toBe('undefined')
+    expect(typeof firstResponse?.response_type).toBe('string')
+    expect(firstResponse?.response_type).not.toBe('')
+    expect(firstResponse?.response_value).toBeDefined()
   })
 })
 

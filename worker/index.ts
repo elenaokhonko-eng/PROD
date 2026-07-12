@@ -37,6 +37,7 @@ const supabase = createClient(supabaseUrl, serviceKey, {
 
 const MAX_RETRIES = 2 // initial attempt + 2 retries = 3 total
 const POLL_INTERVAL_MS = 5_000
+const RUN_ONCE = process.env.WORKER_RUN_ONCE === '1'
 
 type JobRow = {
   id: string
@@ -89,11 +90,11 @@ async function getNewDocuments(
 ): Promise<Array<{ id: string }>> {
   let query = supabase
     .from('case_documents')
-    .select('id, updated_at')
+    .select('id, upload_date')
     .eq('case_id', caseId)
 
   if (cutoff) {
-    query = query.gt('updated_at', cutoff)
+    query = query.gt('upload_date', cutoff)
   }
 
   const { data, error } = await query
@@ -155,7 +156,7 @@ async function failOrRetryJob(jobId: string, retryCount: number, message: string
 }
 
 async function runJob(job: JobRow): Promise<void> {
-  const { id: jobId, case_id: caseId, user_id: userId } = job
+  const { id: jobId, case_id: caseId } = job
 
   console.log('[worker] running job', { jobId, caseId })
 
@@ -182,21 +183,21 @@ async function runJob(job: JobRow): Promise<void> {
   await callEdge('/api/edge/decision', { case_id: caseId })
 
   console.log('[worker] running report')
-  await callEdge('/api/edge/report', { case_id: caseId, user_id: userId })
+  await callEdge('/api/edge/report', { case_id: caseId })
 
   await completeJob(jobId)
   console.log('[worker] job completed', { jobId })
 }
 
-async function processOneJob(): Promise<void> {
+async function processOneJob(): Promise<'none' | 'completed' | 'failed'> {
   const { data, error } = await supabase.rpc('claim_next_job')
   if (error) {
     throw new Error(`claim_next_job failed: ${error.message}`)
   }
 
   const job = data as JobRow | null
-  if (!job) {
-    return
+  if (!job?.id || !job.case_id || !job.user_id) {
+    return 'none'
   }
 
   try {
@@ -205,11 +206,35 @@ async function processOneJob(): Promise<void> {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[worker] job failed', { jobId: job.id, message })
     await failOrRetryJob(job.id, job.retry_count, message)
+    return 'failed'
   }
+
+  return 'completed'
 }
 
 async function main() {
-  console.log('[worker] starting', { appUrl })
+  console.log('[worker] starting', { appUrl, runOnce: RUN_ONCE })
+
+  if (RUN_ONCE) {
+    try {
+      const result = await processOneJob()
+      if (result === 'none') {
+        console.log('[worker] run-once mode: no queued job found')
+      } else if (result === 'completed') {
+        console.log('[worker] run-once mode: finished one job')
+      } else {
+        console.error('[worker] run-once mode: job failed')
+        process.exitCode = 1
+      }
+      return
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('[worker] run-once mode failed', message)
+      process.exitCode = 1
+      return
+    }
+  }
+
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
