@@ -3,8 +3,36 @@ import Stripe from "stripe"
 import { createClient } from "@supabase/supabase-js"
 import { z } from "zod"
 
+export type ProductKey = "self_serve_report" | "fidrec_tier2_pack" | "human_consult_30m"
+
+const PRODUCT_CONFIG: Record<
+  ProductKey,
+  {
+    priceEnvVar: string
+    defaultAmount: number
+    serviceType: string
+  }
+> = {
+  self_serve_report: {
+    priceEnvVar: "STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD",
+    defaultAmount: 18,
+    serviceType: "standard",
+  },
+  fidrec_tier2_pack: {
+    priceEnvVar: "STRIPE_PRICE_ID_FIDREC_TIER2_PACK_SGD",
+    defaultAmount: 188,
+    serviceType: "fidrec_tier2_pack",
+  },
+  human_consult_30m: {
+    priceEnvVar: "STRIPE_PRICE_ID_HUMAN_CONSULT_30M_SGD",
+    defaultAmount: 99,
+    serviceType: "human_consult_30m",
+  },
+}
+
 const checkoutSchema = z.object({
   caseId: z.string().uuid(),
+  productKey: z.enum(["self_serve_report", "fidrec_tier2_pack", "human_consult_30m"]),
 })
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -33,7 +61,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
     }
 
-    const { caseId } = parsed
+    const { caseId, productKey } = parsed
+    const product = PRODUCT_CONFIG[productKey]
 
     const authHeader = request.headers.get("authorization")
     const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null
@@ -68,12 +97,14 @@ export async function POST(request: NextRequest) {
     if (caseError || !caseData) return NextResponse.json({ error: "Case not found" }, { status: 404 })
 
     const stripeSecret = process.env.STRIPE_SECRET_KEY
-    const priceId = process.env.STRIPE_PRICE_ID_SGD
+    const priceId = process.env[product.priceEnvVar]
     const appUrl = process.env.NEXT_PUBLIC_APP_URL
     if (!stripeSecret || !priceId) {
       console.error("[payments] Missing Stripe configuration", {
+        productKey,
         hasSecret: Boolean(stripeSecret),
         priceIdPresent: Boolean(priceId),
+        priceEnvVar: product.priceEnvVar,
       })
       return NextResponse.json({ error: "Stripe not configured" }, { status: 500 })
     }
@@ -89,9 +120,9 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: supabaseUuid,
         case_id: caseId,
-        amount: 99,
+        amount: product.defaultAmount,
         currency: "SGD",
-        service_type: "standard",
+        service_type: product.serviceType,
         payment_status: "pending",
       })
       .select()
@@ -112,6 +143,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           case_id: caseId,
           user_id: supabaseUuid,
+          product_key: productKey,
           payment_row_id: payment.id,
         },
       })

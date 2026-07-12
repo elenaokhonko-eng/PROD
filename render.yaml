@@ -26,7 +26,11 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-      - key: STRIPE_PRICE_ID_SGD
+      - key: STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD
+        sync: false
+      - key: STRIPE_PRICE_ID_FIDREC_TIER2_PACK_SGD
+        sync: false
+      - key: STRIPE_PRICE_ID_HUMAN_CONSULT_30M_SGD
         sync: false
       - key: SIMULATION_KEY
         sync: false

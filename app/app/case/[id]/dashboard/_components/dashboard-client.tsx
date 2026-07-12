@@ -28,12 +28,17 @@ import { useCaseDocumentsRealtime } from '@/hooks/state-machine/layer1/use-case-
 import { useTier0Draft } from '@/hooks/state-machine/layer1/use-tier0-draft'
 import { useAutoRefireExtract } from '@/hooks/state-machine/layer1/use-auto-refire-extract'
 import { useTier0AutoFire } from '@/hooks/state-machine/layer1/use-tier0-auto-fire'
-import { useCreateCheckoutSession } from '@/hooks/state-machine/transition/use-create-checkout-session'
+import { useCreateCheckoutSession, type ProductKey } from '@/hooks/state-machine/transition/use-create-checkout-session'
 import { usePaymentStatus } from '@/hooks/state-machine/transition/use-payment-status'
 import { useDecisionRunRealtime } from '@/hooks/state-machine/layer2/use-decision-run-realtime'
 import { useReportRealtime } from '@/hooks/state-machine/layer2/use-report-realtime'
 import { useJobStatus } from '@/hooks/state-machine/layer2/use-job-status'
 import { useSubmitContactRequest } from '@/hooks/state-machine/layer3/use-submit-contact-request'
+import { useTier2Pack } from '@/hooks/state-machine/layer3/use-tier2-pack'
+import { useCasePackExport } from '@/hooks/state-machine/layer3/use-case-pack-export'
+import { Tier2PackPanel } from '@/components/state-machine/layer3/tier2-pack-panel'
+import { Tier2PackView } from '@/components/state-machine/layer3/tier2-pack-view'
+import { ConsultCta } from '@/components/state-machine/layer3/consult-cta'
 import {
   getValidationResponseTypes,
   serializeValidationAnswer,
@@ -57,6 +62,7 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
   const searchParams = useSearchParams()
   const { getToken } = useAuth()
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [checkoutProduct, setCheckoutProduct] = useState<ProductKey | null>(null)
   const [checkoutRedirecting, setCheckoutRedirecting] = useState(false)
   const [contactSubmitted, setContactSubmitted] = useState(false)
   const [gateBlocked, setGateBlocked] = useState<{ missing: string[]; reason: string } | null>(null)
@@ -75,6 +81,10 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
   const uploadEvidence = useUploadEvidence()
   const createCheckout = useCreateCheckoutSession()
   const submitContact = useSubmitContactRequest()
+  const tier2PackQuery = useTier2Pack(caseId, {
+    enabled: paymentStatusQuery.data?.plan === 'escalation_pack',
+  })
+  const casePackExport = useCasePackExport()
 
   useAutoRefireExtract({
     caseId,
@@ -135,8 +145,10 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
       ),
     [searchParams],
   )
-  const isAwaitingPaymentConfirmation =
-    isPaymentReturn && paymentStatusQuery.data?.plan !== 'self_serve_report'
+  const hasPaidPlan =
+    paymentStatusQuery.data?.plan === 'self_serve_report' ||
+    paymentStatusQuery.data?.plan === 'escalation_pack'
+  const isAwaitingPaymentConfirmation = isPaymentReturn && !hasPaidPlan
 
   async function saveResponses(
     answers: Record<string, ValidationAnswerValue>,
@@ -183,16 +195,18 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
     await uploadEvidence.mutateAsync({ caseId, files })
   }
 
-  async function handleCheckout() {
+  async function handleCheckout(productKey: ProductKey) {
     setCheckoutError(null)
+    setCheckoutProduct(productKey)
     try {
-      const { url } = await createCheckout.mutateAsync({ caseId })
+      const { url } = await createCheckout.mutateAsync({ caseId, productKey })
       setCheckoutRedirecting(true)
       window.location.assign(url)
     } catch (error) {
       setCheckoutError(error instanceof Error ? error.message : 'Could not start checkout')
     } finally {
       setCheckoutRedirecting(false)
+      setCheckoutProduct(null)
     }
   }
 
@@ -212,9 +226,13 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
     setContactSubmitted(true)
   }
 
+  const isTier2Ready = paymentStatusQuery.data?.plan === 'escalation_pack'
+
   const renderLayer3 = () => (
     <div className="space-y-6">
-      {reportQuery.data ? <ReportView report={reportQuery.data} decision={decisionQuery.data} /> : null}
+      {reportQuery.data && !isTier2Ready ? (
+        <ReportView report={reportQuery.data} decision={decisionQuery.data} />
+      ) : null}
       <SpecialistCard
         name="GuideBuoy Scam and Fraud Specialist"
         role="Consult and Q&A for rejected bank outcomes and FIDReC escalation"
@@ -235,6 +253,32 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
           </p>
         ) : null}
       </div>
+
+      {isTier2Ready ? (
+        <Tier2PackView
+          pack={tier2PackQuery.data?.submission_pack}
+          isLoading={tier2PackQuery.isLoading}
+          errorMessage={tier2PackQuery.error?.message ?? null}
+          onRefresh={() => void tier2PackQuery.refetch()}
+          onDownloadPdf={() => void casePackExport.download(caseId, 'pdf')}
+          onDownloadMd={() => void casePackExport.download(caseId, 'md')}
+        />
+      ) : (
+        <Tier2PackPanel
+          priceLabel="SGD $188"
+          isStartingCheckout={createCheckout.isPending && checkoutProduct === 'fidrec_tier2_pack'}
+          errorMessage={checkoutProduct === 'fidrec_tier2_pack' ? checkoutError : null}
+          onClick={() => void handleCheckout('fidrec_tier2_pack')}
+        />
+      )}
+
+      <ConsultCta
+        priceLabel="SGD $99"
+        isStartingCheckout={createCheckout.isPending && checkoutProduct === 'human_consult_30m'}
+        errorMessage={checkoutProduct === 'human_consult_30m' ? checkoutError : null}
+        onClick={() => void handleCheckout('human_consult_30m')}
+      />
+
       {contactSubmitted ? (
         <ContactRequestConfirmed whatsappUrl="https://wa.me/6590727915" />
       ) : (
@@ -311,9 +355,9 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
               footerSlot: (
                 <div className="pt-4">
                   <BuyReportCTA
-                    isStartingCheckout={createCheckout.isPending}
-                    errorMessage={checkoutError}
-                    onClick={handleCheckout}
+                    isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
+                    errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
+                    onClick={() => void handleCheckout('self_serve_report')}
                   />
                 </div>
               ),
@@ -346,9 +390,9 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
           </>
         ) : node === 'T-BuyReportCTA' ? (
           <BuyReportCTA
-            isStartingCheckout={createCheckout.isPending}
-            errorMessage={checkoutError}
-            onClick={handleCheckout}
+            isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
+            errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
+            onClick={() => void handleCheckout('self_serve_report')}
           />
         ) : node === 'T-CheckoutRedirect' ? (
           <CheckoutRedirect />
@@ -364,7 +408,10 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
           ) : (
             <DecisionProgress />
           )
-        ) : node === 'L3-FormFilling' || node === 'L3-Submitting' || node === 'L3-Confirmed' ? (
+        ) : node === 'L3-FormFilling' ||
+          node === 'L3-Tier2Ready' ||
+          node === 'L3-Submitting' ||
+          node === 'L3-Confirmed' ? (
           renderLayer3()
         ) : (
           <StateMachineErrorCard
