@@ -15,8 +15,8 @@ import { DecisionProgress } from '@/components/state-machine/layer2/decision-pro
 import { ReportDrafting } from '@/components/state-machine/layer2/report-drafting'
 import { ReportFailed } from '@/components/state-machine/layer2/report-failed'
 import { ReportView } from '@/components/state-machine/layer2/report-view'
-import { WaitlistForm, type WaitlistFormValues } from '@/components/state-machine/layer3/waitlist-form'
-import { WaitlistConfirmed } from '@/components/state-machine/layer3/waitlist-confirmed'
+import { ContactRequestForm, type ContactRequestFormValues } from '@/components/state-machine/layer3/contact-request-form'
+import { ContactRequestConfirmed } from '@/components/state-machine/layer3/contact-request-confirmed'
 import { SpecialistCard } from '@/components/state-machine/layer3/specialist-card'
 import { StateMachineErrorCard } from '@/components/state-machine/error-card'
 import { useStateMachine } from '@/hooks/state-machine/use-state-machine'
@@ -47,9 +47,13 @@ import type { ValidationAnswerValue } from '@/lib/types/validation'
 type DashboardClientProps = {
   caseId: string
   initialUser: { id: string; email: string }
+  initialCaseSnapshot: {
+    institutionName: string | null
+    claimAmount: number | null
+  }
 }
 
-export default function DashboardClient({ caseId, initialUser }: DashboardClientProps) {
+export default function DashboardClient({ caseId, initialUser, initialCaseSnapshot }: DashboardClientProps) {
   const searchParams = useSearchParams()
   const { getToken } = useAuth()
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
@@ -192,7 +196,7 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
     }
   }
 
-  async function handleContactSubmit(values: WaitlistFormValues & { case_id: string }) {
+  async function handleContactSubmit(values: ContactRequestFormValues & { case_id: string }) {
     await submitContact.mutateAsync({
       case_id: values.case_id,
       first_name: values.first_name,
@@ -217,10 +221,24 @@ export default function DashboardClient({ caseId, initialUser }: DashboardClient
         whatsappNumber="6590727915"
         caseId={caseId}
       />
+      <div className="rounded-lg border bg-muted/40 p-4 text-sm">
+        <p className="font-medium">Case reference</p>
+        <p className="text-muted-foreground">{caseId}</p>
+        {initialCaseSnapshot.institutionName ? (
+          <p className="mt-2 text-muted-foreground">
+            Financial institution: {initialCaseSnapshot.institutionName}
+          </p>
+        ) : null}
+        {initialCaseSnapshot.claimAmount != null ? (
+          <p className="text-muted-foreground">
+            Reported loss: SGD {initialCaseSnapshot.claimAmount.toLocaleString()}
+          </p>
+        ) : null}
+      </div>
       {contactSubmitted ? (
-        <WaitlistConfirmed whatsappUrl="https://wa.me/6590727915" />
+        <ContactRequestConfirmed whatsappUrl="https://wa.me/6590727915" />
       ) : (
-        <WaitlistForm
+        <ContactRequestForm
           caseId={caseId}
           initialValues={{
             first_name: '',

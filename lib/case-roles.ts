@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/service"
 import { trackClientEvent } from "@/lib/analytics/client"
 
 export type CaseRole = "victim" | "helper" | "lead_victim" | "defendant"
@@ -18,7 +18,7 @@ export interface CaseCollaborator {
 }
 
 export async function getCaseWithRole(caseId: string, userId: string) {
-  const supabase = createClient()
+  const supabase = createServiceClient()
 
   const { data: caseData } = await supabase
     .from("cases")
@@ -62,7 +62,7 @@ export async function getCaseWithRole(caseId: string, userId: string) {
 }
 
 export async function inviteCollaborator(caseId: string, inviterUserId: string, inviteeEmail: string, role: CaseRole) {
-  const supabase = createClient()
+  const supabase = createServiceClient()
 
   const { data, error } = await supabase
     .from("invitations")
@@ -90,7 +90,7 @@ export async function inviteCollaborator(caseId: string, inviterUserId: string, 
 }
 
 export async function transferCaseOwnership(caseId: string, currentOwnerId: string, newOwnerId: string) {
-  const supabase = createClient()
+  const supabase = createServiceClient()
 
   const { error } = await supabase
     .from("cases")

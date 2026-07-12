@@ -22,8 +22,6 @@ services:
         sync: false
       - key: CLERK_SECRET_KEY
         sync: false
-      - key: CLERK_WEBHOOK_SECRET
-        sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET

@@ -3,9 +3,8 @@
 /**
  * Layer 3 node `L3-contact-specialist` (SM Diagram 4 / IS §9.9).
  *
- * Specialist hero card — photo, name, LinkedIn, WhatsApp CTA. No backend
- * call. The WhatsApp CTA is a `wa.me/<number>` deep link; LinkedIn is a
- * plain external anchor.
+ * Specialist hero card — photo and WhatsApp CTA. No backend call. The
+ * WhatsApp CTA is a `wa.me/<number>` deep link.
  *
  * Pure presentational. All data is injected as props so the component
  * can be mocked in storybook-like galleries and so the operator's name
@@ -13,7 +12,7 @@
  */
 
 import Image from 'next/image'
-import { ExternalLink, Linkedin, MessageCircle } from 'lucide-react'
+import { MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -22,8 +21,6 @@ export interface SpecialistCardProps {
   role?: string
   /** Public photo URL (Next Image-optimised). If omitted, renders a placeholder. */
   photoUrl?: string | null
-  /** Full https:// URL to the LinkedIn profile. */
-  linkedinUrl?: string | null
   /** Whatsapp number in international format without `+` — e.g. `6591234567`. */
   whatsappNumber?: string | null
   /** Pre-filled WhatsApp message. Defaults to a sensible template. */
@@ -37,7 +34,6 @@ export function SpecialistCard({
   name,
   role = 'Escalation specialist',
   photoUrl,
-  linkedinUrl,
   whatsappNumber,
   whatsappPrefill,
   caseId,
@@ -77,15 +73,6 @@ export function SpecialistCard({
               <a href={waHref} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="mr-2 h-4 w-4" aria-hidden />
                 Message on WhatsApp
-              </a>
-            </Button>
-          ) : null}
-          {linkedinUrl ? (
-            <Button variant="outline" asChild>
-              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer">
-                <Linkedin className="mr-2 h-4 w-4" aria-hidden />
-                LinkedIn profile
-                <ExternalLink className="ml-2 h-3.5 w-3.5" aria-hidden />
               </a>
             </Button>
           ) : null}

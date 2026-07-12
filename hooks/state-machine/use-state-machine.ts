@@ -75,7 +75,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   if (isContactSubmitting) return 'L3-Submitting'
 
   if (entitlementPlan === 'self_serve_report') {
-    if (report?.status === 'COMPLETED') return 'L2-ReportReady'
+    if (report?.status === 'COMPLETED') return 'L3-FormFilling'
     if (jobStatus?.status === 'failed') return 'L2-ReportFailed'
     if (!decision) return 'L2-DecisionRunning'
     return 'L2-ReportDrafting'
