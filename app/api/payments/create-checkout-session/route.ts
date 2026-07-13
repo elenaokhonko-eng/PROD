@@ -2,33 +2,13 @@ import { NextResponse, type NextRequest } from "next/server"
 import Stripe from "stripe"
 import { createClient } from "@supabase/supabase-js"
 import { z } from "zod"
+import { createServiceClient } from "@/lib/supabase/service"
+import {
+  PRODUCT_CATALOGUE,
+  type CheckoutProductKey,
+} from "@/lib/payments/product-catalogue"
 
-export type ProductKey = "self_serve_report" | "fidrec_tier2_pack" | "human_consult_30m"
-
-const PRODUCT_CONFIG: Record<
-  ProductKey,
-  {
-    priceEnvVar: string
-    defaultAmount: number
-    serviceType: string
-  }
-> = {
-  self_serve_report: {
-    priceEnvVar: "STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD",
-    defaultAmount: 18,
-    serviceType: "standard",
-  },
-  fidrec_tier2_pack: {
-    priceEnvVar: "STRIPE_PRICE_ID_FIDREC_TIER2_PACK_SGD",
-    defaultAmount: 188,
-    serviceType: "fidrec_tier2_pack",
-  },
-  human_consult_30m: {
-    priceEnvVar: "STRIPE_PRICE_ID_HUMAN_CONSULT_30M_SGD",
-    defaultAmount: 99,
-    serviceType: "human_consult_30m",
-  },
-}
+export type ProductKey = CheckoutProductKey
 
 const checkoutSchema = z.object({
   caseId: z.string().uuid(),
@@ -62,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { caseId, productKey } = parsed
-    const product = PRODUCT_CONFIG[productKey]
+    const product = PRODUCT_CATALOGUE[productKey]
 
     const authHeader = request.headers.get("authorization")
     const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null
@@ -82,19 +62,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Supabase not configured" }, { status: 500 })
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
       global: { headers: { Authorization: `Bearer ${bearer}` } },
     })
 
-    // Validate case ownership or access
-    const { data: caseData, error: caseError } = await supabase
+    // Pattern C ownership probe — never trust body user_id.
+    const { data: caseData, error: caseError } = await userClient
       .from("cases")
       .select("id, user_id")
       .eq("id", caseId)
-      .eq("user_id", supabaseUuid)
       .single()
-    if (caseError || !caseData) return NextResponse.json({ error: "Case not found" }, { status: 404 })
+    if (caseError || !caseData || caseData.user_id !== supabaseUuid) {
+      return NextResponse.json({ error: "Case not found" }, { status: 404 })
+    }
 
     const stripeSecret = process.env.STRIPE_SECRET_KEY
     const priceId = process.env[product.priceEnvVar]
@@ -112,25 +93,59 @@ export async function POST(request: NextRequest) {
       ? appUrl.startsWith("http") ? appUrl : `https://${appUrl}`
       : "https://guidebuoyaisg.onrender.com"
 
-    const stripe = new Stripe(stripeSecret, { apiVersion: "2024-06-20" })
+    const service = createServiceClient()
 
-    // Create or reuse a pending payment record
-    const { data: payment, error: paymentInsertError } = await supabase
+    // Durable multi-SKU ledger. user_id is derived inside the RPC from cases.user_id.
+    const { data: purchase, error: purchaseErr } = await service.rpc(
+      "upsert_case_purchase_from_provider",
+      {
+        p_case_id: caseId,
+        p_product_code: product.productCode,
+        p_amount: product.amountSgd,
+        p_currency: "SGD",
+        p_payment_provider: "stripe",
+        p_provider_checkout_session_id: null,
+        p_provider_payment_intent_id: null,
+        p_payment_status: "pending",
+        p_purchased_by_profile_id: supabaseUuid,
+        p_fulfilment_provider_event_id: null,
+        p_paid_at: null,
+        p_refunded_amount: null,
+        p_disputed_at: null,
+        p_cancelled_at: null,
+        p_metadata: {
+          checkout_product_key: productKey,
+        },
+        p_actor_profile_id: supabaseUuid,
+      },
+    )
+
+    if (purchaseErr || !purchase) {
+      console.error("[payments] Failed to create case_purchase", purchaseErr)
+      return NextResponse.json({ error: "Failed to create purchase record" }, { status: 500 })
+    }
+
+    const purchaseId = (purchase as { id: string }).id
+
+    // Legacy payments dual-write (transition). Pattern C: use cases.user_id.
+    const { data: legacyPayment, error: paymentInsertError } = await service
       .from("payments")
       .insert({
-        user_id: supabaseUuid,
+        user_id: caseData.user_id,
         case_id: caseId,
-        amount: product.defaultAmount,
+        amount: product.amountSgd,
         currency: "SGD",
-        service_type: product.serviceType,
+        service_type: product.legacyServiceType,
         payment_status: "pending",
       })
-      .select()
+      .select("id")
       .single()
-    if (paymentInsertError || !payment) {
-      console.error("[payments] Failed to insert pending payment", paymentInsertError)
+    if (paymentInsertError || !legacyPayment) {
+      console.error("[payments] Failed to insert legacy payment", paymentInsertError)
       return NextResponse.json({ error: "Failed to create payment record" }, { status: 500 })
     }
+
+    const stripe = new Stripe(stripeSecret, { apiVersion: "2024-06-20" })
 
     let session: Stripe.Checkout.Session
     try {
@@ -138,13 +153,16 @@ export async function POST(request: NextRequest) {
         mode: "payment",
         payment_method_types: ["card"],
         line_items: [{ price: priceId, quantity: 1 }],
-        success_url: `${normalizedAppUrl}/app/case/${caseId}/dashboard?checkout=success`,
-        cancel_url: `${normalizedAppUrl}/app/case/${caseId}/dashboard?checkout=cancel`,
+        success_url: `${normalizedAppUrl}/app/case/${caseId}/dashboard?checkout=success&product=${productKey}`,
+        cancel_url: `${normalizedAppUrl}/app/case/${caseId}/dashboard?checkout=cancel&product=${productKey}`,
         metadata: {
           case_id: caseId,
-          user_id: supabaseUuid,
           product_key: productKey,
-          payment_row_id: payment.id,
+          product_code: product.productCode,
+          case_purchase_id: purchaseId,
+          payment_row_id: legacyPayment.id,
+          // Denormalized for Stripe dashboards only — ownership is cases.user_id.
+          user_id: caseData.user_id,
         },
       })
     } catch (stripeError) {
@@ -156,16 +174,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 })
     }
 
-    // Store Stripe checkout session ID
-    const { error: updateError } = await supabase
-      .from("payments")
-      .update({ stripe_payment_intent_id: session.payment_intent as string })
-      .eq("id", payment.id)
-    if (updateError) {
-      console.error("[payments] Failed to store stripe payment intent id", updateError, {
-        paymentId: payment.id,
-        sessionPaymentIntent: session.payment_intent,
+    const paymentIntentId =
+      typeof session.payment_intent === "string" ? session.payment_intent : null
+
+    const { error: purchaseUpdateErr } = await service
+      .from("case_purchases")
+      .update({
+        provider_checkout_session_id: session.id,
+        provider_payment_intent_id: paymentIntentId,
+        updated_by_profile_id: supabaseUuid,
       })
+      .eq("id", purchaseId)
+
+    if (purchaseUpdateErr) {
+      console.error("[payments] Failed to attach Stripe session to case_purchase", purchaseUpdateErr)
+    }
+
+    const { error: legacyUpdateErr } = await service
+      .from("payments")
+      .update({ stripe_payment_intent_id: paymentIntentId })
+      .eq("id", legacyPayment.id)
+
+    if (legacyUpdateErr) {
+      console.error("[payments] Failed to store stripe payment intent id", legacyUpdateErr)
     }
 
     return NextResponse.json({ url: session.url })
