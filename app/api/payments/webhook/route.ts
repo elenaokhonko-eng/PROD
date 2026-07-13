@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import Stripe from "stripe"
-import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/service"
+import { resolveCheckoutProduct } from "@/lib/payments/product-catalogue"
 
 export const dynamic = "force-dynamic"
 
@@ -30,15 +31,44 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const supabase = await createClient()
+    const supabase = createServiceClient()
 
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session
         const caseId = session.metadata?.case_id
-        const userId = session.metadata?.user_id
         const paymentRowId = session.metadata?.payment_row_id
-        const productKey = session.metadata?.product_key ?? "self_serve_report"
+        const casePurchaseIdMeta = session.metadata?.case_purchase_id
+        const product = resolveCheckoutProduct(session.metadata?.product_key)
+
+        // Idempotent webhook ledger (all event types go here eventually).
+        const { data: ledgerRow, error: ledgerErr } = await supabase.rpc(
+          "record_payment_webhook_event",
+          {
+            p_payment_provider: "stripe",
+            p_provider_event_id: event.id,
+            p_event_type: event.type,
+            p_case_purchase_id: casePurchaseIdMeta ?? null,
+            p_case_id: caseId ?? null,
+            p_processing_status: "received",
+            p_payload: {
+              session_id: session.id,
+              product_key: product.checkoutKey,
+              product_code: product.productCode,
+            },
+            p_error: null,
+          },
+        )
+
+        if (ledgerErr) {
+          console.error("[payments] webhook ledger insert failed:", ledgerErr)
+          return new NextResponse("Webhook handler failed", { status: 500 })
+        }
+
+        const ledger = ledgerRow as { id: string; processing_status: string } | null
+        if (ledger?.processing_status === "processed") {
+          return NextResponse.json({ received: true, duplicate: true })
+        }
 
         if (paymentRowId) {
           await supabase
@@ -47,43 +77,127 @@ export async function POST(request: NextRequest) {
             .eq("id", paymentRowId)
         }
 
-        if (!caseId || !userId) {
+        if (!caseId) {
+          await supabase
+            .from("payment_webhook_events")
+            .update({
+              processing_status: "ignored",
+              error: "missing case_id metadata",
+              processed_at: new Date().toISOString(),
+            })
+            .eq("id", ledger?.id)
           break
         }
 
-        if (productKey === "fidrec_tier2_pack") {
-          // Slice 8: Tier 2 pack upgrades entitlement but never enqueues Layer 2.
-          const { error: entitlementErr } = await supabase
-            .from("case_entitlements")
-            .upsert(
-              {
-                case_id: caseId,
-                plan: "escalation_pack",
-                features: { allow_escalation_pack: true },
-                source: "stripe",
-                purchase_ref: session.id,
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: "case_id" },
-            )
+        const paymentIntentId =
+          typeof session.payment_intent === "string" ? session.payment_intent : null
+
+        const { data: purchase, error: purchaseErr } = await supabase.rpc(
+          "upsert_case_purchase_from_provider",
+          {
+            p_case_id: caseId,
+            p_product_code: product.productCode,
+            p_amount: (session.amount_total ?? product.amountSgd * 100) / 100,
+            p_currency: (session.currency ?? "sgd").toUpperCase(),
+            p_payment_provider: "stripe",
+            p_provider_checkout_session_id: session.id,
+            p_provider_payment_intent_id: paymentIntentId,
+            p_payment_status: "paid",
+            p_purchased_by_profile_id: null,
+            p_fulfilment_provider_event_id: event.id,
+            p_paid_at: new Date().toISOString(),
+            p_refunded_amount: null,
+            p_disputed_at: null,
+            p_cancelled_at: null,
+            p_metadata: {
+              checkout_product_key: product.checkoutKey,
+              stripe_event_id: event.id,
+            },
+            p_actor_profile_id: null,
+          },
+        )
+
+        if (purchaseErr || !purchase) {
+          console.error("[payments] case_purchase upsert failed:", purchaseErr)
+          await supabase
+            .from("payment_webhook_events")
+            .update({
+              processing_status: "failed",
+              error: purchaseErr?.message ?? "purchase upsert failed",
+              processed_at: new Date().toISOString(),
+            })
+            .eq("id", ledger?.id)
+          return new NextResponse("Webhook handler failed", { status: 500 })
+        }
+
+        const purchaseRow = purchase as { id: string; user_id: string; case_id: string }
+
+        await supabase
+          .from("payment_webhook_events")
+          .update({
+            case_purchase_id: purchaseRow.id,
+            case_id: purchaseRow.case_id,
+          })
+          .eq("id", ledger?.id)
+
+        if (product.fulfilment === "escalation_pack_entitlement") {
+          // Tier 2 pack: software entitlement only. Never enqueue report job.
+          const { error: entitlementErr } = await supabase.from("case_entitlements").upsert(
+            {
+              case_id: caseId,
+              plan: "escalation_pack",
+              features: { allow_escalation_pack: true },
+              source: "stripe",
+              purchase_ref: session.id,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "case_id" },
+          )
 
           if (entitlementErr) {
             console.error("[payments] Tier 2 entitlement upgrade failed:", entitlementErr)
+            await supabase
+              .from("payment_webhook_events")
+              .update({
+                processing_status: "failed",
+                error: entitlementErr.message,
+                processed_at: new Date().toISOString(),
+              })
+              .eq("id", ledger?.id)
             return new NextResponse("Webhook handler failed", { status: 500 })
           }
-        } else if (productKey === "human_consult_30m") {
-          // Slice 8: consult purchase is persisted on the payment row only.
-          // No entitlement change and no Layer 2 job.
-          // eslint-disable-next-line no-empty
+        } else if (product.fulfilment === "human_consult_allocation") {
+          // Consult: allocate consultation. Never mutate case_entitlements / report job.
+          const { error: consultErr } = await supabase.rpc(
+            "create_consultation_from_paid_purchase",
+            {
+              p_purchase_id: purchaseRow.id,
+              p_duration_minutes: product.defaultDurationMinutes ?? 30,
+              p_actor_profile_id: null,
+              p_actor_type: "system",
+            },
+          )
+
+          if (consultErr) {
+            console.error("[payments] consult allocation failed:", consultErr)
+            await supabase
+              .from("payment_webhook_events")
+              .update({
+                processing_status: "failed",
+                error: consultErr.message,
+                processed_at: new Date().toISOString(),
+              })
+              .eq("id", ledger?.id)
+            return new NextResponse("Webhook handler failed", { status: 500 })
+          }
         } else {
-          // Slice 6: self-serve report. One transaction upgrades the entitlement
-          // and enqueues the background job. Stripe may redeliver events, so
-          // session.id is the idempotency key that prevents duplicate jobs.
+          // self_serve_report: entitlement + report job. Owner from cases via enqueue RPC args.
+          // Prefer derived purchase.user_id over Stripe metadata user_id.
           const { error: enqueueErr } = await supabase.rpc(
             "enqueue_post_payment_report_generation",
             {
               p_case_id: caseId,
-              p_user_id: userId,
+              p_user_id: purchaseRow.user_id,
               p_idempotency_key: session.id,
               p_payment_row_id: paymentRowId ?? null,
             },
@@ -91,13 +205,41 @@ export async function POST(request: NextRequest) {
 
           if (enqueueErr) {
             console.error("[payments] post-payment enqueue failed:", enqueueErr)
+            await supabase
+              .from("payment_webhook_events")
+              .update({
+                processing_status: "failed",
+                error: enqueueErr.message,
+                processed_at: new Date().toISOString(),
+              })
+              .eq("id", ledger?.id)
             return new NextResponse("Webhook handler failed", { status: 500 })
           }
         }
+
+        await supabase
+          .from("payment_webhook_events")
+          .update({
+            processing_status: "processed",
+            processed_at: new Date().toISOString(),
+            error: null,
+          })
+          .eq("id", ledger?.id)
+
         break
       }
       case "payment_intent.succeeded": {
         const pi = event.data.object as Stripe.PaymentIntent
+        await supabase.rpc("record_payment_webhook_event", {
+          p_payment_provider: "stripe",
+          p_provider_event_id: event.id,
+          p_event_type: event.type,
+          p_case_purchase_id: null,
+          p_case_id: null,
+          p_processing_status: "processed",
+          p_payload: { payment_intent_id: pi.id },
+          p_error: null,
+        })
         await supabase
           .from("payments")
           .update({ payment_status: "completed" })
@@ -106,6 +248,16 @@ export async function POST(request: NextRequest) {
       }
       case "checkout.session.expired": {
         const session = event.data.object as Stripe.Checkout.Session
+        await supabase.rpc("record_payment_webhook_event", {
+          p_payment_provider: "stripe",
+          p_provider_event_id: event.id,
+          p_event_type: event.type,
+          p_case_purchase_id: session.metadata?.case_purchase_id ?? null,
+          p_case_id: session.metadata?.case_id ?? null,
+          p_processing_status: "processed",
+          p_payload: { session_id: session.id },
+          p_error: null,
+        })
         const paymentRowId = session.metadata?.payment_row_id
         if (paymentRowId) {
           await supabase
@@ -113,10 +265,35 @@ export async function POST(request: NextRequest) {
             .update({ payment_status: "failed" })
             .eq("id", paymentRowId)
         }
+        if (session.metadata?.case_purchase_id) {
+          await supabase
+            .from("case_purchases")
+            .update({
+              payment_status: "cancelled",
+              cancelled_at: new Date().toISOString(),
+            })
+            .eq("id", session.metadata.case_purchase_id)
+            .eq("payment_status", "pending")
+        }
+        break
+      }
+      case "charge.refunded":
+      case "charge.dispute.created": {
+        // Ledger-only for now; purchase status updates can be added without
+        // changing fulfilment_provider_event_id semantics.
+        await supabase.rpc("record_payment_webhook_event", {
+          p_payment_provider: "stripe",
+          p_provider_event_id: event.id,
+          p_event_type: event.type,
+          p_case_purchase_id: null,
+          p_case_id: null,
+          p_processing_status: "received",
+          p_payload: event.data.object as unknown as Record<string, unknown>,
+          p_error: null,
+        })
         break
       }
       default:
-        // Ignore other events for MVP
         break
     }
 
