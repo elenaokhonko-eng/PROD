@@ -5,15 +5,19 @@ import { z } from "zod"
 import { createServiceClient } from "@/lib/supabase/service"
 import {
   PRODUCT_CATALOGUE,
+  buildCheckoutSessionMetadata,
+  resolvePriceId,
   type CheckoutProductKey,
 } from "@/lib/payments/product-catalogue"
 
 export type ProductKey = CheckoutProductKey
 
-const checkoutSchema = z.object({
-  caseId: z.string().uuid(),
-  productKey: z.enum(["self_serve_report", "fidrec_tier2_pack", "human_consult_30m"]),
-})
+const checkoutSchema = z
+  .object({
+    caseId: z.string().uuid(),
+    productKey: z.enum(["self_serve_report", "fidrec_tier2_pack", "human_consult_30m"]),
+  })
+  .strict()
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
@@ -31,9 +35,17 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 
 export async function POST(request: NextRequest) {
   try {
+    const rawBody = await request.json()
+    if (rawBody && typeof rawBody === "object" && "user_id" in (rawBody as object)) {
+      return NextResponse.json(
+        { error: "Request body must not include user_id" },
+        { status: 400 },
+      )
+    }
+
     let parsed
     try {
-      parsed = checkoutSchema.parse(await request.json())
+      parsed = checkoutSchema.parse(rawBody)
     } catch (err) {
       if (err instanceof z.ZodError) {
         return NextResponse.json({ error: "Invalid request body", details: err.flatten() }, { status: 400 })
@@ -73,12 +85,18 @@ export async function POST(request: NextRequest) {
       .select("id, user_id")
       .eq("id", caseId)
       .single()
-    if (caseError || !caseData || caseData.user_id !== supabaseUuid) {
+    if (caseError || !caseData) {
+      return NextResponse.json({ error: "Case not found" }, { status: 404 })
+    }
+    if (!caseData.user_id) {
+      return NextResponse.json({ error: "Case owner is missing" }, { status: 409 })
+    }
+    if (caseData.user_id !== supabaseUuid) {
       return NextResponse.json({ error: "Case not found" }, { status: 404 })
     }
 
     const stripeSecret = process.env.STRIPE_SECRET_KEY
-    const priceId = process.env[product.priceEnvVar]
+    const priceId = resolvePriceId(product)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL
     if (!stripeSecret || !priceId) {
       console.error("[payments] Missing Stripe configuration", {
@@ -125,7 +143,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create purchase record" }, { status: 500 })
     }
 
-    const purchaseId = (purchase as { id: string }).id
+    const purchaseRow = purchase as { id: string; user_id: string }
+    if (purchaseRow.user_id !== caseData.user_id) {
+      console.error("[payments] purchase owner mismatch vs cases.user_id")
+      return NextResponse.json({ error: "Purchase ownership mismatch" }, { status: 500 })
+    }
 
     // Legacy payments dual-write (transition). Pattern C: use cases.user_id.
     const { data: legacyPayment, error: paymentInsertError } = await service
@@ -155,15 +177,13 @@ export async function POST(request: NextRequest) {
         line_items: [{ price: priceId, quantity: 1 }],
         success_url: `${normalizedAppUrl}/app/case/${caseId}/dashboard?checkout=success&product=${productKey}`,
         cancel_url: `${normalizedAppUrl}/app/case/${caseId}/dashboard?checkout=cancel&product=${productKey}`,
-        metadata: {
-          case_id: caseId,
-          product_key: productKey,
-          product_code: product.productCode,
-          case_purchase_id: purchaseId,
-          payment_row_id: legacyPayment.id,
-          // Denormalized for Stripe dashboards only — ownership is cases.user_id.
-          user_id: caseData.user_id,
-        },
+        metadata: buildCheckoutSessionMetadata({
+          caseId,
+          product,
+          casePurchaseId: purchaseRow.id,
+          legacyPaymentId: legacyPayment.id,
+          caseOwnerUserId: caseData.user_id,
+        }),
       })
     } catch (stripeError) {
       console.error("[payments] Stripe checkout session creation failed", {
@@ -184,7 +204,7 @@ export async function POST(request: NextRequest) {
         provider_payment_intent_id: paymentIntentId,
         updated_by_profile_id: supabaseUuid,
       })
-      .eq("id", purchaseId)
+      .eq("id", purchaseRow.id)
 
     if (purchaseUpdateErr) {
       console.error("[payments] Failed to attach Stripe session to case_purchase", purchaseUpdateErr)
