@@ -10,7 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
  * - Keeps: two-tier evidence (all-doc compute + prompt curation), txn dedupe/filter, loss override, atomic RPC + stages
  * v2.1.4: structured incident (channel, spoofing_indicator), transaction.disputed_merchant; case_meta claim normalize; missing_facts merge
  * v2.1.5: incident.channel = scam/fraud contact medium only (not reporting channels); no \"unknown\" channel value
- */ const VERSION = "run_case_extract_v4::v2.1.6::+validation-recon-partial+skip_validation-tri-state::atomic-rpc+stages";
+ */ const VERSION = "run_case_extract_v4::v2.1.7::+doc-readiness-preflight+partial-evidence-snapshot::atomic-rpc+stages";
 /* =========================================================
    HELPERS
    ========================================================= */ function jsonResp(data, status = 200) {
@@ -65,6 +65,131 @@ function ensureOk(data, error, context) {
   if (error) throw new Error(`${context}: ${JSON.stringify(normalizePgError(error) ?? error)}`);
   if (!data) throw new Error(`${context}: no data returned`);
   return data;
+}
+/* =========================================================
+   DOCUMENT READINESS (mirrors lib/case-documents/document-readiness.ts)
+   ========================================================= */ const IN_FLIGHT_STATUSES = [
+  "parsing",
+  "verifying",
+  "chunking",
+  "extracting",
+  "processing"
+];
+function normalizeDocStatus(status) {
+  return String(status ?? "").trim().toLowerCase();
+}
+function classifyDocument(row) {
+  const s = normalizeDocStatus(row.processing_status);
+  if (s === "failed") return "failed";
+  const hasContent = row.has_extraction_content === true;
+  const statusReady = s === "ready";
+  const processedFlag = row.is_processed === true;
+  if (statusReady && processedFlag && hasContent) return "ready";
+  if (statusReady || processedFlag) return "not_ready_other";
+  if (s === "queued") return "queued";
+  if (IN_FLIGHT_STATUSES.includes(s)) return "processing";
+  if (s === "uploaded") return "uploaded";
+  return "not_ready_other";
+}
+function buildDocReadiness(docs) {
+  const counts = {
+    total: docs.length,
+    ready: 0,
+    evidence: 0,
+    queued: 0,
+    processing: 0,
+    uploaded: 0,
+    failed: 0,
+    not_ready: 0,
+    not_ready_other: 0
+  };
+  const ready_ids = [];
+  const failed_ids = [];
+  const not_ready_ids = [];
+  const queued_ids = [];
+  const processing_ids = [];
+  const uploaded_ids = [];
+  for (const doc of docs){
+    const bucket = classifyDocument(doc);
+    switch(bucket){
+      case "ready":
+        counts.ready++;
+        counts.evidence++;
+        ready_ids.push(doc.id);
+        break;
+      case "failed":
+        counts.failed++;
+        failed_ids.push(doc.id);
+        break;
+      case "queued":
+        counts.queued++;
+        counts.not_ready++;
+        queued_ids.push(doc.id);
+        not_ready_ids.push(doc.id);
+        break;
+      case "processing":
+        counts.processing++;
+        counts.not_ready++;
+        processing_ids.push(doc.id);
+        not_ready_ids.push(doc.id);
+        break;
+      case "uploaded":
+        counts.uploaded++;
+        counts.not_ready++;
+        uploaded_ids.push(doc.id);
+        not_ready_ids.push(doc.id);
+        break;
+      default:
+        counts.not_ready_other++;
+        counts.not_ready++;
+        not_ready_ids.push(doc.id);
+        break;
+    }
+  }
+  return {
+    counts,
+    ready_ids,
+    failed_ids,
+    not_ready_ids,
+    queued_ids,
+    processing_ids,
+    uploaded_ids
+  };
+}
+async function fetchDocsForReadiness(supabase, case_id) {
+  const docsRes = await supabase.from("case_documents").select("id, processing_status, is_processed, content_latest_id").eq("case_id", case_id);
+  const docs = ensureOk(docsRes.data ?? [], docsRes.error, "Fetch case_documents for readiness");
+  const extrRes = await supabase.from("case_document_extractions").select("document_id").eq("case_id", case_id);
+  if (extrRes.error) throw new Error(`Fetch case_document_extractions for readiness: ${JSON.stringify(normalizePgError(extrRes.error))}`);
+  const withExtr = new Set((extrRes.data ?? []).map((r)=>String(r.document_id)).filter(Boolean));
+  return docs.map((d)=>({
+      id: String(d.id),
+      processing_status: d.processing_status,
+      is_processed: d.is_processed,
+      has_extraction_content: withExtr.has(String(d.id)) || Boolean(d.content_latest_id)
+    }));
+}
+function readinessPersistFields(snapshot, allow_partial_evidence) {
+  const c = snapshot.counts;
+  const at = new Date().toISOString();
+  return {
+    allow_partial_evidence,
+    total_document_count: c.total,
+    evidence_document_count: c.evidence,
+    ready_document_count: c.ready,
+    queued_document_count: c.queued,
+    processing_document_count: c.processing,
+    uploaded_document_count: c.uploaded,
+    failed_document_count: c.failed,
+    not_ready_document_count: c.not_ready,
+    document_snapshot_at: at,
+    evidence_snapshot: {
+      counts: c,
+      ready_ids: snapshot.ready_ids,
+      failed_ids: snapshot.failed_ids,
+      not_ready_ids: snapshot.not_ready_ids
+    }
+  };
 }
 function safeNumber(x) {
   if (x === null || x === undefined) return null;
@@ -1004,6 +1129,7 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     const case_id = body.case_id;
     // Explicit tri-state persistence: always write true/false on new extracts (never null).
     const skip_validation = body.skip_validation === true;
+    const allow_partial_evidence = body.allow_partial_evidence === true;
     if (!case_id) return jsonResp({
       ok: false,
       version: VERSION,
@@ -1031,6 +1157,42 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     }).limit(1);
     if (narrativeRes.error) console.log("[WARN] narrative fetch", JSON.stringify(normalizePgError(narrativeRes.error)));
     const narrative = narrativeRes.data?.[0] ?? null;
+    // Document readiness preflight (before OpenAI + before extract insert)
+    mark("05b_doc_readiness");
+    const readinessDocs = await fetchDocsForReadiness(supabase, case_id);
+    const docSnapshot = buildDocReadiness(readinessDocs);
+    const readinessBlocked = !allow_partial_evidence && docSnapshot.counts.not_ready > 0;
+    console.log("[extract_doc_readiness]", JSON.stringify({
+      case_id,
+      allow_partial_evidence,
+      counts: docSnapshot.counts,
+      blocked: readinessBlocked
+    }));
+    if (readinessBlocked) {
+      mark("05b_doc_readiness_blocked", {
+        not_ready: docSnapshot.counts.not_ready
+      });
+      return jsonResp({
+        ok: false,
+        version: VERSION,
+        request_id,
+        stage,
+        error: "documents_not_ready",
+        partial_evidence: false,
+        documents_not_ready: {
+          total: docSnapshot.counts.total,
+          processed: docSnapshot.counts.ready,
+          ready: docSnapshot.counts.ready,
+          evidence: docSnapshot.counts.evidence,
+          queued: docSnapshot.counts.queued,
+          processing: docSnapshot.counts.processing,
+          uploaded: docSnapshot.counts.uploaded,
+          failed: docSnapshot.counts.failed,
+          not_ready: docSnapshot.counts.not_ready
+        }
+      }, 409);
+    }
+    const readinessPersist = readinessPersistFields(docSnapshot, allow_partial_evidence);
     // Evidence: ALL docs (compute) + curated subset (prompt)
     mark("06_evidence_all_start");
     const allEvidence = await fetchAllEvidenceSignals(supabase, case_id);
@@ -1153,11 +1315,14 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
       prompt_version: VERSION,
       intake_id: intake?.id ?? null,
       // Persisted so reconcile RPCs can distinguish intentional skip (requires migration).
-      skip_validation
+      skip_validation,
+      ...readinessPersist
     }).select("*").single();
     const extract_run = ensureOk(runIns.data, runIns.error, "Insert case_extract_runs");
     mark("09_insert_extract_run_ok", {
-      extract_run_id: extract_run.id
+      extract_run_id: extract_run.id,
+      allow_partial_evidence,
+      not_ready_document_count: readinessPersist.not_ready_document_count
     });
     // Atomic RPC wrapper (NO schema prefix)
     mark("10_rpc_start", {
@@ -1183,6 +1348,8 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
         validation_run_id: null,
         validation_attempted: false,
         partial_success: false,
+        partial_evidence: allow_partial_evidence,
+        document_readiness: readinessPersist.evidence_snapshot.counts,
         rpc_error: null,
         evidence_docs_used: evidence_docs_used_unique,
         server_computed: serverFacts,
@@ -1287,6 +1454,8 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     return jsonResp({
       ok: true,
       partial_success: false,
+      partial_evidence: allow_partial_evidence,
+      document_readiness: readinessPersist.evidence_snapshot.counts,
       version: VERSION,
       request_id,
       stage,

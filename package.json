@@ -17,6 +17,7 @@
     "test:fidrec-tier2": "npx --yes tsx scripts/test-fidrec-tier2-flow.ts",
     "test:slice8-payments": "npx --yes tsx --test scripts/test-slice8-payment-branching.ts",
     "test:validation-recon": "npx --yes tsx --test scripts/test-validation-reconciliation.ts",
+    "test:document-readiness": "npx --yes tsx --test scripts/test-document-readiness.ts",
     "test:e2e": "playwright test",
     "test:e2e:slice5": "playwright test tests/e2e/slice5.spec.ts",
     "test:e2e:ui": "playwright test --ui",

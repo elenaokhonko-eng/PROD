@@ -2,31 +2,21 @@
  * Evidence route — body carries `document_id` so we probe ownership by joining
  * `case_documents` to the RLS-protected `cases` table via `case_id`.
  *
- * IS §8.2 decision D (auto-re-fire extract): on `ok: true`, additionally fire
- * `run_case_extract_v4` for the owning `case_id`. The server route does this
- * so the frontend doesn't need a second round-trip; the `case_extract_runs`
- * row will surface via the next read / Realtime push. (SM R11.)
- *
- * We do the auto-fire AFTER returning to the caller would be ideal, but
- * Next.js route handlers don't support post-response work without
- * `after()` from Next 15+. To stay forward-compatible and simple, we fire
- * the extract in parallel with the response stream: await the evidence call,
- * kick off extract with `fetch` + `void`, then return the evidence result.
- * Any extract failure is logged but not surfaced — the next single-shot read
- * or Realtime push will catch up.
+ * Auto-re-fire extract only when ALL case documents are settled (ready with
+ * extraction content, or failed). 409 documents_not_ready is expected pending.
  */
 
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-import { EVIDENCE_FN, EXTRACT_FN } from '@/lib/edge-functions'
+import { EVIDENCE_FN } from '@/lib/edge-functions'
 import { createUserClient } from '@/lib/supabase/server'
 import { proxyEdgeFunction } from '@/lib/server/edge-proxy'
+import { fireExtractWhenSettled } from '@/lib/case-documents/fire-extract-when-settled'
+import type { DocStatusRow } from '@/lib/case-documents/document-readiness'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
-  // Clone the request so we can read the body here AND let proxyEdgeFunction
-  // read it again (Request bodies are single-use).
   const clone = request.clone()
   const body = (await clone.json().catch(() => null)) as
     | { document_id?: string }
@@ -53,9 +43,6 @@ export async function POST(request: Request) {
     })
   }
 
-  // We need to know case_id for the post-success extract re-fire, but the
-  // body only has document_id. Read it up-front via the user-scoped client
-  // so RLS enforces ownership.
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -74,8 +61,6 @@ export async function POST(request: Request) {
 
   const caseId = doc.case_id as string
 
-  // Run the proxy with a custom probe that short-circuits — ownership was
-  // just verified above, don't waste another round-trip.
   const res = await proxyEdgeFunction({
     fnName: EVIDENCE_FN,
     request,
@@ -83,31 +68,72 @@ export async function POST(request: Request) {
     probe: async () => ({ ok: true }),
   })
 
-  // If the evidence call succeeded, auto-fire extract for the owning case.
-  // Fire-and-forget: do not await. Log any failure server-side.
   if (res.ok) {
-    void fireExtract(caseId).catch((err) => {
-      console.error(
-        '[edge/evidence] auto-re-fire of run_case_extract_v4 failed',
-        err,
-      )
-    })
+    void (async () => {
+      try {
+        const docs = await loadCaseDocStatusRows(userClient, caseId)
+        const result = await fireExtractWhenSettled({ caseId, docs })
+        if (result.status === 'skipped_not_settled') {
+          console.log(
+            '[edge/evidence] extract deferred; documents_not_ready',
+            JSON.stringify({ case_id: caseId, not_ready: result.not_ready }),
+          )
+          return
+        }
+        if (result.status === 'pending_documents_not_ready') {
+          console.log(
+            '[edge/evidence] extract returned documents_not_ready (expected pending)',
+            JSON.stringify({ case_id: caseId }),
+          )
+          return
+        }
+        if (result.status === 'skipped_overlap') {
+          console.log(
+            '[edge/evidence] extract overlap skipped',
+            JSON.stringify({ case_id: caseId }),
+          )
+          return
+        }
+        if (!result.ok) {
+          console.error(
+            '[edge/evidence] auto-re-fire extract failed',
+            JSON.stringify({ case_id: caseId, ...result }),
+          )
+        }
+      } catch (err) {
+        console.error('[edge/evidence] auto-re-fire extract error', err)
+      }
+    })()
   }
 
   return res
 }
 
-async function fireExtract(caseId: string) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !serviceKey) return
+async function loadCaseDocStatusRows(
+  userClient: Awaited<ReturnType<typeof createUserClient>>,
+  caseId: string,
+): Promise<DocStatusRow[]> {
+  const { data: docs, error } = await userClient
+    .from('case_documents')
+    .select('id, processing_status, is_processed, content_latest_id')
+    .eq('case_id', caseId)
 
-  await fetch(`${supabaseUrl}/functions/v1/${EXTRACT_FN}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${serviceKey}`,
-    },
-    body: JSON.stringify({ case_id: caseId }),
-  })
+  if (error || !docs) return []
+
+  const { data: extr } = await userClient
+    .from('case_document_extractions')
+    .select('document_id')
+    .eq('case_id', caseId)
+
+  const withExtr = new Set(
+    (extr ?? []).map((r) => String(r.document_id)).filter(Boolean),
+  )
+
+  return docs.map((d) => ({
+    id: String(d.id),
+    processing_status: d.processing_status,
+    is_processed: d.is_processed,
+    has_extraction_content:
+      withExtr.has(String(d.id)) || Boolean(d.content_latest_id),
+  }))
 }
