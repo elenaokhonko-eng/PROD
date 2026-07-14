@@ -8,6 +8,7 @@ import { sendMail } from "@/lib/mail"
 import { render } from "@react-email/render"
 import { nanoid } from "nanoid"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
+import type { ReactElement } from "react"
 
 const invitationRoles = ["victim", "helper", "lead_victim", "defendant"] as const
 
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest) {
       caseTitle: caseData.claim_type?.replace("_", " ") || "Financial Dispute Case",
       invitationToken,
       role: role || "helper",
-    }))
+    }) as ReactElement)
 
     // Send invitation email
     await sendMail({

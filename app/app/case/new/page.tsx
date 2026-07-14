@@ -21,13 +21,13 @@ export default async function NewCasePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                We'll guide you through a few questions to classify the report and recommend next steps.
+                We&apos;ll guide you through a few questions to classify the report and recommend next steps.
               </p>
               <Link href="/router">
                 <Button variant="default" size="lg" className="rounded-full w-full">Start Free Triage</Button>
               </Link>
               <p className="text-xs text-muted-foreground text-center">
-                After triage, use "Invite a Helper/Client" from the dashboard to share and transfer case ownership.
+                After triage, use &quot;Invite a Helper/Client&quot; from the dashboard to share and transfer case ownership.
               </p>
             </CardContent>
           </Card>

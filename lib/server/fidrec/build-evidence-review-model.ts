@@ -1,5 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/service"
-import { buildEvidenceLinks, type EvidencePresentationContext } from "@/lib/server/fidrec/build-evidence-links"
+import {
+  buildEvidenceLinks,
+  type EvidencePresentationContext as DocumentPresentationContext,
+} from "@/lib/server/fidrec/build-evidence-links"
 import type {
   CasePackAnnexurePlaceholder,
   CasePackTheme,

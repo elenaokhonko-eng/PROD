@@ -4,7 +4,6 @@
  * Overlapping in-flight calls for the same caseId are coalesced.
  */
 
-import { EXTRACT_FN } from "@/lib/edge-functions"
 import {
   areDocumentsSettled,
   countDocumentReadiness,
@@ -22,7 +21,11 @@ const inFlightByCase = new Map<string, Promise<FireExtractWhenSettledResult>>()
 export async function fireExtractWhenSettled(args: {
   caseId: string
   docs: DocStatusRow[]
+  edgeProxyBaseUrl?: string
+  workerSecret?: string
+  /** @deprecated kept for older tests/callers; extract now goes through /api/edge/extract. */
   supabaseUrl?: string
+  /** @deprecated kept for older tests/callers; extract now uses WORKER_SECRET. */
   serviceKey?: string
   allowPartialEvidence?: boolean
 }): Promise<FireExtractWhenSettledResult> {
@@ -36,18 +39,19 @@ export async function fireExtractWhenSettled(args: {
   const existing = inFlightByCase.get(caseId)
   if (existing) return { status: "skipped_overlap" }
 
-  const supabaseUrl = args.supabaseUrl ?? process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = args.serviceKey ?? process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !serviceKey) {
-    return { status: "fired", ok: false, http_status: 0, error: "missing_supabase_env" }
+  const edgeProxyBaseUrl = args.edgeProxyBaseUrl ?? process.env.NEXT_PUBLIC_APP_URL
+  const workerSecret = args.workerSecret ?? process.env.WORKER_SECRET
+  if (!edgeProxyBaseUrl || !workerSecret) {
+    return { status: "fired", ok: false, http_status: 0, error: "missing_edge_proxy_env" }
   }
 
   const work = (async (): Promise<FireExtractWhenSettledResult> => {
-    const res = await fetch(`${supabaseUrl}/functions/v1/${EXTRACT_FN}`, {
+    const url = new URL("/api/edge/extract", edgeProxyBaseUrl)
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceKey}`,
+        "x-worker-secret": workerSecret,
       },
       body: JSON.stringify({
         case_id: caseId,

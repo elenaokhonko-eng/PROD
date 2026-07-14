@@ -197,7 +197,7 @@ function PathCTracker({ daysElapsed }: { daysElapsed: number | null }) {
         <span>{daysLeft > 0 ? `${daysLeft} days left` : "Ready to escalate"}</span>
       </div>
       <Progress value={pct} className="h-2" />
-      <p className="text-xs text-muted-foreground">Day {daysElapsed} of 28 — contact your bank if you haven't already and keep all reference numbers.</p>
+      <p className="text-xs text-muted-foreground">Day {daysElapsed} of 28 — contact your bank if you haven&apos;t already and keep all reference numbers.</p>
     </div>
   )
 }
