@@ -1,7 +1,10 @@
 import { z } from "zod"
 
 import { zodEnum } from "@/lib/server/fidrec/zod-enums"
-import { consolidateCaseFindings } from "@/lib/server/fidrec/consolidate-case-findings"
+import {
+  consolidateCaseFindings,
+  type CaseFindingCandidate,
+} from "@/lib/server/fidrec/consolidate-case-findings"
 import { generateJson, getOpenAiModel } from "@/lib/server/ai/generate-json"
 import { logger } from "@/lib/logger"
 import { createServiceClient } from "@/lib/supabase/service"
@@ -123,9 +126,18 @@ export async function generateAndPersistCaseFindings(
     throw new Error("No findings extracted from processed evidence")
   }
 
+  const caseFindingCandidates: CaseFindingCandidate[] = parsed.case_findings.map((finding) => ({
+    finding_text: finding.finding_text,
+    finding_type: finding.finding_type,
+    supporting_evidence: finding.supporting_evidence,
+    confidence: finding.confidence,
+    missing_information: finding.missing_information,
+    human_review_required: finding.human_review_required,
+  }))
+
   const consolidatedFindings = await consolidateCaseFindings({
     caseId: input.caseId,
-    candidates: parsed.case_findings,
+    candidates: caseFindingCandidates,
   })
   if (consolidatedFindings.length === 0) {
     throw new Error("No findings extracted from processed evidence")

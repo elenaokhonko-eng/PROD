@@ -4,6 +4,7 @@ import { EMAIL_FROM } from "@/lib/email-config"
 import { WelcomeEmail } from "@/lib/email-templates"
 import { sendMail } from "@/lib/mail"
 import { render } from "@react-email/render"
+import type { ReactElement } from "react"
 
 const welcomeSchema = z.object({
   userEmail: z.string().email(),
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     const { userEmail, userName, hasRouterSession = false } = parsed
 
-    const html = await render(WelcomeEmail({ userName, userEmail, hasRouterSession }))
+    const html = await render(WelcomeEmail({ userName, userEmail, hasRouterSession }) as ReactElement)
     const info = await sendMail({ from: EMAIL_FROM, to: userEmail, subject: "Welcome to GuideBuoy AI - Let's Get Started", html })
     return NextResponse.json({ success: true, messageId: info.messageId })
   } catch (error) {

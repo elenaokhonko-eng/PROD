@@ -72,7 +72,11 @@ export async function POST(request: Request) {
     void (async () => {
       try {
         const docs = await loadCaseDocStatusRows(userClient, caseId)
-        const result = await fireExtractWhenSettled({ caseId, docs })
+        const result = await fireExtractWhenSettled({
+          caseId,
+          docs,
+          edgeProxyBaseUrl: new URL(request.url).origin,
+        })
         if (result.status === 'skipped_not_settled') {
           console.log(
             '[edge/evidence] extract deferred; documents_not_ready',

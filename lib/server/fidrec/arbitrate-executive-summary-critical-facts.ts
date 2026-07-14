@@ -718,7 +718,7 @@ function formatCandidateLine<T>(candidate: FactCandidate<T>): string {
               : "extract_json"
             : candidate.source_type
   if (typeof candidate.value === "object" && candidate.value && "amount" in candidate.value) {
-    const money = candidate.value as ExecutiveSummaryDisputedAmount
+    const money = candidate.value as unknown as ExecutiveSummaryDisputedAmount
     return `${formatLossDisplay(money.amount, money.currency)} | source: ${sourceLabel} | confidence: ${candidate.confidence}${evidence}`
   }
   return `${String(candidate.value)} | source: ${sourceLabel} | confidence: ${candidate.confidence}${evidence}`
