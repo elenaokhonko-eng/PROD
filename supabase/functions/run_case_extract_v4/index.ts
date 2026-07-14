@@ -10,7 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
  * - Keeps: two-tier evidence (all-doc compute + prompt curation), txn dedupe/filter, loss override, atomic RPC + stages
  * v2.1.4: structured incident (channel, spoofing_indicator), transaction.disputed_merchant; case_meta claim normalize; missing_facts merge
  * v2.1.5: incident.channel = scam/fraud contact medium only (not reporting channels); no \"unknown\" channel value
- */ const VERSION = "run_case_extract_v3::v2.1.5::+incident-channel-scam-only+spoofing-align-null-channel::two-tier-evidence+loss-keyword-override+txn-dedupe-filter+reporting-dates(first-report+type-aware)::atomic-rpc+stages";
+ */ const VERSION = "run_case_extract_v4::v2.1.6::+validation-recon-partial+skip_validation-tri-state::atomic-rpc+stages";
 /* =========================================================
    HELPERS
    ========================================================= */ function jsonResp(data, status = 200) {
@@ -1002,6 +1002,7 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     }
     const body = await req.json().catch(()=>({}));
     const case_id = body.case_id;
+    // Explicit tri-state persistence: always write true/false on new extracts (never null).
     const skip_validation = body.skip_validation === true;
     if (!case_id) return jsonResp({
       ok: false,
@@ -1150,7 +1151,9 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
       missing_fields,
       model_name: EXTRACT_MODEL,
       prompt_version: VERSION,
-      intake_id: intake?.id ?? null
+      intake_id: intake?.id ?? null,
+      // Persisted so reconcile RPCs can distinguish intentional skip (requires migration).
+      skip_validation
     }).select("*").single();
     const extract_run = ensureOk(runIns.data, runIns.error, "Insert case_extract_runs");
     mark("09_insert_extract_run_ok", {
@@ -1163,13 +1166,23 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     const evidence_docs_used_unique = Array.from(new Set((evidenceForPrompt ?? []).map((d)=>String(d.document_id)).filter(Boolean)));
     if (skip_validation) {
       mark("10_rpc_skipped");
+      console.log("[extract_validation]", JSON.stringify({
+        case_id,
+        extract_run_id: extract_run.id,
+        validation_attempted: false,
+        validation_error: null,
+        skip_validation: true
+      }));
       return jsonResp({
         ok: true,
         version: VERSION,
         request_id,
         stage,
         extract_run,
+        extract_run_id: extract_run.id,
         validation_run_id: null,
+        validation_attempted: false,
+        partial_success: false,
         rpc_error: null,
         evidence_docs_used: evidence_docs_used_unique,
         server_computed: serverFacts,
@@ -1190,24 +1203,38 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
       error: normalizePgError(rpcRes.error)
     }));
     if (rpcRes.error) {
+      const validation_error = normalizePgError(rpcRes.error);
       mark("10_rpc_failed", {
-        rpc_error: normalizePgError(rpcRes.error)
+        rpc_error: validation_error
       });
+      // Compatibility: keep HTTP 200 so existing callers that treat non-2xx as
+      // hard failure still receive extract_run_id. Explicit ok=false +
+      // partial_success surface the integrity gap for new callers / logs.
+      console.log("[extract_validation]", JSON.stringify({
+        case_id,
+        extract_run_id: extract_run.id,
+        validation_attempted: true,
+        validation_error
+      }));
       return jsonResp({
-        ok: true,
+        ok: false,
+        partial_success: true,
         version: VERSION,
         request_id,
         stage,
         extract_run,
+        extract_run_id: extract_run.id,
         validation_run_id: null,
-        rpc_error: normalizePgError(rpcRes.error),
+        validation_attempted: true,
+        error: "validation_failed_after_extract",
+        rpc_error: validation_error,
         evidence_docs_used: evidence_docs_used_unique,
         server_computed: serverFacts,
         debug_counts: {
           all_unique_docs: allEvidence.length,
           prompt_docs: evidenceForPrompt.length
         },
-        warning: "Extraction succeeded but validation RPC failed or timed out."
+        warning: "Extraction succeeded but validation RPC failed or timed out. Reconcile via reconcile_validation_for_extract."
       }, 200);
     }
     if (!rpcRes.data) {
@@ -1216,13 +1243,25 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
           message: "RPC returned null validation_run_id"
         }
       });
+      console.log("[extract_validation]", JSON.stringify({
+        case_id,
+        extract_run_id: extract_run.id,
+        validation_attempted: true,
+        validation_error: {
+          message: "RPC returned null validation_run_id"
+        }
+      }));
       return jsonResp({
-        ok: true,
+        ok: false,
+        partial_success: true,
         version: VERSION,
         request_id,
         stage,
         extract_run,
+        extract_run_id: extract_run.id,
         validation_run_id: null,
+        validation_attempted: true,
+        error: "validation_failed_after_extract",
         rpc_error: {
           message: "RPC returned null validation_run_id"
         },
@@ -1232,19 +1271,29 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
           all_unique_docs: allEvidence.length,
           prompt_docs: evidenceForPrompt.length
         },
-        warning: "Extraction succeeded but validation returned null."
+        warning: "Extraction succeeded but validation returned null. Reconcile via reconcile_validation_for_extract."
       }, 200);
     }
     mark("10_rpc_ok", {
       validation_run_id: rpcRes.data
     });
+    console.log("[extract_validation]", JSON.stringify({
+      case_id,
+      extract_run_id: extract_run.id,
+      validation_attempted: true,
+      validation_run_id: rpcRes.data,
+      validation_error: null
+    }));
     return jsonResp({
       ok: true,
+      partial_success: false,
       version: VERSION,
       request_id,
       stage,
       extract_run,
+      extract_run_id: extract_run.id,
       validation_run_id: rpcRes.data,
+      validation_attempted: true,
       rpc_error: null,
       evidence_docs_used: evidence_docs_used_unique,
       server_computed: serverFacts,
