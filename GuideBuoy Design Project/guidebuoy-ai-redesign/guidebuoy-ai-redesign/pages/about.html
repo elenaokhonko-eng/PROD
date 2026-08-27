@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" data-sensory="steady">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>About — GuideBuoy AI</title>
+<meta name="description" content="GuideBuoy AI — Singapore's complaint helper. Tell your story once; Lumi organises it into one report you can reuse with your bank, the Police, ScamShield, and FIDReC."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="../design-system/tailwind.config.js"></script>
+<link rel="stylesheet" href="../design-system/tokens.css"/>
+<link rel="stylesheet" href="../design-system/base.css"/>
+</head>
+<body class="bg-surface text-text-slate antialiased flex flex-col min-h-screen">
+<!-- GuideBuoy AI — shared header (public shell). Include on EVERY page.
+     The mode switcher must never be removed: v3 global rule 2. -->
+<header class="bg-surface border-b border-border-fog sticky top-0 z-50">
+  <div class="flex justify-between items-center w-full px-page-margin h-20 max-w-7xl mx-auto gap-4">
+    <a href="home.html" class="flex items-center gap-2 shrink-0">
+      <img src="../assets/lumi-buoy.jpg" alt="GuideBuoy AI — Lumi the buoy" class="w-10 h-10 rounded-full object-cover" />
+      <span class="font-bold text-primary text-headline-sm hidden min-[480px]:inline">GuideBuoy AI</span>
+    </a>
+    <nav class="hidden lg:flex items-center gap-stack-lg" aria-label="Main navigation">
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="home.html">Home</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="how-it-works.html">How it Works</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="pricing.html">Pricing</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="marketplace.html">Marketplace</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="resources.html">Resources</a>
+      <a class="text-primary font-bold border-b-2 border-primary pb-1 text-body-sm" href="about.html">About</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="faq-contact.html">FAQ</a>
+    </nav>
+    <div class="flex items-center gap-stack-md">
+      <!-- Emotional-state mode switcher — present at all times -->
+      <div class="gb-mode-switch" role="group" aria-label="How are you feeling? Choose your display mode">
+        <span class="gb-mode-label hidden xl:inline" aria-hidden="true">How are you feeling?</span>
+        <button type="button" data-mode="steady" aria-pressed="true" aria-label="I'm okay — steady display, full calm palette">Steady</button>
+        <button type="button" data-mode="quiet" aria-pressed="false" aria-label="Everything feels too much — quiet display, minimal colour and motion">Quiet</button>
+        <button type="button" data-mode="grounding" aria-pressed="false" aria-label="I need a moment — grounding screen with breathing exercise">A moment</button>
+      </div>
+      <a href="#" class="hidden md:inline-block bg-primary text-on-primary px-4 py-2 rounded-lg text-body-sm font-semibold hover:bg-primary-deep transition-colors duration-200">Sign In</a>
+      <button type="button" id="gb-nav-toggle" class="lg:hidden p-2 text-text-slate" aria-label="Open menu" aria-expanded="false">
+        <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+      </button>
+    </div>
+  </div>
+  <!-- Mobile navigation drawer -->
+  <div id="gb-mobile-nav" class="lg:hidden hidden border-t border-border-fog bg-surface px-page-margin py-4">
+    <nav class="flex flex-col gap-3" aria-label="Mobile navigation">
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="home.html">Home</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="how-it-works.html">How it Works</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="pricing.html">Pricing</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="marketplace.html">Marketplace</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="resources.html">Resources</a>
+      <a class="text-primary font-bold border-b-2 border-primary pb-1 text-body-sm py-1" href="about.html">About</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="faq-contact.html">FAQ</a>
+      <a href="#" class="inline-block mt-2 bg-primary text-on-primary px-4 py-2 rounded-lg text-body-sm font-semibold text-center">Sign In</a>
+    </nav>
+  </div>
+</header>
+<span id="gb-mode-announcer" class="gb-sr-only" role="status" aria-live="polite"></span>
+
+<main id="main" class="max-w-7xl mx-auto px-page-margin pt-section-gap pb-section-gap w-full">
+<!-- Hero -->
+<section class="grid grid-cols-1 md:grid-cols-12 gap-gutter mb-section-gap items-center">
+  <div class="md:col-span-7 flex flex-col gap-stack-lg">
+    <h1 class="text-headline-lg text-primary">The simple, unfair reality that led to GuideBuoy.</h1>
+    <p class="text-body-lg text-text-muted max-w-xl">GuideBuoy AI exists because of a simple, unfair reality: after a scam, the person who has just lost money is the person expected to do the hardest work — retelling a painful story, in formal language, to a bank, then the Police, then maybe FIDReC, each with their own form, their own deadlines, their own jargon.</p>
+    <p class="text-body-lg text-text-muted max-w-xl">We think that burden should sit on the system, not on the victim. So we built Singapore's complaint helper: tell your story once, and let Lumi — our lighthouse AI — organise it into one report that every agency can use. A buoy doesn't pull you out of the water. It holds its position, keeps its light on, and shows you the way in. That's the product.</p>
+  </div>
+  <div class="md:col-span-5 h-[400px] rounded-xl overflow-hidden shadow-ambient relative gb-illo">
+    <img alt="Lumi, the GuideBuoy lighthouse buoy" class="object-cover w-full h-full" src="../assets/lumi-buoy.jpg"/>
+  </div>
+</section>
+
+<!-- What we are (and what we're not) -->
+<section class="mb-section-gap" aria-labelledby="values-heading">
+  <h2 id="values-heading" class="text-headline-md text-text-slate mb-stack-lg text-center">What we are (and what we're not)</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+    <div class="bg-surface-white rounded-xl p-card-padding shadow-ambient flex flex-col gap-stack-md items-start">
+      <div class="bg-tint-teal p-3 rounded-full">
+        <span class="material-symbols-outlined text-info" aria-hidden="true">location_city</span>
+      </div>
+      <h3 class="text-headline-sm text-primary">A Singapore company</h3>
+      <p class="text-body-sm text-text-muted">GuideBuoy AI SG Pte Ltd, UEN <span class="gb-num">202545875C</span> — building a public-good utility with optional paid services. Our MVP is live at guidebuoyai.sg, and all payments are processed securely by Stripe.</p>
+    </div>
+    <div class="bg-surface-white rounded-xl p-card-padding shadow-ambient flex flex-col gap-stack-md items-start">
+      <div class="bg-tint-lavender p-3 rounded-full">
+        <span class="material-symbols-outlined text-warm-lavender" aria-hidden="true">shield_lock</span>
+      </div>
+      <h3 class="text-headline-sm text-primary">PDPA-aligned and privacy-first</h3>
+      <p class="text-body-sm text-text-muted">Encrypted storage, consent-logged actions, and a one-click “delete my report” that actually deletes.</p>
+    </div>
+    <div class="bg-surface-white rounded-xl p-card-padding shadow-ambient flex flex-col gap-stack-md items-start">
+      <div class="bg-tint-sage p-3 rounded-full">
+        <span class="material-symbols-outlined text-success-sage" aria-hidden="true">psychology</span>
+      </div>
+      <h3 class="text-headline-sm text-primary">Responsible AI</h3>
+      <p class="text-body-sm text-text-muted">Lumi organises and clarifies; it never decides your case, never gives legal advice, and always shows you what it extracted so you can correct it.</p>
+    </div>
+    <div class="bg-surface-white rounded-xl p-card-padding shadow-ambient flex flex-col gap-stack-md items-start">
+      <div class="bg-tint-sand p-3 rounded-full">
+        <span class="material-symbols-outlined text-text-muted" aria-hidden="true">info</span>
+      </div>
+      <h3 class="text-headline-sm text-primary">What we're not</h3>
+      <p class="text-body-sm text-text-muted">Not a law firm, not a government agency, not affiliated with FIDReC, MAS, IMDA, or the Police.</p>
+    </div>
+  </div>
+</section>
+
+<!-- The team -->
+<section class="mb-section-gap" aria-labelledby="team-heading">
+  <h2 id="team-heading" class="text-headline-md text-text-slate mb-stack-lg text-center">The team</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-stack-lg">
+    <div class="bg-surface-white rounded-xl p-card-padding shadow-ambient flex flex-col items-center gap-stack-sm text-center">
+      <div class="w-20 h-20 rounded-full bg-tint-teal flex items-center justify-center mb-stack-sm" aria-hidden="true">
+        <span class="text-headline-sm text-primary font-semibold">EO</span>
+      </div>
+      <h3 class="text-headline-sm text-text-slate">Elena Okhonko</h3>
+      <p class="text-body-sm font-semibold text-primary">Founder &amp; CEO</p>
+      <p class="text-body-sm text-text-muted">Singaporean founder, licensed financial advisor, and former fund manager with <span class="gb-num">9</span>+ years inside MAS-regulated institutions (AIA, Mercer) and a decade in large-scale software delivery. Led PMO for <span class="gb-num">US$56B</span> fixed-income portfolios and <span class="gb-num">US$140M</span> Fortune 500 transformation programmes.</p>
+    </div>
+    <div class="bg-surface-white rounded-xl p-card-padding shadow-ambient flex flex-col items-center gap-stack-sm text-center">
+      <div class="w-20 h-20 rounded-full bg-tint-sage flex items-center justify-center mb-stack-sm" aria-hidden="true">
+        <span class="text-headline-sm text-primary font-semibold">SK</span>
+      </div>
+      <h3 class="text-headline-sm text-text-slate">Stepan Kropachev</h3>
+      <p class="text-body-sm font-semibold text-primary">AI Chief Product Officer</p>
+      <p class="text-body-sm text-text-muted">A decade shipping AI copilots for compliance and wealth-tech in Europe; co-author of a Responsible AI design playbook used by EU fintech platforms. Owns product vision and model governance.</p>
+    </div>
+    <div class="bg-surface-white rounded-xl p-card-padding shadow-ambient flex flex-col items-center gap-stack-sm text-center">
+      <div class="w-20 h-20 rounded-full bg-tint-teal flex items-center justify-center mb-stack-sm" aria-hidden="true">
+        <span class="text-headline-sm text-primary font-semibold">MB</span>
+      </div>
+      <h3 class="text-headline-sm text-text-slate">Maria Baranova</h3>
+      <p class="text-body-sm font-semibold text-primary">Chief Financial &amp; Data Officer</p>
+      <p class="text-body-sm text-text-muted">Twin backgrounds in structured finance and modern data stacks; former finance director of a Sydney insurtech scale-up. Keeps pricing honest and data practices PDPA-compliant.</p>
+    </div>
+    <div class="bg-surface-white rounded-xl p-card-padding shadow-ambient flex flex-col items-center gap-stack-sm text-center">
+      <div class="w-20 h-20 rounded-full bg-tint-sage flex items-center justify-center mb-stack-sm" aria-hidden="true">
+        <span class="text-headline-sm text-primary font-semibold">NY</span>
+      </div>
+      <h3 class="text-headline-sm text-text-slate">Ng Yuin Harng</h3>
+      <p class="text-body-sm font-semibold text-primary">Government &amp; Ecosystem Lead</p>
+      <p class="text-body-sm text-text-muted">Financial Services Director with <span class="gb-num">15</span>+ years advising retail investors and SMEs; builds bridges with regulators, trade associations, and public-sector programmes.</p>
+    </div>
+  </div>
+  <p class="text-body-lg text-text-muted text-center">Advisors: <strong class="text-text-slate">Sergey Anosov</strong> (AI technology &amp; models) and <strong class="text-text-slate">Federico Folcia</strong> (community &amp; go-to-market, Singapore).</p>
+</section>
+
+<!-- Where to find us -->
+<section class="mb-section-gap" aria-labelledby="contact-heading">
+  <div class="bg-tint-sand rounded-xl p-card-padding">
+    <h2 id="contact-heading" class="text-headline-md text-text-slate mb-stack-lg">Where to find us</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+      <div class="flex items-start gap-stack-md">
+        <span class="material-symbols-outlined text-primary mt-1" aria-hidden="true">location_on</span>
+        <div>
+          <h3 class="text-headline-sm text-text-slate">Office</h3>
+          <p class="text-body-sm text-text-muted"><span class="gb-num">51</span> Goldhill Plaza #<span class="gb-num">07-10/11</span>, Singapore <span class="gb-num">308900</span></p>
+        </div>
+      </div>
+      <div class="flex items-start gap-stack-md">
+        <span class="material-symbols-outlined text-primary mt-1" aria-hidden="true">call</span>
+        <div>
+          <h3 class="text-headline-sm text-text-slate">Phone</h3>
+          <p class="text-body-sm text-text-muted">DID <a class="text-primary hover:text-primary-deep underline underline-offset-2 gb-num" href="tel:+6590727915">+65 9072 7915</a></p>
+          <p class="text-body-sm text-text-muted">Main <a class="text-primary hover:text-primary-deep underline underline-offset-2 gb-num" href="tel:+6566909262">+65 6690 9262</a></p>
+        </div>
+      </div>
+      <div class="flex items-start gap-stack-md">
+        <span class="material-symbols-outlined text-primary mt-1" aria-hidden="true">chat</span>
+        <div>
+          <h3 class="text-headline-sm text-text-slate">WhatsApp</h3>
+          <p class="text-body-sm text-text-muted">WhatsApp available on every page.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+<!-- GuideBuoy AI — shared footer. Include on EVERY page. -->
+<footer class="bg-tint-sand border-t border-border-fog mt-auto">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-gutter px-page-margin py-section-gap max-w-7xl mx-auto">
+    <div class="flex flex-col gap-stack-sm md:col-span-2">
+      <span class="text-headline-sm font-semibold text-primary mb-2">GuideBuoy AI SG Pte Ltd</span>
+      <p class="text-body-sm text-text-muted">UEN 202545875C</p>
+      <p class="text-body-sm text-text-muted">51 Goldhill Plaza #07-10/11, Singapore 308900</p>
+      <p class="text-body-sm text-text-muted mt-2 gb-num">DID +65 9072 7915 · Main +65 6690 9262</p>
+    </div>
+    <div class="flex flex-col gap-stack-sm">
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Terms</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Privacy</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Report a vulnerability</a>
+    </div>
+    <div class="flex flex-col gap-stack-sm">
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">LinkedIn</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Instagram</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Facebook</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">YouTube</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">X</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="https://wa.me/6590727915">WhatsApp</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Single persistent WhatsApp entry point (never duplicate floating buttons) -->
+<a href="https://wa.me/6590727915" aria-label="Chat with GuideBuoy on WhatsApp" target="_blank" rel="noopener"
+   class="fixed bottom-6 right-6 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-on-primary shadow-ambient hover:bg-primary-deep transition-colors duration-200">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6" aria-hidden="true"><path d="M12.04 2a9.9 9.9 0 0 0-8.4 15.2L2 22l4.9-1.6A9.9 9.9 0 1 0 12.04 2Zm5.8 14.1c-.25.7-1.45 1.35-2 1.4-.5.05-1.15.25-3.85-.8-3.25-1.3-5.3-4.6-5.45-4.8-.15-.2-1.3-1.75-1.3-3.3 0-1.55.8-2.3 1.1-2.6.3-.3.65-.4.85-.4h.6c.2 0 .45-.05.7.55.25.6.85 2.1.95 2.25.05.15.1.35 0 .55-.1.2-.15.35-.3.5-.15.15-.3.35-.45.5-.15.15-.3.3-.15.6.15.3.7 1.15 1.5 1.85 1.05.95 1.9 1.25 2.2 1.35.3.1.45.1.6-.05.15-.15.7-.8.9-1.1.2-.3.4-.25.65-.15.25.1 1.6.75 1.9.9.3.15.5.2.55.3.05.15.05.7-.2 1.4Z"/></svg>
+</a>
+<script src="../design-system/mode-switcher.js"></script>
+<script>
+(function(){var t=document.getElementById('gb-nav-toggle'),n=document.getElementById('gb-mobile-nav');
+if(t&&n){t.addEventListener('click',function(){var o=n.classList.toggle('hidden');t.setAttribute('aria-expanded',String(!o));});}})();
+</script>
+</body>
+</html>

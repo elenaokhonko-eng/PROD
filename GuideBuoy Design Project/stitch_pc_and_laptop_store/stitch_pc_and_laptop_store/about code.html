@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"/><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">try{
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-highest": "#e5e2dd",
+                      "outline-variant": "#bfc8c7",
+                      "on-surface-variant": "#3f4947",
+                      "on-primary-fixed": "#00201e",
+                      "on-error": "#ffffff",
+                      "error": "#ba1a1a",
+                      "surface-container-low": "#f6f3ee",
+                      "primary-container": "#2e6e6a",
+                      "warning-ochre": "#A8782E",
+                      "secondary-container": "#baebc8",
+                      "on-tertiary": "#ffffff",
+                      "text-slate": "#2E3A3F",
+                      "on-primary-container": "#aeeee8",
+                      "tertiary-container": "#49668d",
+                      "secondary-fixed-dim": "#a1d2b0",
+                      "inverse-on-surface": "#f3f0eb",
+                      "border-fog": "#D8DDD8",
+                      "tint-teal": "#E3EBF0",
+                      "surface-container-lowest": "#ffffff",
+                      "tint-lavender": "#E6E1F0",
+                      "on-secondary-fixed-variant": "#224f35",
+                      "surface-tint": "#276864",
+                      "primary-fixed": "#afeee9",
+                      "text-muted": "#5C6B70",
+                      "on-secondary-fixed": "#002110",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed-variant": "#01504c",
+                      "on-background": "#1c1c19",
+                      "on-tertiary-fixed": "#001c39",
+                      "inverse-primary": "#93d2cd",
+                      "surface-container-high": "#ebe8e3",
+                      "on-surface": "#1c1c19",
+                      "error-terracotta": "#B4552F",
+                      "primary-fixed-dim": "#93d2cd",
+                      "error-container": "#ffdad6",
+                      "inverse-surface": "#31302d",
+                      "primary": "#0d5652",
+                      "tertiary-fixed": "#d3e3ff",
+                      "tertiary-fixed-dim": "#abc8f4",
+                      "tertiary": "#304e73",
+                      "outline": "#6f7978",
+                      "surface-container": "#f0ede9",
+                      "primary-deep": "#245854",
+                      "secondary": "#3b684c",
+                      "background": "#fcf9f4",
+                      "warm-lavender": "#7A6F92",
+                      "surface-bright": "#fcf9f4",
+                      "surface": "#fcf9f4",
+                      "secondary-fixed": "#bceecb",
+                      "surface-dim": "#dcdad5",
+                      "surface-variant": "#e5e2dd",
+                      "on-tertiary-fixed-variant": "#2a486d",
+                      "surface-white": "#FDFCFA",
+                      "on-secondary": "#ffffff",
+                      "on-tertiary-container": "#d3e3ff",
+                      "on-primary": "#ffffff",
+                      "on-secondary-container": "#3f6c50"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "section-gap": "80px",
+                      "stack-md": "16px",
+                      "page-margin": "32px",
+                      "stack-sm": "8px",
+                      "stack-lg": "24px",
+                      "card-padding": "24px",
+                      "gutter": "32px"
+              },
+              "fontFamily": {
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "numeral-tabular": [
+                              "Inter"
+                      ],
+                      "label-caps": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg": [
+                              "56px",
+                              {
+                                      "lineHeight": "1.15",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "650"
+                              }
+                      ],
+                      "headline-md": [
+                              "28px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "17px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "numeral-tabular": [
+                              "16px",
+                              {
+                                      "lineHeight": "1",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "12px",
+                              {
+                                      "lineHeight": "1",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-sm": [
+                              "20px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    }catch(_e){}</script></head><body class="bg-surface text-text-slate antialiased selection:bg-tint-teal selection:text-primary-deep flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline sticky top-0 z-50 w-full flat no shadows">
+<div class="flex justify-between items-center w-full px-page-margin h-20 max-w-7xl mx-auto">
+<div class="flex items-center gap-stack-md">
+<a class="text-headline-sm font-headline-sm font-bold text-primary dark:text-primary-fixed flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" data-icon="lightbulb" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+                    GuideBuoy AI
+                </a>
+</div>
+<nav class="hidden md:flex gap-gutter items-center">
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">Home</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">How it Works</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">Pricing</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">Marketplace</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">Resources</a>
+<a class="text-primary dark:text-primary-fixed font-bold border-b-2 border-primary dark:border-primary-fixed pb-1 hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors duration-200 opacity-80 scale-95 transition-all" href="#">About</a>
+</nav>
+<div class="flex items-center gap-stack-md">
+<button class="hidden md:block px-4 py-2 text-label-caps font-label-caps text-text-slate border border-border-fog rounded-[10px] hover:bg-surface-container-highest transition-colors duration-200">FAQ</button>
+<button class="px-4 py-2 text-label-caps font-label-caps bg-primary text-white rounded-[10px] hover:bg-primary-deep transition-colors duration-200">Sign In</button>
+</div>
+</div>
+</header>
+<main class="flex-grow">
+<!-- Hero Section -->
+<section class="py-section-gap px-page-margin max-w-7xl mx-auto">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-center">
+<div class="lg:col-span-6 flex flex-col gap-stack-lg">
+<h1 class="text-headline-lg font-headline-lg text-primary-deep">The simple, unfair reality that led to GuideBuoy.</h1>
+<p class="text-body-lg font-body-lg text-text-muted leading-relaxed">
+                        GuideBuoy AI exists because of a simple, unfair reality: after a scam, the person who has just lost money is the person expected to do the hardest work — retelling a painful story, in formal language, to a bank, then the Police, then maybe FIDReC, each with their own form, their own deadlines, their own jargon.
+                    </p>
+<p class="text-body-lg font-body-lg text-text-muted leading-relaxed">
+                        We think that burden should sit on the system, not on the victim. So we built Singapore's complaint helper: tell your story once, and let Lumi — our lighthouse AI — organise it into one report that every agency can use. A buoy doesn't pull you out of the water. It holds its position, keeps its light on, and shows you the way in. That's the product.
+                    </p>
+</div>
+<div class="lg:col-span-6 rounded-xl overflow-hidden steady-shadow h-96 relative">
+<img alt="Lumi, the GuideBuoy AI lighthouse character, a friendly round buoy with a small lighthouse on top and a smiling face." class="object-cover w-full h-full absolute inset-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChhqVTJ07x3UVM27NW7n8XPVXocKaRoBQ_2Xj6f83dI79Dt7NQSPHIqgUHbajwG8BoDlnHYOQhwlIvzLz-FxfQSZ6ZX3bTYkyZkMMAmHm55JVwUHw1q0LeqEsgbjEUX46Cx3H_q6JMH5kSSVPBdh7WRvMu_vDL-qyF3LPvqZUgdf94OENZxOWjNtZifsW19UjAak2pzWM-ltN3jZskotbbimAX63c3cy2v21lWC36vy5QYbEKy3B1pdQEuv72QMgM6fA6-ZF4NwPQ"/>
+</div>
+</div>
+</section>
+<!-- What We Are -->
+<section class="bg-surface-white py-section-gap border-y border-border-fog">
+<div class="max-w-7xl mx-auto px-page-margin">
+<h2 class="text-headline-md font-headline-md text-primary-deep mb-stack-lg text-center">What we are (and what we're not)</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mt-12">
+<!-- Core Value 1 -->
+<div class="bg-surface p-card-padding rounded-xl steady-shadow flex flex-col gap-stack-sm border border-border-fog">
+<div class="bg-tint-teal w-12 h-12 rounded-full flex items-center justify-center text-primary-deep mb-4">
+<span class="material-symbols-outlined" data-icon="location_city">location_city</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm text-text-slate">A Singapore Company</h3>
+<p class="text-body-sm font-body-sm text-text-muted">GuideBuoy AI SG Pte Ltd, UEN 202545875C — building a public-good utility with optional paid services. Our MVP is live at guidebuoyai.sg, and all payments are processed securely by Stripe.</p>
+</div>
+<!-- Core Value 2 -->
+<div class="bg-surface p-card-padding rounded-xl steady-shadow flex flex-col gap-stack-sm border border-border-fog">
+<div class="bg-tint-lavender w-12 h-12 rounded-full flex items-center justify-center text-warm-lavender mb-4">
+<span class="material-symbols-outlined" data-icon="shield_lock">shield_lock</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm text-text-slate">PDPA-Aligned &amp; Privacy-First</h3>
+<p class="text-body-sm font-body-sm text-text-muted">Encrypted storage, consent-logged actions, and a one-click "delete my report" that actually deletes.</p>
+</div>
+<!-- Core Value 3 -->
+<div class="bg-surface p-card-padding rounded-xl steady-shadow flex flex-col gap-stack-sm border border-border-fog">
+<div class="bg-secondary-container w-12 h-12 rounded-full flex items-center justify-center text-secondary-deep mb-4">
+<span class="material-symbols-outlined" data-icon="psychology">psychology</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm text-text-slate">Responsible AI</h3>
+<p class="text-body-sm font-body-sm text-text-muted">Lumi organises and clarifies; it never decides your case, never gives legal advice, and always shows you what it extracted so you can correct it.</p>
+</div>
+<!-- Core Value 4 -->
+<div class="bg-surface p-card-padding rounded-xl steady-shadow flex flex-col gap-stack-sm border border-border-fog">
+<div class="bg-error-container w-12 h-12 rounded-full flex items-center justify-center text-error mb-4">
+<span class="material-symbols-outlined" data-icon="gavel">gavel</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm text-text-slate">What We're Not</h3>
+<p class="text-body-sm font-body-sm text-text-muted">Not a law firm, not a government agency, not affiliated with FIDReC, MAS, IMDA, or the Police.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Team Section -->
+<section class="py-section-gap px-page-margin max-w-7xl mx-auto">
+<h2 class="text-headline-md font-headline-md text-primary-deep mb-stack-lg text-center">The Team</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-16">
+<!-- Team Member 1 -->
+<div class="flex flex-col items-center gap-stack-sm text-center">
+<div class="w-32 h-32 rounded-full overflow-hidden steady-shadow border-4 border-surface-white mb-4 relative bg-surface-container-highest">
+<span class="material-symbols-outlined absolute inset-0 flex items-center justify-center text-outline-variant text-4xl" data-icon="person">person</span>
+</div>
+<h4 class="text-headline-sm font-headline-sm text-text-slate">Elena Okhonko</h4>
+<p class="text-label-caps font-label-caps text-primary mb-2">Founder &amp; CEO</p>
+<p class="text-body-sm font-body-sm text-text-muted">Singaporean founder, licensed financial advisor, and former fund manager with 9+ years inside MAS-regulated institutions and a decade in large-scale software delivery.</p>
+</div>
+<!-- Team Member 2 -->
+<div class="flex flex-col items-center gap-stack-sm text-center">
+<div class="w-32 h-32 rounded-full overflow-hidden steady-shadow border-4 border-surface-white mb-4 relative bg-surface-container-highest">
+<span class="material-symbols-outlined absolute inset-0 flex items-center justify-center text-outline-variant text-4xl" data-icon="person">person</span>
+</div>
+<h4 class="text-headline-sm font-headline-sm text-text-slate">Stepan Kropachev</h4>
+<p class="text-label-caps font-label-caps text-primary mb-2">AI Chief Product Officer</p>
+<p class="text-body-sm font-body-sm text-text-muted">A decade shipping AI copilots for compliance and wealth-tech in Europe; co-author of a Responsible AI design playbook used by EU fintech platforms. Owns product vision and model governance.</p>
+</div>
+<!-- Team Member 3 -->
+<div class="flex flex-col items-center gap-stack-sm text-center">
+<div class="w-32 h-32 rounded-full overflow-hidden steady-shadow border-4 border-surface-white mb-4 relative bg-surface-container-highest">
+<span class="material-symbols-outlined absolute inset-0 flex items-center justify-center text-outline-variant text-4xl" data-icon="person">person</span>
+</div>
+<h4 class="text-headline-sm font-headline-sm text-text-slate">Maria Baranova</h4>
+<p class="text-label-caps font-label-caps text-primary mb-2">Chief Financial &amp; Data Officer</p>
+<p class="text-body-sm font-body-sm text-text-muted">Twin backgrounds in structured finance and modern data stacks; former finance director of a Sydney insurtech scale-up. Keeps pricing honest and data practices PDPA-compliant.</p>
+</div>
+<!-- Team Member 4 -->
+<div class="flex flex-col items-center gap-stack-sm text-center">
+<div class="w-32 h-32 rounded-full overflow-hidden steady-shadow border-4 border-surface-white mb-4 relative bg-surface-container-highest">
+<span class="material-symbols-outlined absolute inset-0 flex items-center justify-center text-outline-variant text-4xl" data-icon="person">person</span>
+</div>
+<h4 class="text-headline-sm font-headline-sm text-text-slate">Ng Yuin Harng</h4>
+<p class="text-label-caps font-label-caps text-primary mb-2">Government &amp; Ecosystem Lead</p>
+<p class="text-body-sm font-body-sm text-text-muted">Financial Services Director with 15+ years advising retail investors and SMEs; builds bridges with regulators, trade associations, and public-sector programmes.</p>
+</div>
+</div>
+<div class="text-center mt-12 bg-surface-container-low p-8 rounded-xl border border-border-fog">
+<h3 class="text-headline-sm font-headline-sm text-text-slate mb-4">Advisors</h3>
+<p class="text-body-lg font-body-lg text-text-muted">
+<strong>Sergey Anosov</strong> (AI technology &amp; models)<br/>
+<strong>Federico Folcia</strong> (community &amp; go-to-market, Singapore)
+            </p>
+</div>
+</section>
+<!-- Contact Section -->
+<section class="bg-surface-container-low py-section-gap mt-auto">
+<div class="max-w-7xl mx-auto px-page-margin flex flex-col md:flex-row gap-gutter items-start md:items-center justify-between">
+<div class="flex flex-col gap-stack-md">
+<h2 class="text-headline-md font-headline-md text-primary-deep">Where to find us</h2>
+<div class="flex items-start gap-4 mt-4">
+<span class="material-symbols-outlined text-primary mt-1" data-icon="location_on">location_on</span>
+<div>
+<p class="text-body-lg font-body-lg text-text-slate font-medium">Headquarters</p>
+<p class="text-body-sm font-body-sm text-text-muted">51 Goldhill Plaza #07-10/11, Singapore 308900</p>
+</div>
+</div>
+<div class="flex items-start gap-4 mt-2">
+<span class="material-symbols-outlined text-primary mt-1" data-icon="call">call</span>
+<div>
+<p class="text-body-lg font-body-lg text-text-slate font-medium">Phone</p>
+<p class="text-body-sm font-body-sm text-text-muted">DID: <a class="text-primary hover:underline" href="tel:+6590727915">+65 9072 7915</a></p>
+<p class="text-body-sm font-body-sm text-text-muted">Main: <a class="text-primary hover:underline" href="tel:+6566909262">+65 6690 9262</a></p>
+</div>
+</div>
+<div class="flex items-start gap-4 mt-2">
+<span class="material-symbols-outlined text-primary mt-1" data-icon="chat">chat</span>
+<div>
+<p class="text-body-sm font-body-sm text-text-muted italic mt-1">WhatsApp available on every page</p>
+</div>
+</div>
+</div>
+<div class="w-full md:w-1/2 h-64 rounded-xl overflow-hidden steady-shadow border border-border-fog relative bg-surface-variant">
+<!-- Map Placeholder via data-location -->
+<div class="w-full h-full flex items-center justify-center text-text-muted" data-location="51 Goldhill Plaza #07-10/11, Singapore 308900">
+                        Map of 51 Goldhill Plaza, Singapore Placeholder
+                    </div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-low dark:bg-surface-container-lowest border-t border-outline-variant flat no shadows full-width">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter px-page-margin py-section-gap max-w-7xl mx-auto">
+<div class="col-span-1 md:col-span-1 flex flex-col gap-stack-md">
+<span class="text-headline-sm font-headline-sm text-primary dark:text-primary-fixed flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="lightbulb" style='font-variation-settings: "FILL" 1;'>lightbulb</span>
+                    GuideBuoy AI
+                </span>
+<p class="text-body-sm font-body-sm text-text-muted mt-2">
+                    © 2024 GuideBuoy AI SG Pte Ltd. UEN: 202545875C.
+                </p>
+</div>
+<div class="col-span-1 md:col-span-3 flex flex-wrap gap-x-8 gap-y-4 md:justify-end items-center">
+<a class="text-label-caps font-label-caps text-text-muted dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">Terms of Service</a>
+<a class="text-label-caps font-label-caps text-text-muted dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">Privacy Policy</a>
+<a class="text-label-caps font-label-caps text-text-muted dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">Contact Us</a>
+</div></div></footer></body></html>

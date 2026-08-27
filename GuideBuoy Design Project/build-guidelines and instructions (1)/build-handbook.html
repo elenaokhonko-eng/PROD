@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fig &amp; Filter — build handbook</title>
+<style>
+:root { --teal:#1A5F5F; --ink:#141413; --amber:#D47A3A; --paper:#F8F6F1;
+        --stone:#B0AEA5; --charcoal:#2D2D2D; --tint:#EBF4F4; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--charcoal);
+       font-family:'Lora','Palatino Linotype',Palatino,Georgia,serif;
+       font-size:17px; line-height:1.65; }
+.wrap { max-width:820px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+h1,h2,h3 { font-family:Poppins,'Trebuchet MS',sans-serif; line-height:1.25; }
+h1 { color:var(--teal); font-size:1.9rem; margin:0.5rem 0 0.75rem; }
+h2 { color:var(--teal); font-size:1.35rem; margin:2.2rem 0 0.5rem;
+     border-bottom:2px solid var(--teal); padding-bottom:0.25rem; }
+h3 { color:var(--ink); font-size:1.05rem; margin:1.4rem 0 0.35rem; }
+p { margin:0.6rem 0; }
+code { font-family:Menlo,Consolas,monospace; font-size:0.85em;
+       background:#eee7de; padding:0.08em 0.3em; border-radius:3px; }
+.promptbox { position:relative; margin:1rem 0; }
+.promptbox pre { background:var(--tint); border:1px solid var(--stone);
+       border-left:4px solid var(--teal); border-radius:4px;
+       padding:1rem 1.1rem; overflow-x:auto; font-family:Menlo,Consolas,monospace;
+       font-size:0.82rem; line-height:1.5; color:var(--ink); white-space:pre-wrap; }
+.copybtn { position:absolute; top:0.55rem; right:0.55rem;
+       font-family:Poppins,'Trebuchet MS',sans-serif; font-size:0.75rem;
+       background:var(--teal); color:#fff; border:none; border-radius:4px;
+       padding:0.35rem 0.8rem; cursor:pointer; min-height:32px; }
+.copybtn:hover { background:#134a4a; }
+.copybtn.done { background:var(--amber); }
+table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:0.9rem; }
+th { background:var(--teal); color:#fff; text-align:left; padding:0.5rem 0.6rem;
+     font-family:Poppins,'Trebuchet MS',sans-serif; font-weight:600; }
+td { border:1px solid var(--stone); padding:0.45rem 0.6rem; vertical-align:top; }
+tr:nth-child(even) td { background:var(--tint); }
+ul,ol { margin:0.6rem 0; padding-left:1.6rem; }
+li { margin:0.3rem 0; }
+li.chk { list-style:none; margin-left:-1.3rem; }
+li.chk::before { content:'\2610\00a0\00a0'; }
+hr { border:none; border-top:1px solid var(--stone); margin:2rem 0; }
+nav { background:var(--tint); border:1px solid var(--stone); border-radius:6px;
+      padding:0.8rem 1.1rem; font-size:0.9rem; margin:1.2rem 0;
+      font-family:Poppins,'Trebuchet MS',sans-serif; }
+nav a { color:var(--teal); text-decoration:none; margin-right:0.9rem;
+        display:inline-block; }
+nav a:hover { text-decoration:underline; }
+footer { margin-top:3rem; border-top:1px solid var(--stone); padding-top:0.8rem;
+         font-size:0.8rem; color:var(--charcoal); }
+@media (max-width:600px){ body{font-size:16px;} .wrap{padding:1rem 0.9rem 3rem;} }
+@media print { .copybtn,nav{display:none;} body{background:#fff;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Fig &amp; Filter — build handbook</h1>
+<nav><strong>Jump to:</strong> <a href="#1-the-job-and-the-rules">1. The job and the rules</a> <a href="#2-the-route-fifteen-steps-in-four-phases">2. The route — fifteen steps in four phases</a> <a href="#3-phase-1-set-up-the-project">3. Phase 1 — set up the project</a> <a href="#4-phase-2-design-with-google-stitch">4. Phase 2 — design with Google Stitch</a> <a href="#5-phase-3-arrange-the-design-files">5. Phase 3 — arrange the design files</a> <a href="#6-phase-4-build-ship-and-check">6. Phase 4 — build, ship, and check</a> <a href="#7-if-something-goes-wrong">7. If something goes wrong</a> <a href="#appendix-a-the-page-specification">Appendix A — the page specification</a> <a href="#appendix-b-the-review-checklist">Appendix B — the review checklist</a></nav>
+<p>Your assignment is the letter from Fig &amp; Filter. This handbook is how you deliver it — everything you read for the build is in this one document, in the order you will need it. The prompts are ready to paste; adapt the design decisions inside them, because directing the tools is the skill you are practising, not copying text into them.</p>
+<hr>
+<h2 id="1-the-job-and-the-rules">1. The job and the rules</h2>
+<p><strong>Fig &amp; Filter</strong> is a neighbourhood café. It has been open for two years, roasts its own beans, bakes on site every morning, and has a loyal weekday crowd. The owners want their first proper website. They are not asking for online ordering or bookings — they want a site that makes a stranger who finds them on their phone decide to walk in, and makes an office manager decide to order catering.</p>
+<p><strong>What you will ship:</strong> a responsive five-page website, live on Vercel, that passes the review checklist in Appendix B on both a phone and a laptop. <strong>Time available:</strong> 2 hours 15 minutes, working solo.</p>
+<p>Your pack, and what each piece is for:</p>
+<table>
+<tr><th>Item</th><th>Role</th></tr>
+<tr><td>The commission letter (PDF)</td><td>Your assignment from the client — read it first</td></tr>
+<tr><td>This handbook</td><td>How to deliver it, phase by phase</td></tr>
+<tr><td><code>stitch-brief.md</code></td><td>The design brief you upload to Google Stitch in Phase 2</td></tr>
+<tr><td><code>content/</code></td><td>The words, the brand file, and the photographs — use them as supplied</td></tr>
+<tr><td>The route card (PDF)</td><td>The fifteen steps on one page, for your desk</td></tr>
+</table>
+<p>The rules:</p>
+<ul>
+<li>Use the copy and images supplied in <code>content/</code> — the exercise tests design judgment, not copywriting.</li>
+<li>Plain HTML (HyperText Markup Language) and CSS (Cascading Style Sheets) only; no frameworks, no build tools. A little JavaScript for the mobile navigation toggle is fine.</li>
+<li>Every page must be reachable from every other page through the navigation.</li>
+<li>The site must work in a viewport (the visible browser area) 375 pixels (px) wide and in one 1280 px wide.</li>
+</ul>
+<h2 id="2-the-route-fifteen-steps-in-four-phases">2. The route — fifteen steps in four phases</h2>
+<h3>Phase 1 — set up the project</h3>
+<ol start="1">
+<li>Create a project folder on your computer — it will become your GitHub repository.</li>
+<li>Copy the <code>content</code> folder from your pack into it: the copy, the brand file, and the photographs.</li>
+</ol>
+<h3>Phase 2 — design with Google Stitch</h3>
+<ol start="3">
+<li>Open Google Stitch and start a new project.</li>
+<li>Upload <code>stitch-brief.md</code> and paste the master prompt; Stitch generates all five screens.</li>
+<li>Judge each screen with the five questions; ask for one testable change at a time until the screens pass.</li>
+<li>Download the export — a zip with one folder per screen, plus DESIGN.md.</li>
+</ol>
+<h3>Phase 3 — arrange the design files</h3>
+<ol start="7">
+<li>Save DESIGN.md in the project root, keeping its name.</li>
+<li>Create a folder called <code>design</code> in the project root.</li>
+<li>Move the five screen images into <code>design</code> and rename each to the page it becomes: index.png, menu.png, catering.png, about.png, visit.png.</li>
+</ol>
+<h3>Phase 4 — build, ship, and check</h3>
+<ol start="10">
+<li>Open your AI (artificial intelligence) app and point it at the project folder — or upload the files if you use a chat website.</li>
+<li>Paste the build prompt; the AI writes the five HTML pages and one stylesheet, and copies the photographs into an <code>images</code> folder.</li>
+<li>Review the pages against the rules in the prompt; quote any failed rule back and ask for only that fix.</li>
+<li>Push the project folder to a GitHub repository.</li>
+<li>Import the repository on Vercel and deploy.</li>
+<li>Open the live URL (web address) on your phone and your laptop, run the checklist, fix the worst failures, deploy again, and submit your URL.</li>
+</ol>
+<h2 id="3-phase-1-set-up-the-project">3. Phase 1 — set up the project</h2>
+<p>Two minutes of work, and everything afterwards happens inside this one folder. Create it, give it a sensible name (it becomes your GitHub repository), and copy the <code>content</code> folder from your pack into it whole. Before moving on, read the page specification in Appendix A and confirm, in your own words, for each page: who arrives here, and what is the one thing this page must make them able to do?</p>
+<h2 id="4-phase-2-design-with-google-stitch">4. Phase 2 — design with Google Stitch</h2>
+<p><strong>What you are trying to achieve.</strong> Stitch turns a written brief into screen designs. The quality of what it returns depends almost entirely on how much real information the brief carries — which is why your pack includes <code>stitch-brief.md</code>, a single document holding the business, the brand, and all five pages with the job and content of each.</p>
+<p><strong>The master prompt.</strong> Upload <code>stitch-brief.md</code> to Stitch, then paste this:</p>
+<div class="promptbox"><button class="copybtn" type="button">Copy</button><pre>Design a five-page website exactly as specified in the attached design
+brief. Design all five screens — Home, Menu, Catering, About, Visit —
+mobile first, with one shared style and the same navigation on every
+page. Follow the brief&#x27;s brand colours, fonts, page jobs, and content
+precisely; do not invent content, pages, or features that are not in
+the brief.</pre></div>
+<p>If Stitch will not accept the file upload, the same test works by opening <code>stitch-brief.md</code> and pasting its whole text underneath the prompt — same content, one paste.</p>
+<p>Then judge the screens with the five questions, tweak until they pass, and download the export, as steps 5 and 6 of the route describe.</p>
+<h2 id="5-phase-3-arrange-the-design-files">5. Phase 3 — arrange the design files</h2>
+<p>The export arrives as a zip containing one folder per screen — each with a <code>screen.png</code> and a <code>code.html</code> — plus the <code>DESIGN.md</code>. Arrange your project folder like this, because the build prompt in Phase 4 refers to these exact locations:</p>
+<div class="promptbox"><button class="copybtn" type="button">Copy</button><pre>your-project/
+├── DESIGN.md          ← Stitch&#x27;s design document, kept under its exported name, at the root
+├── design/            ← the five screen.png files, renamed to match the HTML file each one becomes
+│   ├── index.png
+│   ├── menu.png
+│   └── …
+└── content/           ← the content folder from your pack, copied in whole
+    ├── brand.md
+    ├── home.md … visit.md
+    └── images/</pre></div>
+<p>One naming note: the home page's screen is <code>index.png</code> because the home page of every website ships as <code>index.html</code> — that is the file a web server shows when someone visits the site's root address, so the name is a convention you follow rather than a choice you make.</p>
+<p>Two warnings from experience, both important:</p>
+<p><strong>The screens lie about content.</strong> Stitch invents words freely — a wrong address in a header, menu items you never supplied, whole sections that are in no brief. Treat every screen image as a <strong>layout reference only</strong>. The words, prices, and hours on your site come from the <code>content/</code> folder and nowhere else; the build prompt's "exactly as written; do not invent" line is what enforces this, so never remove it.</p>
+<p><strong>Do not ship Stitch's <code>code.html</code>.</strong> Those files load a styling framework from the internet and use temporary image links that will break. Leave them in the export folder as something the AI may glance at for structure; the build in Phase 4 produces its own plain HTML and CSS.</p>
+<p>Before moving on, open <code>DESIGN.md</code> and read it. If Stitch's document contradicts a decision you made — a colour, a layout choice, the number of buttons — edit the file now. In the next phase this document becomes the AI's instruction sheet, and it will follow what the file says, not what you meant.</p>
+<h2 id="6-phase-4-build-ship-and-check">6. Phase 4 — build, ship, and check</h2>
+<p><strong>If your assistant can read your project folder</strong> (for example Claude Code), paste this from inside the folder:</p>
+<div class="promptbox"><button class="copybtn" type="button">Copy</button><pre>Read DESIGN.md in the root of this folder, and look at the screen images
+in the design folder — together they show the design I want. Build a
+five-page static website using the copy in the content folder exactly as
+written; do not invent, shorten, or rewrite any text. Produce index.html,
+menu.html, catering.html, about.html, and visit.html, sharing one
+styles.css. Plain HTML and CSS only, with JavaScript only for the mobile
+navigation toggle. For images: copy the eight photographs from
+content/images into a folder named images next to the HTML files,
+reference them with exact lower-case relative paths (for example
+images/hero-espresso-pour.jpg), place each one only on the page the
+manifest content/images/images.md assigns, and use that manifest&#x27;s alt
+text word for word. Never link to images on the internet. I will check
+the result against these rules: one primary call to action per page; the
+navigation collapses below 768 pixels (px); no horizontal scrolling at
+375 px wide; body text at least 16 px; every button and link at least
+44 px tall; every image loads on the deployed site and carries the
+manifest&#x27;s alt text.</pre></div>
+<p><strong>If you are using a chat website</strong> (claude.ai, ChatGPT, or Gemini in the browser), first upload these eight files: <code>DESIGN.md</code>, <code>content/brand.md</code>, the five copy files, and <code>content/images/images.md</code>. Then paste this variant:</p>
+<div class="promptbox"><button class="copybtn" type="button">Copy</button><pre>I have uploaded DESIGN.md, the brand file, the five pages of copy, and
+the image manifest. Build a five-page static website using the uploaded
+copy exactly as written; do not invent, shorten, or rewrite any text.
+Produce index.html, menu.html, catering.html, about.html, and
+visit.html, sharing one styles.css. Plain HTML and CSS only, with
+JavaScript only for the mobile navigation toggle. For images: reference
+them with exact lower-case relative paths (for example
+images/hero-espresso-pour.jpg), place each one only on the page the
+image manifest assigns, and use the manifest&#x27;s alt text word for word.
+Never link to images on the internet. I will check the result against
+these rules: one primary call to action per page; the navigation
+collapses below 768 pixels (px); no horizontal scrolling at 375 px
+wide; body text at least 16 px; every button and link at least 44 px
+tall; every image loads on the deployed site and carries the manifest&#x27;s
+alt text.</pre></div>
+<p>The assistant on a chat website never sees your photographs — it only reads the manifest, and that is enough: it writes the image references, and the pictures appear because the files exist in your repository. Save each returned file into your project folder using the exact filenames, and copy the eight photographs from <code>content/images/</code> into an <code>images/</code> folder beside the HTML files, keeping the file names exactly as they are — the deployed server matches paths letter for letter, including upper and lower case.</p>
+<p><strong>Why the prompt is shaped this way</strong> — the habits to keep when you adapt it:</p>
+<ul>
+<li><strong>Name the sources and their locations.</strong> Telling the assistant exactly where the design document, the screens, and the content live removes its main excuse for inventing things.</li>
+<li><strong>Protect the copy.</strong> "Exactly as written; do not invent, shorten, or rewrite" is the line that stops the assistant replacing Mara and Dev with generic marketing text.</li>
+<li><strong>State the checks up front.</strong> Every rule in the list is one you can verify with your own eyes, and stating them in the prompt means you can quote them back when one fails.</li>
+<li><strong>Spell out the image handling.</strong> Broken pictures that "worked on my machine" are almost always a path-case mismatch — the deployed server treats <code>Images/Hero.JPG</code> and <code>images/hero.jpg</code> as different files even though your own computer treats them as the same.</li>
+</ul>
+<p><strong>When the build misses, do not start over.</strong> Quote the specific rule that failed and ask for that fix only — small, quoted corrections converge quickly; fresh restarts throw away everything that was already right:</p>
+<div class="promptbox"><button class="copybtn" type="button">Copy</button><pre>The navigation does not collapse at 375 px — the build rules said it
+collapses below 768 px. Fix that and change nothing else.</pre></div>
+<div class="promptbox"><button class="copybtn" type="button">Copy</button><pre>The About page text is not the text from content/about.md. Replace it with
+the uploaded copy, unchanged.</pre></div>
+<p><strong>Ship and review.</strong> Push to GitHub and deploy on Vercel as you have done before, then run Appendix B against the <strong>live URL</strong> on your phone and your laptop — not your local files. Fix the worst failures first, deploy again, and submit your URL where the instructor tells you.</p>
+<h2 id="7-if-something-goes-wrong">7. If something goes wrong</h2>
+<ul>
+<li><strong>Stitch keeps producing crowded layouts:</strong> your prompt is probably listing features instead of stating each page's one job. Point Stitch back at the brief's job lines and regenerate.</li>
+<li><strong>Stitch will not export, or the export is missing pieces:</strong> take screenshots of the screens yourself, put them in <code>design/</code>, and ask Stitch to describe the design in writing — save its answer as <code>DESIGN.md</code>. Ask the instructor if you get stuck here.</li>
+<li><strong>The AI build ignores your design:</strong> check that <code>DESIGN.md</code> is really at the root and the images are really in <code>design/</code>, then point the assistant at them again by path. Assistants follow files they are told to read; they guess when paths are wrong.</li>
+<li><strong>The AI invented text:</strong> quote the protect-the-copy line from your prompt and name the file: <em>"Replace the invented text on the About page with the copy from <code>content/about.md</code>, unchanged."</em></li>
+</ul>
+<hr>
+<h2 id="appendix-a-the-page-specification">Appendix A — the page specification</h2>
+<p>Five pages. Each page has one job. Everything on a page either serves its job or gets removed.</p>
+<h3>Global requirements (every page)</h3>
+<ul>
+<li>Shared navigation: Home, Menu, Catering, About, Visit. The current page is visibly indicated.</li>
+<li>On screens narrower than 768 pixels (px) the navigation collapses into a toggle; all touch targets are at least 44 px tall.</li>
+<li>Shared footer: café name, opening hours, address, email, and an "Order catering" link.</li>
+<li>One shared stylesheet; consistent typography and colour across all pages (see <code>content/brand.md</code>).</li>
+<li>Every image has meaningful alt text (supplied in <code>content/images/images.md</code>).</li>
+<li>No content invented beyond what the <code>content/</code> folder supplies.</li>
+</ul>
+<h3>1. Home (<code>index.html</code>)</h3>
+<p><strong>Who arrives:</strong> a stranger, usually on a phone, who searched for coffee nearby or followed a recommendation.</p>
+<p><strong>The one job:</strong> make them decide to walk in.</p>
+<p><strong>Must contain:</strong> hero image with the café name and tagline; opening hours and location visible without scrolling on desktop and within one scroll on mobile; three short reasons to visit (from <code>content/home.md</code>); one primary call to action — "Find us" linking to the Visit page; a secondary teaser linking to the Menu.</p>
+<p><strong>Must not contain:</strong> the full menu, the founding story, or more than one primary call to action.</p>
+<h3>2. Menu (<code>menu.html</code>)</h3>
+<p><strong>Who arrives:</strong> someone already interested, deciding whether the offer and prices suit them.</p>
+<p><strong>The one job:</strong> let them find what they'd order in under a minute.</p>
+<p><strong>Must contain:</strong> the menu from <code>content/menu.md</code>, grouped exactly as supplied (Coffee, Not Coffee, All-Day Kitchen, Bakery), with prices; dietary markers rendered legibly; one photograph.</p>
+<p><strong>Must not contain:</strong> a PDF, an image of a menu, or horizontal scrolling on mobile.</p>
+<h3>3. Catering (<code>catering.html</code>)</h3>
+<p><strong>Who arrives:</strong> an office manager or event planner on a laptop, comparing options.</p>
+<p><strong>The one job:</strong> get them to send a catering enquiry email.</p>
+<p><strong>Must contain:</strong> the three packages from <code>content/catering.md</code> presented so they can be compared at a glance; the ordering process (how far ahead, delivery radius); one primary call to action — a mailto link to the catering email.</p>
+<p><strong>Must not contain:</strong> prices per individual item, or a contact form (email only).</p>
+<h3>4. About (<code>about.html</code>)</h3>
+<p><strong>Who arrives:</strong> someone who is nearly convinced and wants a reason to care.</p>
+<p><strong>The one job:</strong> make the café feel like people, not a business.</p>
+<p><strong>Must contain:</strong> the story and the two founder profiles from <code>content/about.md</code>; the roasting note; two photographs.</p>
+<p><strong>Must not contain:</strong> hours, address, or menu content — those belong to Visit and Menu.</p>
+<h3>5. Visit (<code>visit.html</code>)</h3>
+<p><strong>Who arrives:</strong> someone ready to come, often standing on a street with a phone.</p>
+<p><strong>The one job:</strong> get them through the door — address, hours, and how to get there, instantly.</p>
+<p><strong>Must contain:</strong> full address, opening hours as a table, how-to-find-us directions, transit and parking notes from <code>content/visit.md</code>, contact email and phone; the storefront photograph so they recognise the café from the street.</p>
+<p><strong>Must not contain:</strong> anything that pushes the address or hours below the first screen on mobile. An embedded map is optional; a static image or a text description is acceptable.</p>
+<h3>Responsive requirements</h3>
+<table>
+<tr><th>Behaviour</th><th>Mobile (≤ 767px)</th><th>Laptop (≥ 1024px)</th></tr>
+<tr><td>Navigation</td><td>Collapsed behind a toggle</td><td>Fully visible</td></tr>
+<tr><td>Menu page layout</td><td>Single column</td><td>Two columns maximum</td></tr>
+<tr><td>Catering packages</td><td>Stacked cards</td><td>Side-by-side cards</td></tr>
+<tr><td>Hero image</td><td>Cropped, text remains readable</td><td>Full-width</td></tr>
+<tr><td>Body text</td><td>Minimum 16px, no zooming required</td><td>Comfortable measure (roughly 60–75 characters per line)</td></tr>
+</table>
+<hr>
+<h2 id="appendix-b-the-review-checklist">Appendix B — the review checklist</h2>
+<p>Run this against your <strong>live Vercel URL (web address)</strong>, not your local files. Check every page on a laptop, then every page on your phone (or a browser window 375 pixels (px) wide). Fix the worst failures first and deploy again.</p>
+<h3>The five questions — every page</h3>
+<table>
+<tr><th>#</th><th>Question</th><th>Principle</th><th>Pass looks like</th></tr>
+<tr><td>1</td><td>What do I see in the first three seconds?</td><td>Visual hierarchy</td><td>The most important element on the page is unmistakably the most prominent</td></tr>
+<tr><td>2</td><td>What is this page for?</td><td>One job per page</td><td>You can answer in one sentence, and the page's primary action matches that answer</td></tr>
+<tr><td>3</td><td>Where does this surprise the user?</td><td>Jakob's Law</td><td>Navigation, links, and buttons look and behave the way they do on every other site</td></tr>
+<tr><td>4</td><td>What can be removed?</td><td>Hick's Law</td><td>Nothing on the page competes with the one job; there is exactly one primary call to action</td></tr>
+<tr><td>5</td><td>Can a thumb hit this?</td><td>Fitts's Law</td><td>Every link and button is comfortably tappable on a phone without zooming</td></tr>
+</table>
+<h3>Mobile checks — every page at 375 px</h3>
+<ul>
+<li class="chk">Navigation collapses into a working toggle; all five pages are reachable from it.</li>
+<li class="chk">No horizontal scrolling anywhere.</li>
+<li class="chk">Body text is readable without pinch-zooming.</li>
+<li class="chk">Images scale down without breaking the layout or overlapping text.</li>
+<li class="chk">The page's one job is achievable within the first two screens of scrolling.</li>
+</ul>
+<h3>Site-wide checks</h3>
+<ul>
+<li class="chk">All five pages exist and every navigation link works — no dead links, no placeholder pages.</li>
+<li class="chk">The current page is indicated in the navigation.</li>
+<li class="chk">Hours and address on the Visit page are correct and match the footer.</li>
+<li class="chk">The catering call-to-action opens an email to the right address.</li>
+<li class="chk">No lorem ipsum, no leftover AI commentary, no unused files in the repository.</li>
+<li class="chk">Every photograph loads on the live site — no broken image icons, and no images linked from other websites.</li>
+<li class="chk">Every image has meaningful alt text.</li>
+</ul>
+<h3>Scoring for the gallery walk</h3>
+<p>Each page scores 0–5, one point per question passed. A shipped site scores out of 25; mobile-check failures cap any page at 3. Be as hard on your own site as you would be on a stranger's.</p>
+<footer>Swarup Biswas | swarupbiswas.com</footer>
+</div>
+<script>
+document.querySelectorAll('.copybtn').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var text = btn.parentElement.querySelector('pre').innerText;
+    function done(){ btn.textContent='Copied \u2713'; btn.classList.add('done');
+      setTimeout(function(){ btn.textContent='Copy'; btn.classList.remove('done'); }, 1800); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function(){ fallback(); });
+    } else { fallback(); }
+    function fallback(){
+      var ta=document.createElement('textarea'); ta.value=text;
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); done(); }catch(e){}
+      document.body.removeChild(ta);
+    }
+  });
+});
+</script>
+</body>
+</html>

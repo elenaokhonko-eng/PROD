@@ -1,0 +1,117 @@
+/* ==========================================================================
+   GuideBuoy AI — Design Tokens v3 ("Harbor" system + emotional-state modes)
+   Source of truth: docs/design-tokens-v3.md and docs/DESIGN.md
+   --------------------------------------------------------------------------
+   Modes (set on <html data-sensory="...">):
+     steady   (default) — full Harbor palette
+     quiet              — decorative tints flatten to cream/sand, teal-only
+                          accents, animation off, illustrations hidden
+     grounding          — full-screen calm canvas (see mode-switcher.js)
+   Theme (set on <html data-theme="...">):
+     light (default) | dark ("Night Harbor") — orthogonal to modes
+   ========================================================================== */
+
+:root {
+  /* Brand */
+  --gb-primary:        #2E6E6A;  /* Harbor Teal — primary buttons, links */
+  --gb-primary-deep:   #245854;  /* Deep Harbor — hover/active, headings */
+  --gb-secondary:      #3E6B4F;  /* Sage — progress, success-adjacent */
+  --gb-accent:         #3D5A80;  /* Dusty Blue — legal/formal/info */
+  --gb-warm:           #7A6F92;  /* Lavender Ash — empathy moments only */
+
+  /* Surfaces */
+  --gb-bg:             #FAF7F2;  /* Cream — page background, never pure white */
+  --gb-surface:        #FDFCFA;  /* Warm White — cards */
+  --gb-tint-teal:      #E3EBF0;  /* Mist Blue — info/legal panels */
+  --gb-tint-sage:      #DCE8DC;  /* Sage Mist — success/completed panels */
+  --gb-tint-lavender:  #E6E1F0;  /* Lavender Mist — empathy panels */
+  --gb-tint-sand:      #F0EAE0;  /* Sand — neutral secondary panels */
+
+  /* Text & lines */
+  --gb-text:           #2E3A3F;  /* Deep Slate — body text (10.96:1 on Cream) */
+  --gb-text-muted:     #5C6B70;  /* Slate Muted — secondary text */
+  --gb-text-nav:       #3F4947;  /* nav/secondary links (dark-mode safe via var) */
+  --gb-border:         #D8DDD8;  /* Fog — dividers, borders, input outlines */
+
+  /* Semantic — "regulated attention", never bright red/yellow */
+  --gb-error:          #B4552F;  /* Muted Terracotta */
+  --gb-error-tint:     #F3E0D5;  /* Terracotta Mist */
+  --gb-warning:        #A8782E;  /* Ochre */
+  --gb-warning-tint:   #F3EBDA;  /* Ochre Mist */
+  --gb-success:        #3E6B4F;  /* Sage Deep */
+  --gb-info:           #3D5A80;  /* Dusty Blue */
+
+  /* Elevation */
+  --gb-shadow:         0 2px 12px rgba(46, 58, 63, 0.08);
+
+  /* Type */
+  --gb-font:           "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ---------- Night Harbor (dark theme) ---------- */
+[data-theme="dark"] {
+  --gb-bg:             #1E2A2B;  /* Night Water */
+  --gb-surface:        #26383A;  /* Night Surface */
+  --gb-text:           #F5F1EA;  /* Night Cream */
+  --gb-text-muted:     #A8B5B3;
+  --gb-text-nav:       #A8B5B3;
+  --gb-primary:        #7FB5B2;  /* Soft Teal */
+  --gb-primary-deep:   #5E9490;
+  --gb-border:         #3A4A4C;  /* Night Fog */
+  --gb-tint-teal:      #26383A;
+  --gb-tint-sage:      #26383A;
+  --gb-tint-lavender:  #26383A;
+  --gb-tint-sand:      #26383A;
+  --gb-shadow:         0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- Quiet mode: collapse DECORATIVE colour only ----------
+   Errors and deadline colours stay semantic — clarity is safety.
+   Layout and density stay identical to Steady (consistency is safety). */
+[data-sensory="quiet"] {
+  --gb-tint-teal:      var(--gb-tint-sand);
+  --gb-tint-sage:      var(--gb-tint-sand);
+  --gb-tint-lavender:  var(--gb-tint-sand);
+  --gb-warm:           var(--gb-text-muted);
+}
+
+/* Quiet mode: hide illustrations and stop non-essential motion */
+[data-sensory="quiet"] .gb-illo,
+[data-sensory="quiet"] img.gb-decorative {
+  display: none !important;
+}
+[data-sensory="quiet"] *,
+[data-sensory="quiet"] *::before,
+[data-sensory="quiet"] *::after {
+  animation-duration: 0.001s !important;
+  transition-duration: 0.001s !important;
+}
+
+/* ---------- Reduced motion (all modes) ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ---------- Grounding mode canvas helpers ---------- */
+/* Soft Teal is the breathing element ONLY — never a button fill on Cream
+   (2.15:1 contrast fail). Grounding buttons use Harbor Teal + white text. */
+.gb-breath {
+  width: 120px;
+  height: 120px;
+  border-radius: 9999px;
+  background: #7FB5B2; /* Soft Teal */
+  opacity: 0.85;
+  animation: gb-breathe 19s ease-in-out infinite; /* 4s in, 7s hold, 8s out */
+}
+@keyframes gb-breathe {
+  0%        { transform: scale(0.72); }          /* start — exhale end   */
+  21%       { transform: scale(1);    }          /* 4s in                */
+  58%       { transform: scale(1);    }          /* 7s hold              */
+  100%      { transform: scale(0.72); }          /* 8s out               */
+}
+@media (prefers-reduced-motion: reduce) {
+  .gb-breath { animation: none !important; }
+}

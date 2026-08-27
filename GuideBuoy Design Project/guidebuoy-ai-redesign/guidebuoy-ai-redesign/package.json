@@ -1,0 +1,16 @@
+{
+  "name": "guidebuoy-ai-redesign",
+  "version": "1.0.0",
+  "description": "GuideBuoy AI Website Redesign (v3 Harbor Theme)",
+  "scripts": {
+    "dev": "npx --yes serve -l 3000 .",
+    "start": "npx --yes serve -l 3000 ."
+  },
+  "keywords": [
+    "guidebuoy",
+    "redesign",
+    "singapore"
+  ],
+  "author": "",
+  "license": "ISC"
+}

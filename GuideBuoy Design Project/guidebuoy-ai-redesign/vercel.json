@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "redirects": [
+    { "source": "/", "destination": "/guidebuoy-ai-redesign/pages/home.html", "permanent": false }
+  ]
+}
