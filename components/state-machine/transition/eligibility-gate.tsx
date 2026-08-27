@@ -61,10 +61,10 @@ function describeBlocked(missing: string[]): string {
     return 'Your case is not yet eligible for the paid report.'
   }
   if (missing.includes('documents')) {
-    return 'Add at least one supporting document before buying the full report.'
+    return 'Add at least one supporting document before buying your FI Pack.'
   }
   if (missing.includes('extract') || missing.includes('validation')) {
-    return 'Finish the free triage (intake + gap questions) before buying the full report.'
+    return 'Finish your free User Pack questions before buying your FI Pack.'
   }
   return 'Your case is not yet eligible for the paid report.'
 }

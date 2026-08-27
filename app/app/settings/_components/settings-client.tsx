@@ -247,16 +247,16 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
           </Card>
 
           {/* Danger Zone */}
-          <Card className="border-red-200">
+          <Card className="border-destructive/30">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-red-800">
+              <CardTitle className="flex items-center gap-2 text-destructive">
                 <Trash2 className="h-5 w-5" />
                 Danger Zone
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h4 className="font-medium text-red-800 mb-2">Delete Account</h4>
+                <h4 className="mb-2 font-medium text-destructive">Delete Account</h4>
                 <p className="text-sm text-muted-foreground mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
                 <Button onClick={handleDeleteAccount} variant={showDeleteConfirm ? "destructive" : "outline"} className="w-full">
                   {showDeleteConfirm ? "Confirm Delete Account" : "Delete Account"}

@@ -75,7 +75,7 @@ python3 scripts/build.py
    colour, streaks/guilt mechanics.
 7. **Formats:** money `SGD 12,400.00`, dates `29 Mar 2026`, numbers use
    `.gb-num` (tabular numerals).
-8. **Tier names:** User Pack (free), Bank Pack (one-off), FIDReC Pack
+8. **Tier names:** User Pack (free), FI Pack (SGD 18 one-off), FIDReC Pack
    (SGD 800; optional SGD 99 consult). Never say "Tier 0/1/2" to users.
 9. Soft Teal `#7FB5B2` is the Grounding breathing element **only** —
    never a button fill on light backgrounds (contrast fail).

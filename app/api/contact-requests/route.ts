@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getCurrentUser } from '@/lib/auth'
-import { createServiceClient, createUserClient } from '@/lib/supabase/server'
+import { createUserClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { ADMIN_EMAIL, EMAIL_FROM } from '@/lib/email-config'
 import { sendMail } from '@/lib/mail'
 

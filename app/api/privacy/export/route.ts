@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { createClient } from "@/lib/supabase/server"
+import { createUserClient } from "@/lib/supabase/server"
 
 type IdRow = { id: string }
 
@@ -9,7 +9,7 @@ export async function POST() {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const supabase = await createClient()
+    const supabase = await createUserClient()
 
     const { data: ownedCases } = await supabase.from("cases").select("id").eq("user_id", user.supabaseUuid)
     const ownedCaseIds = (ownedCases ?? []).map((row: IdRow) => row.id)

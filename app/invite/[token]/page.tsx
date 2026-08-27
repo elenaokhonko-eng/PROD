@@ -68,14 +68,14 @@ export default function InvitationAcceptPage() {
           )}
           {status === "success" && (
             <>
-              <CheckCircle className="h-12 w-12 text-green-600" />
+              <CheckCircle className="h-12 w-12 text-primary" />
               <p className="text-center font-medium">{message}</p>
               <p className="text-sm text-muted-foreground">Redirecting to case dashboard...</p>
             </>
           )}
           {status === "error" && (
             <>
-              <XCircle className="h-12 w-12 text-red-600" />
+              <XCircle className="h-12 w-12 text-destructive" />
               <p className="text-center font-medium">{message}</p>
               <Button onClick={() => router.push("/")}>Return Home</Button>
             </>

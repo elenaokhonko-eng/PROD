@@ -1,15 +1,6 @@
-"use client"
-
-import type React from "react"
-
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Mail } from "lucide-react"
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
@@ -24,11 +15,11 @@ const faqData = [
       },
       {
         q: "Do I need to create an account before sharing my story?",
-        a: "No. You can type or record your story first. We only ask you to sign up (Singpass or email) once your unified report is ready so you can save it securely.",
+        a: "No. You can type or record your story first. We ask you to use the available secure sign-in options when you are ready to save a case.",
       },
       {
-        q: "Is Singpass required?",
-        a: "Singpass is recommended because it proves identity for our B2R partners, but you can still use email/password if you prefer.",
+        q: "Can I sign in with Singpass?",
+        a: "Not currently. Use the sign-in options shown in GuideBuoy; we will announce Singpass only if that integration becomes available.",
       },
     ],
   },
@@ -37,7 +28,7 @@ const faqData = [
     questions: [
       {
         q: "Which agencies recognise the unified report?",
-        a: "The report is formatted for SPF e-services, ScamShield, and partner pilots like FIs or SMEs. When a direct API does not exist yet, you can export a PDF and send it yourself.",
+        a: "The packs help you organise information for a financial institution and, when eligible, a FIDReC escalation. This does not imply endorsement or acceptance by any agency, and you remain responsible for submitting through the official channel.",
       },
       {
         q: "What is the dynamic evidence checklist?",
@@ -54,15 +45,15 @@ const faqData = [
     questions: [
       {
         q: "Is the helper really free?",
-        a: "Yes. Recording your story, running the AI interview, and generating exports is 100% free. Optional marketplace services (e.g., paid specialist consults) are clearly labelled before you pay.",
+        a: "The User Pack is free. The FI Pack is SGD 18 and the FIDReC Pack is SGD 188. Any optional service is clearly priced before payment.",
       },
       {
         q: "What is the specialist consult?",
-        a: "High-value cases (> S$25k) can book a free 15‑minute triage with a specialist. If you choose a longer engagement, Stripe processes the fee and GuideBuoy remains a neutral platform.",
+        a: "Specialist consultation is a planned optional service. Bookings stay closed until the fulfilment process and availability are verified.",
       },
       {
         q: "Do you offer pro-bono referrals?",
-        a: "Yes. You can request a warm handover to SAL-linked clinics or social services directly from Module 5 in the Report Hub.",
+        a: "Referral options depend on partner availability and eligibility. GuideBuoy will show a request option only when a pathway is available; a referral is not guaranteed.",
       },
     ],
   },
@@ -71,7 +62,7 @@ const faqData = [
     questions: [
       {
         q: "How is my data protected?",
-        a: "We follow PDPA guidelines, encrypt data at rest/in transit, and host everything in Singapore. Logs record consent so we can participate in AI Verify pilots.",
+        a: "We use access controls, encrypted connections, consent records, and data-minimisation practices designed around Singapore's PDPA. See the Privacy page for the current details.",
       },
       {
         q: "Who can view my report?",
@@ -79,32 +70,13 @@ const faqData = [
       },
       {
         q: "Can I delete my report?",
-        a: "Yes. Module 6 includes a one-click “Delete my report” control that wipes the report, evidence, and associated telemetry permanently.",
+        a: "You can submit a deletion request from Settings. We process it according to the retention, legal, and security requirements described in our Privacy notice.",
       },
     ],
   },
 ]
 
 export default function FAQPage() {
-  const [contactForm, setContactForm] = useState({
-    email: "",
-    topic: "",
-    message: "",
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const handleContactSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    alert("Thank you for your message! We'll respond within 24 hours.")
-    setContactForm({ email: "", topic: "", message: "" })
-    setIsSubmitting(false)
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -140,7 +112,7 @@ export default function FAQPage() {
             ))}
           </div>
 
-          {/* Contact Form */}
+          {/* Contact */}
           <Card className="mt-12">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -148,59 +120,16 @@ export default function FAQPage() {
                 Still have questions?
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleContactSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={contactForm.email}
-                    onChange={(e) => setContactForm((prev) => ({ ...prev, email: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="topic">Topic</Label>
-                  <Select
-                    value={contactForm.topic}
-                    onValueChange={(value) => setContactForm((prev) => ({ ...prev, topic: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a topic" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="eligibility">Eligibility Questions</SelectItem>
-                      <SelectItem value="technical">Technical Support</SelectItem>
-                      <SelectItem value="billing">Billing & Payments</SelectItem>
-                      <SelectItem value="partnerships">Partnerships</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="message">Message</Label>
-                  <Textarea
-                    id="message"
-                    value={contactForm.message}
-                    onChange={(e) => setContactForm((prev) => ({ ...prev, message: e.target.value }))}
-                    placeholder="Describe your question or issue..."
-                    rows={4}
-                    required
-                  />
-                </div>
-
-                <Button type="submit" disabled={isSubmitting} className="w-full">
-                  {isSubmitting ? "Sending..." : "Send Message"}
-                </Button>
-              </form>
-
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Response Time:</strong> We typically respond within 24 hours during business days. For urgent
-                  technical issues, please include your case ID if applicable.
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Email our team with your question. Include your case ID only if it is relevant, and do not send passwords or banking credentials.
+              </p>
+              <Button asChild className="rounded-full">
+                <Link href="mailto:info@guidebuoyai.sg">Email GuideBuoy</Link>
+              </Button>
+              <div className="rounded-[14px] bg-[var(--gb-tint-teal)] p-4">
+                <p className="text-sm text-foreground">
+                  <strong>Safety note:</strong> GuideBuoy is not an emergency service. If you are in immediate danger in Singapore, call 999 or 995.
                 </p>
               </div>
             </CardContent>

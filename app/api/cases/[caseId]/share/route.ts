@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getCurrentUser } from "@/lib/auth"
-import { createClient } from "@/lib/supabase/server"
+import { createUserClient } from "@/lib/supabase/server"
 import { nanoid } from "nanoid"
 
 const shareSchema = z.object({
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { email } = parsed
     const { caseId } = await params
 
-    const supabase = await createClient()
+    const supabase = await createUserClient()
 
     // Ensure user has permission to invite
     const { data: caseData } = await supabase.from("cases").select("user_id").eq("id", caseId).single()

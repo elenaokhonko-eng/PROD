@@ -357,7 +357,7 @@ export default function RouterPage() {
               )}
 
               {/* Example Prompts */}
-              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
+              <div className="rounded-[14px] bg-[var(--gb-tint-teal)] p-4">
                 <p className="text-sm font-medium mb-2">💡 What to include:</p>
                 <ul className="text-sm space-y-1 text-muted-foreground">
                   <li>• What type of financial product (bank account, insurance, investment, etc.)</li>

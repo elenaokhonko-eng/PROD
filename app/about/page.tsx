@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail, Phone, MapPin, Linkedin } from "lucide-react"
 import { SiteHeader } from "@/components/site-header"
-import { createServiceClient } from "@/lib/supabase/service"
 
 export const metadata: Metadata = {
   title: "About GuideBuoy AI – Team, Mission, and Contacts",
@@ -116,23 +115,7 @@ const contactChannels = [
   },
 ]
 
-async function getCaseCounts() {
-  const supabase = createServiceClient()
-  const [{ count: totalCases }, { count: completedReports }] = await Promise.all([
-    supabase.from("cases").select("*", { count: "exact", head: true }),
-    supabase.from("cases").select("*", { count: "exact", head: true }).eq("status", "completed"),
-  ])
-  return {
-    totalCases: totalCases ?? null,
-    completedReports: completedReports ?? null,
-  }
-}
-
-const formatNumber = (value: number | null) => (value === null ? "—" : new Intl.NumberFormat("en-SG").format(value))
-
-export default async function AboutPage() {
-  const { totalCases, completedReports } = await getCaseCounts()
-
+export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader badge="Free Helper Access" />
@@ -147,13 +130,13 @@ export default async function AboutPage() {
             <p className="text-lg text-muted-foreground leading-relaxed">
               GuideBuoy AI is a software company in Singapore. We design an AXS-style helper that lets residents,
               caregivers, and nominees tell their story once, add evidence, and reuse it for agency-ready complaints
-              (including formal escalations) without legal representation. Everything ships cloud-first, PDPA-aligned,
-              and battle-tested with real complaint data.
+              (including formal escalations) without making people repeat the same account at every step. The product is
+              designed around calm guidance, data minimisation, and Singapore&apos;s complaint pathways.
             </p>
             <div className="mt-6 flex flex-wrap gap-4">
               <div className="rounded-2xl border border-border/60 p-4">
-                <p className="text-3xl font-semibold">{formatNumber(totalCases)}</p>
-                <p className="text-sm text-muted-foreground">case assessments started since Jan 2024</p>
+                <p className="text-3xl font-semibold">3 clear packs</p>
+                <p className="text-sm text-muted-foreground">User, FI, and FIDReC pathways with transparent pricing</p>
               </div>
               <div className="rounded-2xl border border-border/60 p-4">
                 <p className="text-3xl font-semibold">PDPA ✦ MAS</p>
@@ -176,7 +159,7 @@ export default async function AboutPage() {
               </div>
               <div>
                 <p className="font-medium text-foreground">Stage</p>
-                <p>MVP live (Q4 2025) on guidebuoyai.sg; beta SME partner programme running; Stripe + Supabase stack in prod.</p>
+                <p>Harbor product experience in active development, with production release gates for every paid and partner-assisted pathway.</p>
               </div>
               <div>
                 <p className="font-medium text-foreground">Focus in 2025</p>
