@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getCurrentUser } from "@/lib/auth"
-import { createClient } from "@/lib/supabase/server"
+import { createUserClient } from "@/lib/supabase/server"
 import { EMAIL_FROM } from "@/lib/email-config"
 import { InvitationEmail } from "@/lib/email-templates"
 import { sendMail } from "@/lib/mail"
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const { caseId, email, role } = parsed
 
-    const supabase = await createClient()
+    const supabase = await createUserClient()
 
     // Verify user owns or has access to the case
     const { data: caseData, error: caseError } = await supabase

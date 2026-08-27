@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { createClient } from '@/lib/supabase/server'
+import { createUserClient } from '@/lib/supabase/server'
 
 export async function PATCH(
   request: Request,
@@ -14,7 +14,7 @@ export async function PATCH(
   const { caseId } = await params
   const { status } = await request.json()
 
-  const supabase = await createClient()
+  const supabase = await createUserClient()
 
   const { error } = await supabase
     .from('cases')

@@ -265,7 +265,7 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
         />
       ) : (
         <Tier2PackPanel
-          priceLabel="SGD $188"
+          priceLabel="SGD 188"
           isStartingCheckout={createCheckout.isPending && checkoutProduct === 'fidrec_tier2_pack'}
           errorMessage={checkoutProduct === 'fidrec_tier2_pack' ? checkoutError : null}
           onClick={() => void handleCheckout('fidrec_tier2_pack')}
@@ -273,7 +273,7 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
       )}
 
       <ConsultCta
-        priceLabel="SGD $99"
+        priceLabel="SGD 99"
         isStartingCheckout={createCheckout.isPending && checkoutProduct === 'human_consult_30m'}
         errorMessage={checkoutProduct === 'human_consult_30m' ? checkoutError : null}
         onClick={() => void handleCheckout('human_consult_30m')}

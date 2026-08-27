@@ -33,7 +33,7 @@ together and synced, so you never feel lost between visits.
 
 ### 5. Choose your next step
 If your case involves a bank or financial institution, you can generate
-the full **Bank Pack** report — a complete, structured complaint with
+the full **FI Pack** report — a complete, structured complaint for a financial institution with
 chronology, disputed transactions, and what you're asking for. Or keep
 using your free draft on your own. Both are fine.
 

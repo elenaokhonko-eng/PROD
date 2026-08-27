@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { createClient } from '@/lib/supabase/server'
+import { createUserClient } from '@/lib/supabase/server'
 
 export async function GET(
   _request: Request,
@@ -12,7 +12,7 @@ export async function GET(
   }
 
   const { caseId } = await params
-  const supabase = await createClient()
+  const supabase = await createUserClient()
 
   // Verify case ownership
   const { data: caseData } = await supabase

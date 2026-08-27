@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { createClient } from "@/lib/supabase/server"
+import { createUserClient } from "@/lib/supabase/server"
 
 function generateReferralCode(userId: string): string {
   // Generate a short, memorable referral code
@@ -16,7 +16,7 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const supabase = await createClient()
+    const supabase = await createUserClient()
 
     // Check if user already has a referral code
     const { data: profile } = await supabase.from("profiles").select("referral_code").eq("id", user.supabaseUuid).single()

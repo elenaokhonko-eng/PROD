@@ -217,10 +217,8 @@ export default function TrackerPage() {
             <p>
               Samaritans (SOS):{" "}
               <a href="tel:1767" className="underline">1767</a>{" "}
-              · SAGE:{" "}
-              <a href="tel:18005555555" className="underline">1800-555-5555</a>{" "}
-              · National Care Hotline:{" "}
-              <a href="tel:18002026868" className="underline">1800-202-6868</a>
+              · national mindline:{" "}
+              <a href="tel:1771" className="underline">1771</a>
             </p>
           </div>
         </div>

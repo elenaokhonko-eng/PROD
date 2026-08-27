@@ -51,8 +51,8 @@ The User Pack — story, evidence organisation, focused questions, and your
 free draft — costs nothing, no card required. Paid packs exist only if
 you choose them.
 
-**What's the difference between the Bank Pack and the FIDReC Pack?**
-The Bank Pack is the complete self-serve complaint report for your
+**What's the difference between the FI Pack and the FIDReC Pack?**
+The FI Pack is the complete self-serve complaint report for your
 financial institution. The FIDReC Pack (SGD 800, one-off) adds
 human-reviewed preparation of your submission to FIDReC, after the bank's
 final response or the four-week wait. An optional 30-minute specialist

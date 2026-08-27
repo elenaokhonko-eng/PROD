@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getCurrentUser } from "@/lib/auth"
-import { createClient } from "@/lib/supabase/server"
+import { createUserClient } from "@/lib/supabase/server"
 
 const acceptSchema = z.object({
   invitationToken: z.string().min(1, "invitationToken is required"),
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     const { invitationToken } = parsed
 
-    const supabase = await createClient()
+    const supabase = await createUserClient()
 
     // Fetch invitation
     const { data: invitation, error: inviteError } = await supabase

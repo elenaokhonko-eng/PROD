@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 
 export interface BuyReportCTAProps {
-  /** Displayed price (MVP: SGD $49). Passed in so pricing can be
+  /** Displayed price. Passed in so pricing can be
    *  A/B tested server-side without touching this component. */
   priceLabel?: string
   isStartingCheckout?: boolean
@@ -23,7 +23,7 @@ export interface BuyReportCTAProps {
 }
 
 export function BuyReportCTA({
-  priceLabel = 'SGD $49',
+  priceLabel = 'SGD 18',
   isStartingCheckout = false,
   errorMessage,
   onClick,
@@ -35,7 +35,7 @@ export function BuyReportCTA({
           <ShieldCheck className="h-5 w-5" aria-hidden />
         </div>
         <div className="flex-1">
-          <CardTitle>Buy the full report</CardTitle>
+          <CardTitle>Get your FI Pack</CardTitle>
           <CardDescription>
             A structured complaint report drafted against Singapore&apos;s Shared Responsibility
             Framework. Ready to send to the institution in minutes.
@@ -57,13 +57,13 @@ export function BuyReportCTA({
         ) : null}
 
         <div className="flex items-center justify-between gap-3 pt-2">
-          <div className="text-lg font-semibold">{priceLabel}</div>
+          <div className="gb-num text-lg font-semibold">{priceLabel}</div>
           <Button onClick={onClick} disabled={isStartingCheckout} size="lg">
             {isStartingCheckout ? (
               <StateMachineLoading size="inline" title="Redirecting..." />
             ) : (
               <>
-                Buy full report
+                Buy FI Pack
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
               </>
             )}

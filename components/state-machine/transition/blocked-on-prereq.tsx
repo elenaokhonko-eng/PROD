@@ -46,9 +46,9 @@ export function BlockedOnPrereq({ missing, reason, onRetry }: BlockedOnPrereqPro
   const primary = primaryKey ? COPY[primaryKey] : null
 
   return (
-    <Card className="border-amber-500/40 bg-amber-50/40 dark:bg-amber-950/20">
+    <Card className="border-[var(--gb-warning)] bg-[var(--gb-warning-tint)]">
       <CardHeader className="flex flex-row items-start gap-3">
-        <div className="mt-1 rounded-md bg-amber-100 p-2 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+        <div className="mt-1 rounded-md bg-[var(--gb-warning-tint)] p-2 text-[var(--gb-warning)]">
           <AlertTriangle className="h-5 w-5" aria-hidden />
         </div>
         <div className="flex-1">

@@ -3,7 +3,6 @@ import { z } from "zod"
 import { nanoid } from "nanoid"
 import type { PostgrestError } from "@supabase/supabase-js"
 import { createServiceClient } from "@/lib/supabase/service"
-import { createClient as createServerSupabase } from "@/lib/supabase/server"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
 
 const updatePayloadSchema = z.object({
@@ -81,7 +80,7 @@ export async function GET(request: NextRequest) {
     session = (result.data as RouterSessionRow | null) ?? null
     fetchError = result.error
   } else if (convertedFor) {
-    const authClient = await createServerSupabase()
+    const authClient = createServiceClient()
     const {
       data: { user },
     } = await authClient.auth.getUser()

@@ -30,16 +30,16 @@ export function PaymentSuccessLanding({
   isConfirming = true,
 }: PaymentSuccessLandingProps) {
   return (
-    <Card className="mx-auto max-w-md border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/20">
+    <Card className="mx-auto max-w-md border-primary/30 bg-[var(--gb-tint-teal)]">
       <CardHeader className="flex flex-row items-start gap-3">
-        <div className="mt-1 rounded-full bg-emerald-100 p-2 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+        <div className="mt-1 rounded-full bg-primary/10 p-2 text-primary">
           <CheckCircle2 className="h-6 w-6" aria-hidden />
         </div>
         <div className="flex-1">
           <CardTitle>Payment received</CardTitle>
           <CardDescription>
             {isConfirming
-              ? "We're setting up your full report. This usually takes a few seconds."
+              ? "We're setting up your FI Pack. This usually takes a few seconds."
               : 'Your report is being generated. We\'ll take you there now.'}
           </CardDescription>
         </div>

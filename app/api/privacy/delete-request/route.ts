@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { createClient } from "@/lib/supabase/server"
+import { createUserClient } from "@/lib/supabase/server"
 import { trackServerEvent } from "@/lib/analytics/server"
 
 // Best-effort anonymization for MVP: scrub textual fields, delete evidence files/rows,
@@ -10,7 +10,7 @@ export async function POST() {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const supabase = await createClient()
+    const supabase = await createUserClient()
 
     // Fetch user's cases (owner or creator)
     const { data: cases } = await supabase

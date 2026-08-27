@@ -45,12 +45,11 @@ export const ALLOWED_MIME_TYPES = [
   'application/pdf',
   'image/png',
   'image/jpeg',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
 ] as const
 
 export type AllowedMimeType = (typeof ALLOWED_MIME_TYPES)[number]
 
-export const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.docx'] as const
+export const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg'] as const
 
 export function isAllowedMime(mime: string | null | undefined): mime is AllowedMimeType {
   if (!mime) return false

@@ -15,13 +15,15 @@ import { StateMachineLoading } from '@/components/state-machine/loading-state'
 
 export interface ConsultCtaProps {
   priceLabel?: string
+  available?: boolean
   isStartingCheckout?: boolean
   errorMessage?: string | null
   onClick: () => void
 }
 
 export function ConsultCta({
-  priceLabel = 'SGD $99',
+  priceLabel = 'SGD 99',
+  available = false,
   isStartingCheckout = false,
   errorMessage,
   onClick,
@@ -55,13 +57,13 @@ export function ConsultCta({
         ) : null}
 
         <div className="flex items-center justify-between gap-3 pt-2">
-          <div className="text-lg font-semibold">{priceLabel}</div>
-          <Button onClick={onClick} disabled={isStartingCheckout} variant="secondary" size="lg">
+          <div className="gb-num text-lg font-semibold">{priceLabel}</div>
+          <Button onClick={onClick} disabled={!available || isStartingCheckout} variant="secondary" size="lg">
             {isStartingCheckout ? (
               <StateMachineLoading size="inline" title="Redirecting..." />
             ) : (
               <>
-                Book consult
+                {available ? 'Book consult' : 'Bookings opening soon'}
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
               </>
             )}

@@ -21,7 +21,7 @@ Does not include: the full complaint report, or any human review.
 
 **Start free — no card required.**
 
-### Bank Pack — One-off payment
+### FI Pack — SGD 18 one-off payment
 *(Price shown at checkout; no surprises.)*
 For disputes with a bank or financial institution that need a complete,
 professional complaint.
@@ -41,7 +41,7 @@ preparation.
 ### FIDReC Pack — SGD 800 one-off
 For cases heading to the Financial Industry Disputes Resolution Centre
 after the bank's final response or the four-week wait.
-- Everything in the Bank Pack
+- Everything in the FI Pack
 - Human-reviewed case-pack preparation: evidence organisation, chronology,
   and issue framing for FIDReC's format
 - Guidance through each step of the submission
