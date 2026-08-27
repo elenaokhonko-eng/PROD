@@ -1,0 +1,46 @@
+<!-- GuideBuoy AI — shared header (public shell). Include on EVERY page.
+     The mode switcher must never be removed: v3 global rule 2. -->
+<header class="bg-surface border-b border-border-fog sticky top-0 z-50">
+  <div class="flex justify-between items-center w-full px-page-margin h-20 max-w-7xl mx-auto gap-4">
+    <a href="home.html" class="flex items-center gap-2 shrink-0">
+      <img src="../assets/lumi-buoy.jpg" alt="GuideBuoy AI — Lumi the buoy" class="w-10 h-10 rounded-full object-cover" />
+      <span class="font-bold text-primary text-headline-sm hidden min-[480px]:inline">GuideBuoy AI</span>
+    </a>
+    <nav class="hidden lg:flex items-center gap-stack-lg" aria-label="Main navigation">
+      <a class="%%ACTIVE:home%% text-body-sm" href="home.html">Home</a>
+      <a class="%%ACTIVE:how-it-works%% text-body-sm" href="how-it-works.html">How it Works</a>
+      <a class="%%ACTIVE:pricing%% text-body-sm" href="pricing.html">Pricing</a>
+      <a class="%%ACTIVE:marketplace%% text-body-sm" href="marketplace.html">Marketplace</a>
+      <a class="%%ACTIVE:resources%% text-body-sm" href="resources.html">Resources</a>
+      <a class="%%ACTIVE:about%% text-body-sm" href="about.html">About</a>
+      <a class="%%ACTIVE:faq-contact%% text-body-sm" href="faq-contact.html">FAQ</a>
+    </nav>
+    <div class="flex items-center gap-stack-md">
+      <!-- Emotional-state mode switcher — present at all times -->
+      <div class="gb-mode-switch" role="group" aria-label="How are you feeling? Choose your display mode">
+        <span class="gb-mode-label hidden xl:inline" aria-hidden="true">How are you feeling?</span>
+        <button type="button" data-mode="steady" aria-pressed="true" aria-label="I'm okay — steady display, full calm palette">Steady</button>
+        <button type="button" data-mode="quiet" aria-pressed="false" aria-label="Everything feels too much — quiet display, minimal colour and motion">Quiet</button>
+        <button type="button" data-mode="grounding" aria-pressed="false" aria-label="I need a moment — grounding screen with breathing exercise">A moment</button>
+      </div>
+      <a href="#" class="hidden md:inline-block bg-primary text-on-primary px-4 py-2 rounded-lg text-body-sm font-semibold hover:bg-primary-deep transition-colors duration-200">Sign In</a>
+      <button type="button" id="gb-nav-toggle" class="lg:hidden p-2 text-text-slate" aria-label="Open menu" aria-expanded="false">
+        <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+      </button>
+    </div>
+  </div>
+  <!-- Mobile navigation drawer -->
+  <div id="gb-mobile-nav" class="lg:hidden hidden border-t border-border-fog bg-surface px-page-margin py-4">
+    <nav class="flex flex-col gap-3" aria-label="Mobile navigation">
+      <a class="%%ACTIVE:home%% text-body-sm py-1" href="home.html">Home</a>
+      <a class="%%ACTIVE:how-it-works%% text-body-sm py-1" href="how-it-works.html">How it Works</a>
+      <a class="%%ACTIVE:pricing%% text-body-sm py-1" href="pricing.html">Pricing</a>
+      <a class="%%ACTIVE:marketplace%% text-body-sm py-1" href="marketplace.html">Marketplace</a>
+      <a class="%%ACTIVE:resources%% text-body-sm py-1" href="resources.html">Resources</a>
+      <a class="%%ACTIVE:about%% text-body-sm py-1" href="about.html">About</a>
+      <a class="%%ACTIVE:faq-contact%% text-body-sm py-1" href="faq-contact.html">FAQ</a>
+      <a href="#" class="inline-block mt-2 bg-primary text-on-primary px-4 py-2 rounded-lg text-body-sm font-semibold text-center">Sign In</a>
+    </nav>
+  </div>
+</header>
+<span id="gb-mode-announcer" class="gb-sr-only" role="status" aria-live="polite"></span>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-sensory="steady">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pricing — User Pack, Bank Pack, FIDReC Pack — GuideBuoy AI</title>
+<meta name="description" content="GuideBuoy AI — Singapore's complaint helper. Tell your story once; Lumi organises it into one report you can reuse with your bank, the Police, ScamShield, and FIDReC."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="../design-system/tailwind.config.js"></script>
+<link rel="stylesheet" href="../design-system/tokens.css"/>
+<link rel="stylesheet" href="../design-system/base.css"/>
+</head>
+<body class="bg-surface text-text-slate antialiased flex flex-col min-h-screen">
+<!-- GuideBuoy AI — shared header (public shell). Include on EVERY page.
+     The mode switcher must never be removed: v3 global rule 2. -->
+<header class="bg-surface border-b border-border-fog sticky top-0 z-50">
+  <div class="flex justify-between items-center w-full px-page-margin h-20 max-w-7xl mx-auto gap-4">
+    <a href="home.html" class="flex items-center gap-2 shrink-0">
+      <img src="../assets/lumi-buoy.jpg" alt="GuideBuoy AI — Lumi the buoy" class="w-10 h-10 rounded-full object-cover" />
+      <span class="font-bold text-primary text-headline-sm hidden min-[480px]:inline">GuideBuoy AI</span>
+    </a>
+    <nav class="hidden lg:flex items-center gap-stack-lg" aria-label="Main navigation">
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="home.html">Home</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="how-it-works.html">How it Works</a>
+      <a class="text-primary font-bold border-b-2 border-primary pb-1 text-body-sm" href="pricing.html">Pricing</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="marketplace.html">Marketplace</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="resources.html">Resources</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="about.html">About</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="faq-contact.html">FAQ</a>
+    </nav>
+    <div class="flex items-center gap-stack-md">
+      <!-- Emotional-state mode switcher — present at all times -->
+      <div class="gb-mode-switch" role="group" aria-label="How are you feeling? Choose your display mode">
+        <span class="gb-mode-label hidden xl:inline" aria-hidden="true">How are you feeling?</span>
+        <button type="button" data-mode="steady" aria-pressed="true" aria-label="I'm okay — steady display, full calm palette">Steady</button>
+        <button type="button" data-mode="quiet" aria-pressed="false" aria-label="Everything feels too much — quiet display, minimal colour and motion">Quiet</button>
+        <button type="button" data-mode="grounding" aria-pressed="false" aria-label="I need a moment — grounding screen with breathing exercise">A moment</button>
+      </div>
+      <a href="#" class="hidden md:inline-block bg-primary text-on-primary px-4 py-2 rounded-lg text-body-sm font-semibold hover:bg-primary-deep transition-colors duration-200">Sign In</a>
+      <button type="button" id="gb-nav-toggle" class="lg:hidden p-2 text-text-slate" aria-label="Open menu" aria-expanded="false">
+        <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+      </button>
+    </div>
+  </div>
+  <!-- Mobile navigation drawer -->
+  <div id="gb-mobile-nav" class="lg:hidden hidden border-t border-border-fog bg-surface px-page-margin py-4">
+    <nav class="flex flex-col gap-3" aria-label="Mobile navigation">
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="home.html">Home</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="how-it-works.html">How it Works</a>
+      <a class="text-primary font-bold border-b-2 border-primary pb-1 text-body-sm py-1" href="pricing.html">Pricing</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="marketplace.html">Marketplace</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="resources.html">Resources</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="about.html">About</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="faq-contact.html">FAQ</a>
+      <a href="#" class="inline-block mt-2 bg-primary text-on-primary px-4 py-2 rounded-lg text-body-sm font-semibold text-center">Sign In</a>
+    </nav>
+  </div>
+</header>
+<span id="gb-mode-announcer" class="gb-sr-only" role="status" aria-live="polite"></span>
+
+<main id="main" class="max-w-7xl mx-auto px-page-margin pt-section-gap pb-section-gap w-full">
+<!-- Header -->
+<section class="mb-section-gap text-center" aria-labelledby="pricing-heading">
+  <h1 id="pricing-heading" class="text-headline-lg text-primary mb-stack-md">Free to start. Paid only when you choose more.</h1>
+  <p class="text-body-lg text-text-muted max-w-2xl mx-auto">Every price is a one-off payment — no subscriptions, no hidden recurring charges, ever. No pack guarantees an outcome; each one makes your case clearer, stronger, and easier for the right people to act on.</p>
+</section>
+
+<!-- The three packs -->
+<section class="mb-section-gap" aria-labelledby="packs-heading">
+  <h2 id="packs-heading" class="gb-sr-only">The three packs</h2>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter items-start">
+
+    <!-- User Pack -->
+    <div class="bg-surface-white rounded-xl shadow-ambient p-card-padding border border-border-fog flex flex-col gap-stack-md h-full">
+      <div class="flex flex-col gap-stack-sm">
+        <h3 class="text-headline-md text-text-slate">User Pack</h3>
+        <p class="gb-num text-headline-md text-primary font-bold">Free</p>
+        <p class="text-body-sm text-text-muted">For anyone who needs to get their story in order, right now.</p>
+      </div>
+      <ul class="flex flex-col gap-stack-sm flex-grow">
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate">Tell your story by typing or voice</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate">Guided evidence upload (bank statements, screenshots, SMS, receipts)</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate">Lumi's focused questions to fill the gaps</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate">Free draft: story summary + evidence checklist + preliminary pathway signal</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate">Edit and reuse your draft anytime</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate">Delete everything anytime</span>
+        </li>
+      </ul>
+      <p class="text-body-sm text-text-muted italic">Does not include: the full complaint report, or any human review.</p>
+      <a class="block text-center bg-primary text-on-primary px-4 py-3 rounded-lg font-semibold hover:bg-primary-deep transition-colors duration-200" href="home.html">Start free — no card required</a>
+    </div>
+
+    <!-- Bank Pack (most popular) -->
+    <div class="bg-surface-white rounded-xl shadow-ambient p-card-padding border-2 border-primary flex flex-col gap-stack-md h-full relative">
+      <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-tint-sage text-text-slate px-3 py-1 rounded-full text-body-sm font-semibold border border-border-fog">Most popular</span>
+      <div class="flex flex-col gap-stack-sm mt-2">
+        <h3 class="text-headline-md text-text-slate">Bank Pack</h3>
+        <p class="gb-num text-headline-md text-primary font-bold">One-off payment</p>
+        <p class="text-body-sm text-text-muted italic">(Price shown at checkout; no surprises.)</p>
+        <p class="text-body-sm text-text-muted">For disputes with a bank or financial institution that need a complete, professional complaint.</p>
+      </div>
+      <ul class="flex flex-col gap-stack-sm flex-grow">
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate font-semibold">Everything in the User Pack</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate">Full complaint report: executive summary, chronology, disputed transactions with totals, responsibility points, requested resolution</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate">Evidence map linking every fact to its document</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate">Structured for your bank's complaint process — and reusable later for FIDReC if needed</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate">Copy, print, download, and update as your case develops</span>
+        </li>
+      </ul>
+      <p class="text-body-sm text-text-muted italic">Does not include: human review, specialist time, or FIDReC case-pack preparation.</p>
+      <a class="block text-center bg-primary text-on-primary px-4 py-3 rounded-lg font-semibold hover:bg-primary-deep transition-colors duration-200" href="home.html">Upgrade from your free draft when you're ready</a>
+    </div>
+
+    <!-- FIDReC Pack -->
+    <div class="bg-surface-white rounded-xl shadow-ambient p-card-padding border border-border-fog flex flex-col gap-stack-md h-full">
+      <div class="flex flex-col gap-stack-sm">
+        <h3 class="text-headline-md text-text-slate">FIDReC Pack</h3>
+        <p class="text-headline-md text-primary font-bold"><span class="gb-num">SGD 800</span> <span class="text-body-sm font-normal text-text-muted">one-off</span></p>
+        <p class="text-body-sm text-text-muted">For cases heading to the Financial Industry Disputes Resolution Centre after the bank's final response or the four-week wait.</p>
+      </div>
+      <ul class="flex flex-col gap-stack-sm flex-grow">
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate font-semibold">Everything in the Bank Pack</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate">Human-reviewed case-pack preparation: evidence organisation, chronology, and issue framing for FIDReC's format</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-success-sage" aria-hidden="true">check_circle</span>
+          <span class="text-body-sm text-text-slate">Guidance through each step of the submission</span>
+        </li>
+      </ul>
+      <div class="bg-tint-sand rounded-lg p-3 flex items-start gap-2">
+        <span class="material-symbols-outlined text-text-slate" aria-hidden="true">add_circle</span>
+        <p class="text-body-sm text-text-slate">Optional add-on: <strong>30-minute Scam &amp; Fraud Specialist consultation — <span class="gb-num">SGD 99</span></strong>, one-to-one, before or during preparation.</p>
+      </div>
+      <p class="text-body-sm text-text-muted">Not sure you qualify? Request a free handoff review — a human follows up within 1–2 business days.</p>
+      <p class="text-body-sm text-text-muted italic">FIDReC filing itself is free. You're paying for preparation, not the filing.</p>
+      <a class="block text-center bg-surface-white text-primary border border-primary px-4 py-3 rounded-lg font-semibold hover:bg-tint-teal transition-colors duration-200" href="faq-contact.html">Request a free handoff review</a>
+    </div>
+  </div>
+</section>
+
+<!-- Call to action -->
+<section class="mb-section-gap text-center flex flex-col items-center gap-stack-md" aria-labelledby="pricing-cta-heading">
+  <h2 id="pricing-cta-heading" class="gb-sr-only">Get started</h2>
+  <a class="bg-primary text-on-primary px-8 py-3 rounded-lg text-body-lg font-bold hover:bg-primary-deep transition-colors duration-200 shadow-ambient" href="home.html">Start with the free User Pack →</a>
+  <a class="text-primary hover:text-primary-deep text-body-sm underline underline-offset-2" href="how-it-works.html">Still deciding? See how it works →</a>
+</section>
+
+<!-- Honest fine print -->
+<section class="mb-section-gap" aria-labelledby="fineprint-heading">
+  <div class="bg-tint-sand rounded-xl p-card-padding flex items-start gap-4 max-w-4xl mx-auto">
+    <span class="material-symbols-outlined text-text-slate mt-1" aria-hidden="true">info</span>
+    <div>
+      <h2 id="fineprint-heading" class="text-headline-sm text-text-slate mb-stack-md">Honest fine print</h2>
+      <ul class="list-disc pl-5 flex flex-col gap-stack-sm">
+        <li class="text-body-sm text-text-slate">We are not a law firm and this is not legal advice.</li>
+        <li class="text-body-sm text-text-slate">No pack guarantees that a bank, FIDReC, or any authority will rule in your favour.</li>
+        <li class="text-body-sm text-text-slate">Refunds: if a paid report cannot be generated, you are not charged again to retry; if we can't deliver, you get your money back.</li>
+        <li class="text-body-sm text-text-slate">Payments are processed securely by Stripe. We never see your card details.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</main>
+<!-- GuideBuoy AI — shared footer. Include on EVERY page. -->
+<footer class="bg-tint-sand border-t border-border-fog mt-auto">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-gutter px-page-margin py-section-gap max-w-7xl mx-auto">
+    <div class="flex flex-col gap-stack-sm md:col-span-2">
+      <span class="text-headline-sm font-semibold text-primary mb-2">GuideBuoy AI SG Pte Ltd</span>
+      <p class="text-body-sm text-text-muted">UEN 202545875C</p>
+      <p class="text-body-sm text-text-muted">51 Goldhill Plaza #07-10/11, Singapore 308900</p>
+      <p class="text-body-sm text-text-muted mt-2 gb-num">DID +65 9072 7915 · Main +65 6690 9262</p>
+    </div>
+    <div class="flex flex-col gap-stack-sm">
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Terms</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Privacy</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Report a vulnerability</a>
+    </div>
+    <div class="flex flex-col gap-stack-sm">
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">LinkedIn</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Instagram</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Facebook</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">YouTube</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">X</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="https://wa.me/6590727915">WhatsApp</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Single persistent WhatsApp entry point (never duplicate floating buttons) -->
+<a href="https://wa.me/6590727915" aria-label="Chat with GuideBuoy on WhatsApp" target="_blank" rel="noopener"
+   class="fixed bottom-6 right-6 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-on-primary shadow-ambient hover:bg-primary-deep transition-colors duration-200">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6" aria-hidden="true"><path d="M12.04 2a9.9 9.9 0 0 0-8.4 15.2L2 22l4.9-1.6A9.9 9.9 0 1 0 12.04 2Zm5.8 14.1c-.25.7-1.45 1.35-2 1.4-.5.05-1.15.25-3.85-.8-3.25-1.3-5.3-4.6-5.45-4.8-.15-.2-1.3-1.75-1.3-3.3 0-1.55.8-2.3 1.1-2.6.3-.3.65-.4.85-.4h.6c.2 0 .45-.05.7.55.25.6.85 2.1.95 2.25.05.15.1.35 0 .55-.1.2-.15.35-.3.5-.15.15-.3.35-.45.5-.15.15-.3.3-.15.6.15.3.7 1.15 1.5 1.85 1.05.95 1.9 1.25 2.2 1.35.3.1.45.1.6-.05.15-.15.7-.8.9-1.1.2-.3.4-.25.65-.15.25.1 1.6.75 1.9.9.3.15.5.2.55.3.05.15.05.7-.2 1.4Z"/></svg>
+</a>
+<script src="../design-system/mode-switcher.js"></script>
+<script>
+(function(){var t=document.getElementById('gb-nav-toggle'),n=document.getElementById('gb-mobile-nav');
+if(t&&n){t.addEventListener('click',function(){var o=n.classList.toggle('hidden');t.setAttribute('aria-expanded',String(!o));});}})();
+</script>
+</body>
+</html>

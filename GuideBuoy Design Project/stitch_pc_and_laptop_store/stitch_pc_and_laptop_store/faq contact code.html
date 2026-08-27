@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"/><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">try{
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-highest": "#e5e2dd",
+                      "outline-variant": "#bfc8c7",
+                      "on-surface-variant": "#3f4947",
+                      "on-primary-fixed": "#00201e",
+                      "on-error": "#ffffff",
+                      "error": "#ba1a1a",
+                      "surface-container-low": "#f6f3ee",
+                      "primary-container": "#2e6e6a",
+                      "warning-ochre": "#A8782E",
+                      "secondary-container": "#baebc8",
+                      "on-tertiary": "#ffffff",
+                      "text-slate": "#2E3A3F",
+                      "on-primary-container": "#aeeee8",
+                      "tertiary-container": "#49668d",
+                      "secondary-fixed-dim": "#a1d2b0",
+                      "inverse-on-surface": "#f3f0eb",
+                      "border-fog": "#D8DDD8",
+                      "tint-teal": "#E3EBF0",
+                      "surface-container-lowest": "#ffffff",
+                      "tint-lavender": "#E6E1F0",
+                      "on-secondary-fixed-variant": "#224f35",
+                      "surface-tint": "#276864",
+                      "primary-fixed": "#afeee9",
+                      "text-muted": "#5C6B70",
+                      "on-secondary-fixed": "#002110",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed-variant": "#01504c",
+                      "on-background": "#1c1c19",
+                      "on-tertiary-fixed": "#001c39",
+                      "inverse-primary": "#93d2cd",
+                      "surface-container-high": "#ebe8e3",
+                      "on-surface": "#1c1c19",
+                      "error-terracotta": "#B4552F",
+                      "primary-fixed-dim": "#93d2cd",
+                      "error-container": "#ffdad6",
+                      "inverse-surface": "#31302d",
+                      "primary": "#0d5652",
+                      "tertiary-fixed": "#d3e3ff",
+                      "tertiary-fixed-dim": "#abc8f4",
+                      "tertiary": "#304e73",
+                      "outline": "#6f7978",
+                      "surface-container": "#f0ede9",
+                      "primary-deep": "#245854",
+                      "secondary": "#3b684c",
+                      "background": "#fcf9f4",
+                      "warm-lavender": "#7A6F92",
+                      "surface-bright": "#fcf9f4",
+                      "surface": "#fcf9f4",
+                      "secondary-fixed": "#bceecb",
+                      "surface-dim": "#dcdad5",
+                      "surface-variant": "#e5e2dd",
+                      "on-tertiary-fixed-variant": "#2a486d",
+                      "surface-white": "#FDFCFA",
+                      "on-secondary": "#ffffff",
+                      "on-tertiary-container": "#d3e3ff",
+                      "on-primary": "#ffffff",
+                      "on-secondary-container": "#3f6c50"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "section-gap": "80px",
+                      "stack-md": "16px",
+                      "page-margin": "32px",
+                      "stack-sm": "8px",
+                      "stack-lg": "24px",
+                      "card-padding": "24px",
+                      "gutter": "32px"
+              },
+              "fontFamily": {
+                      "headline-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "numeral-tabular": ["Inter"],
+                      "label-caps": ["Inter"],
+                      "headline-sm": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-lg": ["56px", {"lineHeight": "1.15", "letterSpacing": "-0.02em", "fontWeight": "650"}],
+                      "headline-md": ["28px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                      "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                      "body-lg": ["17px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "numeral-tabular": ["16px", {"lineHeight": "1", "fontWeight": "400"}],
+                      "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "headline-sm": ["20px", {"lineHeight": "1.3", "fontWeight": "600"}]
+              }
+      }
+          },
+        }
+    }catch(_e){}</script></head><body class="bg-background text-on-surface font-body-lg antialiased">
+<!-- Top Navigation -->
+<nav class="bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline docked full-width top-0 sticky z-50 shadow-sm">
+<div class="flex justify-between items-center w-full px-page-margin h-20 max-w-7xl mx-auto">
+<div class="flex items-center gap-8">
+<a class="text-headline-sm font-headline-sm font-bold text-primary dark:text-primary-fixed" href="#">GuideBuoy AI</a>
+<div class="hidden md:flex gap-6 items-center">
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">Home</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">How it Works</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">Pricing</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">Marketplace</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">Resources</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors duration-200" href="#">About</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="hidden md:block font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors">FAQ</button>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-lg font-label-caps text-label-caps hover:bg-primary-deep transition-colors">Sign In</button>
+</div>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-page-margin py-section-gap">
+<!-- Header Section -->
+<section class="text-center mb-16 md:mb-24">
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-stack-md">Honest answers to the questions people ask us most — usually at 2am, usually worried.</h1>
+<p class="font-body-lg text-body-lg text-text-muted max-w-2xl mx-auto">If yours isn't here, contact us below or on WhatsApp.</p>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- FAQ Section (8 cols) -->
+<div class="lg:col-span-8 space-y-section-gap">
+<!-- FAQ Group: Getting started -->
+<section>
+<h2 class="font-headline-md text-headline-md text-primary mb-stack-lg flex items-center gap-2">
+<span aria-hidden="true" class="material-symbols-outlined text-primary">rocket_launch</span>
+                        Getting Started
+                    </h2>
+<div class="space-y-stack-md">
+<!-- FAQ Item -->
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">Who can use GuideBuoy?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">Anyone in Singapore dealing with a scam, fraud, an unauthorised transaction, or a dispute with a bank, telco, or platform. Caregivers and nominees can help someone else with their case, with permission.</p>
+</div>
+<!-- FAQ Item -->
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">Do I need an account before telling my story?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">No. Type or record first — your story stays on your device. You only create an account when you want to save it as a case and add evidence.</p>
+</div>
+<!-- FAQ Item -->
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">Is Singpass required?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">No. You can sign up with Singpass or with email — whichever is easier.</p>
+</div>
+<!-- FAQ Item -->
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">What if my English isn't strong, or I find forms hard?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">Speak your story instead of typing, in your own words. Lumi asks one question at a time, "I'm not sure" is always allowed, and nothing auto-advances while you're still reading.</p>
+</div>
+</div>
+</section>
+<!-- FAQ Group: Your report -->
+<section>
+<h2 class="font-headline-md text-headline-md text-primary mb-stack-lg flex items-center gap-2">
+<span aria-hidden="true" class="material-symbols-outlined text-primary">description</span>
+                        Your Report
+                    </h2>
+<div class="space-y-stack-md">
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">Which organisations can I use the report with?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">Your bank or financial institution, the Police (SPF e-services), ScamShield, and FIDReC. The same organised facts, reformatted for each destination — you never retell the story.</p>
+</div>
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">What is the evidence checklist?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">A live list of the proof that strengthens your case — what you already have, what's recommended, and what's missing — with links to upload each item right next to it.</p>
+</div>
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">Can I edit what Lumi writes?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">Yes, always. Everything Lumi extracts or summarises is labelled, and every field is editable. You have the final word on your own story.</p>
+</div>
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">Is the pathway signal a decision?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">No. It's a preliminary, informational signal about which route your case is likely to take. Only the bank, FIDReC, or the authorities make actual decisions.</p>
+</div>
+</div>
+</section>
+<!-- FAQ Group: Packs & pricing -->
+<section>
+<h2 class="font-headline-md text-headline-md text-primary mb-stack-lg flex items-center gap-2">
+<span aria-hidden="true" class="material-symbols-outlined text-primary">sell</span>
+                        Packs &amp; Pricing
+                    </h2>
+<div class="space-y-stack-md">
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">Is it really free?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">The User Pack — story, evidence organisation, focused questions, and your free draft — costs nothing, no card required. Paid packs exist only if you choose them.</p>
+</div>
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">What's the difference between the Bank Pack and the FIDReC Pack?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">The Bank Pack is the complete self-serve complaint report for your financial institution. The FIDReC Pack (SGD 800, one-off) adds human-reviewed preparation of your submission to FIDReC, after the bank's final response or the four-week wait. An optional 30-minute specialist consultation is SGD 99.</p>
+</div>
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">Will I be charged anything recurring?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">Never. Every paid item is a one-off payment, shown in full before you pay, via Stripe.</p>
+</div>
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">Do you guarantee I'll win?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">No one honest can. We make your case clear, complete, and well-organised. Decisions belong to the banks, FIDReC, and the authorities.</p>
+</div>
+</div>
+</section>
+<!-- FAQ Group: Privacy & trust -->
+<section>
+<h2 class="font-headline-md text-headline-md text-primary mb-stack-lg flex items-center gap-2">
+<span aria-hidden="true" class="material-symbols-outlined text-primary">shield</span>
+                        Privacy &amp; Trust
+                    </h2>
+<div class="space-y-stack-md">
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">How is my data protected?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">Encrypted storage, consent-logged actions, PDPA-aligned practices, and secure payments via Stripe (we never see your card details).</p>
+</div>
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">Who can see my report?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">Only you — plus anyone you explicitly invite as a collaborator, and the specialist you explicitly choose to share with. Every access is logged.</p>
+</div>
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">Can I delete everything?</h3>
+<p class="font-body-lg text-body-lg text-text-slate">Yes — one click, "Delete my report", and it's gone. No retention games.</p>
+</div>
+</div>
+</section>
+</div>
+<!-- Contact Section (4 cols) -->
+<div class="lg:col-span-4">
+<div class="sticky top-28 space-y-stack-lg">
+<!-- Contact Form Card -->
+<div class="bg-surface-container-low rounded-xl p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog">
+<div class="flex justify-center mb-stack-md"><img alt="GuideBuoy Assistant Mascot" class="w-24 h-24 rounded-full object-cover shadow-sm border-2 border-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChhqVTJ07x3UVM27NW7n8XPVXocKaRoBQ_2Xj6f83dI79Dt7NQSPHIqgUHbajwG8BoDlnHYOQhwlIvzLz-FxfQSZ6ZX3bTYkyZkMMAmHm55JVwUHw1q0LeqEsgbjEUX46Cx3H_q6JMH5kSSVPBdh7WRvMu_vDL-qyF3LPvqZUgdf94OENZxOWjNtZifsW19UjAak2pzWM-ltN3jZskotbbimAX63c3cy2v21lWC36vy5QYbEKy3B1pdQEuv72QMgM6fA6-ZF4NwPQ"/></div><h3 class="font-headline-md text-headline-md text-on-surface mb-stack-sm">Still have questions?</h3>
+<p class="font-body-sm text-body-sm text-text-muted mb-stack-lg">We reply within 1–2 business days.</p>
+<form class="space-y-stack-md">
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-2" for="email">Email Address</label>
+<input class="w-full rounded-lg border-border-fog bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-body-lg font-body-lg" id="email" placeholder="you@example.com" type="email"/>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-2" for="topic">Topic</label>
+<select class="w-full rounded-lg border-border-fog bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-body-lg font-body-lg" id="topic">
+<option>My case</option>
+<option>Packs &amp; payment</option>
+<option>Privacy</option>
+<option>Something else</option>
+</select>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-2" for="message">Message</label>
+<textarea class="w-full rounded-lg border-border-fog bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-body-lg font-body-lg" id="message" placeholder="How can we help?" rows="4"></textarea>
+</div>
+<button class="w-full bg-primary text-on-primary py-3 rounded-lg font-label-caps text-label-caps hover:bg-primary-deep transition-colors duration-200" type="submit">Send Message</button>
+<!-- Wireframe notes for states -->
+<div class="hidden mt-4 p-3 bg-secondary-container text-on-secondary-container rounded-lg font-body-sm text-body-sm">
+                                Submitted State: "Thanks — we've got it. We'll reply to {email} within 1–2 business days."
+                            </div>
+<div class="hidden mt-4 p-3 bg-error-container text-on-error-container rounded-lg font-body-sm text-body-sm">
+                                Error State: Keeps everything you typed and shows an error message.
+                            </div>
+</form>
+</div>
+<!-- Direct Contact Info-->
+<div class="bg-tint-teal rounded-xl p-card-padding border border-border-fog">
+<h4 class="font-headline-sm text-headline-sm text-primary-deep mb-stack-md">Direct Contact</h4>
+<p class="font-body-sm text-body-sm text-text-slate mb-stack-md">Prefer to talk? WhatsApp us anytime, or call DID +65 9072 7915.</p>
+<div class="space-y-stack-sm">
+<a class="flex items-center gap-3 text-text-slate hover:text-primary transition-colors" href="#">
+<span aria-hidden="true" class="material-symbols-outlined">call</span>
+<span class="font-body-lg text-body-lg">+65 9072 7915</span>
+</a>
+<a class="flex items-center gap-3 text-text-slate hover:text-primary transition-colors" href="#">
+<span aria-hidden="true" class="material-symbols-outlined">forum</span>
+<span class="font-body-lg text-body-lg">WhatsApp Support</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-low dark:bg-surface-container-lowest border-t border-outline-variant mt-section-gap">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter px-page-margin py-section-gap max-w-7xl mx-auto">
+<div class="col-span-1 md:col-span-2">
+<div class="text-headline-sm font-headline-sm text-primary dark:text-primary-fixed mb-4">GuideBuoy AI</div>
+<p class="font-body-sm text-body-sm text-on-surface dark:text-on-surface-variant max-w-sm">© 2024 GuideBuoy AI. UEN: 202400000Z. 123 Marina Bay, Singapore.</p>
+</div>
+<div class="flex flex-col gap-2">
+<a class="font-body-sm text-body-sm text-text-muted dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">Terms of Service</a>
+<a class="font-body-sm text-body-sm text-text-muted dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">Privacy Policy</a>
+</div>
+<div class="flex flex-col gap-2">
+<a class="font-body-sm text-body-sm text-text-muted dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">Contact Us</a>
+<a class="font-body-sm text-body-sm text-text-muted dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">LinkedIn</a>
+<a class="font-body-sm text-body-sm text-text-muted dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">Twitter</a>
+</div>
+</div>
+</footer>
+</body></html>

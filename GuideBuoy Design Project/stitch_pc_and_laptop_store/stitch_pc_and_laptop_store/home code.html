@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"/><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">try{
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-primary-container": "#aeeee8",
+                "warning-ochre": "#A8782E",
+                "inverse-on-surface": "#f3f0eb",
+                "surface-container": "#f0ede9",
+                "on-tertiary": "#ffffff",
+                "tertiary-container": "#49668d",
+                "secondary-fixed-dim": "#a1d2b0",
+                "error": "#ba1a1a",
+                "surface": "#fcf9f4",
+                "text-slate": "#2E3A3F",
+                "primary-deep": "#245854",
+                "on-error-container": "#93000a",
+                "text-muted": "#5C6B70",
+                "surface-tint": "#276864",
+                "on-tertiary-container": "#d3e3ff",
+                "on-error": "#ffffff",
+                "error-container": "#ffdad6",
+                "tertiary": "#304e73",
+                "tertiary-fixed-dim": "#abc8f4",
+                "on-tertiary-fixed-variant": "#2a486d",
+                "secondary-fixed": "#bceecb",
+                "on-surface-variant": "#3f4947",
+                "on-secondary": "#ffffff",
+                "on-secondary-fixed": "#002110",
+                "inverse-primary": "#93d2cd",
+                "inverse-surface": "#31302d",
+                "surface-container-lowest": "#ffffff",
+                "surface-container-low": "#f6f3ee",
+                "secondary": "#3b684c",
+                "surface-container-highest": "#e5e2dd",
+                "primary-container": "#2e6e6a",
+                "on-tertiary-fixed": "#001c39",
+                "background": "#fcf9f4",
+                "primary-fixed-dim": "#93d2cd",
+                "tertiary-fixed": "#d3e3ff",
+                "primary-fixed": "#afeee9",
+                "surface-white": "#FDFCFA",
+                "on-primary-fixed": "#00201e",
+                "surface-dim": "#dcdad5",
+                "on-primary-fixed-variant": "#01504c",
+                "on-background": "#1c1c19",
+                "primary": "#0d5652",
+                "border-fog": "#D8DDD8",
+                "on-surface": "#1c1c19",
+                "outline-variant": "#bfc8c7",
+                "error-terracotta": "#B4552F",
+                "tint-lavender": "#E6E1F0",
+                "surface-variant": "#e5e2dd",
+                "surface-bright": "#fcf9f4",
+                "surface-container-high": "#ebe8e3",
+                "on-secondary-fixed-variant": "#224f35",
+                "tint-teal": "#E3EBF0",
+                "secondary-container": "#baebc8",
+                "on-primary": "#ffffff",
+                "warm-lavender": "#7A6F92",
+                "on-secondary-container": "#3f6c50",
+                "outline": "#6f7978"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "stack-lg": "24px",
+                "gutter": "32px",
+                "section-gap": "80px",
+                "page-margin": "32px",
+                "stack-sm": "8px",
+                "card-padding": "24px",
+                "stack-md": "16px"
+        },
+        "fontFamily": {
+                "body-lg": [
+                        "Inter"
+                ],
+                "numeral-tabular": [
+                        "Inter"
+                ],
+                "headline-lg": [
+                        "Inter"
+                ],
+                "label-caps": [
+                        "Inter"
+                ],
+                "headline-md": [
+                        "Inter"
+                ],
+                "body-sm": [
+                        "Inter"
+                ],
+                "headline-sm": [
+                        "Inter"
+                ]
+        },
+        "fontSize": {
+                "body-lg": [
+                        "17px",
+                        {
+                                "lineHeight": "1.6",
+                                "fontWeight": "400"
+                        }
+                ],
+                "numeral-tabular": [
+                        "16px",
+                        {
+                                "lineHeight": "1",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-lg": [
+                        "56px",
+                        {
+                                "lineHeight": "1.15",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "650"
+                        }
+                ],
+                "label-caps": [
+                        "12px",
+                        {
+                                "lineHeight": "1",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "28px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-sm": [
+                        "14px",
+                        {
+                                "lineHeight": "1.5",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-sm": [
+                        "20px",
+                        {
+                                "lineHeight": "1.3",
+                                "fontWeight": "600"
+                        }
+                ]
+        }
+},
+    },
+  }
+}catch(_e){}</script></head><body class="bg-surface text-on-surface antialiased">
+<!-- TopNavBar -->
+<header class="bg-surface border-b border-outline-variant docked full-width top-0 sticky z-50">
+<div class="flex justify-between items-center w-full px-page-margin h-20 max-w-7xl mx-auto">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined filled text-primary" data-original-icon="light_mode" style="font-size: 32px;">light_mode</span>
+<span class="text-headline-sm font-headline-sm font-bold text-primary">GuideBuoy AI</span>
+</div>
+<nav class="hidden md:flex items-center gap-stack-lg">
+<a class="text-primary font-bold border-b-2 border-primary pb-1 font-body-sm text-body-sm" href="#">Home</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200 font-body-sm text-body-sm" href="#">How it Works</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200 font-body-sm text-body-sm" href="#">Pricing</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200 font-body-sm text-body-sm" href="#">Marketplace</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200 font-body-sm text-body-sm" href="#">Resources</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200 font-body-sm text-body-sm" href="#">About</a>
+</nav>
+<div class="flex items-center gap-stack-md">
+<button class="hidden md:block text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200 font-body-sm text-body-sm">FAQ</button>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-body-sm text-body-sm hover:bg-primary-deep transition-colors duration-200">Sign In</button>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-page-margin pt-section-gap pb-section-gap">
+<!-- Hero Section -->
+<section class="grid grid-cols-1 md:grid-cols-12 gap-gutter mb-section-gap items-center">
+<div class="md:col-span-7 flex flex-col gap-stack-lg">
+<h1 class="font-headline-lg text-headline-lg text-primary">GuideBuoy AI - Tell it once. We'll help you carry it from here.</h1>
+</div>
+<div class="md:col-span-5 h-[400px] rounded-xl overflow-hidden shadow-ambient relative">
+<img alt="Lumi Mascot - Happy" class="object-cover w-full h-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNGg1J6s3fRRTRxTz2fmfAoB4DgDiWVI50Xl0JoAE10H6CFaCc6fZzSrm6xiWxhuqqzlNL_m6h7lStf-Fg95-rZzcARroNAk3LSQLCb_kj22pKOiy_4wB-AzGjhgZ7HmfQp6TsqKNtWcUSaS48ky2_IslStm_JL7IG5W0helw6ylNteSV1YoKMm_NUcjgClRnHDGI_9F8X325Jj0WPlSQAVPhsX72CEHa06z7ah5SqD7LSqvsfxjnayBYtUeF90ox1wnbmDEKLFAo"/>
+</div>
+</section>
+<!-- Reassurance Section -->
+<section class="mb-section-gap">
+<div class="bg-tint-lavender p-card-padding rounded-xl">
+<p class="font-body-lg text-body-lg text-text-slate mb-stack-sm">If you've been scammed or you're stuck in a dispute with a bank, telco, or platform — you're in the right place, and it's not your fault. Take your time. Lumi, our lighthouse AI, will help you turn what happened into one clear, organised report you can reuse with your bank, the Police, ScamShield, and FIDReC.</p>
+<p class="font-body-sm text-body-sm text-text-muted">Not legal advice — a calm, structured way to get your facts in order.</p>
+</div>
+</section>
+<!-- Primary Action Section (Bento Style Input) -->
+<section class="mb-section-gap">
+<div class="bg-surface-white rounded-xl shadow-ambient p-card-padding flex flex-col gap-stack-lg">
+<div class="flex flex-col gap-stack-sm border-b border-border-fog pb-stack-md">
+<h2 class="font-headline-md text-headline-md text-text-slate flex items-center"><img alt="Lumi Avatar" class="inline-block w-12 h-12 rounded-full mr-3 align-middle shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChhqVTJ07x3UVM27NW7n8XPVXocKaRoBQ_2Xj6f83dI79Dt7NQSPHIqgUHbajwG8BoDlnHYOQhwlIvzLz-FxfQSZ6ZX3bTYkyZkMMAmHm55JVwUHw1q0LeqEsgbjEUX46Cx3H_q6JMH5kSSVPBdh7WRvMu_vDL-qyF3LPvqZUgdf94OENZxOWjNtZifsW19UjAak2pzWM-ltN3jZskotbbimAX63c3cy2v21lWC36vy5QYbEKy3B1pdQEuv72QMgM6fA6-ZF4NwPQ"/>Tell Lumi what happened — in your own words.</h2>
+<div class="flex gap-stack-sm mt-2">
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-body-sm text-body-sm">Type my story</button>
+<button class="bg-surface-container text-on-surface px-4 py-2 rounded-lg font-body-sm text-body-sm flex items-center gap-2"><span class="material-symbols-outlined text-sm">mic</span>Record my story</button>
+</div>
+</div>
+<div class="flex flex-col gap-stack-md">
+<textarea class="w-full h-48 border border-border-fog rounded-[10px] p-4 font-body-lg text-body-lg text-text-slate placeholder:text-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none bg-surface" placeholder="In March 2026 I received a call that looked like it was from my bank…"></textarea>
+<!-- Wire-->
+<div class="hidden flex-col gap-2 p-4 bg-surface-container rounded-lg border border-border-fog">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3 text-error">
+<span class="material-symbols-outlined filled animate-pulse">radio_button_checked</span>
+<span class="font-numeral-tabular font-bold">02:14</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 bg-surface rounded-full shadow-sm text-text-slate hover:bg-surface-variant"><span class="material-symbols-outlined">pause</span></button>
+<button class="p-2 bg-primary rounded-full shadow-sm text-on-primary hover:bg-primary-deep"><span class="material-symbols-outlined">stop</span></button>
+</div>
+</div>
+<div class="h-1 bg-border-fog w-full rounded mt-2 overflow-hidden"><div class="h-full bg-primary w-1/3"></div></div>
+</div>
+<p class="font-body-sm text-body-sm text-text-muted italic flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">lock</span>
+            Your story stays on this device until you sign in. Nothing is sent anywhere before that.
+        </p>
+<details class="group border border-border-fog rounded-lg">
+<summary class="flex justify-between items-center font-body-sm font-semibold cursor-pointer list-none p-3 bg-surface-container-lowest rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+                What to include
+                <span class="transition group-open:rotate-180 material-symbols-outlined">expand_more</span>
+</summary>
+<div class="text-body-sm text-text-slate p-3 bg-surface-bright rounded-b-lg">
+<ul class="list-disc pl-5 space-y-1">
+<li class="">what happened and when</li>
+<li class="">amounts involved</li>
+<li class="">who you already contacted</li>
+<li class="">any reference numbers</li>
+</ul>
+</div>
+</details>
+<div class="flex flex-col md:flex-row justify-between items-center gap-stack-md pt-4">
+<a class="text-primary hover:text-primary-deep font-body-sm underline underline-offset-2" href="#">Not sure where to start? Check my complaint path →</a>
+<button class="bg-primary text-on-primary px-8 py-3 rounded-lg font-body-lg text-body-lg font-bold hover:bg-primary-deep transition-colors duration-200 w-full md:w-auto shadow-ambient">
+                Start organising — free
+            </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Three Calm Reasons -->
+<section class="mb-section-gap">
+<h3 class="font-headline-sm text-headline-sm text-text-slate mb-stack-lg text-center">Three calm reasons to trust us</h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="bg-surface-white rounded-xl p-card-padding shadow-ambient flex flex-col gap-stack-md items-start">
+<div class="bg-tint-teal p-3 rounded-full">
+<span class="material-symbols-outlined text-primary">autorenew</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-primary">Tell it once, reuse it everywhere.</h4>
+<p class="font-body-sm text-body-sm text-text-muted">One organised report works for your bank, the Police, ScamShield, and FIDReC. No retyping your story across five different forms.</p>
+</div>
+<div class="bg-surface-white rounded-xl p-card-padding shadow-ambient flex flex-col gap-stack-md items-start">
+<div class="bg-secondary-fixed-dim p-3 rounded-full">
+<span class="material-symbols-outlined text-on-secondary-fixed-variant">volunteer_activism</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-primary">Free to start, always.</h4>
+<p class="font-body-sm text-body-sm text-text-muted">The User Pack — your story summary, evidence checklist, and a preliminary pathway — costs nothing. Paid help appears only if you ask for it.</p>
+</div>
+<div class="bg-surface-white rounded-xl p-card-padding shadow-ambient flex flex-col gap-stack-md items-start">
+<div class="bg-tint-lavender p-3 rounded-full">
+<span class="material-symbols-outlined text-warm-lavender">verified_user</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-primary">Private and Singpass-ready.</h4>
+<p class="font-body-sm text-body-sm text-text-muted">Your information is encrypted, never shared without your permission, and you can delete your report anytime.</p>
+</div>
+</div>
+</section>
+<!-- The Journey -->
+<section class="mb-section-gap">
+<h3 class="font-headline-sm text-headline-sm text-text-slate mb-stack-lg">The journey in one glance</h3>
+<div class="bg-surface-white rounded-xl p-card-padding shadow-ambient">
+<div class="grid grid-cols-2 md:grid-cols-6 gap-stack-md relative">
+<!-- connecting line -->
+<div class="hidden md:block absolute top-[40px] left-[10%] right-[10%] h-[2px] bg-border-fog z-0"></div>
+<!-- steps -->
+<div class="flex flex-col items-center gap-stack-sm text-center z-10">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest border-4 border-surface-white flex items-center justify-center">
+<span class="font-numeral-tabular text-numeral-tabular text-text-slate">1</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-text-slate">Tell your story</span>
+</div>
+<div class="flex flex-col items-center gap-stack-sm text-center z-10">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest border-4 border-surface-white flex items-center justify-center">
+<span class="font-numeral-tabular text-numeral-tabular text-text-slate">2</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-text-slate">Add your proof</span>
+</div>
+<div class="flex flex-col items-center gap-stack-sm text-center z-10">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest border-4 border-surface-white flex items-center justify-center">
+<span class="font-numeral-tabular text-numeral-tabular text-text-slate">3</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-text-slate">Answer a few focused questions</span>
+</div>
+<div class="flex flex-col items-center gap-stack-sm text-center z-10">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest border-4 border-surface-white flex items-center justify-center">
+<span class="font-numeral-tabular text-numeral-tabular text-text-slate">4</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-text-slate">Get your free draft</span>
+</div>
+<div class="flex flex-col items-center gap-stack-sm text-center z-10">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest border-4 border-surface-white flex items-center justify-center">
+<span class="font-numeral-tabular text-numeral-tabular text-text-slate">5</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-text-slate">Choose your next step</span>
+</div>
+<div class="flex flex-col items-center gap-stack-sm text-center z-10">
+<div class="w-12 h-12 rounded-full bg-primary border-4 border-surface-white flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary">support_agent</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-primary">Human help if you want it</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Secondary Teaser -->
+<section class="mb-section-gap text-center">
+<p class="font-body-lg text-body-lg text-text-slate">Want to see exactly what happens at each step? <a class="text-primary hover:text-primary-deep font-bold underline underline-offset-2" href="#">How it works →</a></p>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-low border-t border-outline-variant full-width mt-auto">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter px-page-margin py-section-gap max-w-7xl mx-auto">
+<div class="flex flex-col gap-stack-sm md:col-span-2">
+<span class="text-headline-sm font-headline-sm text-primary mb-2">GuideBuoy AI SG Pte Ltd</span>
+<p class="font-body-sm text-body-sm text-text-muted">UEN 202545875C</p>
+<p class="font-body-sm text-body-sm text-text-muted">51 Goldhill Plaza #07-10/11, Singapore 308900</p>
+<p class="font-body-sm text-body-sm text-text-muted mt-2">DID +65 9072 7915 · Main +65 6690 9262</p>
+</div>
+<div class="flex flex-col gap-stack-sm">
+<a class="font-body-sm text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Terms</a>
+<a class="font-body-sm text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Privacy</a>
+<a class="font-body-sm text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Report a vulnerability</a>
+</div>
+<div class="flex flex-col gap-stack-sm">
+<a class="font-body-sm text-body-sm text-text-muted hover:text-primary transition-colors" href="#">LinkedIn</a>
+<a class="font-body-sm text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Instagram</a>
+<a class="font-body-sm text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Facebook</a>
+<a class="font-body-sm text-body-sm text-text-muted hover:text-primary transition-colors" href="#">YouTube</a>
+<a class="font-body-sm text-body-sm text-text-muted hover:text-primary transition-colors" href="#">X</a>
+<a class="font-body-sm text-body-sm text-text-muted hover:text-primary transition-colors" href="#">WhatsApp</a>
+</div>
+</div>
+</footer>
+</body></html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">try{
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#e5e2dd",
+                        "outline-variant": "#bfc8c7",
+                        "on-surface-variant": "#3f4947",
+                        "on-primary-fixed": "#00201e",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-container-low": "#f6f3ee",
+                        "primary-container": "#2e6e6a",
+                        "warning-ochre": "#A8782E",
+                        "secondary-container": "#baebc8",
+                        "on-tertiary": "#ffffff",
+                        "text-slate": "#2E3A3F",
+                        "on-primary-container": "#aeeee8",
+                        "tertiary-container": "#49668d",
+                        "secondary-fixed-dim": "#a1d2b0",
+                        "inverse-on-surface": "#f3f0eb",
+                        "border-fog": "#D8DDD8",
+                        "tint-teal": "#E3EBF0",
+                        "surface-container-lowest": "#ffffff",
+                        "tint-lavender": "#E6E1F0",
+                        "on-secondary-fixed-variant": "#224f35",
+                        "surface-tint": "#276864",
+                        "primary-fixed": "#afeee9",
+                        "text-muted": "#5C6B70",
+                        "on-secondary-fixed": "#002110",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed-variant": "#01504c",
+                        "on-background": "#1c1c19",
+                        "on-tertiary-fixed": "#001c39",
+                        "inverse-primary": "#93d2cd",
+                        "surface-container-high": "#ebe8e3",
+                        "on-surface": "#1c1c19",
+                        "error-terracotta": "#B4552F",
+                        "primary-fixed-dim": "#93d2cd",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#31302d",
+                        "primary": "#0d5652",
+                        "tertiary-fixed": "#d3e3ff",
+                        "tertiary-fixed-dim": "#abc8f4",
+                        "tertiary": "#304e73",
+                        "outline": "#6f7978",
+                        "surface-container": "#f0ede9",
+                        "primary-deep": "#245854",
+                        "secondary": "#3b684c",
+                        "background": "#fcf9f4",
+                        "warm-lavender": "#7A6F92",
+                        "surface-bright": "#fcf9f4",
+                        "surface": "#fcf9f4",
+                        "secondary-fixed": "#bceecb",
+                        "surface-dim": "#dcdad5",
+                        "surface-variant": "#e5e2dd",
+                        "on-tertiary-fixed-variant": "#2a486d",
+                        "surface-white": "#FDFCFA",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#d3e3ff",
+                        "on-primary": "#ffffff",
+                        "on-secondary-container": "#3f6c50"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-gap": "80px",
+                        "stack-md": "16px",
+                        "page-margin": "32px",
+                        "stack-sm": "8px",
+                        "stack-lg": "24px",
+                        "card-padding": "24px",
+                        "gutter": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "numeral-tabular": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "headline-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["56px", { "lineHeight": "1.15", "letterSpacing": "-0.02em", "fontWeight": "650" }],
+                        "headline-md": ["28px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "body-lg": ["17px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "numeral-tabular": ["16px", { "lineHeight": "1", "fontWeight": "400" }],
+                        "label-caps": ["12px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "1.3", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    }catch(_e){}</script></head><body class="bg-background text-on-surface antialiased min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-surface border-b border-outline-variant w-full sticky top-0 z-50">
+<div class="flex justify-between items-center w-full px-page-margin h-20 max-w-7xl mx-auto">
+<a class="text-headline-sm font-headline-sm font-bold text-primary flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sailing</span>
+                GuideBuoy AI
+            </a>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200" href="#">Home</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1" href="#">How it Works</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200" href="#">Pricing</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200" href="#">Marketplace</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200" href="#">Resources</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200" href="#">About</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="hidden md:block text-on-surface-variant font-label-caps text-label-caps hover:text-primary transition-colors">FAQ</button>
+<button class="bg-primary text-on-primary font-label-caps text-label-caps px-4 py-2 rounded-lg hover:bg-primary-deep transition-colors">Sign In</button>
+</div>
+</div>
+</header>
+<main class="flex-grow flex flex-col items-center w-full max-w-7xl mx-auto px-page-margin py-section-gap gap-section-gap">
+<!-- Intro Section -->
+<section class="text-center max-w-3xl flex flex-col items-center gap-stack-lg">
+<h1 class="font-headline-lg text-headline-lg text-text-slate">From "something went wrong" to "here's my organised case" — in six calm steps.</h1>
+<p class="font-body-lg text-body-lg text-text-muted">You never have to explain yourself twice.</p>
+</section>
+<!-- The Six Steps Section -->
+<section class="w-full flex flex-col gap-gutter">
+<div class="text-center mb-8">
+<h2 class="font-headline-md text-headline-md text-text-slate">The Process</h2>
+</div><div class="flex justify-center mb-8"><div class="w-32 h-32 rounded-full overflow-hidden border-4 border-tint-teal shadow-lg"><img alt="Lumi Guide Character - Peaceful" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlknfsjw_y1xLMDYFJ5uAARjLqtfg6lNOodN5133J3ZTh8lUKmIL7ZOm2lpxJx2sMxuV8HtGbwCGFi9-fgkrfUTx0UUtl1FFWLEgCdW5t-ncznVfhoYrcm_gwvJNzQsUYnde3JCASdhELJI8CcGNf08hLZuLVpYA8Sv_AQeNEtGSt2rU9nUPZRux--qPMz2hLfSXWEMa-8XJqhXFtz7jNOWyghE5hZ_1j23SaIzwSOnNYRE7ct2hM_OIKoUwb9lnT0bi8xAtmnpjE"/></div></div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Step 1 -->
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] flex flex-col gap-stack-md border border-border-fog">
+<div class="w-12 h-12 bg-tint-teal rounded-full flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-text-slate">1. Tell Lumi what happened</h3>
+<p class="font-body-sm text-body-sm text-text-muted mt-2">Type or speak your story in plain language. There's no wrong way to say it. Lumi listens, transcribes, and gently identifies what kind of case this is. If your situation isn't something we can help with yet, we'll tell you honestly and point you to the right place.</p>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] flex flex-col gap-stack-md border border-border-fog">
+<div class="w-12 h-12 bg-tint-teal rounded-full flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">save</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-text-slate">2. Save your case and add your proof</h3>
+<p class="font-body-sm text-body-sm text-text-muted mt-2">Create a free account (Singpass or email). Your story transfers over safely — nothing is lost. Then add what you have: screenshots, bank statements, SMS messages, receipts, reference numbers. Even one document is enough to begin.</p>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] flex flex-col gap-stack-md border border-border-fog">
+<div class="w-12 h-12 bg-tint-teal rounded-full flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">help</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-text-slate">3. Answer a few focused questions</h3>
+<p class="font-body-sm text-body-sm text-text-muted mt-2">Lumi reads your story and documents, then asks only what's missing — one question at a time. "I'm not sure" is always an acceptable answer. Your documents keep being processed in the background while you answer.</p>
+</div>
+</div>
+<!-- Step 4 -->
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] flex flex-col gap-stack-md border border-border-fog">
+<div class="w-12 h-12 bg-tint-teal rounded-full flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">draft</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-text-slate">4. Receive your free draft (User Pack)</h3>
+<p class="font-body-sm text-body-sm text-text-muted mt-2">You get three things, free: a clear summary of your story, an evidence checklist showing what you have and what's still missing, and a preliminary signal about which path your case is likely to take. You can edit everything. All of it lives in your <strong>Report Hub</strong> — one calm workspace where your story, evidence, next steps, and drafts stay together and synced, so you never feel lost between visits.</p>
+</div>
+</div>
+<!-- Step 5 -->
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] flex flex-col gap-stack-md border border-border-fog">
+<div class="w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">directions</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-text-slate">5. Choose your next step</h3>
+<p class="font-body-sm text-body-sm text-text-muted mt-2">If your case involves a bank or financial institution, you can generate the full <strong>Bank Pack</strong> report — a complete, structured complaint with chronology, disputed transactions, and what you're asking for. Or keep using your free draft on your own. Both are fine.</p>
+</div>
+</div>
+<!-- Step 6 -->
+<div class="bg-surface-white rounded-lg p-card-padding shadow-[0_2px_12px_rgba(46,58,63,0.08)] flex flex-col gap-stack-md border border-border-fog">
+<div class="w-12 h-12 bg-tint-lavender rounded-full flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">groups</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-text-slate">6. Get human help if you want it</h3>
+<p class="font-body-sm text-body-sm text-text-muted mt-2">If the bank's response doesn't resolve things, the <strong>FIDReC Pack</strong> helps you prepare a submission to the Financial Industry Disputes Resolution Centre — with optional one-to-one specialist support. Filing with FIDReC itself is free.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- The Paths Section -->
+<section class="w-full flex flex-col md:flex-row gap-gutter items-center bg-surface-container-low p-8 rounded-xl">
+<div class="flex-1 flex flex-col gap-stack-md">
+<h2 class="font-headline-md text-headline-md text-text-slate">The paths GuideBuoy understands (plain words)</h2>
+<p class="font-body-lg text-body-lg text-text-muted">We navigate the specific procedures for various institutions, ensuring your case is presented correctly.</p>
+</div>
+<div class="flex-1 flex flex-wrap gap-4 justify-center md:justify-start">
+<div class="bg-surface-white border border-border-fog px-4 py-2 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">account_balance</span>
+<span class="font-label-caps text-label-caps text-text-slate">Bank or financial institution</span>
+</div>
+<div class="bg-surface-white border border-border-fog px-4 py-2 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">gavel</span>
+<span class="font-label-caps text-label-caps text-text-slate">FIDReC</span>
+</div>
+<div class="bg-surface-white border border-border-fog px-4 py-2 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">campaign</span>
+<span class="font-label-caps text-label-caps text-text-slate">IMDA / telco</span>
+</div>
+<div class="bg-surface-white border border-border-fog px-4 py-2 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">local_police</span>
+<span class="font-label-caps text-label-caps text-text-slate">Police &amp; ScamShield</span>
+</div>
+<div class="bg-surface-white border border-border-fog px-4 py-2 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">currency_bitcoin</span>
+<span class="font-label-caps text-label-caps text-text-slate">Crypto / overseas platforms</span>
+</div>
+</div>
+</section>
+<!-- Tracker Section -->
+<section class="w-full max-w-4xl flex flex-col gap-stack-lg items-center text-center">
+<h2 class="font-headline-md text-headline-md text-text-slate">Waiting is not wasted time</h2>
+<p class="font-body-lg text-body-lg text-text-muted max-w-2xl">If you need to wait out the bank's response window, GuideBuoy gives you a four-week tracker: log every call and reference number, prepare your evidence, and get a gentle reminder the day you become eligible to escalate.</p>
+<div class="w-full bg-surface-white p-card-padding rounded-xl shadow-[0_2px_12px_rgba(46,58,63,0.08)] border border-border-fog mt-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 bg-secondary-fixed rounded-full flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="text-left">
+<p class="font-label-caps text-label-caps text-secondary font-bold">Case Logged</p>
+<p class="font-body-sm text-body-sm text-text-muted">Jan 12, 2024</p>
+</div>
+</div>
+<div class="flex-1 h-px bg-border-fog mx-4"></div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 border-2 border-secondary rounded-full flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">hourglass_empty</span>
+</div>
+<div class="text-left">
+<p class="font-label-caps text-label-caps text-text-slate">Pending Response</p>
+<p class="font-body-sm text-body-sm text-text-muted">Expected by Jan 26</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Call to Action Section -->
+<section class="flex flex-col items-center gap-4 py-8">
+<a class="bg-primary text-on-primary font-label-caps text-label-caps px-6 py-3 rounded-lg hover:bg-primary-deep transition-colors inline-block text-center" href="#">Start organising — free</a>
+<a class="font-body-sm text-body-sm text-primary hover:underline" href="#">Questions first? Read the FAQ →</a>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-low border-t border-outline-variant w-full mt-auto">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter px-page-margin py-section-gap max-w-7xl mx-auto">
+<div class="col-span-1 md:col-span-2">
+<p class="text-headline-sm font-headline-sm text-primary flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sailing</span>
+                    GuideBuoy AI
+                </p>
+<p class="font-body-sm text-body-sm text-on-surface">© 2024 GuideBuoy AI. UEN: 202400000Z. 123 Marina Bay, Singapore.</p>
+</div>
+<div class="col-span-1 md:col-span-2 flex flex-wrap gap-4 justify-start md:justify-end items-end">
+<a class="font-label-caps text-label-caps text-text-muted hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="font-label-caps text-label-caps text-text-muted hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="font-label-caps text-label-caps text-text-muted hover:text-primary transition-colors" href="#">Contact Us</a>
+<a class="font-label-caps text-label-caps text-text-muted hover:text-primary transition-colors" href="#">LinkedIn</a>
+<a class="font-label-caps text-label-caps text-text-muted hover:text-primary transition-colors" href="#">Twitter</a>
+</div>
+</div>
+</footer>
+</body></html>

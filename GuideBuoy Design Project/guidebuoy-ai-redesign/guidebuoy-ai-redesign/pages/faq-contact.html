@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en" data-sensory="steady">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FAQ & Contact — GuideBuoy AI</title>
+<meta name="description" content="GuideBuoy AI — Singapore's complaint helper. Tell your story once; Lumi organises it into one report you can reuse with your bank, the Police, ScamShield, and FIDReC."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="../design-system/tailwind.config.js"></script>
+<link rel="stylesheet" href="../design-system/tokens.css"/>
+<link rel="stylesheet" href="../design-system/base.css"/>
+</head>
+<body class="bg-surface text-text-slate antialiased flex flex-col min-h-screen">
+<!-- GuideBuoy AI — shared header (public shell). Include on EVERY page.
+     The mode switcher must never be removed: v3 global rule 2. -->
+<header class="bg-surface border-b border-border-fog sticky top-0 z-50">
+  <div class="flex justify-between items-center w-full px-page-margin h-20 max-w-7xl mx-auto gap-4">
+    <a href="home.html" class="flex items-center gap-2 shrink-0">
+      <img src="../assets/lumi-buoy.jpg" alt="GuideBuoy AI — Lumi the buoy" class="w-10 h-10 rounded-full object-cover" />
+      <span class="font-bold text-primary text-headline-sm hidden min-[480px]:inline">GuideBuoy AI</span>
+    </a>
+    <nav class="hidden lg:flex items-center gap-stack-lg" aria-label="Main navigation">
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="home.html">Home</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="how-it-works.html">How it Works</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="pricing.html">Pricing</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="marketplace.html">Marketplace</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="resources.html">Resources</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm" href="about.html">About</a>
+      <a class="text-primary font-bold border-b-2 border-primary pb-1 text-body-sm" href="faq-contact.html">FAQ</a>
+    </nav>
+    <div class="flex items-center gap-stack-md">
+      <!-- Emotional-state mode switcher — present at all times -->
+      <div class="gb-mode-switch" role="group" aria-label="How are you feeling? Choose your display mode">
+        <span class="gb-mode-label hidden xl:inline" aria-hidden="true">How are you feeling?</span>
+        <button type="button" data-mode="steady" aria-pressed="true" aria-label="I'm okay — steady display, full calm palette">Steady</button>
+        <button type="button" data-mode="quiet" aria-pressed="false" aria-label="Everything feels too much — quiet display, minimal colour and motion">Quiet</button>
+        <button type="button" data-mode="grounding" aria-pressed="false" aria-label="I need a moment — grounding screen with breathing exercise">A moment</button>
+      </div>
+      <a href="#" class="hidden md:inline-block bg-primary text-on-primary px-4 py-2 rounded-lg text-body-sm font-semibold hover:bg-primary-deep transition-colors duration-200">Sign In</a>
+      <button type="button" id="gb-nav-toggle" class="lg:hidden p-2 text-text-slate" aria-label="Open menu" aria-expanded="false">
+        <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+      </button>
+    </div>
+  </div>
+  <!-- Mobile navigation drawer -->
+  <div id="gb-mobile-nav" class="lg:hidden hidden border-t border-border-fog bg-surface px-page-margin py-4">
+    <nav class="flex flex-col gap-3" aria-label="Mobile navigation">
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="home.html">Home</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="how-it-works.html">How it Works</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="pricing.html">Pricing</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="marketplace.html">Marketplace</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="resources.html">Resources</a>
+      <a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-body-sm py-1" href="about.html">About</a>
+      <a class="text-primary font-bold border-b-2 border-primary pb-1 text-body-sm py-1" href="faq-contact.html">FAQ</a>
+      <a href="#" class="inline-block mt-2 bg-primary text-on-primary px-4 py-2 rounded-lg text-body-sm font-semibold text-center">Sign In</a>
+    </nav>
+  </div>
+</header>
+<span id="gb-mode-announcer" class="gb-sr-only" role="status" aria-live="polite"></span>
+
+<main id="main" class="max-w-7xl mx-auto px-page-margin pt-section-gap pb-section-gap w-full">
+<!-- Header -->
+<section class="mb-section-gap text-center" aria-labelledby="faq-heading">
+  <h1 id="faq-heading" class="text-headline-lg text-primary mb-stack-md">Honest answers to the questions people ask us most — usually at 2am, usually worried.</h1>
+  <p class="text-body-lg text-text-muted max-w-2xl mx-auto">If yours isn't here, contact us below or on WhatsApp.</p>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter mb-section-gap">
+
+  <!-- FAQ accordions -->
+  <div class="md:col-span-8 flex flex-col gap-stack-lg">
+
+    <!-- Getting started -->
+    <section aria-labelledby="faq-getting-started">
+      <h2 id="faq-getting-started" class="text-headline-md text-primary mb-stack-md flex items-center gap-2">
+        <span class="material-symbols-outlined" aria-hidden="true">rocket_launch</span>
+        Getting started
+      </h2>
+      <div class="flex flex-col gap-stack-sm">
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            Who can use GuideBuoy?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>Anyone in Singapore dealing with a scam, fraud, an unauthorised transaction, or a dispute with a bank, telco, or platform. Caregivers and nominees can help someone else with their case, with permission.</p>
+          </div>
+        </details>
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            Do I need an account before telling my story?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>No. Type or record first — your story stays on your device. You only create an account when you want to save it as a case and add evidence.</p>
+          </div>
+        </details>
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            Is Singpass required?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>No. You can sign up with Singpass or with email — whichever is easier.</p>
+          </div>
+        </details>
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            What if my English isn't strong, or I find forms hard?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>Speak your story instead of typing, in your own words. Lumi asks one question at a time, "I'm not sure" is always allowed, and nothing auto-advances while you're still reading.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- Your report -->
+    <section aria-labelledby="faq-your-report">
+      <h2 id="faq-your-report" class="text-headline-md text-primary mb-stack-md flex items-center gap-2">
+        <span class="material-symbols-outlined" aria-hidden="true">description</span>
+        Your report
+      </h2>
+      <div class="flex flex-col gap-stack-sm">
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            Which organisations can I use the report with?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>Your bank or financial institution, the Police (SPF e-services), ScamShield, and FIDReC. The same organised facts, reformatted for each destination — you never retell the story.</p>
+          </div>
+        </details>
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            What is the evidence checklist?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>A live list of the proof that strengthens your case — what you already have, what's recommended, and what's missing — with links to upload each item right next to it.</p>
+          </div>
+        </details>
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            Can I edit what Lumi writes?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>Yes, always. Everything Lumi extracts or summarises is labelled, and every field is editable. You have the final word on your own story.</p>
+          </div>
+        </details>
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            Is the pathway signal a decision?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>No. It's a preliminary, informational signal about which route your case is likely to take. Only the bank, FIDReC, or the authorities make actual decisions.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- Packs & pricing -->
+    <section aria-labelledby="faq-packs-pricing">
+      <h2 id="faq-packs-pricing" class="text-headline-md text-primary mb-stack-md flex items-center gap-2">
+        <span class="material-symbols-outlined" aria-hidden="true">sell</span>
+        Packs &amp; pricing
+      </h2>
+      <div class="flex flex-col gap-stack-sm">
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            Is it really free?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>The User Pack — story, evidence organisation, focused questions, and your free draft — costs nothing, no card required. Paid packs exist only if you choose them.</p>
+          </div>
+        </details>
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            What's the difference between the Bank Pack and the FIDReC Pack?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>The Bank Pack is the complete self-serve complaint report for your financial institution. The FIDReC Pack (<span class="gb-num">SGD 800</span>, one-off) adds human-reviewed preparation of your submission to FIDReC, after the bank's final response or the four-week wait. An optional 30-minute specialist consultation is <span class="gb-num">SGD 99</span>.</p>
+          </div>
+        </details>
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            Will I be charged anything recurring?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>Never. Every paid item is a one-off payment, shown in full before you pay, via Stripe.</p>
+          </div>
+        </details>
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            Do you guarantee I'll win?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>No one honest can. We make your case clear, complete, and well-organised. Decisions belong to the banks, FIDReC, and the authorities.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- Privacy & trust -->
+    <section aria-labelledby="faq-privacy-trust">
+      <h2 id="faq-privacy-trust" class="text-headline-md text-primary mb-stack-md flex items-center gap-2">
+        <span class="material-symbols-outlined" aria-hidden="true">shield</span>
+        Privacy &amp; trust
+      </h2>
+      <div class="flex flex-col gap-stack-sm">
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            How is my data protected?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>Encrypted storage, consent-logged actions, PDPA-aligned practices, and secure payments via Stripe (we never see your card details).</p>
+          </div>
+        </details>
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            Who can see my report?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>Only you — plus anyone you explicitly invite as a collaborator, and the specialist you explicitly choose to share with. Every access is logged.</p>
+          </div>
+        </details>
+        <details class="group border border-border-fog rounded-lg bg-surface-white">
+          <summary class="flex justify-between items-center text-body-sm font-semibold text-text-slate cursor-pointer list-none p-3 bg-surface-white rounded-lg group-open:rounded-b-none group-open:border-b group-open:border-border-fog">
+            Can I delete everything?
+            <span class="transition group-open:rotate-180 material-symbols-outlined" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="text-body-sm text-text-slate p-3 rounded-b-lg">
+            <p>Yes — one click, "Delete my report", and it's gone. No retention games.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+  </div>
+
+  <!-- Contact card -->
+  <div class="md:col-span-4">
+    <div class="sticky top-24 flex flex-col gap-stack-md">
+      <section class="bg-surface-white rounded-xl shadow-ambient p-card-padding flex flex-col gap-stack-md" aria-labelledby="contact-heading">
+        <div>
+          <h2 id="contact-heading" class="text-headline-md text-text-slate">Still have questions?</h2>
+          <p class="text-body-sm text-text-muted mt-1">We reply within 1–2 business days.</p>
+        </div>
+        <form class="flex flex-col gap-stack-md">
+          <div>
+            <label for="contact-name" class="block text-body-sm font-semibold text-text-slate mb-1">Name</label>
+            <input id="contact-name" name="name" type="text" autocomplete="name" placeholder="Your name" class="w-full border border-border-fog rounded-lg p-3 text-body-lg text-text-slate placeholder:text-text-muted bg-surface transition-all"/>
+          </div>
+          <div>
+            <label for="contact-email" class="block text-body-sm font-semibold text-text-slate mb-1">Email</label>
+            <input id="contact-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" class="w-full border border-border-fog rounded-lg p-3 text-body-lg text-text-slate placeholder:text-text-muted bg-surface transition-all"/>
+          </div>
+          <div>
+            <label for="contact-topic" class="block text-body-sm font-semibold text-text-slate mb-1">Topic</label>
+            <select id="contact-topic" name="topic" class="w-full border border-border-fog rounded-lg p-3 text-body-lg text-text-slate bg-surface transition-all">
+              <option>My case</option>
+              <option>Packs &amp; payment</option>
+              <option>Privacy</option>
+              <option>Something else</option>
+            </select>
+          </div>
+          <div>
+            <label for="contact-message" class="block text-body-sm font-semibold text-text-slate mb-1">Message</label>
+            <textarea id="contact-message" name="message" rows="4" placeholder="How can we help?" class="w-full border border-border-fog rounded-lg p-3 text-body-lg text-text-slate placeholder:text-text-muted bg-surface transition-all resize-none"></textarea>
+          </div>
+          <button type="submit" class="w-full bg-primary text-on-primary px-4 py-3 rounded-lg font-semibold hover:bg-primary-deep transition-colors duration-200">Send message</button>
+        </form>
+      </section>
+      <div class="bg-tint-sage rounded-xl p-card-padding flex items-start gap-3">
+        <span class="material-symbols-outlined text-success-sage mt-1" aria-hidden="true">call</span>
+        <p class="text-body-sm text-text-slate">Prefer to talk? WhatsApp us anytime, or call DID <span class="gb-num">+65 9072 7915</span>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+<!-- GuideBuoy AI — shared footer. Include on EVERY page. -->
+<footer class="bg-tint-sand border-t border-border-fog mt-auto">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-gutter px-page-margin py-section-gap max-w-7xl mx-auto">
+    <div class="flex flex-col gap-stack-sm md:col-span-2">
+      <span class="text-headline-sm font-semibold text-primary mb-2">GuideBuoy AI SG Pte Ltd</span>
+      <p class="text-body-sm text-text-muted">UEN 202545875C</p>
+      <p class="text-body-sm text-text-muted">51 Goldhill Plaza #07-10/11, Singapore 308900</p>
+      <p class="text-body-sm text-text-muted mt-2 gb-num">DID +65 9072 7915 · Main +65 6690 9262</p>
+    </div>
+    <div class="flex flex-col gap-stack-sm">
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Terms</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Privacy</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Report a vulnerability</a>
+    </div>
+    <div class="flex flex-col gap-stack-sm">
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">LinkedIn</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Instagram</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">Facebook</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">YouTube</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="#">X</a>
+      <a class="text-body-sm text-text-muted hover:text-primary transition-colors" href="https://wa.me/6590727915">WhatsApp</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Single persistent WhatsApp entry point (never duplicate floating buttons) -->
+<a href="https://wa.me/6590727915" aria-label="Chat with GuideBuoy on WhatsApp" target="_blank" rel="noopener"
+   class="fixed bottom-6 right-6 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-on-primary shadow-ambient hover:bg-primary-deep transition-colors duration-200">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6" aria-hidden="true"><path d="M12.04 2a9.9 9.9 0 0 0-8.4 15.2L2 22l4.9-1.6A9.9 9.9 0 1 0 12.04 2Zm5.8 14.1c-.25.7-1.45 1.35-2 1.4-.5.05-1.15.25-3.85-.8-3.25-1.3-5.3-4.6-5.45-4.8-.15-.2-1.3-1.75-1.3-3.3 0-1.55.8-2.3 1.1-2.6.3-.3.65-.4.85-.4h.6c.2 0 .45-.05.7.55.25.6.85 2.1.95 2.25.05.15.1.35 0 .55-.1.2-.15.35-.3.5-.15.15-.3.35-.45.5-.15.15-.3.3-.15.6.15.3.7 1.15 1.5 1.85 1.05.95 1.9 1.25 2.2 1.35.3.1.45.1.6-.05.15-.15.7-.8.9-1.1.2-.3.4-.25.65-.15.25.1 1.6.75 1.9.9.3.15.5.2.55.3.05.15.05.7-.2 1.4Z"/></svg>
+</a>
+<script src="../design-system/mode-switcher.js"></script>
+<script>
+(function(){var t=document.getElementById('gb-nav-toggle'),n=document.getElementById('gb-mobile-nav');
+if(t&&n){t.addEventListener('click',function(){var o=n.classList.toggle('hidden');t.setAttribute('aria-expanded',String(!o));});}})();
+</script>
+</body>
+</html>

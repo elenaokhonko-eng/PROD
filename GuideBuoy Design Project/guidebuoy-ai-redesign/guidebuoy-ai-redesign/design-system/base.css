@@ -1,0 +1,157 @@
+/* ==========================================================================
+   GuideBuoy AI — Base styles (loads after tokens.css and Tailwind CDN)
+   ========================================================================== */
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--gb-font);
+  background-color: var(--gb-bg);
+  color: var(--gb-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tabular numerals for money, dates, case IDs, progress */
+.gb-num, .font-numeral-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Visible, calm focus state everywhere */
+:focus-visible {
+  outline: 3px solid var(--gb-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Inputs: Fog border -> Harbor Teal focus with soft glow */
+input[type="text"], input[type="email"], input[type="tel"],
+input[type="number"], textarea, select {
+  border-radius: 10px;
+  border: 1px solid var(--gb-border);
+  background: var(--gb-bg);
+  color: var(--gb-text);
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--gb-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gb-primary) 20%, transparent);
+  outline: none;
+}
+
+/* The one quiet shadow */
+.shadow-ambient { box-shadow: var(--gb-shadow); }
+
+/* Responsive h1: 34px mobile -> 56px desktop (tokens §3) */
+h1.text-headline-lg { font-size: 34px; }
+@media (min-width: 768px) {
+  h1.text-headline-lg { font-size: 56px; }
+}
+
+/* Night Harbor corrections (dormant until dark theme is enabled) */
+[data-theme="dark"] .gb-mode-switch button[aria-pressed="true"] {
+  color: #1E2A2B; /* dark text on Soft Teal — keeps AA in dark mode */
+}
+
+/* Mode switcher — segmented control */
+.gb-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--gb-border);
+  border-radius: 9999px;
+  background: var(--gb-surface);
+}
+.gb-mode-switch button {
+  border: 0;
+  background: transparent;
+  color: var(--gb-text-muted);
+  font-family: var(--gb-font);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 8px 12px;
+  border-radius: 9999px;
+  cursor: pointer;
+  min-height: 36px; /* generous touch target inside header */
+  transition: background-color 200ms ease-out, color 200ms ease-out;
+  white-space: nowrap;
+}
+.gb-mode-switch button:hover { color: var(--gb-primary-deep); }
+.gb-mode-switch button[aria-pressed="true"] {
+  background: var(--gb-primary);
+  color: #ffffff;
+}
+.gb-mode-label {
+  font-size: 12px;
+  color: var(--gb-text-muted);
+  margin-right: 6px;
+  white-space: nowrap;
+}
+
+/* Small screens: keep the switcher fully visible next to logo + menu */
+@media (max-width: 640px) {
+  .gb-mode-switch button {
+    padding: 6px 8px;
+    font-size: 11px;
+    min-height: 32px;
+  }
+}
+
+/* Grounding overlay (mode 3) — injected by mode-switcher.js */
+#gb-grounding {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  background: var(--gb-bg);
+  color: var(--gb-text);
+  padding: 32px;
+  text-align: center;
+}
+#gb-grounding[hidden] { display: none; }
+#gb-grounding .gb-grounding-text {
+  font-size: 20px;
+  line-height: 1.5;
+  font-weight: 600;
+  max-width: 28ch;
+}
+#gb-grounding .gb-grounding-sub {
+  font-size: 14px;
+  color: var(--gb-text-muted);
+  max-width: 40ch;
+}
+#gb-grounding .gb-grounding-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(320px, 100%);
+}
+
+/* Reduced motion: static breath cue */
+@media (prefers-reduced-motion: reduce) {
+  #gb-grounding .gb-breath-cue { display: inline; }
+}
+#gb-grounding .gb-breath-cue { display: none; font-size: 14px; color: var(--gb-text-muted); }
+
+/* Status chips — always colour + icon + label */
+.gb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 9999px;
+}
+
+/* Screen-reader only */
+.gb-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}

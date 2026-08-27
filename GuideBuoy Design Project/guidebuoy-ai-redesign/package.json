@@ -1,0 +1,9 @@
+{
+  "name": "guidebuoy-ai-redesign-root",
+  "version": "1.0.0",
+  "description": "GuideBuoy AI Website Redesign Root Package",
+  "scripts": {
+    "dev": "npx --yes serve -l 3000 .",
+    "start": "npx --yes serve -l 3000 ."
+  }
+}
