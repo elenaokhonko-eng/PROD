@@ -1,27 +1,20 @@
 /**
  * Server-side Supabase clients — Pattern C (Clerk JWT → Supabase Third-Party Auth).
  *
- * Two clients live here:
- *
  * - `createUserClient()` — anon-key client with the Clerk-signed JWT attached,
  *   so RLS treats every query as the authenticated user. Use this for any
  *   read/write that must respect RLS (ownership probes, user-scoped inserts).
- *
- * - `createClient()` — **legacy alias** that still returns the service-role
- *   client. Kept alive during the State Machine refactor so pre-refactor routes
- *   (`/api/cases/[caseId]/*`) keep working. Slice 7 deletes all call sites
- *   and this alias.
  *
  * Reference: docs/Front-to-Back-End-Integration-Summary.md §9.2 and §10.4.
  */
 
 import { auth } from '@clerk/nextjs/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { createServiceClient } from '@/lib/supabase/service'
 
 /**
- * User-scoped Supabase client. Forwards the Clerk-signed JWT so `auth.uid()`
- * in RLS policies returns the same UUID stored on `cases.user_id`.
+ * User-scoped Supabase client. The Clerk JWT keeps its `user_...` subject;
+ * Pattern C policies resolve ownership from the signed `supabase_uuid` claim
+ * through `public.current_app_user_id()`.
  *
  * Throws a readable error if the caller has no active Clerk session — all
  * user-scoped routes must handle this upstream by returning 401.
@@ -51,16 +44,3 @@ export async function createUserClient() {
     global: { headers: { Authorization: `Bearer ${token}` } },
   })
 }
-
-/**
- * @deprecated Returns a service-role Supabase client. Existing callers under
- * `app/api/cases/*` depend on this. New code should use `createUserClient()`
- * for user-scoped operations and `createServiceClient()` (from
- * `@/lib/supabase/service`) for background-job / admin operations. Slice 7
- * deletes every caller of this alias.
- */
-export async function createClient() {
-  return createServiceClient()
-}
-
-export { createServiceClient }

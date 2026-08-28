@@ -62,7 +62,7 @@ export function EvidenceUploadPanel({
         accepted.push(file)
       } else {
         const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase()
-        const reason = `${file.name} is not a supported file type. Accepted: PDF, PNG, JPEG, DOCX. Got: ${
+        const reason = `${file.name} is not a supported file type. Accepted: PDF, PNG, or JPEG. Got: ${
           file.type || ext || 'unknown'
         }.`
         onRejected?.(file, reason)
@@ -93,7 +93,7 @@ export function EvidenceUploadPanel({
       <CardHeader>
         <CardTitle>Upload supporting evidence</CardTitle>
         <CardDescription>
-          Accepted types: PDF, PNG, JPEG, DOCX. We parse each document as it arrives so the draft
+          Accepted types: PDF, PNG, or JPEG. We parse each document as it arrives so the draft
           reflects your real paperwork.
         </CardDescription>
       </CardHeader>
@@ -114,11 +114,11 @@ export function EvidenceUploadPanel({
 
         {allListedProcessedSuccess ? (
           <div
-            className="flex items-start gap-3 rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-4 py-3 text-sm text-emerald-950 dark:text-emerald-50"
+            className="flex items-start gap-3 rounded-lg border border-primary/30 bg-[var(--gb-tint-sage)] px-4 py-3 text-sm text-foreground"
             role="status"
             aria-live="polite"
           >
-            <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
             <div>
               <p className="font-medium">All files uploaded successfully</p>
               <p className="mt-1 text-muted-foreground">
@@ -199,7 +199,7 @@ function DocumentRow({
   return (
     <div className="flex items-center gap-3 rounded-md border bg-card p-3">
       {isReady ? (
-        <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+        <CheckCircle className="h-5 w-5 shrink-0 text-primary" aria-hidden />
       ) : (
         <Icon className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
       )}

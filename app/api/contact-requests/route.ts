@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getCurrentUser } from '@/lib/auth'
-import { createServiceClient, createUserClient } from '@/lib/supabase/server'
+import { createUserClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { ADMIN_EMAIL, EMAIL_FROM } from '@/lib/email-config'
 import { sendMail } from '@/lib/mail'
 
@@ -84,6 +85,9 @@ export async function POST(req: Request) {
       : null
   if (!caseOwnerId) {
     return NextResponse.json({ error: 'case_missing_owner' }, { status: 500 })
+  }
+  if (caseOwnerId !== user.supabaseUuid) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
   const extract = (snapshot.latest_extract?.[0]?.extract_json ?? null) as

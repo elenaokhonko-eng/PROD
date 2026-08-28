@@ -33,9 +33,9 @@ export function Tier2PackView({
 }: Tier2PackViewProps) {
   if (isLoading && !pack) {
     return (
-      <Card className="border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/20">
+      <Card className="border-primary/30 bg-[var(--gb-tint-sage)]">
         <CardHeader>
-          <CardTitle>Preparing your FIDReC Tier 2 pack</CardTitle>
+          <CardTitle>Preparing your FIDReC Pack</CardTitle>
           <CardDescription>Generating the executive summary and chronology.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -49,7 +49,7 @@ export function Tier2PackView({
     return (
       <Card className="border-destructive/40">
         <CardHeader>
-          <CardTitle>FIDReC Tier 2 pack is not ready</CardTitle>
+          <CardTitle>Your FIDReC Pack is not ready</CardTitle>
           <CardDescription>
             {errorMessage ?? 'We could not load the generated case pack yet.'}
           </CardDescription>
@@ -68,10 +68,10 @@ export function Tier2PackView({
 
   return (
     <div className="space-y-6">
-      <Card className="border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/20">
+      <Card className="border-primary/30 bg-[var(--gb-tint-sage)]">
         <CardHeader className="flex flex-row items-start gap-3">
           <div className="flex-1">
-            <CardTitle>FIDReC Tier 2 pack is ready</CardTitle>
+            <CardTitle>Your FIDReC Pack is ready</CardTitle>
             <CardDescription>
               Generated {pack.generated_at ? new Date(pack.generated_at).toLocaleString() : 'just now'} ·{' '}
               {pack.pack_version}

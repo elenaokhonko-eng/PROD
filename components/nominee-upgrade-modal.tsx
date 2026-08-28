@@ -42,23 +42,23 @@ export default function NomineeUpgradeModal({
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                  <CheckCircle className="mt-1 h-4 w-4 flex-shrink-0 text-primary" />
                   <span className="text-sm">AI-generated case pack with professional documents</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                  <CheckCircle className="mt-1 h-4 w-4 flex-shrink-0 text-primary" />
                   <span className="text-sm">Case progress tracker with deadline reminders</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                  <CheckCircle className="mt-1 h-4 w-4 flex-shrink-0 text-primary" />
                   <span className="text-sm">Email and SMS reminder notifications</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                  <CheckCircle className="mt-1 h-4 w-4 flex-shrink-0 text-primary" />
                   <span className="text-sm">Self-filing guide with step-by-step instructions</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                  <CheckCircle className="mt-1 h-4 w-4 flex-shrink-0 text-primary" />
                   <span className="text-sm">30-day access to all premium features</span>
                 </div>
               </div>

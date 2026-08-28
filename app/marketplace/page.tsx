@@ -15,17 +15,17 @@ const freeServices = [
   {
     title: "Pro-bono lawyers (via SAL clinics)",
     description: "Legal clinics for vulnerable users. Warm handovers when you need human guidance beyond the helper.",
-    cta: "Request pro-bono support",
+    cta: "Ask about availability",
   },
   {
     title: "Social service partners",
     description: "Social workers who can help with reporting, recovery steps, and safeguarding vulnerable users.",
-    cta: "Connect me to a social worker",
+    cta: "Ask about availability",
   },
   {
     title: "Mental health support",
     description: "Trauma-informed counsellors for stress and anxiety after a scam or dispute.",
-    cta: "Get wellbeing support",
+    cta: "Ask about availability",
   },
 ]
 
@@ -33,18 +33,18 @@ const paidServices = [
   {
     title: "Lawyer case review",
     description: "Short review of your documents and likely next steps before you escalate.",
-    cta: "Book a review",
+    cta: "Join the availability list",
   },
   {
     title: "Dispute coach / case prep",
     description: "Specialists who help structure your evidence, fill gaps, and frame arguments.",
-    cta: "Work with a coach",
+    cta: "Join the availability list",
     email: "info@guidebuoyai.sg",
   },
   {
     title: "Cybersecurity specialist report",
     description: "Forensic review of links, malware, and transaction traces to strengthen your report.",
-    cta: "Request a cyber report",
+    cta: "Join the availability list",
   },
 ]
 
@@ -60,8 +60,8 @@ export default function MarketplacePage() {
           </Badge>
           <h1 className="text-4xl font-bold text-balance">Human help only when you need it</h1>
           <p className="text-muted-foreground max-w-3xl leading-relaxed">
-            The helper stays free. When you want a person to step in, pick from trusted partners below. Free options come
-            first; paid specialists activate only when you choose.
+            Start with the free User Pack. Human-support options are introduced only when a verified pathway is
+            available; paid specialists remain closed until fulfilment and availability checks pass.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button asChild className="rounded-full">
@@ -82,8 +82,8 @@ export default function MarketplacePage() {
             </Badge>
             <h2 className="text-2xl font-semibold">Public-good support</h2>
             <p className="text-muted-foreground max-w-2xl">
-              For vulnerable users or those under stress, we start with free human support before suggesting anything
-              paid.
+              These are support categories GuideBuoy is working to make available. Eligibility and partner capacity vary,
+              so submitting an enquiry does not guarantee a referral.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -110,8 +110,8 @@ export default function MarketplacePage() {
             </Badge>
             <h2 className="text-2xl font-semibold">Specialists for deeper help</h2>
             <p className="text-muted-foreground max-w-2xl">
-              When your loss is high or the case is complex, these specialists can review evidence, coach you, or prepare
-              expert reports. Charges appear only when you accept.
+              These planned specialist services will open only after fulfilment is verified. Joining the availability list
+              is not a booking and does not create a charge.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -127,7 +127,7 @@ export default function MarketplacePage() {
                       <Link href={`mailto:${service.email ?? "partners@guidebuoyai.sg"}`}>{service.cta}</Link>
                     </Button>
                     <Badge variant="outline" className="rounded-full">
-                      Optional
+                      Availability gated
                     </Badge>
                   </div>
                 </CardContent>

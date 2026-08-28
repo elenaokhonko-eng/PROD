@@ -30,38 +30,19 @@ export default function LandingPage() {
 
   const helperFlow = [
     {
-      stage: "Screen 1 - The Helper",
+      stage: "Step 1 · User Pack",
       title: "Tell Lumi what happened",
-      description:
-        "Record or type your story. We transcribe it, classify it, and confirm it is a case GuideBuoy supports right now. If not yet supported, you’ll see a waitlist screen to sign up and get notified when your complaint type is live.",
+      description: "Type or speak in your own words, add evidence, and answer only the questions needed to organise your free draft.",
     },
     {
-      stage: "Screen 2 - Sign up and upload proof",
-      title: "Save your case and add documents",
-      description: "If we can help, create a free account with Singpass or email, then upload your receipts, screenshots, and reference numbers.",
+      stage: "Step 2 · FI Pack",
+      title: "Prepare a financial-institution complaint",
+      description: "Choose the SGD 18 FI Pack for a chronology, disputed transactions, evidence map, and requested resolution.",
     },
     {
-      stage: "Screen 3 - AI Co-Pilot",
-      title: "Short Q&A to complete your report",
-      description: "After your story and documents are saved, Lumi reviews them, asks a short Q&A, and references publicly available Singapore guidance for context.",
-    },
-    {
-      stage: "Screen 4 - Report Hub",
-      title: "Work from your AXS Machine dashboard",
-      description:
-        "Edit the factual record, close evidence gaps, view next steps, and keep everything synced in one calm workspace.",
-    },
-    {
-      stage: "Screen 5 - AXS Export & Send",
-      title: "Reuse your unified report everywhere",
-      description:
-        "Export agency-ready PDFs now and send targeted partner packets as integrations go live. You can also request a new API integration for an agency or company with a one-click email request.",
-    },
-    {
-      stage: "Screen 6 - Specialist Marketplace",
-      title: "Escalate only when you need to",
-      description:
-        "If you need human help to make sense of your case, our marketplace can connect you to pro-bono lawyers, cybersecurity specialists, or case prep experts to organise your evidence and understand which statutory frameworks may apply.",
+      stage: "Step 3 · FIDReC Pack",
+      title: "Escalate when the pathway is ready",
+      description: "Choose the SGD 188 FIDReC Pack for a case-linked executive summary, chronology, and downloadable submission materials.",
     },
   ]
 
@@ -183,29 +164,28 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary">
+    <div className="min-h-screen bg-background">
       <SiteHeader badge="Free Helper Access" />
 
       {/* Hero Section */}
-      <div className="py-12 md:py-20 bg-gradient-to-b from-primary/5 to-transparent">
+      <div className="bg-gradient-to-b from-[var(--gb-tint-teal)] to-transparent py-14 md:py-24">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 text-balance text-foreground">
-              Feeling overwhelmed by a scam or complaint? Get a clear plan, for free.
+              Tell it once. We&apos;ll help you carry it from here.
             </h1>
             <p className="text-lg text-muted-foreground mb-8 text-pretty leading-relaxed">
-              We&apos;re Singapore&apos;s Complaint Helper. Tell Lumi (our lighthouse AI) what happened once and Lumi will organise
-              your facts into a unified report you can reuse for the Police, national agencies, and more.
+              GuideBuoy is Singapore&apos;s calm complaint helper. Tell Lumi what happened and organise your facts, evidence, and next steps without starting over each time.
             </p>
             <div className="flex items-center justify-center gap-4 mb-8 flex-wrap">
               <Badge variant="outline" className="text-sm rounded-full">
-                Singpass-ready & trusted
+                Start with a free User Pack
               </Badge>
               <Badge variant="outline" className="text-sm rounded-full">
-                Report Once, Reuse Everywhere
+                SGD 18 FI Pack
               </Badge>
               <Badge variant="outline" className="text-sm rounded-full">
-                Free public-good utility
+                SGD 188 FIDReC Pack
               </Badge>
               <Button asChild variant="outline" className="rounded-full">
                 <Link href="/marketplace">Browse specialists</Link>
@@ -218,21 +198,20 @@ export default function LandingPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
-          <Card className="shadow-lg rounded-xl border-border/50">
+          <Card className="rounded-[14px] border-border bg-card shadow-ambient">
             <CardHeader>
-              <CardTitle className="text-2xl">Create your unified report</CardTitle>
+              <CardTitle className="text-2xl">Tell us what happened in your own words</CardTitle>
               <CardDescription className="leading-relaxed">
-                Lumi listens in plain language, then turns your story into a structured JSON report that works for the
-                Police, ScamShield, and ecosystem partners.
+                You can change this later. Lumi will organise the details and show you the next useful step.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Input Method Toggle */}
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
                   variant={inputMethod === "text" ? "default" : "outline"}
                   onClick={() => setInputMethod("text")}
-                  className="flex-1 rounded-full"
+                  className="w-full rounded-full sm:flex-1"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Type My Story
@@ -240,7 +219,7 @@ export default function LandingPage() {
                 <Button
                   variant={inputMethod === "voice" ? "default" : "outline"}
                   onClick={() => setInputMethod("voice")}
-                  className="flex-1 rounded-full"
+                  className="h-auto min-h-10 w-full whitespace-normal rounded-full sm:flex-1"
                 >
                   <Mic className="h-4 w-4 mr-2" />
                   Record My Story (Voice-to-Report)
@@ -354,7 +333,7 @@ export default function LandingPage() {
                 <Link href="/privacy" className="underline hover:text-foreground">
                   Privacy Policy
                 </Link>
-                . Your data is encrypted and anonymized for AI training.
+                . We do not use your case for model training without your permission.
               </p>
             </CardContent>
           </Card>
@@ -363,9 +342,9 @@ export default function LandingPage() {
           <section className="mt-16 space-y-8">
             <div className="text-center space-y-3">
               <Badge variant="secondary" className="mx-auto w-fit">
-                Unified Helper Flow
+                One case, three packs
               </Badge>
-              <h2 className="text-3xl font-semibold">How Lumi guides every user</h2>
+              <h2 className="text-3xl font-semibold">Choose more help only when you need it</h2>
               <p className="text-muted-foreground">
                 Start with a voice-to-text story, sign up to upload proof, then Lumi reviews your story and documents, runs a short Q&A, and only then references publicly available Singapore guidance for context before you manage everything in the AXS-style hub.
               </p>

@@ -104,18 +104,14 @@ export async function POST(request: Request) {
     return "phishing_scam"
   }
 
-  // Ensure profile exists for FK constraints
-  const { error: profileUpsertError } = await supabaseService.from("profiles").upsert(
-    {
-      id: activeUserId,
-      email: null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "id" },
-  )
-  if (profileUpsertError) {
-    console.error(`[Create Case] Failed to upsert profile for user ${activeUserId}:`, profileUpsertError)
-    return NextResponse.json({ error: "Failed to prepare user profile" }, { status: 500 })
+  const { data: profile, error: profileError } = await supabaseService
+    .from("profiles")
+    .select("id")
+    .eq("id", activeUserId)
+    .maybeSingle()
+  if (profileError || !profile) {
+    console.error(`[Create Case] No provisioned profile for user ${activeUserId}:`, profileError)
+    return NextResponse.json({ error: "User profile is not provisioned" }, { status: 409 })
   }
 
   const { data: newCase, error: caseError } = await supabaseService

@@ -1,13 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { createClient } from "@/lib/supabase/server"
+import { createUserClient } from "@/lib/supabase/server"
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { caseId } = await params
-  const supabase = await createClient()
+  const supabase = await createUserClient()
 
   const { data, error } = await supabase
     .from("evidence")

@@ -1,29 +1,33 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { createClient } from '@/lib/supabase/server'
+import { createUserClient } from '@/lib/supabase/server'
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ caseId: string }> }
 ) {
-  const user = await getCurrentUser()
-  if (!user) {
+  if (!(await getCurrentUser())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { caseId } = await params
   const { status } = await request.json()
 
-  const supabase = await createClient()
+  const supabase = await createUserClient()
 
-  const { error } = await supabase
+  const { data: updatedCase, error } = await supabase
     .from('cases')
     .update({ status, updated_at: new Date().toISOString() })
     .eq('id', caseId)
-    .eq('user_id', user.supabaseUuid)
+    .select('id')
+    .maybeSingle()
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  if (!updatedCase) {
+    return NextResponse.json({ error: 'Case not found' }, { status: 404 })
   }
 
   return NextResponse.json({ ok: true })

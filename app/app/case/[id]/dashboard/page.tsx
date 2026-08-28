@@ -48,7 +48,6 @@ export default async function UnifiedCaseDashboard({
     .from('cases')
     .select('*')
     .eq('id', caseId)
-    .eq('user_id', user.supabaseUuid)
     .maybeSingle()
 
   if (caseError) {

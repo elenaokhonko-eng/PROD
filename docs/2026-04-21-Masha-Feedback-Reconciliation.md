@@ -225,7 +225,7 @@ Masha confirmed `.txt` and `.zip` are broken; `.doc` / `.docx` are **untested**.
 
 **Proposed answer:** A for MVP. Matches the "no surprises for users" posture.
 
-- **⏸ Still provisional (not explicitly re-confirmed 2026-04-21 PM).** Apply option A (PDF / PNG / JPEG only) for the MVP unless/until Masha signs off on DOCX. This is a small product decision, not a structural one.
+- **Resolved 2026-08-27.** Apply option A (PDF / PNG / JPEG only) for the MVP. DOCX stays gated until its end-to-end processing fixture passes.
 
 ### Q4 — Fire cadence for `candidate-transactions` and `compute-loss`
 

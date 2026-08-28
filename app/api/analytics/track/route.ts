@@ -9,7 +9,7 @@ const payloadSchema = z.object({
   eventName: z.string().min(1, "eventName is required"),
   eventData: z.record(z.any()).optional(),
   sessionId: z.string().optional(),
-  userId: z.string().uuid().optional(),
+  userId: z.string().uuid().nullable().optional(),
   pageUrl: z.string().optional(),
   userAgent: z.string().optional(),
   createdAt: z.string().optional(),
@@ -31,6 +31,9 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await getCurrentUser()
+    if (parsed.userId && parsed.userId !== user?.supabaseUuid) {
+      return NextResponse.json({ error: "Analytics identity mismatch" }, { status: 403 })
+    }
 
     const countryHeader = request.headers.get("cf-ipcountry") || request.headers.get("x-country") || undefined
 
@@ -38,7 +41,7 @@ export async function POST(request: NextRequest) {
       eventName: parsed.eventName,
       eventData: parsed.eventData,
       sessionId: parsed.sessionId ?? null,
-      userId: parsed.userId ?? user?.userId ?? null,
+      userId: user?.supabaseUuid ?? null,
       pageUrl: parsed.pageUrl ?? request.headers.get("referer") ?? null,
       userAgent: parsed.userAgent ?? request.headers.get("user-agent") ?? null,
       createdAt: parsed.createdAt,
@@ -51,7 +54,7 @@ export async function POST(request: NextRequest) {
     await trackServerEvent(payload)
     log.debug("Recorded analytics event", {
       eventName: payload.eventName,
-      userId: payload.userId,
+      hasUser: Boolean(payload.userId),
       hasSession: Boolean(payload.sessionId),
     })
 

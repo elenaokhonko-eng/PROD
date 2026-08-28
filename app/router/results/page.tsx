@@ -211,13 +211,9 @@ function CrisisFooter() {
         <a href="tel:1767" className="underline">
           1767
         </a>{" "}
-        · SAGE Counselling:{" "}
-        <a href="tel:18005555555" className="underline">
-          1800-555-5555
-        </a>{" "}
-        · National Care Hotline:{" "}
-        <a href="tel:18002026868" className="underline">
-          1800-202-6868
+        · national mindline:{" "}
+        <a href="tel:1771" className="underline">
+          1771
         </a>
       </p>
     </div>
