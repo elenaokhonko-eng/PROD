@@ -86,6 +86,9 @@ export async function POST(req: Request) {
   if (!caseOwnerId) {
     return NextResponse.json({ error: 'case_missing_owner' }, { status: 500 })
   }
+  if (caseOwnerId !== user.supabaseUuid) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
 
   const extract = (snapshot.latest_extract?.[0]?.extract_json ?? null) as
     | {

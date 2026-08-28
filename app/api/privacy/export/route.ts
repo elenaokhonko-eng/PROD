@@ -11,7 +11,16 @@ export async function POST() {
 
     const supabase = await createUserClient()
 
-    const { data: ownedCases } = await supabase.from("cases").select("id").eq("user_id", user.supabaseUuid)
+    const { data: ownedCases, error: ownedCasesError } = await supabase
+      .from("cases")
+      .select("id")
+      .eq("user_id", user.supabaseUuid)
+
+    if (ownedCasesError) {
+      console.error("[privacy] failed to load owned cases:", ownedCasesError)
+      return NextResponse.json({ error: "Failed to export data" }, { status: 500 })
+    }
+
     const ownedCaseIds = (ownedCases ?? []).map((row: IdRow) => row.id)
 
     // Pull primary user data
@@ -32,6 +41,19 @@ export async function POST() {
       supabase.from("payments").select("*").eq("user_id", user.supabaseUuid),
       outcomesPromise,
     ])
+
+    const failedQuery = [
+      { label: "profile", error: profileResult.error },
+      { label: "cases", error: casesResult.error },
+      { label: "case responses", error: responsesResult.error },
+      { label: "payments", error: paymentsResult.error },
+      { label: "case outcomes", error: outcomesResult.error },
+    ].find((result) => result.error)
+
+    if (failedQuery) {
+      console.error(`[privacy] failed to export ${failedQuery.label}:`, failedQuery.error)
+      return NextResponse.json({ error: "Failed to export data" }, { status: 500 })
+    }
 
     const profile = profileResult.data ?? null
     const cases = casesResult.data ?? []

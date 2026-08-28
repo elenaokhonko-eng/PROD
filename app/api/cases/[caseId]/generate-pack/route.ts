@@ -415,8 +415,6 @@ Important: strength must be honest. If the user has no police report and no bank
       throw new Error("Failed to retrieve signed URL after generation.")
     }
 
-    console.log(`[Generate Pack] Signed URL generated: ${downloadUrl}`)
-
     return NextResponse.json({ downloadUrl })
   } catch (error) {
     console.error("[Generate Pack] Overall error:", error)

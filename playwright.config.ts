@@ -6,13 +6,13 @@ import dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
 dotenv.config()
 
-const baseURL = process.env.SLICE5_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+const baseURL = process.env.SLICE5_BASE_URL ?? 'http://localhost:3000'
 const authStatePath = resolve(process.env.SLICE5_AUTH_STORAGE_STATE ?? 'tests/e2e/.auth/slice5.json')
 const hasAuthState = existsSync(authStatePath)
 const shouldStartLocalServer =
-  hasAuthState &&
   process.env.SLICE5_SKIP_WEB_SERVER !== '1' &&
   (baseURL.startsWith('http://localhost') || baseURL.startsWith('http://127.0.0.1'))
+const localServerPort = new URL(baseURL).port || '3000'
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -37,7 +37,7 @@ export default defineConfig({
   ],
   webServer: shouldStartLocalServer
     ? {
-        command: 'pnpm.cmd dev',
+        command: `pnpm.cmd dev --port ${localServerPort}`,
         url: baseURL,
         reuseExistingServer: true,
         timeout: 120_000,

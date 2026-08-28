@@ -1,24 +1,15 @@
 "use client"
 
 import { usePathname } from "next/navigation"
+import { routeOwnsModeSwitcher } from "@/lib/sensory-mode-shell"
 import { ModeSwitcher } from "./mode-switcher"
-
-const publicShellRoutes = new Set([
-  "/",
-  "/about",
-  "/faq",
-  "/how-it-works",
-  "/marketplace",
-  "/pricing",
-  "/resources",
-])
 
 export function GlobalModeDock() {
   const pathname = usePathname()
-  if (publicShellRoutes.has(pathname)) return null
+  if (routeOwnsModeSwitcher(pathname)) return null
 
   return (
-    <div className="fixed right-4 top-4 z-50">
+    <div data-global-mode-dock className="fixed right-4 top-4 z-50">
       <ModeSwitcher />
     </div>
   )

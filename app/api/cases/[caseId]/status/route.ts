@@ -6,8 +6,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ caseId: string }> }
 ) {
-  const user = await getCurrentUser()
-  if (!user) {
+  if (!(await getCurrentUser())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -16,14 +15,19 @@ export async function PATCH(
 
   const supabase = await createUserClient()
 
-  const { error } = await supabase
+  const { data: updatedCase, error } = await supabase
     .from('cases')
     .update({ status, updated_at: new Date().toISOString() })
     .eq('id', caseId)
-    .eq('user_id', user.supabaseUuid)
+    .select('id')
+    .maybeSingle()
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  if (!updatedCase) {
+    return NextResponse.json({ error: 'Case not found' }, { status: 404 })
   }
 
   return NextResponse.json({ ok: true })

@@ -9,7 +9,14 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   const { id } = await params
   const supabase = await createUserClient()
 
-  const { error } = await supabase.from("evidence").delete().eq("id", id)
+  const { data: deletedEvidence, error } = await supabase
+    .from("evidence")
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle()
+
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (!deletedEvidence) return NextResponse.json({ error: "Evidence not found" }, { status: 404 })
   return NextResponse.json({ success: true })
 }

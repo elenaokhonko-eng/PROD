@@ -19,7 +19,7 @@ export function SiteHeader({ badge }: SiteHeaderProps) {
   const pathname = usePathname()
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm">
+    <header data-site-header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <Link href="/" className="flex items-center gap-2 rounded-[10px] hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
