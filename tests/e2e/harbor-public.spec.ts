@@ -1,10 +1,9 @@
 import { expect, test } from "@playwright/test"
 
-test.use({ baseURL: "http://localhost:3000", storageState: undefined })
+test.use({ storageState: undefined })
 
 test.describe("Harbor public shell", () => {
-  test("renders approved navigation, packs, and sensory modes", async ({ page, context }) => {
-    const consoleErrors: string[] = []
+  test.beforeEach(async ({ context }) => {
     await context.route("**/api/router/session", async (route) => {
       await route.fulfill({
         json: {
@@ -20,6 +19,10 @@ test.describe("Harbor public shell", () => {
     await context.route("**/api/analytics/track", async (route) => {
       await route.fulfill({ json: { success: true } })
     })
+  })
+
+  test("renders approved navigation, packs, and sensory modes", async ({ page, context }) => {
+    const consoleErrors: string[] = []
     page.on("console", (message) => {
       if (message.type() === "error") consoleErrors.push(message.text())
     })
@@ -30,11 +33,12 @@ test.describe("Harbor public shell", () => {
     await expect(page.getByRole("navigation", { name: "Primary navigation" })).not.toContainText("Analytics")
     await expect(page.getByText("SGD 18 FI Pack", { exact: true })).toBeVisible()
 
-    await page.getByText("Steady", { exact: true }).click()
+    const modeSummary = page.locator("[data-site-header] summary")
+    await modeSummary.click()
     await page.getByRole("radio", { name: "Everything feels too much" }).click()
     await expect(page.locator("html")).toHaveAttribute("data-sensory", "quiet")
 
-    await page.getByText("Quiet", { exact: true }).click()
+    await modeSummary.click()
     await page.getByRole("radio", { name: "I need a moment" }).click()
     await expect(page.getByRole("dialog", { name: "Take the time you need." })).toBeVisible()
     await page.getByRole("button", { name: "Continue when ready" }).click()
@@ -48,6 +52,61 @@ test.describe("Harbor public shell", () => {
     await restoredPage.goto("/")
     await expect(restoredPage.locator("html")).toHaveAttribute("data-sensory", "quiet")
     expect(consoleErrors).toEqual([])
+  })
+
+  test("supports radio keyboard navigation and preserves Grounding state across reload", async ({ page }) => {
+    await page.goto("/")
+
+    const modeSummary = page.locator("[data-site-header] summary")
+    const steady = page.getByRole("radio", { name: "I'm okay" })
+    const quiet = page.getByRole("radio", { name: "Everything feels too much" })
+    const grounding = page.getByRole("radio", { name: "I need a moment" })
+
+    await modeSummary.click()
+    await steady.focus()
+    await expect(steady).toHaveAttribute("tabindex", "0")
+    await expect(quiet).toHaveAttribute("tabindex", "-1")
+    await page.keyboard.press("ArrowDown")
+    await expect(quiet).toBeChecked()
+    await expect(quiet).toBeFocused()
+    await expect(page.locator("html")).toHaveAttribute("data-sensory", "quiet")
+
+    await page.keyboard.press("Home")
+    await expect(steady).toBeChecked()
+    await expect(steady).toBeFocused()
+
+    await page.keyboard.press("End")
+    const continueButton = page.getByRole("button", { name: "Continue when ready" })
+    await expect(continueButton).toBeVisible()
+    await continueButton.click()
+    await expect(page.locator("html")).toHaveAttribute("data-sensory", "steady")
+    await expect(grounding).toBeFocused()
+
+    await quiet.click()
+    await modeSummary.click()
+    await grounding.click()
+    await expect(continueButton).toBeFocused()
+
+    await page.reload()
+    await expect(page.getByRole("dialog", { name: "Take the time you need." })).toBeVisible()
+    await expect(continueButton).toBeFocused()
+    await page.keyboard.press("Tab")
+    await expect(continueButton).toBeFocused()
+    await page.keyboard.press("Shift+Tab")
+    await expect(continueButton).toBeFocused()
+    await continueButton.click()
+    await expect(page.locator("html")).toHaveAttribute("data-sensory", "quiet")
+  })
+
+  test("renders only one visible mode control on SiteHeader routes", async ({ page }) => {
+    for (const route of ["/router", "/coming-soon"]) {
+      await test.step(route, async () => {
+        await page.goto(route)
+        await expect(page.locator("[data-site-header] [data-mode-switcher]")).toHaveCount(1)
+        await expect(page.locator("[data-global-mode-dock]")).toHaveCount(0)
+        await expect(page.locator("[data-mode-switcher]")).toHaveCount(1)
+      })
+    }
   })
 
   test("publishes Pricing and How It Works and redirects the legacy Product route", async ({ page }) => {
@@ -73,7 +132,7 @@ test.describe("Harbor public shell", () => {
 
   test("keeps analytics internal for signed-out visitors", async ({ page }) => {
     await page.goto("/analytics")
-    await expect(page.getByText("This page could not be found.")).toBeVisible()
+    await expect(page.locator('meta[name="robots"][content*="noindex"]').first()).toBeAttached()
     await expect(page.getByRole("heading", { name: "Acquisition & engagement" })).toHaveCount(0)
   })
 })

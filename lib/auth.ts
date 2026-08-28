@@ -6,8 +6,8 @@
  * what RLS treats as the row owner (`cases.user_id`, etc.).
  *
  * Server routes that talk to Supabase with `createUserClient()` should use
- * `supabaseUuid` for ownership columns; use `userId` for Clerk-only concerns
- * (e.g. analytics, external ids).
+ * `supabaseUuid` for ownership and application identity columns; use `userId`
+ * only for Clerk API calls and external Clerk references.
  */
 
 import { auth } from '@clerk/nextjs/server'

@@ -12,8 +12,9 @@ import { auth } from '@clerk/nextjs/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 /**
- * User-scoped Supabase client. Forwards the Clerk-signed JWT so `auth.uid()`
- * in RLS policies returns the same UUID stored on `cases.user_id`.
+ * User-scoped Supabase client. The Clerk JWT keeps its `user_...` subject;
+ * Pattern C policies resolve ownership from the signed `supabase_uuid` claim
+ * through `public.current_app_user_id()`.
  *
  * Throws a readable error if the caller has no active Clerk session — all
  * user-scoped routes must handle this upstream by returning 401.

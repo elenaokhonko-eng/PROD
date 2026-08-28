@@ -6,7 +6,6 @@ import { EMAIL_FROM } from "@/lib/email-config"
 import { InvitationEmail } from "@/lib/email-templates"
 import { sendMail } from "@/lib/mail"
 import { render } from "@react-email/render"
-import { nanoid } from "nanoid"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
 import type { ReactElement } from "react"
 
@@ -40,97 +39,82 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
     }
 
-    const { caseId, email, role } = parsed
-
+    const { caseId, role } = parsed
+    const email = parsed.email.trim().toLowerCase()
+    const invitationRole = role ?? "helper"
     const supabase = await createUserClient()
 
-    // Verify user owns or has access to the case
-    const { data: caseData, error: caseError } = await supabase
-      .from("cases")
-      .select("*")
-      .eq("id", caseId)
-      .single()
-
-    if (caseError || !caseData) {
-      return NextResponse.json({ error: "Case not found" }, { status: 404 })
-    }
-
-    const isOwner = caseData.user_id === user.supabaseUuid
-
-    // Check collaborator permissions separately
-    let isCollaboratorWhoCanInvite = false
-    if (!isOwner) {
-      const { data: collab } = await supabase
-        .from("case_collaborators")
-        .select("can_invite")
-        .eq("case_id", caseId)
-        .eq("user_id", user.supabaseUuid)
-        .eq("status", "active")
-        .single()
-      isCollaboratorWhoCanInvite = Boolean(collab?.can_invite)
-    }
-
-    if (!isOwner && !isCollaboratorWhoCanInvite) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
-    }
-
-    // Check if invitation already exists
-    const { data: existingInvite } = await supabase
-      .from("invitations")
-      .select("*")
-      .eq("case_id", caseId)
-      .eq("invitee_email", email)
-      .eq("status", "pending")
-      .single()
-
-    if (existingInvite) {
-      return NextResponse.json({ error: "Invitation already sent" }, { status: 400 })
-    }
-
-    // Create invitation
-    const invitationToken = nanoid(32)
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7) // 7 days expiration
-
-    const { data: invitation, error: inviteError } = await supabase
-      .from("invitations")
-      .insert({
-        case_id: caseId,
-        inviter_user_id: user.supabaseUuid,
-        invitee_email: email,
-        role: role || "helper",
-        invitation_token: invitationToken,
-        expires_at: expiresAt.toISOString(),
-        status: "pending",
-      })
-      .select()
-      .single()
+    const { data: invitationRows, error: inviteError } = await supabase.rpc("create_case_invitation", {
+      p_case_id: caseId,
+      p_invitee_email: email,
+      p_role: invitationRole,
+      p_message: null,
+    })
 
     if (inviteError) {
+      const status = inviteError.code === "23505" ? 409 : inviteError.code === "42501" ? 403 : 500
+      return NextResponse.json(
+        { error: status === 409 ? "Invitation already pending" : status === 403 ? "Insufficient permissions" : "Failed to create invitation" },
+        { status },
+      )
+    }
+
+    const invitation = invitationRows?.[0]
+    if (!invitation) {
       return NextResponse.json({ error: "Failed to create invitation" }, { status: 500 })
     }
 
-    // Get user profile for email
-    const { data: profile } = await supabase.from("profiles").select("full_name, email").eq("id", user.supabaseUuid).single()
-    const userEmail = profile?.email ?? ""
+    const [{ data: profile, error: profileError }, { data: caseData, error: caseError }] = await Promise.all([
+      supabase.from("profiles").select("full_name, email").eq("id", user.supabaseUuid).single(),
+      supabase.from("cases").select("claim_type").eq("id", caseId).single(),
+    ])
 
-    const html = await render(InvitationEmail({
-      inviterName: profile?.full_name || userEmail || "A user",
-      inviterEmail: userEmail,
-      caseTitle: caseData.claim_type?.replace("_", " ") || "Financial Dispute Case",
-      invitationToken,
-      role: role || "helper",
-    }) as ReactElement)
+    if (profileError || caseError || !profile || !caseData) {
+      await supabase.rpc("cancel_case_invitation", { p_invitation_id: invitation.invitation_id })
+      return NextResponse.json({ error: "Failed to prepare invitation email" }, { status: 500 })
+    }
 
-    // Send invitation email
-    await sendMail({
-      from: EMAIL_FROM,
-      to: email,
-      subject: `${profile?.full_name || userEmail} invited you to collaborate on a case`,
-      html,
+    const invitationToken = invitation.invitation_token
+    const userEmail = profile.email
+
+    try {
+      const html = await render(InvitationEmail({
+        inviterName: profile.full_name || userEmail || "A user",
+        inviterEmail: userEmail,
+        caseTitle: caseData.claim_type?.replace("_", " ") || "Financial Dispute Case",
+        invitationToken,
+        role: invitationRole,
+      }) as ReactElement)
+
+      await sendMail({
+        from: EMAIL_FROM,
+        to: email,
+        subject: `${profile.full_name || userEmail} invited you to collaborate on a case`,
+        html,
+      })
+    } catch (mailError) {
+      const { data: cancelled, error: cancelError } = await supabase.rpc("cancel_case_invitation", {
+        p_invitation_id: invitation.invitation_id,
+      })
+      console.error("[invitations/send] Email delivery failed", {
+        mailError,
+        invitationCancelled: cancelled === true,
+        cancelError,
+      })
+      return NextResponse.json({ error: "Failed to send invitation" }, { status: 502 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      invitation: {
+        id: invitation.invitation_id,
+        case_id: caseId,
+        invitee_email: invitation.normalized_email,
+        role: invitation.invitation_role,
+        status: "pending",
+        expires_at: invitation.invitation_expires_at,
+      },
     })
-
-    return NextResponse.json({ success: true, invitation })
   } catch (error) {
     console.error("[v0] Invitation send error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

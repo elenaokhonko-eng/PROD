@@ -65,7 +65,13 @@ export async function POST(request: Request) {
     fnName: EVIDENCE_FN,
     request,
     caseIdField: null,
-    probe: async () => ({ ok: true }),
+    probe: async (client) => {
+      const { data: canEdit, error: permissionError } = await client.rpc(
+        'app_case_permission',
+        { p_case_id: caseId, p_permission: 'edit' },
+      )
+      return { ok: !permissionError && canEdit === true, status: 404 }
+    },
   })
 
   if (res.ok) {

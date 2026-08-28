@@ -35,14 +35,16 @@ export async function PUT(request: Request) {
   }
 
   const supabase = await createUserClient()
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .update({ sensory_mode: parsed.data.mode, updated_at: new Date().toISOString() })
     .eq("id", currentUser.supabaseUuid)
+    .select("sensory_mode")
+    .single()
 
-  if (error) {
+  if (error || !data) {
     return NextResponse.json({ error: "Unable to save display preference" }, { status: 500 })
   }
 
-  return NextResponse.json({ mode: parsed.data.mode })
+  return NextResponse.json({ mode: data.sensory_mode })
 }
