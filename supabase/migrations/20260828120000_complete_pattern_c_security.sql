@@ -811,7 +811,7 @@ GRANT UPDATE (
   updated_at
 ) ON TABLE public.cases TO authenticated;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.case_documents TO authenticated;
+GRANT SELECT ON TABLE public.case_documents TO authenticated;
 GRANT SELECT ON TABLE public.case_collaborators TO authenticated;
 GRANT SELECT ON TABLE public.case_intake TO authenticated;
 GRANT INSERT (
