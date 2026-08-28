@@ -82,6 +82,7 @@ test.describe("Harbor preview integration handshakes", () => {
 
     try {
       await page.goto("/")
+      await assertPreviewPageOrigin(page)
       await expect(page.getByRole("link", { name: "Chat with GuideBuoy on WhatsApp" })).toHaveAttribute(
         "href",
         "https://wa.me/6590727915",
@@ -110,6 +111,7 @@ test.describe("Harbor preview integration handshakes", () => {
       expect(invalidWorker.status).toBe(401)
 
       await page.goto("/analytics")
+      await assertPreviewPageOrigin(page)
       await expect(page.locator('meta[name="robots"][content*="noindex"]').first()).toBeAttached()
       await expect(page.getByRole("heading", { name: "Acquisition & engagement" })).toHaveCount(0)
     } finally {
@@ -190,6 +192,7 @@ test.describe("Harbor preview integration handshakes", () => {
     expect(identityMismatch.status).toBe(403)
 
     await page.goto("/analytics")
+    await assertPreviewPageOrigin(page)
     await expect(page.getByRole("heading", { name: "Acquisition & engagement" })).toBeVisible()
     expect(decodeJwtPayload(token).supabase_uuid).toBe(profileId)
   })
@@ -353,6 +356,7 @@ test.describe("Harbor preview integration handshakes", () => {
         request.post(webhookUrl, {
           data: rawEvent,
           headers: { "content-type": "application/json", "stripe-signature": signature },
+          maxRedirects: 0,
         })
 
       const firstDelivery = await deliver()
@@ -486,8 +490,17 @@ function requiredEnv(name: (typeof requiredEnvironment)[number] | "HARBOR_PREVIE
   return value
 }
 
+async function assertPreviewPageOrigin(page: Page) {
+  const currentUrl = new URL(page.url())
+  const expectedOrigin = new URL(requiredEnv("HARBOR_PREVIEW_BASE_URL")).origin
+  if (currentUrl.origin !== expectedOrigin || knownProductionHosts.has(currentUrl.hostname.toLowerCase())) {
+    throw new Error(`Preview page redirected outside the configured preview origin: ${currentUrl.origin}`)
+  }
+}
+
 async function authenticatedIdentity(page: Page) {
   await page.goto("/")
+  await assertPreviewPageOrigin(page)
   await page.waitForFunction(() => {
     const clerkWindow = window as typeof window & {
       Clerk?: { session?: { getToken: (options: { template: string }) => Promise<string | null> } }
@@ -528,10 +541,12 @@ async function appFetch(
   path: string,
   options: { method: "GET" | "POST" | "PUT"; headers?: Record<string, string>; body?: unknown },
 ) {
+  await assertPreviewPageOrigin(page)
   return page.evaluate(
     async ({ requestPath, requestOptions }) => {
       const response = await fetch(requestPath, {
         method: requestOptions.method,
+        redirect: "manual",
         headers: {
           ...(requestOptions.body === undefined ? {} : { "Content-Type": "application/json" }),
           ...requestOptions.headers,

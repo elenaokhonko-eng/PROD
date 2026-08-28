@@ -145,6 +145,7 @@ BEGIN
   IF EXISTS (
     SELECT 1
     FROM unnest(ARRAY[
+      'case_documents',
       'jobs',
       'case_document_extractions',
       'case_extract_runs',
@@ -160,7 +161,7 @@ BEGIN
        OR has_table_privilege('authenticated', format('public.%I', derived.table_name), 'UPDATE')
        OR has_table_privilege('authenticated', format('public.%I', derived.table_name), 'DELETE')
   ) THEN
-    RAISE EXCEPTION 'authenticated derived-table grants are not read-only';
+    RAISE EXCEPTION 'authenticated pipeline-table grants are not read-only';
   END IF;
 
   IF has_function_privilege('anon', 'public.current_app_user_id()', 'EXECUTE')
