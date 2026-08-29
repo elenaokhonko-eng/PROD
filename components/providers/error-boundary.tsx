@@ -30,7 +30,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (this.state.hasError) {
       return (
         <div className="container mx-auto px-4 py-10">
-          <StateMachineErrorCard kind="internal" context={this.state.error?.message ?? null} />
+          <div className="space-y-4">
+            <StateMachineErrorCard kind="internal" context={this.state.error?.message ?? null} />
+            <button className="min-h-11 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground" onClick={() => this.setState({ hasError: false, error: null })}>
+              Try again
+            </button>
+          </div>
         </div>
       )
     }

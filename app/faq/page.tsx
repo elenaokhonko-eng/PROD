@@ -1,6 +1,15 @@
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Mail } from "lucide-react"
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
@@ -15,11 +24,11 @@ const faqData = [
       },
       {
         q: "Do I need to create an account before sharing my story?",
-        a: "No. You can type or record your story first. We ask you to use the available secure sign-in options when you are ready to save a case.",
+        a: "No. You can type or record your story first. Sign in with email to save your progress and continue.",
       },
       {
-        q: "Can I sign in with Singpass?",
-        a: "Not currently. Use the sign-in options shown in GuideBuoy; we will announce Singpass only if that integration becomes available.",
+        q: "Can I use Singpass?",
+        a: "Singpass sign-in is not currently available. Use email sign-in for now.",
       },
     ],
   },
@@ -27,8 +36,8 @@ const faqData = [
     category: "Unified Report",
     questions: [
       {
-        q: "Which agencies recognise the unified report?",
-        a: "The packs help you organise information for a financial institution and, when eligible, a FIDReC escalation. This does not imply endorsement or acceptance by any agency, and you remain responsible for submitting through the official channel.",
+        q: "Can I reuse my report?",
+        a: "GuideBuoy helps organise your information into a report. Check the receiving organisation&apos;s requirements before submitting it.",
       },
       {
         q: "What is the dynamic evidence checklist?",
@@ -44,16 +53,16 @@ const faqData = [
     category: "Marketplace & Pricing",
     questions: [
       {
-        q: "Is the helper really free?",
-        a: "The User Pack is free. The FI Pack is SGD 18 and the FIDReC Pack is SGD 188. Any optional service is clearly priced before payment.",
+        q: "What does the free helper include?",
+        a: "The free helper can organise your story and evidence. Available paid options are shown only when the product catalogue supports them.",
       },
       {
-        q: "What is the specialist consult?",
-        a: "Specialist consultation is a planned optional service. Bookings stay closed until the fulfilment process and availability are verified.",
+        q: "Can I get human help?",
+        a: "Human consultation is not currently available.",
       },
       {
         q: "Do you offer pro-bono referrals?",
-        a: "Referral options depend on partner availability and eligibility. GuideBuoy will show a request option only when a pathway is available; a referral is not guaranteed.",
+        a: "Planned—not currently available through GuideBuoy. There is no active referral service.",
       },
     ],
   },
@@ -62,21 +71,40 @@ const faqData = [
     questions: [
       {
         q: "How is my data protected?",
-        a: "We use access controls, encrypted connections, consent records, and data-minimisation practices designed around Singapore's PDPA. See the Privacy page for the current details.",
+        a: "We are preparing approved privacy information. Do not rely on this page for legal or security assurances.",
       },
       {
         q: "Who can view my report?",
-        a: "Only you (and anyone you explicitly invite) can view the dashboard. Humans at GuideBuoy do not read your report unless you opt into a marketplace service.",
+        a: "Access is controlled by your account and any collaboration permissions the service provides. We are preparing approved privacy information.",
       },
       {
         q: "Can I delete my report?",
-        a: "You can submit a deletion request from Settings. We process it according to the retention, legal, and security requirements described in our Privacy notice.",
+        a: "You can request deletion of your data from Settings after you sign in. The request is sent to platform administration and does not delete data immediately."
       },
     ],
   },
 ]
 
 export default function FAQPage() {
+  const [contactForm, setContactForm] = useState({
+    email: "",
+    topic: "",
+    message: "",
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    // Simulate form submission
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    alert("Thank you for your message.")
+    setContactForm({ email: "", topic: "", message: "" })
+    setIsSubmitting(false)
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -112,7 +140,7 @@ export default function FAQPage() {
             ))}
           </div>
 
-          {/* Contact */}
+          {/* Contact Form */}
           <Card className="mt-12">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -120,16 +148,58 @@ export default function FAQPage() {
                 Still have questions?
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Email our team with your question. Include your case ID only if it is relevant, and do not send passwords or banking credentials.
-              </p>
-              <Button asChild className="rounded-full">
-                <Link href="mailto:info@guidebuoyai.sg">Email GuideBuoy</Link>
-              </Button>
-              <div className="rounded-[14px] bg-[var(--gb-tint-teal)] p-4">
-                <p className="text-sm text-foreground">
-                  <strong>Safety note:</strong> GuideBuoy is not an emergency service. If you are in immediate danger in Singapore, call 999 or 995.
+            <CardContent>
+              <form onSubmit={handleContactSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm((prev) => ({ ...prev, email: e.target.value }))}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="topic">Topic</Label>
+                  <Select
+                    value={contactForm.topic}
+                    onValueChange={(value) => setContactForm((prev) => ({ ...prev, topic: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a topic" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="eligibility">Eligibility Questions</SelectItem>
+                      <SelectItem value="technical">Technical Support</SelectItem>
+                      <SelectItem value="billing">Billing & Payments</SelectItem>
+                      <SelectItem value="partnerships">Partnerships</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="message">Message</Label>
+                  <Textarea
+                    id="message"
+                    value={contactForm.message}
+                    onChange={(e) => setContactForm((prev) => ({ ...prev, message: e.target.value }))}
+                    placeholder="Describe your question or issue..."
+                    rows={4}
+                    required
+                  />
+                </div>
+
+                <Button type="submit" disabled={isSubmitting} className="w-full">
+                  {isSubmitting ? "Sending..." : "Send Message"}
+                </Button>
+              </form>
+
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  Include your case ID for technical issues when applicable. We do not publish a response-time promise.
                 </p>
               </div>
             </CardContent>
