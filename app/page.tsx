@@ -30,36 +30,52 @@ export default function LandingPage() {
 
   const helperFlow = [
     {
-      stage: "Step 1 · User Pack",
+      stage: "Screen 1 - The Helper",
       title: "Tell Lumi what happened",
-      description: "Type or speak in your own words, add evidence, and answer only the questions needed to organise your free draft.",
+      description:
+        "Record or type your story. We transcribe it, classify it, and confirm it is a case GuideBuoy supports right now. If not yet supported, you’ll see a waitlist screen to sign up and get notified when your complaint type is live.",
     },
     {
-      stage: "Step 2 · FI Pack",
-      title: "Prepare a financial-institution complaint",
-      description: "Choose the SGD 18 FI Pack for a chronology, disputed transactions, evidence map, and requested resolution.",
+      stage: "Screen 2 - Sign up and upload proof",
+      title: "Save your case and add documents",
+      description: "Create an account with email, then upload your receipts, screenshots, and reference numbers. Singpass sign-in is not currently available.",
     },
     {
-      stage: "Step 3 · FIDReC Pack",
-      title: "Escalate when the pathway is ready",
-      description: "Choose the SGD 188 FIDReC Pack for a case-linked executive summary, chronology, and downloadable submission materials.",
+      stage: "Screen 3 - AI Co-Pilot",
+      title: "Short Q&A to complete your report",
+      description: "After your story and documents are saved, GuideBuoy organises them and asks a short Q&A to complete the record.",
+    },
+    {
+      stage: "Screen 4 - Report Hub",
+      title: "Work from your AXS Machine dashboard",
+      description:
+        "Edit the factual record, close evidence gaps, view next steps, and keep everything synced in one calm workspace.",
+    },
+    {
+      stage: "Screen 5 - AXS Export & Send",
+      title: "Reuse your unified report everywhere",
+      description: "Review the organised report and check each receiving organisation&apos;s requirements before you submit anything.",
+    },
+    {
+      stage: "Screen 6 - Specialist Marketplace",
+      title: "Escalate only when you need to",
+      description: "Human consultation is not currently available. Help resources are planned—not currently available through GuideBuoy.",
     },
   ]
 
   const marketplaceOptions = [
     {
-      title: "Pro-bono legal and social clinics",
-      label: "Public-good support",
-      description: "A warm handover to SAL-linked legal clinics or social services when you need human guidance.",
-      cta: "Request a referral",
+      title: "Help resources and referral options",
+      label: "Planned",
+      description: "Legal-clinic resources, social-service resources, and warm handovers are planned—not currently available through GuideBuoy.",
+      cta: "Planned—not currently available through GuideBuoy.",
       variant: "outline",
     },
     {
-      title: "Specialist marketplace",
-      label: "Experts when you need them",
-      description:
-        "Browse lawyers, cybersecurity analysts, and case-prep coaches to review evidence and map relevant frameworks with you.",
-      cta: "Browse specialists",
+      title: "Human consultation",
+      label: "Not available",
+      description: "Human consultation is not currently available.",
+      cta: "Not currently available",
       variant: "default",
     },
   ]
@@ -164,28 +180,28 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-secondary">
       <SiteHeader badge="Free Helper Access" />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-b from-[var(--gb-tint-teal)] to-transparent py-14 md:py-24">
+      <div className="py-12 md:py-20 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 text-balance text-foreground">
-              Tell it once. We&apos;ll help you carry it from here.
+              Feeling overwhelmed by a scam or complaint? Get a clear plan, for free.
             </h1>
             <p className="text-lg text-muted-foreground mb-8 text-pretty leading-relaxed">
-              GuideBuoy is Singapore&apos;s calm complaint helper. Tell Lumi what happened and organise your facts, evidence, and next steps without starting over each time.
+              Tell Lumi what happened. GuideBuoy can organise your information into a clear record for you to review.
             </p>
             <div className="flex items-center justify-center gap-4 mb-8 flex-wrap">
               <Badge variant="outline" className="text-sm rounded-full">
-                Start with a free User Pack
+                Singpass sign-in is not currently available
               </Badge>
               <Badge variant="outline" className="text-sm rounded-full">
-                SGD 18 FI Pack
+                Automated organisation
               </Badge>
               <Badge variant="outline" className="text-sm rounded-full">
-                SGD 188 FIDReC Pack
+                Human consultation is not currently available
               </Badge>
               <Button asChild variant="outline" className="rounded-full">
                 <Link href="/marketplace">Browse specialists</Link>
@@ -198,20 +214,20 @@ export default function LandingPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
-          <Card className="rounded-[14px] border-border bg-card shadow-ambient">
+          <Card className="shadow-lg rounded-xl border-border/50">
             <CardHeader>
-              <CardTitle className="text-2xl">Tell us what happened in your own words</CardTitle>
+              <CardTitle className="text-2xl">Create your unified report</CardTitle>
               <CardDescription className="leading-relaxed">
-                You can change this later. Lumi will organise the details and show you the next useful step.
+                Lumi listens in plain language, then helps organise your story into a structured report for you to review.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Input Method Toggle */}
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex gap-2">
                 <Button
                   variant={inputMethod === "text" ? "default" : "outline"}
                   onClick={() => setInputMethod("text")}
-                  className="w-full rounded-full sm:flex-1"
+                  className="flex-1 rounded-full"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Type My Story
@@ -219,7 +235,7 @@ export default function LandingPage() {
                 <Button
                   variant={inputMethod === "voice" ? "default" : "outline"}
                   onClick={() => setInputMethod("voice")}
-                  className="h-auto min-h-10 w-full whitespace-normal rounded-full sm:flex-1"
+                  className="flex-1 rounded-full"
                 >
                   <Mic className="h-4 w-4 mr-2" />
                   Record My Story (Voice-to-Report)
@@ -333,7 +349,7 @@ export default function LandingPage() {
                 <Link href="/privacy" className="underline hover:text-foreground">
                   Privacy Policy
                 </Link>
-                . We do not use your case for model training without your permission.
+                . See the Privacy page for information about how data is handled.
               </p>
             </CardContent>
           </Card>
@@ -342,9 +358,9 @@ export default function LandingPage() {
           <section className="mt-16 space-y-8">
             <div className="text-center space-y-3">
               <Badge variant="secondary" className="mx-auto w-fit">
-                One case, three packs
+                Unified Helper Flow
               </Badge>
-              <h2 className="text-3xl font-semibold">Choose more help only when you need it</h2>
+              <h2 className="text-3xl font-semibold">How Lumi guides every user</h2>
               <p className="text-muted-foreground">
                 Start with a voice-to-text story, sign up to upload proof, then Lumi reviews your story and documents, runs a short Q&A, and only then references publicly available Singapore guidance for context before you manage everything in the AXS-style hub.
               </p>
@@ -384,6 +400,7 @@ export default function LandingPage() {
                     <Button
                       variant={option.variant === "outline" ? "outline" : "default"}
                       className="rounded-full w-fit"
+                      disabled
                     >
                       {option.cta}
                     </Button>
@@ -392,8 +409,7 @@ export default function LandingPage() {
               ))}
             </div>
             <p className="text-xs text-muted-foreground text-center">
-              Module 6 · Privacy & Settings: includes a one-click &ldquo;Delete my report&rdquo; button so every pilot
-              meets Trusted AI benchmarks.
+              Privacy & Settings includes a one-click request to delete your data. The request is sent to platform administration.
             </p>
           </section>
 
@@ -405,7 +421,7 @@ export default function LandingPage() {
               </div>
               <h3 className="font-semibold mb-2">Secure & Private</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Your information is encrypted and never shared without permission
+                Review the Privacy page for current information about data handling and deletion requests
               </p>
             </Card>
             <Card className="text-center p-6 rounded-xl">
@@ -413,7 +429,7 @@ export default function LandingPage() {
                 <span className="text-2xl">⚡</span>
               </div>
               <h3 className="font-semibold mb-2">Instant Analysis</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">AI-powered assessment in under 2 minutes</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Structured guidance generated from the information you provide</p>
             </Card>
             <Card className="text-center p-6 rounded-xl">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
@@ -421,7 +437,7 @@ export default function LandingPage() {
               </div>
               <h3 className="font-semibold mb-2">Expert Guidance</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Get personalized next steps based on your situation
+                Review suggested next steps and decide what to do next
               </p>
             </Card>
           </div>
