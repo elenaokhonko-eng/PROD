@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -77,13 +76,7 @@ export default function HomeClient() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <div className="mb-8 flex justify-center">
-              <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/GuideBuoy%20AI%20Lumi.jpg-aoPz1T5V8wp6KMHOH8WvFjPT811qv1.jpeg"
-                alt="Lumi - Your AI Guide"
-                width={120}
-                height={120}
-                className="rounded-full shadow-lg"
-              />
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary text-2xl font-semibold text-primary-foreground" aria-label="Lumi">L</div>
             </div>
 
             <h1 className="text-4xl lg:text-6xl font-bold text-balance mb-6 text-foreground">
@@ -91,8 +84,7 @@ export default function HomeClient() {
             </h1>
 
             <p className="text-xl lg:text-2xl text-muted-foreground text-pretty mb-12 max-w-3xl mx-auto leading-relaxed">
-              Complex agencies can be overwhelming. I{"'"}m Lumi, your AI guide. I{"'"}ll help you build a strong, clear
-              formal case in under 60 minutes.
+              Complex processes can be overwhelming. Lumi can help you organise what happened and consider your next step.
             </p>
 
             <Link href="/app/case/new">
@@ -153,32 +145,22 @@ export default function HomeClient() {
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-12 text-balance">Trust & Safety</h2>
+            <h2 className="text-3xl lg:text-4xl font-bold mb-12 text-balance">Using GuideBuoy</h2>
 
             <div className="grid md:grid-cols-3 gap-8 mb-12">
               <div className="text-center">
-                <Badge variant="secondary" className="mb-3 px-4 py-2">
-                  AI Co-pilot
-                </Badge>
-                <p className="text-sm text-muted-foreground">
-                  We{"'"}re your AI assistant, not a law firm. Professional guidance without legal advice.
-                </p>
+                <Badge variant="secondary" className="mb-3 px-4 py-2">Automated guidance</Badge>
+                <p className="text-sm text-muted-foreground">GuideBuoy helps organise information. It does not decide your case or provide legal advice.</p>
               </div>
 
               <div className="text-center">
-                <Badge variant="secondary" className="mb-3 px-4 py-2">
-                  PDPA Compliant
-                </Badge>
-                <p className="text-sm text-muted-foreground">
-                  Your data is encrypted, secure, and handled according to Singapore privacy laws.
-                </p>
+                <Badge variant="secondary" className="mb-3 px-4 py-2">Privacy information</Badge>
+                <p className="text-sm text-muted-foreground">Approved privacy information is being prepared.</p>
               </div>
 
               <div className="text-center">
-                <Badge variant="secondary" className="mb-3 px-4 py-2">
-                  Money-Back Guarantee
-                </Badge>
-                <p className="text-sm text-muted-foreground">Full refund for platform faults or technical issues.</p>
+                <Badge variant="secondary" className="mb-3 px-4 py-2">Human consultation</Badge>
+                <p className="text-sm text-muted-foreground">Human consultation is not currently available.</p>
               </div>
             </div>
           </div>
@@ -196,7 +178,7 @@ export default function HomeClient() {
               <span className="font-semibold text-lg">GuideBuoy AI</span>
             </div>
             <p className="text-muted-foreground text-sm">
-              Navigate cross-agency complaints with confidence. Launching December 2024.
+              Organise your complaint information and consider your next steps.
             </p>
           </div>
         </div>

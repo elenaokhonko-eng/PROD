@@ -63,7 +63,7 @@ const teamMembers: TeamMember[] = [
     bio: "Financial Services Director at FinArk Group @ PromiseLand who builds bridges with regulators, trade associations, and public-sector programmes.",
     experience:
       "15+ years advising retail investors and SMEs on regulated products; frequently consults on MAS sandboxes and consumer outreach.",
-    focus: "Owns government partnerships, ecosystem onboarding, and the playbooks that align GuideBuoy with national trust initiatives.",
+    focus: "Supports product research and ecosystem planning for the Singapore market.",
     linkedIn: "https://www.linkedin.com/in/nicholasnyh/",
   },
 ]
@@ -145,10 +145,7 @@ export default async function AboutPage() {
             </Badge>
             <h1 className="text-4xl font-bold tracking-tight mb-4 text-balance">We are building Singapore&apos;s complaint OS</h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              GuideBuoy AI is a software company in Singapore. We design an AXS-style helper that lets residents,
-              caregivers, and nominees tell their story once, add evidence, and reuse it for agency-ready complaints
-              (including formal escalations) without legal representation. Everything ships cloud-first, PDPA-aligned,
-              and battle-tested with real complaint data.
+              GuideBuoy AI is a software company in Singapore. We are building a guided way to organise a story and supporting evidence into a record that people can review. Our data-handling approach is designed around applicable PDPA obligations and relevant MAS guidance.
             </p>
             <div className="mt-6 flex flex-wrap gap-4">
               <div className="rounded-2xl border border-border/60 p-4">
@@ -156,8 +153,8 @@ export default async function AboutPage() {
                 <p className="text-sm text-muted-foreground">case assessments started since Jan 2024</p>
               </div>
               <div className="rounded-2xl border border-border/60 p-4">
-                <p className="text-3xl font-semibold">PDPA ✦ MAS</p>
-                <p className="text-sm text-muted-foreground">built to meet trusted AI and privacy expectations</p>
+                <p className="text-3xl font-semibold">PDPA</p>
+                <p className="text-sm text-muted-foreground">data handling designed around applicable obligations</p>
               </div>
             </div>
           </div>
@@ -172,15 +169,15 @@ export default async function AboutPage() {
               </div>
               <div>
                 <p className="font-medium text-foreground">Business model</p>
-                <p>SaaS platform with complaint automation modules, premium case packs, and nominee services.</p>
+                <p>Guided software for organising complaint information and supporting evidence.</p>
               </div>
               <div>
                 <p className="font-medium text-foreground">Stage</p>
-                <p>MVP live (Q4 2025) on guidebuoyai.sg; beta SME partner programme running; Stripe + Supabase stack in prod.</p>
+                <p>Product information and availability are being updated as the service evolves.</p>
               </div>
               <div>
                 <p className="font-medium text-foreground">Focus in 2025</p>
-                <p>Grow payer conversion, deepen FI/agency integrations, and extend playbooks for Malaysia and Hong Kong.</p>
+                <p>Improve the guided experience and publish service details as they become available.</p>
               </div>
             </CardContent>
           </Card>
@@ -254,16 +251,13 @@ export default async function AboutPage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <p>
-                A calm, end-to-end helper that turns one story into organised case notes, uploads, and ready-to-send
-                complaint packets. Citizens and caregivers can stay on one track instead of juggling multiple forms.
+                A calm helper for organising a story, case notes, and supporting uploads in one place.
               </p>
               <p>
-                We ship weekly from a single codebase that runs guidebuoyai.sg. What you see in staging is what our
-                partners and pilots use in production.
+                Service availability and supported workflows will be published as they are confirmed.
               </p>
               <p>
-                Built for Singaporeans navigating scams and complex complaints across agencies, with a clear path to
-                adapt for Malaysia and Hong Kong cross-border disputes.
+                The product is designed for people in Singapore who need a clearer way to record a scam or complaint.
               </p>
             </CardContent>
           </Card>

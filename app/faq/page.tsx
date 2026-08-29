@@ -24,11 +24,11 @@ const faqData = [
       },
       {
         q: "Do I need to create an account before sharing my story?",
-        a: "No. You can type or record your story first. We only ask you to sign up (Singpass or email) once your unified report is ready so you can save it securely.",
+        a: "No. You can type or record your story first. Sign in with email to save your progress and continue.",
       },
       {
-        q: "Is Singpass required?",
-        a: "Singpass is recommended because it proves identity for our B2R partners, but you can still use email/password if you prefer.",
+        q: "Can I use Singpass?",
+        a: "Singpass sign-in is not currently available. Use email sign-in for now.",
       },
     ],
   },
@@ -36,8 +36,8 @@ const faqData = [
     category: "Unified Report",
     questions: [
       {
-        q: "Which agencies recognise the unified report?",
-        a: "The report is formatted for SPF e-services, ScamShield, and partner pilots like FIs or SMEs. When a direct API does not exist yet, you can export a PDF and send it yourself.",
+        q: "Can I reuse my report?",
+        a: "GuideBuoy helps organise your information into a report. Check the receiving organisation&apos;s requirements before submitting it.",
       },
       {
         q: "What is the dynamic evidence checklist?",
@@ -53,16 +53,16 @@ const faqData = [
     category: "Marketplace & Pricing",
     questions: [
       {
-        q: "Is the helper really free?",
-        a: "Yes. Recording your story, running the AI interview, and generating exports is 100% free. Optional marketplace services (e.g., paid specialist consults) are clearly labelled before you pay.",
+        q: "What does the free helper include?",
+        a: "The free helper can organise your story and evidence. Available paid options are shown only when the product catalogue supports them.",
       },
       {
-        q: "What is the specialist consult?",
-        a: "High-value cases (> S$25k) can book a free 15‑minute triage with a specialist. If you choose a longer engagement, Stripe processes the fee and GuideBuoy remains a neutral platform.",
+        q: "Can I get human help?",
+        a: "Human consultation is not currently available.",
       },
       {
         q: "Do you offer pro-bono referrals?",
-        a: "Yes. You can request a warm handover to SAL-linked clinics or social services directly from Module 5 in the Report Hub.",
+        a: "Planned—not currently available through GuideBuoy. There is no active referral service.",
       },
     ],
   },
@@ -71,15 +71,15 @@ const faqData = [
     questions: [
       {
         q: "How is my data protected?",
-        a: "We follow PDPA guidelines, encrypt data at rest/in transit, and host everything in Singapore. Logs record consent so we can participate in AI Verify pilots.",
+        a: "We are preparing approved privacy information. Do not rely on this page for legal or security assurances.",
       },
       {
         q: "Who can view my report?",
-        a: "Only you (and anyone you explicitly invite) can view the dashboard. Humans at GuideBuoy do not read your report unless you opt into a marketplace service.",
+        a: "Access is controlled by your account and any collaboration permissions the service provides. We are preparing approved privacy information.",
       },
       {
         q: "Can I delete my report?",
-        a: "Yes. Module 6 includes a one-click “Delete my report” control that wipes the report, evidence, and associated telemetry permanently.",
+        a: "You can request deletion of your data from Settings after you sign in. The request is sent to platform administration and does not delete data immediately."
       },
     ],
   },
@@ -100,7 +100,7 @@ export default function FAQPage() {
     // Simulate form submission
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    alert("Thank you for your message! We'll respond within 24 hours.")
+    alert("Thank you for your message.")
     setContactForm({ email: "", topic: "", message: "" })
     setIsSubmitting(false)
   }
@@ -199,8 +199,7 @@ export default function FAQPage() {
 
               <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-800">
-                  <strong>Response Time:</strong> We typically respond within 24 hours during business days. For urgent
-                  technical issues, please include your case ID if applicable.
+                  Include your case ID for technical issues when applicable. We do not publish a response-time promise.
                 </p>
               </div>
             </CardContent>

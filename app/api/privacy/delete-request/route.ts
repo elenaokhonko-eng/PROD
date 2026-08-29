@@ -1,56 +1,34 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { createClient } from "@/lib/supabase/server"
 import { trackServerEvent } from "@/lib/analytics/server"
+import { ADMIN_EMAIL, EMAIL_FROM } from "@/lib/email-config"
+import { sendMail } from "@/lib/mail"
 
-// Best-effort anonymization for MVP: scrub textual fields, delete evidence files/rows,
-// mark cases anonymized and log analytics events. In production, move to a queue/job.
 export async function POST() {
   try {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const supabase = await createClient()
-
-    // Fetch user's cases (owner or creator)
-    const { data: cases } = await supabase
-      .from("cases")
-      .select("id")
-      .eq("user_id", user.supabaseUuid)
-
-    const caseIds = (cases ?? []).map((c: { id: string }) => c.id)
-
-    // Delete evidence files + rows for each case (storage objects are named by file_path)
-    if (caseIds.length > 0) {
-      await supabase.from("evidence").delete().in("case_id", caseIds)
-
-      await supabase
-        .from("case_responses")
-        .update({ response_value: "[deleted]" })
-        .in("case_id", caseIds)
-
-      // Scrub key case fields and mark anonymization flags
-      await supabase
-        .from("cases")
-        .update({
-          institution_name: "[redacted]",
-          case_summary: "[deleted]",
-          anonymization_requested: true,
-          anonymization_completed_at: new Date().toISOString(),
-        })
-        .in("id", caseIds)
-    }
-
-    // Log events
-    await trackServerEvent({
-      eventName: "privacy_delete_completed",
-      userId: user.supabaseUuid,
-      eventData: { case_ids: caseIds },
+    await sendMail({
+      from: EMAIL_FROM,
+      to: ADMIN_EMAIL,
+      subject: "Data deletion request",
+      html: `
+        <h2>Data deletion request</h2>
+        <p>A user has requested review of a data deletion request.</p>
+        <p><strong>Clerk user ID:</strong> ${user.userId}</p>
+        <p><strong>Supabase profile ID:</strong> ${user.supabaseUuid}</p>
+      `,
     })
 
-    return NextResponse.json({ success: true, anonymized_case_ids: caseIds })
+    await trackServerEvent({
+      eventName: "privacy_delete_requested",
+      userId: user.supabaseUuid,
+    })
+
+    return NextResponse.json({ success: true })
   } catch (err) {
-    console.error("[privacy] delete/anonymize error:", err)
-    return NextResponse.json({ error: "Failed to process delete request" }, { status: 500 })
+    console.error("[privacy] delete request email failed:", err)
+    return NextResponse.json({ error: "Failed to send deletion request" }, { status: 500 })
   }
 }

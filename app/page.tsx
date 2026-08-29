@@ -38,12 +38,12 @@ export default function LandingPage() {
     {
       stage: "Screen 2 - Sign up and upload proof",
       title: "Save your case and add documents",
-      description: "If we can help, create a free account with Singpass or email, then upload your receipts, screenshots, and reference numbers.",
+      description: "Create an account with email, then upload your receipts, screenshots, and reference numbers. Singpass sign-in is not currently available.",
     },
     {
       stage: "Screen 3 - AI Co-Pilot",
       title: "Short Q&A to complete your report",
-      description: "After your story and documents are saved, Lumi reviews them, asks a short Q&A, and references publicly available Singapore guidance for context.",
+      description: "After your story and documents are saved, GuideBuoy organises them and asks a short Q&A to complete the record.",
     },
     {
       stage: "Screen 4 - Report Hub",
@@ -54,31 +54,28 @@ export default function LandingPage() {
     {
       stage: "Screen 5 - AXS Export & Send",
       title: "Reuse your unified report everywhere",
-      description:
-        "Export agency-ready PDFs now and send targeted partner packets as integrations go live. You can also request a new API integration for an agency or company with a one-click email request.",
+      description: "Review the organised report and check each receiving organisation&apos;s requirements before you submit anything.",
     },
     {
       stage: "Screen 6 - Specialist Marketplace",
       title: "Escalate only when you need to",
-      description:
-        "If you need human help to make sense of your case, our marketplace can connect you to pro-bono lawyers, cybersecurity specialists, or case prep experts to organise your evidence and understand which statutory frameworks may apply.",
+      description: "Human consultation is not currently available. Help resources are planned—not currently available through GuideBuoy.",
     },
   ]
 
   const marketplaceOptions = [
     {
-      title: "Pro-bono legal and social clinics",
-      label: "Public-good support",
-      description: "A warm handover to SAL-linked legal clinics or social services when you need human guidance.",
-      cta: "Request a referral",
+      title: "Help resources and referral options",
+      label: "Planned",
+      description: "Legal-clinic resources, social-service resources, and warm handovers are planned—not currently available through GuideBuoy.",
+      cta: "Planned—not currently available through GuideBuoy.",
       variant: "outline",
     },
     {
-      title: "Specialist marketplace",
-      label: "Experts when you need them",
-      description:
-        "Browse lawyers, cybersecurity analysts, and case-prep coaches to review evidence and map relevant frameworks with you.",
-      cta: "Browse specialists",
+      title: "Human consultation",
+      label: "Not available",
+      description: "Human consultation is not currently available.",
+      cta: "Not currently available",
       variant: "default",
     },
   ]
@@ -194,18 +191,17 @@ export default function LandingPage() {
               Feeling overwhelmed by a scam or complaint? Get a clear plan, for free.
             </h1>
             <p className="text-lg text-muted-foreground mb-8 text-pretty leading-relaxed">
-              We&apos;re Singapore&apos;s Complaint Helper. Tell Lumi (our lighthouse AI) what happened once and Lumi will organise
-              your facts into a unified report you can reuse for the Police, national agencies, and more.
+              Tell Lumi what happened. GuideBuoy can organise your information into a clear record for you to review.
             </p>
             <div className="flex items-center justify-center gap-4 mb-8 flex-wrap">
               <Badge variant="outline" className="text-sm rounded-full">
-                Singpass-ready & trusted
+                Singpass sign-in is not currently available
               </Badge>
               <Badge variant="outline" className="text-sm rounded-full">
-                Report Once, Reuse Everywhere
+                Automated organisation
               </Badge>
               <Badge variant="outline" className="text-sm rounded-full">
-                Free public-good utility
+                Human consultation is not currently available
               </Badge>
               <Button asChild variant="outline" className="rounded-full">
                 <Link href="/marketplace">Browse specialists</Link>
@@ -222,8 +218,7 @@ export default function LandingPage() {
             <CardHeader>
               <CardTitle className="text-2xl">Create your unified report</CardTitle>
               <CardDescription className="leading-relaxed">
-                Lumi listens in plain language, then turns your story into a structured JSON report that works for the
-                Police, ScamShield, and ecosystem partners.
+                Lumi listens in plain language, then helps organise your story into a structured report for you to review.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -354,7 +349,7 @@ export default function LandingPage() {
                 <Link href="/privacy" className="underline hover:text-foreground">
                   Privacy Policy
                 </Link>
-                . Your data is encrypted and anonymized for AI training.
+                . See the Privacy page for information about how data is handled.
               </p>
             </CardContent>
           </Card>
@@ -405,6 +400,7 @@ export default function LandingPage() {
                     <Button
                       variant={option.variant === "outline" ? "outline" : "default"}
                       className="rounded-full w-fit"
+                      disabled
                     >
                       {option.cta}
                     </Button>
@@ -413,8 +409,7 @@ export default function LandingPage() {
               ))}
             </div>
             <p className="text-xs text-muted-foreground text-center">
-              Module 6 · Privacy & Settings: includes a one-click &ldquo;Delete my report&rdquo; button so every pilot
-              meets Trusted AI benchmarks.
+              Privacy & Settings includes a one-click request to delete your data. The request is sent to platform administration.
             </p>
           </section>
 
@@ -426,7 +421,7 @@ export default function LandingPage() {
               </div>
               <h3 className="font-semibold mb-2">Secure & Private</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Your information is encrypted and never shared without permission
+                Review the Privacy page for current information about data handling and deletion requests
               </p>
             </Card>
             <Card className="text-center p-6 rounded-xl">
@@ -434,7 +429,7 @@ export default function LandingPage() {
                 <span className="text-2xl">⚡</span>
               </div>
               <h3 className="font-semibold mb-2">Instant Analysis</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">AI-powered assessment in under 2 minutes</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Structured guidance generated from the information you provide</p>
             </Card>
             <Card className="text-center p-6 rounded-xl">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
@@ -442,7 +437,7 @@ export default function LandingPage() {
               </div>
               <h3 className="font-semibold mb-2">Expert Guidance</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Get personalized next steps based on your situation
+                Review suggested next steps and decide what to do next
               </p>
             </Card>
           </div>

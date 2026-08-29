@@ -75,32 +75,32 @@ const formatNumber = (value: number) => new Intl.NumberFormat("en-SG").format(va
 const productHighlights = [
   {
     title: "AI intake engine",
-    description: "Speech-to-text, scam classification, and structured questions that capture the full story in minutes.",
+    description: "Speech-to-text and structured questions to help capture the story you provide.",
     icon: ClipboardList,
   },
   {
     title: "Case builder workspace",
-    description: "Structured evidence tables, liability theories, and recommended next steps backed by precedent data.",
+    description: "A workspace for organised evidence, notes, and suggested next steps to review.",
     icon: Bot,
   },
   {
     title: "Document automation",
-    description: "Complaint letters, FIR drafts, and submission bundles with auto-numbered exhibits and citations.",
+    description: "Tools for preparing an organised record from the information you provide.",
     icon: FileText,
   },
   {
     title: "Live case tracker",
-    description: "Deadline tracking, reminder emails, and outcome logging for each stage of the escalation process.",
+    description: "A timeline for recording case milestones and outcomes.",
     icon: Clock,
   },
   {
     title: "Collaboration layer",
-    description: "Invite helpers or nominees with role-based permissions and audit trails.",
+    description: "Collaboration options will be published when they are available.",
     icon: Users,
   },
   {
     title: "Evidence vault",
-    description: "Supabase storage with signed URLs, checksum validation, and PDPA-grade access controls.",
+    description: "Stored evidence is handled through the platform&apos;s data-storage controls.",
     icon: ShieldCheck,
   },
 ]
@@ -124,7 +124,7 @@ const reportHubModules = [
     badge: "Module 3",
     title: "Share once, reuse it",
     description: "Download a police-ready PDF or a short summary for yourself.",
-    details: "When partners are live, you can send the same report to them with one tap.",
+    details: "Direct sharing with external organisations is not available yet.",
     icon: FileText,
   },
   {
@@ -137,15 +137,15 @@ const reportHubModules = [
   {
     badge: "Module 5",
     title: "Get help if you need it",
-    description: "Ask for a pro-bono clinic or talk to a specialist for bigger losses.",
-    details: "The helper stays free; add paid help only if you choose.",
+    description: "Help resources are planned—not currently available through GuideBuoy.",
+    details: "Human consultation is not currently available.",
     icon: Headphones,
   },
   {
     badge: "Module 6",
     title: "Privacy and control",
     description: "You decide who sees your information.",
-    details: "Every action is logged with consent, and you can delete your report anytime.",
+    details: "You can request data deletion from Settings. It is reviewed and may be subject to lawful retention requirements.",
     icon: Building2,
   },
 ]
@@ -158,10 +158,10 @@ const shareMenu = [
     status: "active",
   },
   {
-    title: "Partner channels",
-    description: "Send packets directly to partners as they come online. Live partners show an active button.",
-    actions: ["Send to pilot partner", "Send when ready"],
-    status: "pilot",
+    title: "External sharing",
+    description: "Direct sharing with external organisations is planned—not currently available through GuideBuoy.",
+    actions: ["Planned—not currently available through GuideBuoy."],
+    status: "comingSoon",
   },
   {
     title: "For businesses",
@@ -197,9 +197,9 @@ const deliveryStages = [
     bullets: ["Router intake + AI summaries", "Document automation pack"],
   },
   {
-    title: "Beta SME partners programme",
-    period: "Q1 2026",
-    bullets: ["Helper workspace (pro-bono clinics or nominees)", "Institution messaging APIs"],
+    title: "Future services",
+    period: "To be confirmed",
+    bullets: ["Help resources and referral options", "External sharing options"],
   },
   {
     title: "Public launch",
@@ -241,15 +241,14 @@ export default async function ProductPage() {
                 SaaS Platform
               </Badge>
               <Badge variant="outline" className="rounded-full">
-                MVP live • Beta recruiting
+                Service details in progress
               </Badge>
             </div>
           <h1 className="text-4xl font-bold tracking-tight mb-4 text-balance">
-            Software built for Singapore’s complaint resolution network
+            Software for organising complaint information
           </h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              GuideBuoy AI is an AXS-style complaints hub built on Next.js, Supabase, Stripe, and Render. It turns one
-              Singapore story plus supporting documents into reusable, partner-ready reports with calm, guided steps.
+              GuideBuoy AI provides guided tools for capturing a story and organising supporting documents into a record you can review.
             </p>
             <div className="mt-6 flex flex-wrap gap-4">
               <Button asChild className="rounded-full">
@@ -375,7 +374,7 @@ export default async function ProductPage() {
                       >
                         {option.status === "active" && "Ready now"}
                         {option.status === "pilot" && "Live soon"}
-                        {option.status === "comingSoon" && "Coming soon"}
+                        {option.status === "comingSoon" && "Planned—not currently available through GuideBuoy."}
                       </span>
                     </div>
                     <ul className="mt-3 space-y-1 text-sm text-muted-foreground">

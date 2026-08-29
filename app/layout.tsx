@@ -13,14 +13,14 @@ import { RealtimeProvider } from "@/components/providers/realtime-provider"
 import { ErrorBoundary } from "@/components/providers/error-boundary"
 
 export const metadata: Metadata = {
-  title: "GuideBuoy AI - Singapore's Complaint Helper",
+  title: "GuideBuoy AI - Complaint organisation support",
   description:
-    "Navigate scams and complaints with confidence. Lumi organises one report you can reuse with the Police and national partners.",
+    "Organise your complaint information and consider your next steps.",
   metadataBase: new URL("https://guidebuoyai.sg"),
   openGraph: {
-    title: "GuideBuoy AI - Singapore's Complaint Helper",
+    title: "GuideBuoy AI - Complaint organisation support",
     description:
-      "Navigate scams and complaints with confidence. Lumi organises one report you can reuse with the Police and national partners.",
+      "Organise your complaint information and consider your next steps.",
     url: "https://guidebuoyai.sg",
     siteName: "GuideBuoy AI",
     images: [
@@ -34,9 +34,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "GuideBuoy AI - Singapore's Complaint Helper",
+    title: "GuideBuoy AI - Complaint organisation support",
     description:
-      "Navigate scams and complaints with confidence. Lumi organises one report you can reuse with the Police and national partners.",
+      "Organise your complaint information and consider your next steps.",
     images: ["/placeholder-logo.png"],
   },
   generator: "v0.app",
@@ -86,15 +86,6 @@ export default function RootLayout({
                         <Link href="/terms" className="hover:text-foreground">Terms of Use</Link>
                         <Link href="/privacy" className="hover:text-foreground">Privacy &amp; Cookies Policy</Link>
                         <Link href="mailto:security@guidebuoyai.sg" className="hover:text-foreground">Report Vulnerability</Link>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3 md:justify-end">
-                        <span className="font-medium text-foreground">Connect with us:</span>
-                        <Link href="https://www.linkedin.com" className="hover:text-foreground">LinkedIn</Link>
-                        <Link href="https://www.instagram.com" className="hover:text-foreground">Instagram</Link>
-                        <Link href="https://www.facebook.com" className="hover:text-foreground">Facebook</Link>
-                        <Link href="https://www.youtube.com" className="hover:text-foreground">YouTube</Link>
-                        <Link href="https://www.twitter.com" className="hover:text-foreground">X</Link>
-                        <Link href="https://wa.me/6590727915" className="hover:text-foreground">WhatsApp</Link>
                       </div>
                     </div>
                   </div>
