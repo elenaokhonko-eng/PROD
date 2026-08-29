@@ -1,6 +1,15 @@
 import { clerkMiddleware } from '@clerk/nextjs/server'
+import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
 
-export default clerkMiddleware()
+const withClerk = clerkMiddleware()
+
+export default function middleware(request: NextRequest, event: NextFetchEvent) {
+  if (process.env.NODE_ENV !== 'production' && process.env.HARBOR_VISUAL_FIXTURES === '1') {
+    return NextResponse.next()
+  }
+
+  return withClerk(request, event)
+}
 
 export const config = {
   matcher: [

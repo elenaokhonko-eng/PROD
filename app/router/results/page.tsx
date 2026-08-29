@@ -1,42 +1,30 @@
-"use client"
+﻿"use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import {
-  Loader2,
-  CheckCircle,
   AlertCircle,
   ArrowRight,
+  CheckCircle,
   Clock,
-  PhoneCall,
   FileText,
-  Users,
-  AlertTriangle,
-  ShieldAlert,
   HelpCircle,
+  Loader2,
+  PhoneCall,
+  ShieldAlert,
 } from "lucide-react"
-import Link from "next/link"
-import { getSessionToken, getRouterSession, updateRouterSession } from "@/lib/router-session"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { SiteHeader } from "@/components/site-header"
+import { getRouterSession, getSessionToken, updateRouterSession } from "@/lib/router-session"
 import type { TriagePath } from "@/lib/rules"
 
 interface Assessment {
   triage_path: TriagePath
-  srf_eligible: boolean
-  fidrec_subscriber: boolean
-  recommended_path: string
-  eligibility_score: number
-  success_probability: "high" | "medium" | "low"
-  reasoning: string[]
-  missing_info: string[]
-  next_steps: string[]
-  estimated_timeline: string
-  deadline_warning: string | null
-  bank_contact_days_elapsed: number | null
-  is_fidrec_eligible: boolean
+  recommended_path: "fidrec_eligible" | "waitlist" | "self_service" | "not_eligible"
+  [key: string]: unknown
 }
 
 interface PathConfig {
@@ -44,184 +32,132 @@ interface PathConfig {
   iconColor: string
   headerBg: string
   badge: string
-  badgeVariant: "default" | "secondary" | "destructive" | "outline"
+  badgeVariant: "default" | "secondary" | "outline"
   title: string
   description: string
   ctaText: string
   ctaHref: string
   ctaVariant: "default" | "outline"
+  notes: string[]
 }
 
-function getPathConfig(assessment: Assessment, fiName: string | null): PathConfig {
-  const fi = fiName ?? "your financial institution"
+function getPathConfig(path: TriagePath, fiName: string | null): PathConfig {
+  const financialInstitution = fiName ?? "your financial institution"
 
-  switch (assessment.triage_path) {
+  switch (path) {
     case "A":
       return {
         icon: ShieldAlert,
         iconColor: "text-accent",
         headerBg: "bg-accent/10",
-        badge: "SRF-Eligible",
+        badge: "SRF information",
         badgeVariant: "default",
-        title: "Your case may qualify for a refund under Singapore law",
-        description: `The Shared Responsibility Framework (SRF) may require ${fi} to compensate you. We'll help you assess the bank's specific duties and build your case.`,
-        ctaText: "Start building my case",
+        title: "The SRF may be relevant",
+        description: `Your answers suggest that the Shared Responsibility Framework may be worth discussing with ${financialInstitution} or an independent adviser. This is not an eligibility or outcome decision.`,
+        ctaText: "Start organising my case",
         ctaHref: "/onboarding",
         ctaVariant: "default",
+        notes: [
+          "Use the institution's official contact details to report the incident.",
+          "Keep copies of messages, transaction records and correspondence.",
+          "Check the current framework and dispute requirements on official websites.",
+        ],
       }
     case "A2":
       return {
         icon: PhoneCall,
         iconColor: "text-primary",
         headerBg: "bg-primary/10",
-        badge: "Telco Complaint (IMDA)",
+        badge: "Telecommunications information",
         badgeVariant: "secondary",
-        title: "The telco may bear responsibility for this scam",
+        title: "An IMDA information route may be relevant",
         description:
-          "If your bank met all its SRF duties, Singapore's Shared Responsibility Framework places liability on the telco for failing to block fraudulent SMS sender IDs. We'll guide you on filing a complaint with IMDA.",
-        ctaText: "See IMDA complaint guide",
+          "Your answers suggest that telecommunications controls may be relevant. Review current IMDA guidance before deciding what to do next.",
+        ctaText: "Review the information route",
         ctaHref: "/router/path-a2",
         ctaVariant: "default",
+        notes: [
+          "Keep the original messages and sender details.",
+          "Use official reporting channels and verify their current requirements.",
+          "Record any reference numbers you receive.",
+        ],
       }
     case "B":
       return {
         icon: CheckCircle,
         iconColor: "text-accent",
         headerBg: "bg-accent/10",
-        badge: "FIDReC-Eligible",
+        badge: "FIDReC information",
         badgeVariant: "default",
-        title: "You may be eligible to file with FIDReC",
-        description: `Your dispute with ${fi} appears ready for formal escalation. FIDReC is Singapore's independent dispute resolution body — filing is free.`,
-        ctaText: "Build my FIDReC submission",
+        title: "A FIDReC route may be relevant",
+        description: `Your answers suggest that a formal dispute involving ${financialInstitution} may be worth reviewing. Confirm current eligibility and filing requirements directly with FIDReC.`,
+        ctaText: "Start organising my case",
         ctaHref: "/onboarding",
         ctaVariant: "default",
+        notes: [
+          "Keep the institution's written response and reference numbers.",
+          "Organise transaction records and correspondence.",
+          "Confirm current requirements directly with FIDReC.",
+        ],
       }
     case "C":
       return {
         icon: Clock,
         iconColor: "text-primary",
         headerBg: "bg-primary/10",
-        badge: "4-Week Waiting Period",
+        badge: "Institution response",
         badgeVariant: "secondary",
-        title: "You're on the right path — just a little early",
+        title: "Contact the financial institution first",
         description:
-          "FIDReC requires you to give your bank 4 weeks to respond before escalating. Use this time to build your evidence and we'll remind you when you're ready to file.",
-        ctaText: "Set up my 4-week tracker",
+          "Current dispute guidance may require the financial institution to consider the complaint before an external escalation. The applicable requirements depend on the circumstances, so confirm them on the official FIDReC website.",
+        ctaText: "Review what to keep",
         ctaHref: "/router/tracker",
         ctaVariant: "default",
+        notes: [
+          "Use the institution's official complaints channel.",
+          "Keep written acknowledgements and reference numbers.",
+          "Check current escalation requirements directly with FIDReC.",
+        ],
       }
     case "D":
       return {
         icon: HelpCircle,
         iconColor: "text-muted-foreground",
         headerBg: "bg-muted",
-        badge: "Alternative Paths",
+        badge: "Other information routes",
         badgeVariant: "outline",
-        title: "We'll guide you to the right channel",
+        title: "Review other official channels",
         description:
-          "FIDReC may not be the right path for your situation — but there are other options. We'll show you what's available and what to expect from each.",
-        ctaText: "See my options",
-        ctaHref: "#options",
+          "FIDReC may not be the relevant route for this situation. Official organisations can explain their current remit and requirements.",
+        ctaText: "Browse official resources",
+        ctaHref: "/resources",
         ctaVariant: "outline",
+        notes: [
+          "Use official websites to identify the relevant reporting channel.",
+          "Keep a copy of what happened and any supporting records.",
+          "Consider independent professional advice where appropriate.",
+        ],
       }
     case "E":
       return {
         icon: AlertCircle,
         iconColor: "text-destructive",
         headerBg: "bg-destructive/10",
-        badge: "Limited Formal Recourse",
-        badgeVariant: "destructive",
-        title: "Formal recovery is difficult — but not hopeless",
+        badge: "Reporting information",
+        badgeVariant: "outline",
+        title: "Review official reporting options",
         description:
-          "Cryptocurrency and overseas platforms have very limited formal recovery routes in Singapore. We'll be honest about what's realistic and guide you on the best available steps.",
-        ctaText: "See my options",
+          "Overseas-platform and cryptocurrency incidents can involve several organisations. Review current official reporting and account-protection information before choosing a next step.",
+        ctaText: "See official options",
         ctaHref: "/router/path-e",
         ctaVariant: "outline",
+        notes: [
+          "Protect affected accounts using verified contact details.",
+          "Keep transaction records, messages and platform details.",
+          "Check current reporting guidance on official websites.",
+        ],
       }
   }
-}
-
-function PathDOptions({ assessment }: { assessment: Assessment }) {
-  if (assessment.triage_path !== "D") return null
-  return (
-    <div id="options" className="space-y-3 pt-2">
-      <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Available paths</h3>
-      {[
-        {
-          label: "MAS Financial Consumers Alert",
-          desc: "Check if your FI is MAS-licensed and file a complaint with MAS.",
-          href: "https://www.mas.gov.sg/consumer-complaints",
-        },
-        {
-          label: "CASE — Consumers Association of Singapore",
-          desc: "For e-commerce and consumer disputes.",
-          href: "https://www.case.org.sg",
-        },
-        {
-          label: "Small Claims Tribunal",
-          desc: "For disputes up to S$20,000 against a person or business you can identify.",
-          href: "https://www.judiciary.gov.sg/civil/small-claims-tribunals",
-        },
-        {
-          label: "Pro Bono SG — Free Legal Clinics",
-          desc: "Get free legal advice from a volunteer lawyer.",
-          href: "https://probono.sg",
-        },
-      ].map((item) => (
-        <a
-          key={item.label}
-          href={item.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-start justify-between gap-3 p-3 rounded-xl border border-border hover:bg-muted/50 transition-colors"
-        >
-          <div>
-            <p className="font-medium text-sm">{item.label}</p>
-            <p className="text-xs text-muted-foreground">{item.desc}</p>
-          </div>
-          <ArrowRight className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-        </a>
-      ))}
-    </div>
-  )
-}
-
-function PathCTracker({ daysElapsed }: { daysElapsed: number | null }) {
-  if (daysElapsed === null) return null
-  const pct = Math.min(100, Math.round((daysElapsed / 28) * 100))
-  const daysLeft = Math.max(0, 28 - daysElapsed)
-  return (
-    <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl space-y-2">
-      <div className="flex justify-between text-sm font-medium">
-        <span>4-week waiting period</span>
-        <span>{daysLeft > 0 ? `${daysLeft} days left` : "Ready to escalate"}</span>
-      </div>
-      <Progress value={pct} className="h-2" />
-      <p className="text-xs text-muted-foreground">Day {daysElapsed} of 28 — contact your bank if you haven&apos;t already and keep all reference numbers.</p>
-    </div>
-  )
-}
-
-function CrisisFooter() {
-  return (
-    <div className="text-center text-xs text-muted-foreground space-y-1 pt-4 border-t border-border/50">
-      <p className="font-medium">Need immediate support?</p>
-      <p>
-        Samaritans of Singapore (SOS):{" "}
-        <a href="tel:1767" className="underline">
-          1767
-        </a>{" "}
-        · SAGE Counselling:{" "}
-        <a href="tel:18005555555" className="underline">
-          1800-555-5555
-        </a>{" "}
-        · National Care Hotline:{" "}
-        <a href="tel:18002026868" className="underline">
-          1800-202-6868
-        </a>
-      </p>
-    </div>
-  )
 }
 
 export default function ResultsPage() {
@@ -229,30 +165,36 @@ export default function ResultsPage() {
   const [assessment, setAssessment] = useState<Assessment | null>(null)
   const [classification, setClassification] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const errorHeadingRef = useRef<HTMLHeadingElement>(null)
   const router = useRouter()
 
   useEffect(() => {
+    let cancelled = false
+
     const loadResults = async () => {
       try {
         const sessionToken = getSessionToken()
         if (!sessionToken) {
-          router.push("/router")
+          router.replace("/router")
           return
         }
 
         const session = await getRouterSession(sessionToken)
-        if (!session || !session.classification_result) {
-          router.push("/router")
+        if (!session?.classification_result) {
+          router.replace("/router")
           return
         }
-        setClassification(session.classification_result as Record<string, unknown>)
+
+        if (cancelled) return
+        const savedClassification = session.classification_result as Record<string, unknown>
+        setClassification(savedClassification)
 
         const response = await fetch("/api/router/assess", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             session_token: sessionToken,
-            classification: session.classification_result,
+            classification: savedClassification,
             responses: session.user_responses ?? {},
           }),
         })
@@ -260,255 +202,121 @@ export default function ResultsPage() {
         if (!response.ok) throw new Error("Assessment failed")
 
         const result = (await response.json()) as Assessment
+        if (cancelled) return
         setAssessment(result)
 
-        // Persist to session
         await updateRouterSession(sessionToken, {
-          eligibility_assessment: result as unknown as Record<string, unknown>,
-          recommended_path: result.recommended_path as
-            | "fidrec_eligible"
-            | "waitlist"
-            | "self_service"
-            | "not_eligible",
+          eligibility_assessment: result,
+          recommended_path: result.recommended_path,
         })
-      } catch (err) {
-        console.error("[results] Error:", err)
-        setError("Something went wrong. Please try again.")
+      } catch (loadError) {
+        console.error("[results] Error:", loadError)
+        if (!cancelled) setError("The complaint-path check could not be completed. Check your connection and try again.")
       } finally {
-        setIsLoading(false)
+        if (!cancelled) setIsLoading(false)
       }
     }
 
-    loadResults()
+    void loadResults()
+    return () => {
+      cancelled = true
+    }
   }, [router])
+
+  useEffect(() => {
+    if (error) errorHeadingRef.current?.focus()
+  }, [error])
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Analysing your situation...</p>
-        </div>
+      <div className="min-h-screen bg-background">
+        <SiteHeader />
+        <main id="main-content" className="gb-container flex min-h-[70vh] items-center justify-center py-12">
+          <div className="text-center" role="status" aria-live="polite">
+            <Loader2 className="mx-auto size-8 animate-spin text-primary" aria-hidden="true" />
+            <p className="mt-3 text-muted-foreground">Checking possible information routes…</p>
+          </div>
+        </main>
       </div>
     )
   }
 
   if (error || !assessment) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <div className="flex justify-center mb-4">
-              <AlertCircle className="h-12 w-12 text-destructive" />
-            </div>
-            <CardTitle className="text-center">Assessment Error</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <p className="text-muted-foreground">{error ?? "Unable to complete assessment"}</p>
-            <Button onClick={() => router.push("/router")} className="w-full">
-              Start Over
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-background">
+        <SiteHeader />
+        <main id="main-content" className="gb-container flex min-h-[70vh] items-center justify-center py-12">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <AlertCircle className="mx-auto size-10 text-destructive" aria-hidden="true" />
+              <h1 ref={errorHeadingRef} tabIndex={-1} className="text-2xl font-semibold outline-none">
+                The check could not be completed
+              </h1>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <p className="text-muted-foreground" role="alert">{error ?? "The result is not available."}</p>
+              <Button onClick={() => router.push("/router")} className="w-full">Return to the complaint check</Button>
+            </CardContent>
+          </Card>
+        </main>
       </div>
     )
   }
 
   const fiName = typeof classification?.fi_name === "string" ? classification.fi_name : null
-  const distressSignals = classification?.distress_signals === true
-  const pathConfig = getPathConfig(assessment, fiName)
+  const pathConfig = getPathConfig(assessment.triage_path, fiName)
   const PathIcon = pathConfig.icon
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <Link href="/" className="flex items-center gap-2 w-fit">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">GB</span>
-            </div>
-            <span className="font-semibold text-lg">GuideBuoy AI</span>
-          </Link>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-10">
-        <div className="max-w-2xl mx-auto space-y-6">
-
-          {/* Deadline warning — shown prominently if urgent */}
-          {assessment.deadline_warning && (
-            <div className="flex items-start gap-3 bg-destructive/10 border border-destructive/30 text-destructive p-4 rounded-xl">
-              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-              <p className="text-sm font-medium">{assessment.deadline_warning}</p>
-            </div>
-          )}
-
-          {/* Main result card */}
-          <Card className="shadow-lg rounded-xl overflow-hidden">
+      <SiteHeader />
+      <main id="main-content" className="gb-container py-8 sm:py-12">
+        <div className="mx-auto max-w-2xl space-y-6">
+          <Card className="overflow-hidden shadow-lg">
             <CardHeader className={pathConfig.headerBg}>
-              <div className="flex justify-center mb-3">
-                <PathIcon className={`h-14 w-14 ${pathConfig.iconColor}`} />
-              </div>
-              <div className="flex justify-center mb-2">
-                <Badge variant={pathConfig.badgeVariant}>{pathConfig.badge}</Badge>
-              </div>
-              <CardTitle className="text-center text-2xl text-balance">{pathConfig.title}</CardTitle>
-              <CardDescription className="text-center text-base text-pretty mt-1">
+              <PathIcon className={`mx-auto size-12 ${pathConfig.iconColor}`} aria-hidden="true" />
+              <div className="mt-2 text-center"><Badge variant={pathConfig.badgeVariant}>{pathConfig.badge}</Badge></div>
+              <h1 className="mt-2 text-center text-2xl font-semibold text-balance sm:text-3xl">{pathConfig.title}</h1>
+              <p className="mx-auto mt-1 max-w-xl text-center text-sm leading-6 text-muted-foreground sm:text-base">
                 {pathConfig.description}
-              </CardDescription>
+              </p>
             </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="rounded-xl border bg-muted/40 p-4 text-sm text-muted-foreground" role="note">
+                Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+              </p>
 
-            <CardContent className="space-y-6 pt-6">
-              {/* Case strength */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Case strength</span>
-                  <Badge
-                    variant={assessment.success_probability === "high" ? "default" : "secondary"}
-                    className={assessment.success_probability === "high" ? "bg-accent text-accent-foreground" : ""}
-                  >
-                    {assessment.success_probability.toUpperCase()}
-                  </Badge>
-                </div>
-                <Progress value={assessment.eligibility_score} className="h-2" />
-                <p className="text-xs text-muted-foreground mt-1">{assessment.eligibility_score} / 100</p>
-              </div>
-
-              {/* Path C tracker */}
-              {assessment.triage_path === "C" && (
-                <PathCTracker daysElapsed={assessment.bank_contact_days_elapsed} />
-              )}
-
-              {/* Reasoning */}
-              <div>
-                <h3 className="font-semibold mb-3">Why this path</h3>
-                <ul className="space-y-2">
-                  {assessment.reasoning.map((reason, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <CheckCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
-                      <span>{reason}</span>
+              <section aria-labelledby="next-information-heading">
+                <h2 id="next-information-heading" className="font-semibold">Information to consider</h2>
+                <ul className="mt-3 space-y-3">
+                  {pathConfig.notes.map((note) => (
+                    <li key={note} className="flex items-start gap-3 text-sm leading-6">
+                      <CheckCircle className="mt-1 size-4 shrink-0 text-accent" aria-hidden="true" />
+                      <span>{note}</span>
                     </li>
                   ))}
                 </ul>
-              </div>
+              </section>
 
-              {/* Missing info */}
-              {assessment.missing_info.length > 0 && (
-                <div className="bg-muted/60 p-4 rounded-xl">
-                  <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm">
-                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                    Information that would help strengthen your case
-                  </h3>
-                  <ul className="space-y-1 text-sm text-muted-foreground">
-                    {assessment.missing_info.map((info, i) => (
-                      <li key={i}>• {info}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Next steps */}
-              <div>
-                <h3 className="font-semibold mb-3">What to do now</h3>
-                <ol className="space-y-2">
-                  {assessment.next_steps.map((step, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm">
-                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
-                        {i + 1}
-                      </span>
-                      <span className="pt-0.5">{step}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-
-              {/* Path D sub-options */}
-              <PathDOptions assessment={assessment} />
-
-              {/* Timeline */}
-              <div className="bg-muted/50 p-4 rounded-xl">
-                <h3 className="font-semibold mb-1 text-sm">Expected timeline</h3>
-                <p className="text-sm text-muted-foreground">{assessment.estimated_timeline}</p>
-              </div>
-
-              {/* Primary CTA */}
-              {assessment.triage_path !== "D" && (
-                <Button asChild size="lg" variant={pathConfig.ctaVariant} className="w-full rounded-full">
-                  <Link href={pathConfig.ctaHref}>
-                    {pathConfig.ctaText}
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Link>
-                </Button>
-              )}
-
-              {/* Helper invite — surfaced proactively for distress signals */}
-              {(distressSignals || assessment.triage_path === "A" || assessment.triage_path === "B") && (
-                <div className="border border-border rounded-xl p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    <span className="font-medium text-sm">Would you like help from someone you trust?</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    You can invite a family member or friend to help you through this process — it&apos;s free.
-                  </p>
-                  <Button asChild variant="outline" size="sm" className="rounded-full">
-                    <Link href="/app/signup?source=router&helper=true">Invite a helper</Link>
-                  </Button>
-                </div>
-              )}
-
-              <p className="text-xs text-center text-muted-foreground">
-                Your assessment is saved. You can return anytime to continue.
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Secondary actions */}
-          <Card className="rounded-xl">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Other options</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 pt-0">
-              <Button
-                variant="outline"
-                className="w-full justify-between bg-transparent rounded-full"
-                asChild
-              >
-                <Link href="/router">
-                  <span>Start a new assessment</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-between bg-transparent rounded-full"
-                asChild
-              >
-                <Link href="/faq">
-                  <span className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Read our FAQ
-                  </span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+              <Button asChild size="lg" variant={pathConfig.ctaVariant} className="w-full">
+                <Link href={pathConfig.ctaHref}>{pathConfig.ctaText}<ArrowRight className="ml-2 size-4" aria-hidden="true" /></Link>
               </Button>
             </CardContent>
           </Card>
 
-          {/* Legal disclaimer */}
-          <p className="text-xs text-center text-muted-foreground px-4">
-            GuideBuoy AI is not a law firm and does not provide legal advice. This assessment is for
-            guidance only. For professional legal advice, contact{" "}
-            <a href="https://probono.sg" target="_blank" rel="noopener noreferrer" className="underline">
-              Pro Bono SG
-            </a>
-            .
+          <Card>
+            <CardHeader><h2 className="text-lg font-semibold">Other options</h2></CardHeader>
+            <CardContent className="grid gap-2 sm:grid-cols-2">
+              <Button variant="outline" asChild><Link href="/router">Start a new check</Link></Button>
+              <Button variant="outline" asChild><Link href="/resources"><FileText className="mr-2 size-4" aria-hidden="true" />Official resources</Link></Button>
+            </CardContent>
+          </Card>
+
+          <p className="px-4 text-center text-xs leading-5 text-muted-foreground">
+            GuideBuoy helps organise information. It does not decide your case or provide legal advice.
           </p>
-
-          <CrisisFooter />
         </div>
-      </div>
+      </main>
     </div>
   )
 }

@@ -5,19 +5,14 @@
  *
  * Full-report renderer. Accepts a `report: ReportRow` fetched by the
  * driver via `use-latest-report` (ORDER BY created_at DESC LIMIT 1 —
- * SM R4 / IS §8.1 gotcha 7). Optional `decision` prop is the latest
- * `case_decision_runs` row, shown at the top so users see how their
- * case scored.
+ * SM R4 / IS §8.1 gotcha 7).
  *
- * Pure presentational. PDF export is post-MVP; the CTA is a stub that
- * calls `onDownload?.()` when provided.
+ * Pure presentational. It renders only actions supplied by the driver.
  */
 
 import { Check, Download, X } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { CaseDecisionRunRow } from '@/lib/types/decision'
 import type { ReportJson, ReportRow } from '@/lib/types/report'
 
@@ -29,7 +24,7 @@ export interface ReportViewProps {
   actionsSlot?: React.ReactNode
 }
 
-export function ReportView({ report, decision, onDownload, actionsSlot }: ReportViewProps) {
+export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps) {
   const json: ReportJson = report.report_json ?? {}
   const createdAt = report.created_at
     ? new Date(report.created_at).toLocaleString(undefined, {
@@ -44,14 +39,13 @@ export function ReportView({ report, decision, onDownload, actionsSlot }: Report
         <div>
           <h2 className="text-2xl font-semibold">{json.title ?? 'Your complaint report'}</h2>
           <p className="text-sm text-muted-foreground">
-            Generated {createdAt ?? 'just now'} · Status:{' '}
-            <span className="font-medium">{report.status}</span>
+            {createdAt ? `Generated ${createdAt}` : 'Generation date unavailable'}
           </p>
         </div>
         <div className="flex gap-2">
           {actionsSlot}
           {onDownload ? (
-            <Button variant="outline" onClick={onDownload}>
+            <Button variant="outline" className="min-h-11" onClick={onDownload}>
               <Download className="mr-2 h-4 w-4" aria-hidden />
               Download PDF
             </Button>
@@ -59,7 +53,9 @@ export function ReportView({ report, decision, onDownload, actionsSlot }: Report
         </div>
       </div>
 
-      {decision ? <DecisionSummaryCard decision={decision} /> : null}
+      <p className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground" role="note">
+        Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+      </p>
 
       {json.executive_summary ? (
         <Section title="Executive summary">
@@ -84,22 +80,34 @@ export function ReportView({ report, decision, onDownload, actionsSlot }: Report
 
       {Array.isArray(json.disputed_transactions) && json.disputed_transactions.length > 0 ? (
         <Section title="Disputed transactions">
-          <div className="overflow-x-auto">
+          <div className="grid gap-3 md:hidden">
+            {json.disputed_transactions.slice(0, 5).map((row, rowIndex) => (
+              <dl key={rowIndex} className="rounded-control border bg-background p-4 text-sm">
+                {Object.entries(row).map(([column, cell]) => (
+                  <div key={column} className="grid gap-1 border-b py-2 first:pt-0 last:border-0 last:pb-0">
+                    <dt className="font-medium capitalize text-muted-foreground">{column.replace(/_/g, ' ')}</dt>
+                    <dd className="break-words">{String(cell)}</dd>
+                  </div>
+                ))}
+              </dl>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left">
-                  {Object.keys(json.disputed_transactions[0] ?? {}).map((col) => (
-                    <th key={col} className="py-2 pr-4 font-medium capitalize">
-                      {col.replace(/_/g, ' ')}
+                  {Object.keys(json.disputed_transactions[0] ?? {}).map((column) => (
+                    <th key={column} className="py-2 pr-4 font-medium capitalize">
+                      {column.replace(/_/g, ' ')}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {json.disputed_transactions.slice(0, 5).map((row, i) => (
-                  <tr key={i} className="border-b last:border-0">
-                    {Object.values(row).map((cell, j) => (
-                      <td key={j} className="py-2 pr-4 align-top">
+                {json.disputed_transactions.slice(0, 5).map((row, rowIndex) => (
+                  <tr key={rowIndex} className="border-b last:border-0">
+                    {Object.values(row).map((cell, cellIndex) => (
+                      <td key={cellIndex} className="max-w-72 break-words py-2 pr-4 align-top">
                         {String(cell)}
                       </td>
                     ))}
@@ -107,12 +115,12 @@ export function ReportView({ report, decision, onDownload, actionsSlot }: Report
                 ))}
               </tbody>
             </table>
-            {json.disputed_transactions.length > 5 ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Showing first 5 of {json.disputed_transactions.length} transactions.
-              </p>
-            ) : null}
           </div>
+          {json.disputed_transactions.length > 5 ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Showing first 5 of {json.disputed_transactions.length} transactions.
+            </p>
+          ) : null}
         </Section>
       ) : null}
 
@@ -128,7 +136,7 @@ export function ReportView({ report, decision, onDownload, actionsSlot }: Report
             {json.evidence_checklist.map((item, i) => (
               <li key={i} className="flex items-center gap-2 text-sm">
                 {item.present ? (
-                  <Check className="h-4 w-4 text-emerald-600" aria-hidden />
+                  <Check className="h-4 w-4 text-harbor-sage" aria-hidden />
                 ) : (
                   <X className="h-4 w-4 text-muted-foreground" aria-hidden />
                 )}
@@ -168,35 +176,5 @@ function Prose({ children }: { children: React.ReactNode }) {
     <div className="prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed">
       {children}
     </div>
-  )
-}
-
-function DecisionSummaryCard({ decision }: { decision: CaseDecisionRunRow }) {
-  const status = decision.eligibility_status ?? decision.decision_json?.eligibility?.status
-  const score = decision.strength_score_value ?? decision.decision_json?.eligibility?.score ?? null
-
-  return (
-    <Card className="border-primary/30 bg-primary/5">
-      <CardHeader>
-        <CardTitle className="text-base">Case decision</CardTitle>
-        <CardDescription>How we think your case stands against Singapore&apos;s SRF.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        <div className="flex flex-wrap items-center gap-3">
-          {status ? <Badge variant="default">{status}</Badge> : null}
-          {typeof score === 'number' ? (
-            <span className="text-muted-foreground">
-              Strength score: <span className="font-medium text-foreground">{score}</span>
-            </span>
-          ) : null}
-        </div>
-        {decision.decision_json?.rationale ? (
-          <>
-            <Separator />
-            <p className="text-muted-foreground">{decision.decision_json.rationale}</p>
-          </>
-        ) : null}
-      </CardContent>
-    </Card>
   )
 }

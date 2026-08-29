@@ -1,23 +1,22 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
-import { SiteHeader } from '@/components/site-header'
 import { Layer1Shell } from '@/components/state-machine/layer1/layer1-shell'
 import type { IntakeAnswers } from '@/components/state-machine/layer1/intake-form'
 import { BuyReportCTA } from '@/components/state-machine/transition/buy-report-cta'
 import { CheckoutRedirect } from '@/components/state-machine/transition/checkout-redirect'
-import { EligibilityGate } from '@/components/state-machine/transition/eligibility-gate'
+import {
+  EligibilityGate,
+  type EligibilityGateResult,
+} from '@/components/state-machine/transition/eligibility-gate'
 import { BlockedOnPrereq } from '@/components/state-machine/transition/blocked-on-prereq'
 import { PaymentSuccessLanding } from '@/components/state-machine/transition/payment-success-landing'
 import { DecisionProgress } from '@/components/state-machine/layer2/decision-progress'
 import { ReportDrafting } from '@/components/state-machine/layer2/report-drafting'
 import { ReportFailed } from '@/components/state-machine/layer2/report-failed'
 import { ReportView } from '@/components/state-machine/layer2/report-view'
-import { ContactRequestForm, type ContactRequestFormValues } from '@/components/state-machine/layer3/contact-request-form'
-import { ContactRequestConfirmed } from '@/components/state-machine/layer3/contact-request-confirmed'
-import { SpecialistCard } from '@/components/state-machine/layer3/specialist-card'
 import { StateMachineErrorCard } from '@/components/state-machine/error-card'
 import { useStateMachine } from '@/hooks/state-machine/use-state-machine'
 import { useCaseEligibility } from '@/hooks/state-machine/layer1/use-case-eligibility'
@@ -33,12 +32,10 @@ import { usePaymentStatus } from '@/hooks/state-machine/transition/use-payment-s
 import { useDecisionRunRealtime } from '@/hooks/state-machine/layer2/use-decision-run-realtime'
 import { useReportRealtime } from '@/hooks/state-machine/layer2/use-report-realtime'
 import { useJobStatus } from '@/hooks/state-machine/layer2/use-job-status'
-import { useSubmitContactRequest } from '@/hooks/state-machine/layer3/use-submit-contact-request'
 import { useTier2Pack } from '@/hooks/state-machine/layer3/use-tier2-pack'
 import { useCasePackExport } from '@/hooks/state-machine/layer3/use-case-pack-export'
 import { Tier2PackPanel } from '@/components/state-machine/layer3/tier2-pack-panel'
 import { Tier2PackView } from '@/components/state-machine/layer3/tier2-pack-view'
-import { ConsultCta } from '@/components/state-machine/layer3/consult-cta'
 import {
   getValidationResponseTypes,
   serializeValidationAnswer,
@@ -51,22 +48,31 @@ import type { ValidationAnswerValue } from '@/lib/types/validation'
 
 type DashboardClientProps = {
   caseId: string
-  initialUser: { id: string; email: string }
   initialCaseSnapshot: {
     institutionName: string | null
     claimAmount: number | null
   }
+  priceLabels: {
+    report: string
+    tier2: string
+  }
 }
 
-export default function DashboardClient({ caseId, initialUser, initialCaseSnapshot }: DashboardClientProps) {
+export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabels }: DashboardClientProps) {
   const searchParams = useSearchParams()
   const { getToken } = useAuth()
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [checkoutProduct, setCheckoutProduct] = useState<ProductKey | null>(null)
   const [checkoutRedirecting, setCheckoutRedirecting] = useState(false)
-  const [contactSubmitted, setContactSubmitted] = useState(false)
   const [gateBlocked, setGateBlocked] = useState<{ missing: string[]; reason: string } | null>(null)
   const [intakeCompleted, setIntakeCompleted] = useState(false)
+  const handleEligibilityResult = useCallback((result: EligibilityGateResult) => {
+    if (result.eligible === false) {
+      setGateBlocked({ missing: result.missing, reason: result.blockedReason })
+      return
+    }
+    setGateBlocked(null)
+  }, [])
 
   const eligibilityQuery = useCaseEligibility(caseId)
   const validationQuery = useValidationRun(caseId)
@@ -80,7 +86,6 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
   const submitIntake = useSubmitIntake()
   const uploadEvidence = useUploadEvidence()
   const createCheckout = useCreateCheckoutSession()
-  const submitContact = useSubmitContactRequest()
   const tier2PackQuery = useTier2Pack(caseId, {
     enabled: paymentStatusQuery.data?.plan === 'escalation_pack',
   })
@@ -132,8 +137,6 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
     isCheckoutRedirecting: checkoutRedirecting,
     isIntakeSubmitted: submitIntake.isPending,
     hasSubmittedIntake: intakeCompleted,
-    isContactSubmitting: submitContact.isPending,
-    isContactSubmitted: contactSubmitted,
   })
 
   const isPaymentReturn = useMemo(
@@ -191,8 +194,8 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
     await submitIntake.mutateAsync({ caseId, runExtract: true })
   }
 
-  async function handleUpload(files: File[]) {
-    await uploadEvidence.mutateAsync({ caseId, files })
+  function handleUpload(files: File[]) {
+    uploadEvidence.mutate({ caseId, files })
   }
 
   async function handleCheckout(productKey: ProductKey) {
@@ -210,35 +213,14 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
     }
   }
 
-  async function handleContactSubmit(values: ContactRequestFormValues & { case_id: string }) {
-    await submitContact.mutateAsync({
-      case_id: values.case_id,
-      first_name: values.first_name,
-      last_name: values.last_name,
-      email: values.email,
-      phone: values.phone,
-      age: Number(values.age),
-      employment_status: values.employment_status,
-      thirty_days_since_last_fi_reply: values.thirty_days_since_last_fi_reply,
-      fi_issued_final_response: values.fi_issued_final_response,
-      message: values.message || undefined,
-    })
-    setContactSubmitted(true)
-  }
-
   const isTier2Ready = paymentStatusQuery.data?.plan === 'escalation_pack'
+  const canBuyTier2 = eligibilityQuery.data?.eligible_actions.run_escalation_pack === true
 
   const renderLayer3 = () => (
     <div className="space-y-6">
       {reportQuery.data && !isTier2Ready ? (
         <ReportView report={reportQuery.data} decision={decisionQuery.data} />
       ) : null}
-      <SpecialistCard
-        name="GuideBuoy Scam and Fraud Specialist"
-        role="Consult and Q&A for rejected bank outcomes and FIDReC escalation"
-        whatsappNumber="6590727915"
-        caseId={caseId}
-      />
       <div className="rounded-lg border bg-muted/40 p-4 text-sm">
         <p className="font-medium">Case reference</p>
         <p className="text-muted-foreground">{caseId}</p>
@@ -258,52 +240,39 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
         <Tier2PackView
           pack={tier2PackQuery.data?.submission_pack}
           isLoading={tier2PackQuery.isLoading}
-          errorMessage={tier2PackQuery.error?.message ?? null}
+          errorMessage={tier2PackQuery.error ? 'The Tier 2 pack could not be loaded.' : null}
           onRefresh={() => void tier2PackQuery.refetch()}
           onDownloadPdf={() => void casePackExport.download(caseId, 'pdf')}
           onDownloadMd={() => void casePackExport.download(caseId, 'md')}
         />
       ) : (
         <Tier2PackPanel
-          priceLabel="SGD $188"
+          priceLabel={priceLabels.tier2}
+          disabled={!canBuyTier2}
+          unavailableReason={!canBuyTier2 ? 'Tier 2 is not currently available for this case.' : undefined}
           isStartingCheckout={createCheckout.isPending && checkoutProduct === 'fidrec_tier2_pack'}
           errorMessage={checkoutProduct === 'fidrec_tier2_pack' ? checkoutError : null}
           onClick={() => void handleCheckout('fidrec_tier2_pack')}
         />
       )}
 
-      <ConsultCta
-        priceLabel="SGD $99"
-        isStartingCheckout={createCheckout.isPending && checkoutProduct === 'human_consult_30m'}
-        errorMessage={checkoutProduct === 'human_consult_30m' ? checkoutError : null}
-        onClick={() => void handleCheckout('human_consult_30m')}
-      />
-
-      {contactSubmitted ? (
-        <ContactRequestConfirmed whatsappUrl="https://wa.me/6590727915" />
-      ) : (
-        <ContactRequestForm
-          caseId={caseId}
-          initialValues={{
-            first_name: '',
-            last_name: '',
-            email: initialUser.email,
-            phone: '',
-          }}
-          isSubmitting={submitContact.isPending}
-          errorMessage={submitContact.error?.message ?? null}
-          onSubmit={handleContactSubmit}
-        />
-      )}
+      <section className="rounded-xl border border-dashed bg-muted/30 p-5" aria-labelledby="consultation-status">
+        <h2 id="consultation-status" className="font-semibold">Human consultation</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Human consultation is not currently available.
+        </p>
+        <button type="button" className="mt-4 min-h-11 rounded-full border px-4 text-sm font-semibold" disabled>
+          Consultation unavailable
+        </button>
+      </section>
     </div>
   )
 
   return (
     <div className="min-h-screen bg-background">
-      <SiteHeader />
       <main className="container mx-auto max-w-5xl px-4 py-8">
         {eligibilityQuery.isError ? (
-          <StateMachineErrorCard kind="internal" context={eligibilityQuery.error.message} />
+          <StateMachineErrorCard kind="internal" context="Case eligibility could not be loaded." />
         ) : node === 'S1-IntakeForm' ||
           node === 'S1-GapLoop' ||
           node === 'S1-EvidenceUpload' ||
@@ -327,20 +296,18 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
               answersError: validationErrorMessage ?? submitIntake.error?.message ?? null,
               onSaveAnswers: handleGapSave,
             }}
-            evidence={
-              node === 'S1-EvidenceUpload'
-                ? {
-                    documents: documentsQuery.data ?? [],
-                    isUploading: uploadEvidence.isPending,
-                    activeBatchFileCount: uploadEvidence.isPending
-                      ? uploadEvidence.variables?.files.length ?? 0
-                      : 0,
-                    onUpload: handleUpload,
-                    onDeleteDocument: undefined,
-                    onRejectFile: (_file, reason) => console.error('[upload-rejected]', reason),
-                  }
-                : undefined
-            }
+            evidence={{
+              documents: documentsQuery.data ?? [],
+              isUploading: uploadEvidence.isPending,
+              activeBatchFileCount: uploadEvidence.isPending
+                ? uploadEvidence.variables?.files.length ?? 0
+                : 0,
+              uploadError: uploadEvidence.isError
+                ? 'Review the selected file and try again. Your existing case evidence is unchanged.'
+                : null,
+              onUpload: handleUpload,
+              onDeleteDocument: undefined,
+            }}
           />
         ) : node === 'S1-Tier0Draft' ? (
           <Layer1Shell
@@ -355,6 +322,7 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
               footerSlot: (
                 <div className="pt-4">
                   <BuyReportCTA
+                    priceLabel={priceLabels.report}
                     isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
                     errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
                     onClick={() => void handleCheckout('self_serve_report')}
@@ -369,13 +337,7 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
           <>
             <EligibilityGate
               eligibility={eligibilityQuery.data}
-              onResult={(result) => {
-                if (result.eligible === false) {
-                  setGateBlocked({ missing: result.missing, reason: result.blockedReason })
-                } else {
-                  setGateBlocked(null)
-                }
-              }}
+              onResult={handleEligibilityResult}
             />
             {gateBlocked ? (
               <BlockedOnPrereq
@@ -390,6 +352,7 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
           </>
         ) : node === 'T-BuyReportCTA' ? (
           <BuyReportCTA
+            priceLabel={priceLabels.report}
             isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
             errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
             onClick={() => void handleCheckout('self_serve_report')}
@@ -401,7 +364,7 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
         ) : node === 'L2-ReportDrafting' ? (
           <ReportDrafting decisionPreview={decisionQuery.data?.decision_json ?? null} />
         ) : node === 'L2-ReportFailed' ? (
-          <ReportFailed errorMessage={jobStatusQuery.data?.error ?? null} />
+          <ReportFailed />
         ) : node === 'L2-ReportReady' ? (
           reportQuery.data ? (
             <ReportView report={reportQuery.data} decision={decisionQuery.data} />
@@ -416,7 +379,7 @@ export default function DashboardClient({ caseId, initialUser, initialCaseSnapsh
         ) : (
           <StateMachineErrorCard
             kind="internal"
-            context={`Unknown state machine node: ${node}; job status=${jobStatusQuery.data?.status ?? 'n/a'}`}
+            context="The case view could not be resolved."
           />
         )}
       </main>
