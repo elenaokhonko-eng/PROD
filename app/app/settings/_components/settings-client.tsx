@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
 import { User as UserIcon, Bell, Shield, Eye, Download, Trash2 } from "lucide-react"
 import { SiteHeader } from "@/components/site-header"
 import { ReferralWidget } from "@/components/referral-widget"
@@ -29,7 +28,8 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
   const user = initialUser
   const [profile] = useState<Profile | null>(initialProfile)
   const [isSaving, setIsSaving] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isRequestingDeletion, setIsRequestingDeletion] = useState(false)
+  const [deletionRequestStatus, setDeletionRequestStatus] = useState<"idle" | "sent" | "error">("idle")
   const [notifications, setNotifications] = useState({
     email: true,
     sms: false,
@@ -82,22 +82,19 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
     }
   }
 
-  const handleDeleteAccount = async () => {
-    if (!showDeleteConfirm) {
-      setShowDeleteConfirm(true)
-      return
-    }
+  const handleDeletionRequest = async () => {
+    setIsRequestingDeletion(true)
+    setDeletionRequestStatus("idle")
     try {
       const res = await fetch("/api/privacy/delete-request", { method: "POST" })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Delete request failed")
-      // eslint-disable-next-line no-alert
-      alert("Your data has been anonymized for your cases. You can now sign out if you wish.")
+      if (!res.ok) throw new Error(data.error || "Deletion request failed")
+      setDeletionRequestStatus("sent")
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Delete request error:", error)
-      // eslint-disable-next-line no-alert
-      alert("Failed to process your deletion request. Please contact support.")
+      console.error("Deletion request error:", error)
+      setDeletionRequestStatus("error")
+    } finally {
+      setIsRequestingDeletion(false)
     }
   }
 
@@ -195,16 +192,8 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h4 className="font-medium mb-2">PDPA Consent Log</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium">Privacy Policy v2.1</p>
-                      <p className="text-xs text-muted-foreground">Accepted on signup</p>
-                    </div>
-                    <Badge variant="secondary">Active</Badge>
-                  </div>
-                </div>
+                <h4 className="font-medium mb-2">Privacy practices</h4>
+                <p className="text-sm text-muted-foreground">Approved privacy information is being prepared.</p>
               </div>
 
               <Separator />
@@ -256,16 +245,13 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h4 className="font-medium text-red-800 mb-2">Delete Account</h4>
-                <p className="text-sm text-muted-foreground mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
-                <Button onClick={handleDeleteAccount} variant={showDeleteConfirm ? "destructive" : "outline"} className="w-full">
-                  {showDeleteConfirm ? "Confirm Delete Account" : "Delete Account"}
+                <h4 className="font-medium text-red-800 mb-2">Request data deletion</h4>
+                <p className="text-sm text-muted-foreground mb-4">This sends a request to platform administration. It does not delete data immediately; identity review and lawful security, accounting, and legal-retention exceptions may apply.</p>
+                <Button onClick={handleDeletionRequest} variant="outline" className="w-full" disabled={isRequestingDeletion || deletionRequestStatus === "sent"}>
+                  {isRequestingDeletion ? "Sending request..." : deletionRequestStatus === "sent" ? "Request sent" : "Request data deletion"}
                 </Button>
-                {showDeleteConfirm && (
-                  <Button onClick={() => setShowDeleteConfirm(false)} variant="outline" size="sm" className="w-full mt-2">
-                    Cancel
-                  </Button>
-                )}
+                {deletionRequestStatus === "sent" && <p className="text-sm text-muted-foreground" role="status">Your request was sent to platform administration.</p>}
+                {deletionRequestStatus === "error" && <p className="text-sm text-destructive" role="alert">We couldn&apos;t send your request. Please try again.</p>}
               </div>
             </CardContent>
           </Card>

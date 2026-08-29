@@ -254,42 +254,6 @@ export default function CheckoutPage() {
             Payments processed securely by Stripe. We do not store your card details.
           </p>
 
-          {/* Refund policy — PRD §9 requires this to be visible before payment */}
-          <Card className="rounded-xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Refund policy</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              {[
-                {
-                  icon: CheckCircle,
-                  text: "Full refund within 24 hours if you have not viewed the Case Readiness Report.",
-                },
-                {
-                  icon: CheckCircle,
-                  text: "50% refund within 48 hours if you have viewed the report but not started the Case Builder.",
-                },
-                {
-                  icon: CheckCircle,
-                  text: "No refund after Case Builder work has begun — you have received and can act on the deliverables.",
-                },
-                {
-                  icon: CheckCircle,
-                  text: "If our triage was materially incorrect (e.g. we said SRF-eligible when it clearly wasn't), full refund regardless of timing.",
-                },
-                {
-                  icon: CheckCircle,
-                  text: "All refund requests handled within 3 business days.",
-                },
-              ].map(({ icon: Icon, text }, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <Icon className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
-                  <span>{text}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
           {/* Legal disclaimer */}
           <p className="text-xs text-center text-muted-foreground">
             GuideBuoy AI is not a law firm and does not provide legal advice. Our reports are for guidance only. For

@@ -388,7 +388,7 @@ export default function RouterPage() {
                 <Link href="/privacy" className="underline hover:text-foreground">
                   Privacy Policy
                 </Link>
-                . Your data is encrypted and anonymized for AI training.
+                . See the Privacy page for information about how data is handled.
               </p>
             </CardContent>
           </Card>

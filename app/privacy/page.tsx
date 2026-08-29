@@ -1,65 +1,29 @@
 import type { Metadata } from "next"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { SiteHeader } from "@/components/site-header"
 
 export const metadata: Metadata = {
-  title: "Privacy Policy – GuideBuoy AI",
+  title: "Privacy | GuideBuoy AI",
 }
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-16">
-      <h1 className="text-3xl font-semibold tracking-tight">Privacy Policy</h1>
-
-      <p className="text-sm text-muted-foreground">
-        Last updated: {new Date().toLocaleDateString("en-SG", { year: "numeric", month: "long", day: "numeric" })}
-      </p>
-
-      <p>
-        GuideBuoy AI respects your privacy. This policy explains how we collect, use, and safeguard personal data when
-        you interact with our service.
-      </p>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-medium">What we collect</h2>
-        <p>We may collect your name, contact details, complaint information, and activity logs to power the service.</p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-medium">How we use your data</h2>
-        <p>
-          Data is used to operate the platform, provide personalised guidance, improve our models, and comply with legal
-          obligations. We do not sell your personal data.
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-medium">Retention & security</h2>
-        <p>
-          We keep data only as long as needed for the stated purposes and take reasonable steps to protect it with
-          technical and organisational safeguards.
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-medium">Your rights</h2>
-        <p>
-          You may request access to, correction of, or deletion of your personal data (subject to legal exceptions). To
-          exercise these rights, contact us at{" "}
-          <a className="underline" href="mailto:privacy@guidebuoyai.sg">
-            privacy@guidebuoyai.sg
-          </a>
-          .
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-medium">Contact</h2>
-        <p>
-          For privacy enquiries, email{" "}
-          <a className="underline" href="mailto:privacy@guidebuoyai.sg">
-            privacy@guidebuoyai.sg
-          </a>
-          .
-        </p>
+    <main className="min-h-screen bg-background">
+      <SiteHeader />
+      <section className="mx-auto max-w-3xl px-4 py-16">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-10">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">GuideBuoy AI</p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight">Privacy</h1>
+          <p className="mt-4 text-muted-foreground">Our full privacy policy is being prepared.</p>
+          <div className="mt-8 space-y-3 border-t border-border pt-6 text-sm text-muted-foreground">
+            <p>Approved privacy and security information is being prepared.</p>
+            <p>To request data deletion, sign in and use Settings. A request does not delete data immediately and may be subject to identity review and lawful retention requirements.</p>
+          </div>
+          <Button asChild className="mt-8">
+            <Link href="/sign-in?redirect_url=/app/settings">Sign in to request deletion</Link>
+          </Button>
+        </div>
       </section>
     </main>
   )
