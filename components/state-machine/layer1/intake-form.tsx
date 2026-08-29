@@ -75,7 +75,7 @@ export const INTAKE_FIELDS: readonly IntakeField[] = [
     question: 'What outcome are you seeking?',
     type: 'textarea',
     required: true,
-    placeholder: 'e.g., Full refund of $5,000, reversal of charges, policy reinstatement',
+    placeholder: 'e.g., reversal of charges, a written response, or policy reinstatement',
   },
   {
     key: 'previous_contact',

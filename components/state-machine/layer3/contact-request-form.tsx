@@ -81,8 +81,7 @@ export function ContactRequestForm({
       <CardHeader>
         <CardTitle>Request specialist support</CardTitle>
         <CardDescription>
-          Tell us where you are in the bank complaint process. We will follow up within one business
-          day.
+          Tell us where you are in the complaint process. Submission records a request only; it does not include a response-time commitment.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -186,7 +185,7 @@ export function ContactRequestForm({
               value={values.message}
               onChange={(e) => setField('message', e.target.value)}
               disabled={isSubmitting}
-              placeholder="Brief context for our specialist"
+              placeholder="Brief context for this request"
             />
           </Field>
 

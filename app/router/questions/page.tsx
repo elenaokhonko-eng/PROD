@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
 import { Loader2, ArrowRight, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { SiteHeader } from "@/components/site-header"
 import { getSessionToken, getRouterSession, updateRouterSession } from "@/lib/router-session"
 
 interface Question {
@@ -27,6 +27,9 @@ export default function QuestionsPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [responses, setResponses] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const questionHeadingRef = useRef<HTMLHeadingElement>(null)
+  const errorRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -60,10 +63,9 @@ export default function QuestionsPage() {
 
         const data = await response.json()
         setQuestions(data.questions)
-      } catch (error) {
-        console.error("[v0] Error loading questions:", error)
-        alert("Something went wrong. Please try again.")
-        router.push("/router")
+      } catch (loadError) {
+        console.error("Error loading questions:", loadError)
+        setError("The focused questions could not be loaded. Your story is still saved.")
       } finally {
         setIsLoading(false)
       }
@@ -75,11 +77,21 @@ export default function QuestionsPage() {
   const currentQuestion = questions[currentStep]
   const progress = ((currentStep + 1) / questions.length) * 100
 
+  useEffect(() => {
+    if (currentStep > 0) questionHeadingRef.current?.focus()
+  }, [currentStep])
+
+  useEffect(() => {
+    if (error) errorRef.current?.focus()
+  }, [error])
+
   const handleNext = async () => {
     if (currentQuestion.required && !responses[currentQuestion.key]) {
+      setError("Answer this question before continuing.")
       return
     }
 
+    setError(null)
     if (currentStep < questions.length - 1) {
       setCurrentStep(currentStep + 1)
     } else {
@@ -89,12 +101,14 @@ export default function QuestionsPage() {
 
   const handleBack = () => {
     if (currentStep > 0) {
+      setError(null)
       setCurrentStep(currentStep - 1)
     }
   }
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
+    setError(null)
 
     try {
       const sessionToken = getSessionToken()
@@ -109,9 +123,9 @@ export default function QuestionsPage() {
 
       // Redirect to results
       router.push("/router/results")
-    } catch (error) {
-      console.error("[v0] Error submitting responses:", error)
-      alert("Something went wrong. Please try again.")
+    } catch (submitError) {
+      console.error("Error submitting responses:", submitError)
+      setError("Your answers could not be saved. They are still here — check your connection and try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -119,42 +133,39 @@ export default function QuestionsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading questions...</p>
-        </div>
+      <div className="min-h-screen bg-background">
+        <SiteHeader />
+        <main id="main-content" className="gb-container flex min-h-[70vh] items-center justify-center py-12">
+          <div className="text-center" role="status" aria-live="polite">
+            <Loader2 className="mx-auto mb-4 size-8 animate-spin text-primary" aria-hidden="true" />
+            <p className="text-muted-foreground">Loading questions…</p>
+          </div>
+        </main>
       </div>
     )
   }
 
   if (!currentQuestion) {
-    return null
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div role="alert" className="gb-card max-w-lg p-6 text-center">
+          <h1 className="text-xl font-semibold">Questions are not available</h1>
+          <p className="mt-3 text-muted-foreground">{error ?? "No focused questions were returned for this complaint."}</p>
+          <Button asChild className="mt-5"><Link href="/router">Return to your story</Link></Button>
+        </div>
+      </main>
+    )
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">GB</span>
-              </div>
-              <span className="font-semibold text-lg">GuideBuoy AI</span>
-            </Link>
-            <Badge variant="secondary">Free Assessment</Badge>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-12">
+      <SiteHeader />
+      <main id="main-content" className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto">
           {/* Progress */}
           <div className="mb-8">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-muted-foreground">
+              <span aria-live="polite" className="text-sm text-muted-foreground">
                 Question {currentStep + 1} of {questions.length}
               </span>
               <span className="text-sm text-muted-foreground">{Math.round(progress)}% complete</span>
@@ -162,21 +173,28 @@ export default function QuestionsPage() {
             <Progress value={progress} className="h-2" />
           </div>
 
+          {error && (
+            <div ref={errorRef} role="alert" tabIndex={-1} className="mb-4 rounded-xl border border-destructive/40 bg-harbor-error-tint p-4">
+              {error}
+            </div>
+          )}
+
           {/* Question Card */}
           <Card className="shadow-lg mb-8">
             <CardHeader>
-              <CardTitle className="text-xl">{currentQuestion.question}</CardTitle>
+              <CardTitle ref={questionHeadingRef} id="current-question" tabIndex={-1} className="text-xl outline-none">{currentQuestion.question}</CardTitle>
             </CardHeader>
             <CardContent>
               {currentQuestion.type === "radio" && (
                 <RadioGroup
                   value={responses[currentQuestion.key] || ""}
+                  aria-labelledby="current-question"
                   onValueChange={(value) => setResponses((prev) => ({ ...prev, [currentQuestion.key]: value }))}
                 >
                   {currentQuestion.options?.map((option) => (
                     <div key={option} className="flex items-center space-x-2 p-3 rounded-lg hover:bg-muted/50">
-                      <RadioGroupItem value={option} id={option} />
-                      <Label htmlFor={option} className="flex-1 cursor-pointer">
+                      <RadioGroupItem value={option} id={`${currentQuestion.key}-${option}`} />
+                      <Label htmlFor={`${currentQuestion.key}-${option}`} className="flex-1 cursor-pointer">
                         {option}
                       </Label>
                     </div>
@@ -185,28 +203,40 @@ export default function QuestionsPage() {
               )}
 
               {currentQuestion.type === "text" && (
-                <Input
-                  value={responses[currentQuestion.key] || ""}
-                  onChange={(e) => setResponses((prev) => ({ ...prev, [currentQuestion.key]: e.target.value }))}
-                  placeholder="Your answer..."
-                />
+                <>
+                  <Label htmlFor={`response-${currentQuestion.key}`} className="sr-only">{currentQuestion.question}</Label>
+                  <Input
+                    id={`response-${currentQuestion.key}`}
+                    value={responses[currentQuestion.key] || ""}
+                    onChange={(e) => setResponses((prev) => ({ ...prev, [currentQuestion.key]: e.target.value }))}
+                    placeholder="Your answer..."
+                  />
+                </>
               )}
 
               {currentQuestion.type === "number" && (
-                <Input
-                  type="number"
-                  value={responses[currentQuestion.key] || ""}
-                  onChange={(e) => setResponses((prev) => ({ ...prev, [currentQuestion.key]: e.target.value }))}
-                  placeholder="0"
-                />
+                <>
+                  <Label htmlFor={`response-${currentQuestion.key}`} className="sr-only">{currentQuestion.question}</Label>
+                  <Input
+                    id={`response-${currentQuestion.key}`}
+                    type="number"
+                    value={responses[currentQuestion.key] || ""}
+                    onChange={(e) => setResponses((prev) => ({ ...prev, [currentQuestion.key]: e.target.value }))}
+                    placeholder="0"
+                  />
+                </>
               )}
 
               {currentQuestion.type === "date" && (
-                <Input
-                  type="date"
-                  value={responses[currentQuestion.key] || ""}
-                  onChange={(e) => setResponses((prev) => ({ ...prev, [currentQuestion.key]: e.target.value }))}
-                />
+                <>
+                  <Label htmlFor={`response-${currentQuestion.key}`} className="sr-only">{currentQuestion.question}</Label>
+                  <Input
+                    id={`response-${currentQuestion.key}`}
+                    type="date"
+                    value={responses[currentQuestion.key] || ""}
+                    onChange={(e) => setResponses((prev) => ({ ...prev, [currentQuestion.key]: e.target.value }))}
+                  />
+                </>
               )}
             </CardContent>
           </Card>
@@ -238,7 +268,7 @@ export default function QuestionsPage() {
             </Button>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

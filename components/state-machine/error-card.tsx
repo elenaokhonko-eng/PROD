@@ -44,22 +44,19 @@ const SHAPES: Record<StateMachineErrorKind, ErrorShape> = {
   },
   not_found: {
     title: 'Case not found',
-    description:
-      "We couldn't find this case. It may have been deleted, or you may not be the owner.",
+    description: "We couldn't find this case, or the signed-in account does not have access.",
     icon: Search,
     retryLabel: 'Back to home',
   },
   internal: {
     title: 'Something went wrong',
-    description:
-      'We hit an unexpected error on our side. Please retry — if it persists, contact support.',
+    description: 'The page could not be loaded. Retry, or return to the previous page.',
     icon: ServerCrash,
     retryLabel: 'Retry',
   },
   realtime_disconnected: {
     title: 'Live updates paused',
-    description:
-      'Live updates stopped. Your data is still safe — refresh to reconnect and pick up where you left off.',
+    description: 'Refresh to reconnect and request the current case status.',
     icon: WifiOff,
     retryLabel: 'Reconnect',
   },
@@ -67,24 +64,16 @@ const SHAPES: Record<StateMachineErrorKind, ErrorShape> = {
 
 export interface StateMachineErrorCardProps {
   kind: StateMachineErrorKind
-  /** Optional: raw error object or string, shown in a collapsible "details" block for debugging. */
+  /** Retained for call-site compatibility. Error details are logged, not rendered. */
   context?: string | Error | null
   /** Called when the user clicks the retry button. If omitted, button is hidden. */
   onRetry?: () => void
   className?: string
 }
 
-export function StateMachineErrorCard({
-  kind,
-  context,
-  onRetry,
-  className,
-}: StateMachineErrorCardProps) {
+export function StateMachineErrorCard({ kind, onRetry, className }: StateMachineErrorCardProps) {
   const shape = SHAPES[kind]
   const Icon = shape.icon
-
-  const detail =
-    context instanceof Error ? context.message : typeof context === 'string' ? context : null
 
   return (
     <Card className={cn('border-destructive/30 bg-destructive/5', className)} role="alert">
@@ -97,24 +86,14 @@ export function StateMachineErrorCard({
           <CardDescription>{shape.description}</CardDescription>
         </div>
       </CardHeader>
-      {(detail || onRetry) && (
-        <CardContent className="space-y-3">
-          {detail ? (
-            <details className="text-xs text-muted-foreground">
-              <summary className="cursor-pointer hover:text-foreground">Technical details</summary>
-              <pre className="mt-2 overflow-x-auto rounded bg-muted p-2 font-mono text-[11px]">
-                {detail}
-              </pre>
-            </details>
-          ) : null}
-          {onRetry ? (
-            <Button onClick={onRetry} variant="outline" size="sm" className="gap-2">
-              <AlertCircle className="h-4 w-4" aria-hidden />
-              {shape.retryLabel}
-            </Button>
-          ) : null}
+      {onRetry ? (
+        <CardContent>
+          <Button onClick={onRetry} variant="outline" className="min-h-11 gap-2">
+            <AlertCircle className="h-4 w-4" aria-hidden />
+            {shape.retryLabel}
+          </Button>
         </CardContent>
-      )}
+      ) : null}
     </Card>
   )
 }

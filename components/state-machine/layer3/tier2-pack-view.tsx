@@ -33,9 +33,9 @@ export function Tier2PackView({
 }: Tier2PackViewProps) {
   if (isLoading && !pack) {
     return (
-      <Card className="border-primary/30 bg-[var(--gb-tint-sage)]">
+      <Card className="border-harbor-success/40 bg-harbor-success-tint">
         <CardHeader>
-          <CardTitle>Preparing your FIDReC Pack</CardTitle>
+          <CardTitle>Preparing your FIDReC Tier 2 pack</CardTitle>
           <CardDescription>Generating the executive summary and chronology.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -49,7 +49,7 @@ export function Tier2PackView({
     return (
       <Card className="border-destructive/40">
         <CardHeader>
-          <CardTitle>Your FIDReC Pack is not ready</CardTitle>
+          <CardTitle>FIDReC Tier 2 pack is not ready</CardTitle>
           <CardDescription>
             {errorMessage ?? 'We could not load the generated case pack yet.'}
           </CardDescription>
@@ -68,10 +68,10 @@ export function Tier2PackView({
 
   return (
     <div className="space-y-6">
-      <Card className="border-primary/30 bg-[var(--gb-tint-sage)]">
+      <Card className="border-harbor-success/40 bg-harbor-success-tint">
         <CardHeader className="flex flex-row items-start gap-3">
           <div className="flex-1">
-            <CardTitle>Your FIDReC Pack is ready</CardTitle>
+            <CardTitle>FIDReC Tier 2 pack is ready</CardTitle>
             <CardDescription>
               Generated {pack.generated_at ? new Date(pack.generated_at).toLocaleString() : 'just now'} ·{' '}
               {pack.pack_version}
@@ -79,6 +79,9 @@ export function Tier2PackView({
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
+          <p className="rounded-lg border bg-background/70 p-3 text-sm text-muted-foreground" role="note">
+            Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+          </p>
           {errorMessage ? (
             <p className="text-sm text-destructive" role="alert">
               {errorMessage}
