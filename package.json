@@ -18,6 +18,7 @@
     "test:slice8-payments": "npx --yes tsx --test scripts/test-slice8-payment-branching.ts",
     "test:validation-recon": "npx --yes tsx --test scripts/test-validation-reconciliation.ts",
     "test:document-readiness": "npx --yes tsx --test scripts/test-document-readiness.ts",
+    "test:harbor-contract": "npx --yes tsx --test scripts/test-harbor-ui-contract.ts",
     "test:pattern-c-security": "tsx scripts/test-pattern-c-security.ts",
     "test:e2e": "playwright test",
     "test:e2e:preview-handshakes": "tsx scripts/run-harbor-preview-handshakes.ts",

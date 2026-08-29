@@ -3,15 +3,8 @@
 /**
  * Layer 2 node `L2-ReportFailed` (SM Diagram 3).
  *
- * Reached when either:
- *   - `jobs.status = 'failed'` for this case's `post_payment_report_generation`
- *     job (the background worker gave up after 3 retries), or
- *   - the 120s safety timer fires without a Realtime row arriving.
- *
- * Copy reassures the user their payment is safe and offers a direct
- * support path. A manual "Retry" button is optional — Slice 6's background
- * worker already retries 3x, so exposing a retry here is more about user
- * comfort than actual recovery.
+ * Reached when the report job returns a failed status. Optional recovery
+ * actions are supplied by the state-machine driver.
  */
 
 import { ShieldAlert } from 'lucide-react'
@@ -24,7 +17,7 @@ export interface ReportFailedProps {
   onRetry?: () => void
 }
 
-export function ReportFailed({ errorMessage, onContactSupport, onRetry }: ReportFailedProps) {
+export function ReportFailed({ onContactSupport, onRetry }: ReportFailedProps) {
   return (
     <Card className="mx-auto max-w-lg border-destructive/30 bg-destructive/5">
       <CardHeader className="flex flex-row items-start gap-3">
@@ -34,20 +27,14 @@ export function ReportFailed({ errorMessage, onContactSupport, onRetry }: Report
         <div className="flex-1">
           <CardTitle>We hit a snag generating your report</CardTitle>
           <CardDescription>
-            Your payment is safe — we&apos;ve been alerted and someone will reach out within one
-            business day. You can also contact support now.
+            The report could not be completed. Your case remains available while you decide what to do next.
           </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {errorMessage ? (
-          <details className="text-xs text-muted-foreground">
-            <summary className="cursor-pointer hover:text-foreground">Technical details</summary>
-            <pre className="mt-2 overflow-x-auto rounded bg-muted p-2 font-mono text-[11px]">
-              {errorMessage}
-            </pre>
-          </details>
-        ) : null}
+        <p className="text-sm text-muted-foreground" role="status">
+          Try again later or use the support option if it is available.
+        </p>
 
         <div className="flex flex-col gap-2 sm:flex-row">
           {onContactSupport ? (

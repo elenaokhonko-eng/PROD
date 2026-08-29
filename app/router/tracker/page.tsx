@@ -1,228 +1,170 @@
-"use client"
+﻿"use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
-import { ArrowRight, Clock, CheckCircle, AlertTriangle } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { AlertCircle, ArrowRight, CheckCircle, ExternalLink, FileText, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { SiteHeader } from "@/components/site-header"
+import { getRouterSession, getSessionToken } from "@/lib/router-session"
 
-const TIPS_WHILE_WAITING = [
+const INFORMATION_TO_KEEP = [
   {
-    title: "Gather all bank correspondence",
-    body: "Locate every email, SMS, and letter from your bank about this incident. Note the date, channel, and content of each communication.",
+    title: "Use the institution's official complaints channel",
+    body: "Keep the acknowledgement, complaint reference and the contact details you used.",
   },
   {
-    title: "Screenshot everything",
-    body: "Screenshots of fraudulent messages, fake websites, or suspicious transactions are crucial evidence. Back them up to cloud storage today.",
+    title: "Organise copies of relevant records",
+    body: "Keep transaction records, messages, screenshots and correspondence together. Keep originals unchanged where possible.",
   },
   {
-    title: "Write a timeline",
-    body: "Write down every key event in order: when you were contacted, when you clicked or transferred, when you noticed something was wrong, when you contacted the bank.",
+    title: "Check current external-escalation requirements",
+    body: "Requirements can change and depend on the circumstances. Confirm the current process directly with FIDReC.",
   },
-  {
-    title: "Do not engage further with the scammer",
-    body: "Block all contact. Do not send any additional funds, even if promised a refund or threatened with legal action.",
-  },
-  {
-    title: "Avoid making admissions to your bank",
-    body: "When speaking with your bank, stick to facts. Avoid phrases like 'I should have known' or 'it was my fault'. These may weaken your FIDReC position.",
-  },
-]
+] as const
 
 export default function TrackerPage() {
-  const searchParams = useSearchParams()
-  const [bankContactDate, setBankContactDate] = useState(
-    searchParams.get("date") ?? "",
-  )
-  const [email, setEmail] = useState("")
-  const [submitted, setSubmitted] = useState(false)
-
-  const [daysElapsed, setDaysElapsed] = useState<number | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [bankContacted, setBankContacted] = useState<boolean | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const errorHeadingRef = useRef<HTMLHeadingElement>(null)
+  const router = useRouter()
 
   useEffect(() => {
-    if (!bankContactDate) {
-      setDaysElapsed(null)
-      return
-    }
-    const diff = Math.floor(
-      (Date.now() - new Date(bankContactDate).getTime()) / 86_400_000,
-    )
-    setDaysElapsed(diff)
-  }, [bankContactDate])
+    let cancelled = false
 
-  const daysLeft = daysElapsed !== null ? Math.max(0, 28 - daysElapsed) : null
-  const pct = daysElapsed !== null ? Math.min(100, Math.round((daysElapsed / 28) * 100)) : 0
-  const ready = daysElapsed !== null && daysElapsed >= 28
+    const loadSession = async () => {
+      try {
+        const token = getSessionToken()
+        if (!token) {
+          router.replace("/router")
+          return
+        }
+
+        const session = await getRouterSession(token)
+        if (!session) {
+          router.replace("/router")
+          return
+        }
+
+        const classification = session.classification_result as Record<string, unknown> | null
+        if (!cancelled) {
+          setBankContacted(typeof classification?.bank_contacted === "boolean" ? classification.bank_contacted : null)
+        }
+      } catch (loadError) {
+        console.error("[tracker] Error:", loadError)
+        if (!cancelled) setError("This information could not be loaded. Check your connection and try again.")
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+
+    void loadSession()
+    return () => {
+      cancelled = true
+    }
+  }, [router])
+
+  useEffect(() => {
+    if (error) errorHeadingRef.current?.focus()
+  }, [error])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SiteHeader />
+        <main id="main-content" className="gb-container flex min-h-[70vh] items-center justify-center py-12">
+          <div role="status" aria-live="polite" className="text-center">
+            <Loader2 className="mx-auto size-8 animate-spin text-primary" aria-hidden="true" />
+            <p className="mt-3 text-muted-foreground">Loading your saved information…</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SiteHeader />
+        <main id="main-content" className="gb-container flex min-h-[70vh] items-center justify-center py-12">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <AlertCircle className="mx-auto size-10 text-destructive" aria-hidden="true" />
+              <h1 ref={errorHeadingRef} tabIndex={-1} className="text-2xl font-semibold outline-none">Information unavailable</h1>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <p role="alert" className="text-muted-foreground">{error}</p>
+              <Button onClick={() => router.push("/router/results")} className="w-full">Return to my result</Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <Link href="/" className="flex items-center gap-2 w-fit">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">GB</span>
-            </div>
-            <span className="font-semibold text-lg">GuideBuoy AI</span>
-          </Link>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-10">
-        <div className="max-w-xl mx-auto space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold mb-1">4-Week Bank Dispute Tracker</h1>
-            <p className="text-muted-foreground text-base">
-              FIDReC requires you to give your bank at least 4 weeks to respond before you can escalate.
-              Track the deadline and use the time to build your evidence.
+      <SiteHeader />
+      <main id="main-content" className="gb-container py-8 sm:py-12">
+        <div className="mx-auto max-w-2xl space-y-6">
+          <header className="text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Financial-institution response</p>
+            <h1 className="mt-3 text-3xl font-semibold text-harbor-deep sm:text-4xl">Keep your complaint records together</h1>
+            <p className="mx-auto mt-4 max-w-xl leading-7 text-muted-foreground">
+              GuideBuoy does not calculate a filing date or decide when an external complaint can be made. Confirm the current requirements directly with the relevant organisation.
             </p>
-          </div>
+          </header>
 
-          {/* Date input */}
-          <Card className="rounded-xl">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                When did you first contact your bank?
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-1">
-                <Label htmlFor="bankDate">Date of first bank contact</Label>
-                <Input
-                  id="bankDate"
-                  type="date"
-                  value={bankContactDate}
-                  max={new Date().toISOString().split("T")[0]}
-                  onChange={(e) => setBankContactDate(e.target.value)}
-                />
-              </div>
-
-              {/* Countdown */}
-              {daysElapsed !== null && (
-                <div className="pt-2 space-y-3">
-                  <div className="flex justify-between text-sm font-medium">
-                    <span>Day {daysElapsed} of 28</span>
-                    <span
-                      className={ready ? "text-accent" : "text-primary"}
-                    >
-                      {ready ? "Ready to file with FIDReC" : `${daysLeft} days remaining`}
-                    </span>
-                  </div>
-                  <Progress value={pct} className="h-3" />
-
-                  {ready ? (
-                    <div className="flex items-start gap-3 bg-accent/10 border border-accent/30 p-4 rounded-xl">
-                      <CheckCircle className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-sm">You can now escalate to FIDReC</p>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          It has been {daysElapsed} days since your bank was contacted. Sign up to build your
-                          FIDReC submission.
-                        </p>
-                        <Button asChild size="sm" className="mt-3 rounded-full">
-                          <Link href="/onboarding">
-                            Build my FIDReC case
-                            <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 p-4 rounded-xl">
-                      <AlertTriangle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-sm">
-                          Hold tight — {daysLeft} more day{daysLeft !== 1 ? "s" : ""} to go
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          Use this time to gather evidence. We&apos;ll help you build a strong case when the wait
-                          period ends.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+          <Card>
+            <CardContent className="space-y-3 pt-0">
+              <div className="flex items-start gap-3 rounded-xl bg-primary/5 p-4">
+                <CheckCircle className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+                <div>
+                  <h2 className="font-semibold">Your saved answer</h2>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    {bankContacted === true
+                      ? "Your complaint-path answers record that you contacted the financial institution. Keep its acknowledgement and reference number."
+                      : bankContacted === false
+                        ? "Your complaint-path answers record that you have not contacted the financial institution. Use its verified contact details if you decide to make a complaint."
+                        : "Your saved answers do not confirm whether the financial institution has been contacted."}
+                  </p>
                 </div>
-              )}
+              </div>
+              <p className="text-xs leading-5 text-muted-foreground" role="note">
+                This is a summary of your answer, not confirmation that any waiting period or filing requirement has been met.
+              </p>
             </CardContent>
           </Card>
 
-          {/* Email reminder */}
-          {!ready && daysElapsed !== null && !submitted && (
-            <Card className="rounded-xl">
-              <CardContent className="pt-5 space-y-3">
-                <p className="font-medium text-sm">Get a reminder when you can file</p>
-                <p className="text-xs text-muted-foreground">
-                  Enter your email and we&apos;ll notify you on day 28. No account required. We won&apos;t share your
-                  email.
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    type="email"
-                    placeholder="you@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    size="sm"
-                    className="rounded-full"
-                    disabled={!email.includes("@")}
-                    onClick={() => {
-                      // TODO: wire up to reminder email API
-                      setSubmitted(true)
-                    }}
-                  >
-                    Remind me
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {submitted && (
-            <div className="flex items-center gap-2 text-sm text-accent bg-accent/10 border border-accent/30 px-4 py-3 rounded-xl">
-              <CheckCircle className="h-4 w-4 flex-shrink-0" />
-              Got it — we&apos;ll email you when you&apos;re ready to file with FIDReC.
-            </div>
-          )}
-
-          {/* Tips while waiting */}
-          <Card className="rounded-xl">
-            <CardHeader>
-              <CardTitle className="text-base">What to do while you wait</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {TIPS_WHILE_WAITING.map((tip, i) => (
-                <div key={i} className="flex gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold mt-0.5">
-                    {i + 1}
-                  </div>
+          <Card>
+            <CardHeader><h2 className="text-lg font-semibold">Information to keep</h2></CardHeader>
+            <CardContent className="space-y-5">
+              {INFORMATION_TO_KEEP.map((item, index) => (
+                <div key={item.title} className="flex gap-3">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary" aria-hidden="true">{index + 1}</span>
                   <div>
-                    <p className="font-medium text-sm">{tip.title}</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">{tip.body}</p>
+                    <h3 className="font-medium">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.body}</p>
                   </div>
                 </div>
               ))}
             </CardContent>
           </Card>
 
-          {/* Crisis footer */}
-          <div className="text-center text-xs text-muted-foreground space-y-1 pt-2 border-t border-border/50">
-            <p className="font-medium">Need immediate support?</p>
-            <p>
-              Samaritans (SOS):{" "}
-              <a href="tel:1767" className="underline">1767</a>{" "}
-              · national mindline:{" "}
-              <a href="tel:1771" className="underline">1771</a>
-            </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button asChild><a href="https://www.fidrec.com.sg/" target="_blank" rel="noopener noreferrer">Check FIDReC guidance<ExternalLink className="ml-2 size-4" aria-hidden="true" /></a></Button>
+            <Button asChild variant="outline"><Link href="/router/results">Back to my result<ArrowRight className="ml-2 size-4" aria-hidden="true" /></Link></Button>
           </div>
+
+          <Button asChild variant="ghost" className="w-full"><Link href="/resources"><FileText className="mr-2 size-4" aria-hidden="true" />Browse official resources</Link></Button>
+
+          <p className="text-center text-xs leading-5 text-muted-foreground">
+            GuideBuoy helps organise information. It does not decide your case or provide legal advice.
+          </p>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

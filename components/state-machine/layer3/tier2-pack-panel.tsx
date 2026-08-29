@@ -7,7 +7,7 @@
  * has not yet purchased the SGD 188 FIDReC Tier 2 pack.
  */
 
-import { ArrowRight, FileText, ShieldCheck } from 'lucide-react'
+import { ArrowRight, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
@@ -16,25 +16,29 @@ export interface Tier2PackPanelProps {
   priceLabel?: string
   isStartingCheckout?: boolean
   errorMessage?: string | null
+  disabled?: boolean
+  unavailableReason?: string
   onClick: () => void
 }
 
 export function Tier2PackPanel({
-  priceLabel = 'SGD 188',
+  priceLabel = 'S$188',
   isStartingCheckout = false,
   errorMessage,
+  disabled = false,
+  unavailableReason,
   onClick,
 }: Tier2PackPanelProps) {
   return (
     <Card className="border-primary/40 bg-primary/5">
       <CardHeader className="flex flex-row items-start gap-3">
         <div className="mt-1 rounded-md bg-primary/10 p-2 text-primary">
-          <ShieldCheck className="h-5 w-5" aria-hidden />
+          <FileText className="h-5 w-5" aria-hidden />
         </div>
         <div className="flex-1">
           <CardTitle>Prepare your FIDReC submission</CardTitle>
           <CardDescription>
-            Prepare a structured FIDReC Pack with an executive summary and chronology you can
+            Upgrade to a structured Tier 2 case pack with an executive summary and chronology you can
             download and submit to FIDReC.
           </CardDescription>
         </div>
@@ -47,7 +51,15 @@ export function Tier2PackPanel({
           <li>Evidence bundle index and annexures</li>
           <li>Download as PDF or Markdown</li>
         </ul>
+        <p className="rounded-lg border bg-background/70 p-3 text-sm text-muted-foreground" role="note">
+          Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+        </p>
 
+        {unavailableReason ? (
+          <p className="text-sm text-muted-foreground" role="status">
+            {unavailableReason}
+          </p>
+        ) : null}
         {errorMessage ? (
           <p className="text-sm text-destructive" role="alert">
             {errorMessage}
@@ -55,15 +67,15 @@ export function Tier2PackPanel({
         ) : null}
 
         <div className="flex items-center justify-between gap-3 pt-2">
-          <div className="gb-num text-lg font-semibold">{priceLabel}</div>
-          <Button onClick={onClick} disabled={isStartingCheckout} size="lg">
+          <div className="text-lg font-semibold">{priceLabel}</div>
+          <Button onClick={onClick} disabled={disabled || isStartingCheckout} size="lg">
             {isStartingCheckout ? (
               <StateMachineLoading size="inline" title="Redirecting..." />
             ) : (
               <>
                 <FileText className="mr-2 h-4 w-4" aria-hidden />
-                Buy FIDReC Pack
-                <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+                {disabled ? 'Tier 2 unavailable' : 'Buy Tier 2 pack'}
+                {!disabled ? <ArrowRight className="ml-2 h-4 w-4" aria-hidden /> : null}
               </>
             )}
           </Button>

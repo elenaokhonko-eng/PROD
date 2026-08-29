@@ -7,7 +7,7 @@
  * `layer1-shell.tsx` when gaps are indicated but no questions exist (`lib/validation/gap-flow.ts`).
  */
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -39,12 +39,21 @@ export function GapQuestionPanel({
   intro,
 }: GapQuestionPanelProps) {
   const [answers, setAnswers] = useState<Record<string, ValidationAnswerValue>>({})
+  const [validationError, setValidationError] = useState<string | null>(null)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const currentQuestionRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (currentQuestionIndex > 0) currentQuestionRef.current?.focus()
+  }, [currentQuestionIndex])
 
   function setAnswer(key: string, value: ValidationAnswerValue) {
+    setValidationError(null)
     setAnswers((prev) => ({ ...prev, [key]: value }))
   }
 
   function toggleMultiAnswer(key: string, optionValue: string, checked: boolean) {
+    setValidationError(null)
     setAnswers((prev) => {
       const current = Array.isArray(prev[key]) ? prev[key] : []
       return {
@@ -59,6 +68,15 @@ export function GapQuestionPanel({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (isSubmitting) return
+    const missingRequiredIndex = questions.findIndex(
+      (question) => question.required && !isAnsweredValidationValue(answers[question.key]),
+    )
+    if (missingRequiredIndex >= 0) {
+      setCurrentQuestionIndex(missingRequiredIndex)
+      setValidationError("Answer the required questions before saving.")
+      return
+    }
+    setValidationError(null)
     const nonEmpty = Object.fromEntries(
       Object.entries(answers).filter(([, value]) => isAnsweredValidationValue(value)),
     ) as Record<string, ValidationAnswerValue>
@@ -96,6 +114,9 @@ export function GapQuestionPanel({
       </CardHeader>
       <CardContent>
         <form className="space-y-5" onSubmit={handleSubmit}>
+          <p className="text-sm text-muted-foreground md:hidden" aria-live="polite">
+            Question {currentQuestionIndex + 1} of {questions.length}
+          </p>
           {questions.map((q, index) => {
             const fieldId = `gap-${q.key || index}`
             const answerType = typeof q.field_type === 'string' ? q.field_type : 'text'
@@ -118,8 +139,13 @@ export function GapQuestionPanel({
                     : 'text'
 
             return (
-              <div key={fieldId} className="space-y-2">
-                <Label htmlFor={fieldId}>
+              <div
+                key={fieldId}
+                ref={index === currentQuestionIndex ? currentQuestionRef : undefined}
+                tabIndex={-1}
+                className={`${index === currentQuestionIndex ? 'block' : 'hidden'} space-y-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring md:block`}
+              >
+                <Label id={`${fieldId}-label`} htmlFor={fieldId}>
                   {q.question}
                   {q.required ? <span className="ml-1 text-destructive">*</span> : null}
                 </Label>
@@ -133,6 +159,7 @@ export function GapQuestionPanel({
                   </p>
                 ) : answerType === 'boolean' ? (
                   <RadioGroup
+                    aria-labelledby={`${fieldId}-label`}
                     value={booleanValue}
                     onValueChange={(value) => setAnswer(q.key, value === 'true')}
                     disabled={isSubmitting}
@@ -153,6 +180,7 @@ export function GapQuestionPanel({
                   </RadioGroup>
                 ) : answerType === 'single_choice' && choices.length > 0 ? (
                   <RadioGroup
+                    aria-labelledby={`${fieldId}-label`}
                     value={textValue || undefined}
                     onValueChange={(value) => setAnswer(q.key, value)}
                     disabled={isSubmitting}
@@ -170,7 +198,7 @@ export function GapQuestionPanel({
                     })}
                   </RadioGroup>
                 ) : answerType === 'multi_choice' && choices.length > 0 ? (
-                  <div className="space-y-3">
+                  <div role="group" aria-labelledby={`${fieldId}-label`} className="space-y-3">
                     {choices.map((option, optionIndex) => {
                       const optionId = `${fieldId}-option-${optionIndex}`
                       return (
@@ -213,13 +241,41 @@ export function GapQuestionPanel({
             )
           })}
 
-          {errorMessage ? (
-            <p className="text-sm text-destructive" role="alert">
-              {errorMessage}
+          {validationError || errorMessage ? (
+            <p className="rounded-lg border border-harbor-error/40 bg-harbor-error-tint p-3 text-sm" role="alert">
+              {validationError ?? errorMessage}
             </p>
           ) : null}
 
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-between gap-3 md:hidden">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCurrentQuestionIndex((index) => Math.max(0, index - 1))}
+              disabled={currentQuestionIndex === 0 || isSubmitting}
+            >
+              Back
+            </Button>
+            {currentQuestionIndex < questions.length - 1 ? (
+              <Button
+                type="button"
+                onClick={() => setCurrentQuestionIndex((index) => Math.min(questions.length - 1, index + 1))}
+                disabled={
+                  isSubmitting ||
+                  (questions[currentQuestionIndex]?.required === true &&
+                    !isAnsweredValidationValue(answers[questions[currentQuestionIndex]?.key ?? '']))
+                }
+              >
+                Next question
+              </Button>
+            ) : (
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving…' : 'Save answers'}
+              </Button>
+            )}
+          </div>
+
+          <div className="hidden items-center justify-end gap-3 md:flex">
             {isSubmitting ? (
               <StateMachineLoading size="inline" title="Re-analysing with your answers..." />
             ) : null}

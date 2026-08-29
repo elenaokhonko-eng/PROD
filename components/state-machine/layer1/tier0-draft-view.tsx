@@ -47,6 +47,10 @@ export function Tier0DraftView({
         ) : null}
       </div>
 
+      <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground" role="note">
+        Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+      </p>
+
       {tier0_summary ? (
         <NarrativePanel
           icon={<FileText className="h-5 w-5" aria-hidden />}
