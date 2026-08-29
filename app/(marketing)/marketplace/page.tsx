@@ -1,141 +1,54 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { SiteHeader } from "@/components/site-header"
+﻿import type { Metadata } from 'next'
+import { HeartHandshake, Scale, UsersRound } from 'lucide-react'
+import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
+import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = {
-  title: "Marketplace | GuideBuoy AI",
-  description:
-    "Find free and paid specialists to help with your complaint: pro-bono clinics, social services, mental health support, lawyers, dispute coaches, and cybersecurity experts.",
+  title: 'Future help categories',
+  description: 'See the help categories GuideBuoy may support in future. These services are not currently available through GuideBuoy.',
+  alternates: { canonical: '/marketplace' },
 }
 
-const freeServices = [
-  {
-    title: "Pro-bono lawyers (via SAL clinics)",
-    description: "Legal clinics for vulnerable users. Warm handovers when you need human guidance beyond the helper.",
-    cta: "Request pro-bono support",
-  },
-  {
-    title: "Social service partners",
-    description: "Social workers who can help with reporting, recovery steps, and safeguarding vulnerable users.",
-    cta: "Connect me to a social worker",
-  },
-  {
-    title: "Mental health support",
-    description: "Trauma-informed counsellors for stress and anxiety after a scam or dispute.",
-    cta: "Get wellbeing support",
-  },
-]
-
-const paidServices = [
-  {
-    title: "Lawyer case review",
-    description: "Short review of your documents and likely next steps before you escalate.",
-    cta: "Book a review",
-  },
-  {
-    title: "Dispute coach / case prep",
-    description: "Specialists who help structure your evidence, fill gaps, and frame arguments.",
-    cta: "Work with a coach",
-    email: "info@guidebuoyai.sg",
-  },
-  {
-    title: "Cybersecurity specialist report",
-    description: "Forensic review of links, malware, and transaction traces to strengthen your report.",
-    cta: "Request a cyber report",
-  },
-]
+const supportTypes = [
+  { icon: Scale, title: 'Legal clinics' },
+  { icon: HeartHandshake, title: 'Social-service referrals' },
+  { icon: UsersRound, title: 'Human consultation and warm handovers' },
+] as const
 
 export default function MarketplacePage() {
   return (
-    <main className="min-h-screen bg-background">
-      <SiteHeader />
-
-      <div className="border-b border-border/50 bg-card/50">
-        <div className="container mx-auto px-4 py-8 space-y-4">
-          <Badge variant="outline" className="rounded-full">
-            Marketplace
-          </Badge>
-          <h1 className="text-4xl font-bold text-balance">Human help only when you need it</h1>
-          <p className="text-muted-foreground max-w-3xl leading-relaxed">
-            The helper stays free. When you want a person to step in, pick from trusted partners below. Free options come
-            first; paid specialists activate only when you choose.
+    <MarketingPage
+      eyebrow="Future help directory"
+      title="Help categories being considered."
+      intro="These cards describe possible categories only. They are not referrals, partnerships or available services."
+    >
+      <MarketingSection>
+        <div className="rounded-card border bg-harbor-sage-tint p-4 sm:p-6">
+          <h2 className="text-2xl font-semibold text-harbor-primary-active">Not currently available</h2>
+          <p className="mt-3 gb-readable leading-7 text-muted-foreground">
+            GuideBuoy does not currently provide a help directory, booking service or warm handover.
           </p>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild className="rounded-full">
-              <Link href="/sign-up?source=marketplace">Sign in to request help</Link>
-            </Button>
-            <Button asChild variant="outline" className="rounded-full">
-              <Link href="mailto:partners@guidebuoyai.sg">Partner with us</Link>
-            </Button>
-          </div>
         </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-12 space-y-12">
-        <section className="space-y-6">
-          <div className="space-y-2">
-            <Badge variant="secondary" className="rounded-full">
-              Free help
-            </Badge>
-            <h2 className="text-2xl font-semibold">Public-good support</h2>
-            <p className="text-muted-foreground max-w-2xl">
-              For vulnerable users or those under stress, we start with free human support before suggesting anything
-              paid.
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {freeServices.map((service) => (
-              <Card key={service.title} className="h-full">
-                <CardHeader>
-                  <CardTitle className="text-lg">{service.title}</CardTitle>
-                  <CardDescription>{service.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button asChild variant="outline" className="rounded-full">
-                    <Link href="mailto:partners@guidebuoyai.sg">{service.cta}</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <div className="space-y-2">
-            <Badge variant="secondary" className="rounded-full">
-              Paid assistance
-            </Badge>
-            <h2 className="text-2xl font-semibold">Specialists for deeper help</h2>
-            <p className="text-muted-foreground max-w-2xl">
-              When your loss is high or the case is complex, these specialists can review evidence, coach you, or prepare
-              expert reports. Charges appear only when you accept.
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {paidServices.map((service) => (
-              <Card key={service.title} className="h-full">
-                <CardHeader>
-                  <CardTitle className="text-lg">{service.title}</CardTitle>
-                  <CardDescription>{service.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-3">
-                    <Button asChild className="rounded-full">
-                      <Link href={`mailto:${service.email ?? "partners@guidebuoyai.sg"}`}>{service.cta}</Link>
-                    </Button>
-                    <Badge variant="outline" className="rounded-full">
-                      Optional
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-      </div>
-    </main>
+        <div className="mt-8 grid gap-5 sm:grid-cols-2">
+          {supportTypes.map(({ icon: Icon, title }) => (
+            <article key={title} className="gb-card p-4 sm:p-6">
+              <Icon className="size-7 text-primary" aria-hidden="true" />
+              <h2 className="mt-4 text-xl font-semibold">{title}</h2>
+              <p className="mt-2 leading-7 text-muted-foreground">Planned—not currently available through GuideBuoy.</p>
+              <Button type="button" variant="outline" className="mt-5 w-full" disabled aria-describedby={`${title.replaceAll(' ', '-').toLowerCase()}-reason`}>
+                View help resources
+              </Button>
+              <p id={`${title.replaceAll(' ', '-').toLowerCase()}-reason`} className="mt-2 text-sm text-muted-foreground">
+                This action will be enabled only after the service is available.
+              </p>
+            </article>
+          ))}
+        </div>
+        <aside className="mt-8 rounded-card border bg-harbor-surface-subtle p-4 sm:p-6" aria-label="Human consultation availability">
+          <h2 className="text-xl font-semibold">Consultation</h2>
+          <p className="mt-2 leading-7 text-muted-foreground">Human consultation is not currently available.</p>
+        </aside>
+      </MarketingSection>
+    </MarketingPage>
   )
 }

@@ -1,304 +1,61 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, Phone, MapPin, Linkedin } from "lucide-react"
-import { SiteHeader } from "@/components/site-header"
-import { createServiceClient } from "@/lib/supabase/service"
+﻿import type { Metadata } from 'next'
+import { Building2, Compass, Eye, Scale } from 'lucide-react'
+import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
+import { ContactCard } from '@/components/harbor/contact-disclosure'
 
 export const metadata: Metadata = {
-  title: "About GuideBuoy AI – Team, Mission, and Contacts",
-  description:
-    "Meet the GuideBuoy AI founding team, learn about our complaint OS mission, and get in touch with the people building the platform.",
+  title: 'About',
+  description: "Why GuideBuoy AI is building Singapore's calm complaint helper and how Lumi supports — rather than decides — your case.",
+  alternates: { canonical: '/about' },
 }
 
-type TeamMember = {
-  name: string
-  role: string
-  bio: string
-  experience: string
-  focus: string
-  linkedIn: string
-}
+const principles = [
+  { icon: Building2, title: 'Singapore company', text: 'GuideBuoy AI SG Pte Ltd, UEN 202545875C, operates GuideBuoy AI.' },
+  { icon: Eye, title: 'Review before acting', text: 'Generated automatically by GuideBuoy AI. It has not been reviewed by a person.' },
+  { icon: Scale, title: 'Not legal advice', text: 'GuideBuoy helps organise information. It does not decide your case or provide legal advice.' },
+] as const
 
-type Advisor = {
-  name: string
-  title: string
-  summary: string
-  linkedIn: string
-}
-
-const teamMembers: TeamMember[] = [
-  {
-    name: "Elena Okhonko",
-    role: "Founder & CEO",
-    bio: "Singaporean founder, licensed financial advisor, and ex-fund manager with 9+ years inside MAS-regulated institutions such as AIA and Mercer, plus a decade in large-scale software delivery.",
-    experience:
-      "Led PMO for US$56B AIA fixed-income portfolios, stewarded US$140M Fortune 500 transformation programmes, and previously drove CRM and product initiatives at Kraft Foods, Microsoft, and EPAM.",
-    focus:
-      "Combines regulatory fluency with enterprise-grade product management to ship complaint-tech that fits Singapore’s legal and compliance framework.",
-    linkedIn: "https://www.linkedin.com/in/elenaokhonko",
-  },
-  {
-    name: "Stepan Kropachev",
-    role: "AI Chief Product Officer (CPO)",
-    bio: "Italian-based product leader who has spent the last decade shipping AI copilots for compliance and wealth-tech platforms across Europe.",
-    experience:
-      "Previously led product for a Milan robo-advisor and co-authored the Responsible AI design playbook used by two EU fintech platforms.",
-    focus: "Owns GuideBuoy’s product vision, model governance, and the Gemini-powered complaint workflow layer.",
-    linkedIn: "https://www.linkedin.com/in/stepan-kropachev/",
-  },
-  {
-    name: "Maria Baranova",
-    role: "Chief Financial & Data Officer (CFO & CDO)",
-    bio: "Australian resident with twin backgrounds in structured finance and modern data stacks; keeps the company’s runway, pricing, and telemetry aligned.",
-    experience:
-      "Served as finance director for a Sydney insurtech scale-up and ran data governance programmes for two ASX-listed institutions.",
-    focus: "Leads capital planning, cohort analytics, and PDPA-compliant data instrumentation for every product surface.",
-    linkedIn: "https://www.linkedin.com/in/maria-baranova-businessanalyst/",
-  },
-  {
-    name: "Ng Yuin Harng",
-    role: "Govt. & Ecosystem Lead (Singapore)",
-    bio: "Financial Services Director at FinArk Group @ PromiseLand who builds bridges with regulators, trade associations, and public-sector programmes.",
-    experience:
-      "15+ years advising retail investors and SMEs on regulated products; frequently consults on MAS sandboxes and consumer outreach.",
-    focus: "Owns government partnerships, ecosystem onboarding, and the playbooks that align GuideBuoy with national trust initiatives.",
-    linkedIn: "https://www.linkedin.com/in/nicholasnyh/",
-  },
-]
-
-const advisors: Advisor[] = [
-  {
-    name: "Sergey Anosov",
-    title: "AI Tech & Model Advisor, CEO at Scade.pro",
-    summary: "Guides our model selection, evaluation harnesses, and production rollout strategies for Gemini + custom LLMs.",
-    linkedIn: "https://www.linkedin.com/in/sergeyanosov",
-  },
-  {
-    name: "Federico Folcia",
-    title: "Community Building GTM Advisor, CEO & Co-Founder at Crane Community Centers (Singapore)",
-    summary: "Helps us embed GuideBuoy inside grassroots communities and design trust-centric go-to-market motions.",
-    linkedIn: "https://www.linkedin.com/in/federicofolcia",
-  },
-  {
-    name: "Greg Woolf",
-    title: "AI Market Entry Strategist, INSEAD AI Venture Lab",
-    summary: "Advises on cross-border AI commercialization and keeps our venture narrative aligned with institutional buyers.",
-    linkedIn: "https://www.linkedin.com/in/greg-woolf-b3125/",
-  },
-]
-
-const contactChannels = [
-  {
-    label: "General enquiries",
-    value: "info@guidebuoyai.sg",
-    href: "mailto:info@guidebuoyai.sg",
-    icon: Mail,
-  },
-  {
-    label: "DID",
-    value: "+65 90727915",
-    href: "tel:+6590727915",
-    icon: Phone,
-  },
-  {
-    label: "Main line",
-    value: "+65 6690 9262",
-    href: "tel:+6566909262",
-    icon: Phone,
-  },
-  {
-    label: "Registered office",
-    value: "51 Goldhill Plaza #07-10/11 Singapore 308900",
-    href: "https://maps.app.goo.gl/S1Z88zZFtxnScw5e6",
-    icon: MapPin,
-  },
-]
-
-async function getCaseCounts() {
-  const supabase = createServiceClient()
-  const [{ count: totalCases }, { count: completedReports }] = await Promise.all([
-    supabase.from("cases").select("*", { count: "exact", head: true }),
-    supabase.from("cases").select("*", { count: "exact", head: true }).eq("status", "completed"),
-  ])
-  return {
-    totalCases: totalCases ?? null,
-    completedReports: completedReports ?? null,
-  }
-}
-
-const formatNumber = (value: number | null) => (value === null ? "—" : new Intl.NumberFormat("en-SG").format(value))
-
-export default async function AboutPage() {
-  const { totalCases, completedReports } = await getCaseCounts()
-
+export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <SiteHeader badge="Free Helper Access" />
+    <MarketingPage
+      eyebrow="Why GuideBuoy exists"
+      title="The burden should sit on the system, not the person who was harmed."
+      intro="After a scam, people are expected to retell a difficult story in formal language across different forms, deadlines and organisations. GuideBuoy helps carry that administrative load."
+    >
+      <MarketingSection className="grid items-center gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="gb-card flex min-h-72 items-center justify-center bg-harbor-teal-tint p-8">
+          <Compass className="size-28 text-primary" aria-hidden="true" />
+        </div>
+        <div>
+          <h2 className="text-3xl font-semibold text-harbor-deep">A steady light, not a promise</h2>
+          <p className="mt-4 leading-8 text-muted-foreground">A buoy does not pull you out of the water. It holds its position, keeps its light on and shows the way in. Lumi helps organise one clear record so you can decide where to take it next.</p>
+          <p className="mt-4 leading-8 text-muted-foreground">You see the organised facts, correct anything that is wrong and choose what to share.</p>
+        </div>
+      </MarketingSection>
 
-      <main className="container mx-auto px-4 py-12 space-y-12">
-        <section className="grid gap-8 lg:grid-cols-[1.1fr_minmax(0,0.9fr)] items-center">
-          <div>
-            <Badge variant="outline" className="mb-4 rounded-full">
-              AXS-style complaint helper
-            </Badge>
-            <h1 className="text-4xl font-bold tracking-tight mb-4 text-balance">We are building Singapore&apos;s complaint OS</h1>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              GuideBuoy AI is a software company in Singapore. We design an AXS-style helper that lets residents,
-              caregivers, and nominees tell their story once, add evidence, and reuse it for agency-ready complaints
-              (including formal escalations) without legal representation. Everything ships cloud-first, PDPA-aligned,
-              and battle-tested with real complaint data.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-4">
-              <div className="rounded-2xl border border-border/60 p-4">
-                <p className="text-3xl font-semibold">{formatNumber(totalCases)}</p>
-                <p className="text-sm text-muted-foreground">case assessments started since Jan 2024</p>
-              </div>
-              <div className="rounded-2xl border border-border/60 p-4">
-                <p className="text-3xl font-semibold">PDPA ✦ MAS</p>
-                <p className="text-sm text-muted-foreground">built to meet trusted AI and privacy expectations</p>
-              </div>
-            </div>
-          </div>
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader>
-              <CardTitle>Builder snapshot</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm text-muted-foreground">
-              <div>
-                <p className="font-medium text-foreground">Company</p>
-                <p>GuideBuoy AI Pte. Ltd. (Singapore)</p>
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Business model</p>
-                <p>SaaS platform with complaint automation modules, premium case packs, and nominee services.</p>
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Stage</p>
-                <p>MVP live (Q4 2025) on guidebuoyai.sg; beta SME partner programme running; Stripe + Supabase stack in prod.</p>
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Focus in 2025</p>
-                <p>Grow payer conversion, deepen FI/agency integrations, and extend playbooks for Malaysia and Hong Kong.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        <section>
-          <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-2xl font-semibold">Core team</h2>
-            <span className="text-sm text-muted-foreground">Experienced builders of fintech, legal-tech, and AI systems</span>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2">
-            {teamMembers.map((member) => (
-              <Card key={member.name} className="h-full">
-                <CardHeader className="space-y-1">
-                  <CardTitle>{member.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{member.role}</p>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm text-muted-foreground">
-                  <p>{member.bio}</p>
-                  <p>
-                    <span className="text-foreground font-medium">Highlights: </span>
-                    {member.experience}
-                  </p>
-                  <p>
-                    <span className="text-foreground font-medium">Current focus: </span>
-                    {member.focus}
-                  </p>
-                  <Link
-                    href={member.linkedIn}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 text-foreground font-medium hover:underline"
-                  >
-                    <Linkedin className="h-4 w-4" /> LinkedIn
-                  </Link>
-                </CardContent>
-              </Card>
+      <section className="border-y bg-card py-12 sm:py-16" aria-labelledby="principles-title">
+        <div className="gb-container">
+          <h2 id="principles-title" className="text-3xl font-semibold text-harbor-deep">What we are — and what we are not</h2>
+          <div className="mt-8 grid gap-5 md:grid-cols-3">
+            {principles.map(({ icon: Icon, title, text }) => (
+              <article key={title} className="rounded-2xl border bg-background p-6">
+                <Icon className="size-7 text-primary" aria-hidden="true" />
+                <h3 className="mt-4 text-xl font-semibold">{title}</h3>
+                <p className="mt-2 leading-7 text-muted-foreground">{text}</p>
+              </article>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>GuideBuoy AI SG Advisory Team</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm text-muted-foreground">
-              {advisors.map((advisor) => (
-                <div key={advisor.name} className="border-b border-border/40 pb-4 last:border-b-0 last:pb-0 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-foreground font-medium">{advisor.name}</p>
-                    <Link
-                      href={advisor.linkedIn}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-foreground hover:underline text-xs font-medium"
-                    >
-                      <Linkedin className="h-3.5 w-3.5" />
-                      LinkedIn
-                    </Link>
-                  </div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground/80">{advisor.title}</p>
-                  <p>{advisor.summary}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>What we ship today</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>
-                A calm, end-to-end helper that turns one story into organised case notes, uploads, and ready-to-send
-                complaint packets. Citizens and caregivers can stay on one track instead of juggling multiple forms.
-              </p>
-              <p>
-                We ship weekly from a single codebase that runs guidebuoyai.sg. What you see in staging is what our
-                partners and pilots use in production.
-              </p>
-              <p>
-                Built for Singaporeans navigating scams and complex complaints across agencies, with a clear path to
-                adapt for Malaysia and Hong Kong cross-border disputes.
-              </p>
-            </CardContent>
-          </Card>
-        </section>
-
-        <section>
-          <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-2xl font-semibold">Contact & HQ</h2>
-            <span className="text-sm text-muted-foreground">Reach the humans behind GuideBuoy AI</span>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {contactChannels.map((channel) => {
-              const Icon = channel.icon
-              return (
-                <Card key={channel.label}>
-                  <CardContent className="flex flex-col gap-2 p-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2 text-foreground font-medium">
-                      <Icon className="h-4 w-4" />
-                      {channel.label}
-                    </div>
-                    <Link
-                      href={channel.href}
-                      target={channel.href.startsWith("http") ? "_blank" : undefined}
-                      rel={channel.href.startsWith("http") ? "noreferrer" : undefined}
-                      className="text-base font-semibold text-foreground hover:underline break-words"
-                    >
-                      {channel.value}
-                    </Link>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        </section>
-      </main>
-    </div>
+      <MarketingSection>
+        <h2 className="text-3xl font-semibold text-harbor-deep">Responsible use</h2>
+        <p className="mt-4 max-w-3xl leading-8 text-muted-foreground">
+          GuideBuoy structures information for review. Human consultation is separate and is not currently available.
+          Your case information may indicate a next step. Check the official requirements before acting.
+        </p>
+        <div className="mt-10"><ContactCard /></div>
+      </MarketingSection>
+    </MarketingPage>
   )
 }

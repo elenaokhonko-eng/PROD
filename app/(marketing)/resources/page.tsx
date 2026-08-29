@@ -1,113 +1,52 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { SiteHeader } from "@/components/site-header"
+﻿import type { Metadata } from 'next'
+import Link from 'next/link'
+import { PhoneCall, Siren } from 'lucide-react'
+import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
+import { ResourceDirectory } from '@/components/harbor/resource-directory'
+import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = {
-  title: "Resources | GuideBuoy AI",
-  description: "Articles, key legal frameworks, and consumer guides for Singapore complaints and scams.",
+  title: 'Singapore complaint resources',
+  description: 'Official Singapore scam, Police, banking dispute, FIDReC and personal-data resources gathered for a stressful moment.',
+  alternates: { canonical: '/resources' },
 }
-
-const articles = [
-  {
-    title: "How to stay calm after a scam incident",
-    href: "https://www.scamshield.org.sg/",
-    summary: "Grounding tips and immediate actions to protect your accounts.",
-  },
-  {
-    title: "Understanding dispute resolution for consumers",
-    href: "https://fidrec.com.sg/",
-    summary: "When and how to escalate a financial complaint with the right documents.",
-  },
-]
-
-const legalFrameworks = [
-  { title: "MAS E-Payments User Protection Guidelines", href: "https://www.mas.gov.sg" },
-  { title: "PDPA Overview", href: "https://www.pdpc.gov.sg" },
-  { title: "SPF E-Services (Police Report)", href: "https://eservices.police.gov.sg" },
-]
-
-const guides = [
-  {
-    title: "Prepare your evidence bundle",
-    summary: "Screenshots, bank statements, chat logs, and reference numbers in one place.",
-  },
-  {
-    title: "Tell your story once, reuse it",
-    summary: "Use the unified report to avoid retyping across agencies and partners.",
-  },
-  {
-    title: "What to do after you file",
-    summary: "Track responses, note deadlines, and know when to escalate.",
-  },
-]
 
 export default function ResourcesPage() {
   return (
-    <main className="min-h-screen bg-background">
-      <SiteHeader />
+    <MarketingPage
+      eyebrow="Official Singapore help"
+      title="Start with Right now if the scam just happened."
+      intro="GuideBuoy organises links to official sources. The authorities publish the rules and make decisions."
+    >
+      <MarketingSection>
+        <aside className="rounded-2xl border border-destructive/30 bg-harbor-error-tint p-6" aria-labelledby="urgent-title">
+          <div className="flex gap-4">
+            <Siren className="mt-1 size-6 shrink-0 text-destructive" aria-hidden="true" />
+            <div>
+              <h2 id="urgent-title" className="text-xl font-semibold">Is anyone in immediate danger?</h2>
+              <p className="mt-2 leading-7">Call Police emergency services on <a href="tel:999" className="font-semibold underline">999</a>. For scam support, call the ScamShield Helpline on <a href="tel:1799" className="font-semibold underline">1799</a>.</p>
+            </div>
+          </div>
+        </aside>
 
-      <div className="container mx-auto px-4 py-12 space-y-10">
-        <div className="space-y-2">
-          <Badge variant="outline" className="rounded-full">
-            Resources
-          </Badge>
-          <h1 className="text-3xl font-bold">Stay informed and prepared</h1>
-          <p className="text-muted-foreground max-w-3xl">
-            Curated articles, key legal frameworks, and simple guides to help you navigate complaints with confidence.
+        <section className="mt-10" aria-labelledby="directory-title">
+          <h2 id="directory-title" className="text-3xl font-semibold text-harbor-deep">External information and reporting</h2>
+          <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
+            Links open websites operated by the named organisations. GuideBuoy is not affiliated with or endorsed by them.
           </p>
+          <div className="mt-6"><ResourceDirectory /></div>
+          <div className="mt-6 flex flex-wrap gap-4 rounded-card border bg-card p-4 text-sm">
+            <span className="inline-flex items-center gap-2 font-semibold"><PhoneCall className="size-4" aria-hidden="true" /> Useful numbers</span>
+            <a href="tel:1799" className="inline-flex min-h-11 items-center underline">ScamShield 1799</a>
+            <a href="tel:999" className="inline-flex min-h-11 items-center underline">Police emergency 999</a>
+          </div>
+        </section>
+
+        <div className="mt-10 rounded-2xl bg-harbor-sage-tint p-6 text-center">
+          <p className="leading-7">GuideBuoy summarises and organises. Official sources remain authoritative.</p>
+          <Button asChild className="mt-5"><Link href="/">Start your free report</Link></Button>
         </div>
-
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">Articles</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {articles.map((item) => (
-              <Card key={item.title} className="h-full">
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    <Link href={item.href} target="_blank" rel="noreferrer" className="hover:underline">
-                      {item.title}
-                    </Link>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">{item.summary}</CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">Key Legal Frameworks</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {legalFrameworks.map((item) => (
-              <Card key={item.title} className="h-full">
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    <Link href={item.href} target="_blank" rel="noreferrer" className="hover:underline">
-                      {item.title}
-                    </Link>
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">Consumer Guides</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {guides.map((guide) => (
-              <Card key={guide.title} className="h-full">
-                <CardHeader>
-                  <CardTitle className="text-lg">{guide.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">{guide.summary}</CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-      </div>
-    </main>
+      </MarketingSection>
+    </MarketingPage>
   )
 }

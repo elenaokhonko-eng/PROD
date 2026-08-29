@@ -1,7 +1,7 @@
 import { getCurrentUser } from '@/lib/auth'
 import { createUserClient } from '@/lib/supabase/server'
-import { SiteHeader } from '@/components/site-header'
 import { StateMachineErrorCard } from '@/components/state-machine/error-card'
+import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
 import DashboardClient from './_components/dashboard-client'
 
 export default async function UnifiedCaseDashboard({
@@ -14,10 +14,10 @@ export default async function UnifiedCaseDashboard({
   let user: Awaited<ReturnType<typeof getCurrentUser>>
   try {
     user = await getCurrentUser()
-  } catch (error) {
+  } catch {
     return (
       <DashboardFallback>
-        <StateMachineErrorCard kind="internal" context={error instanceof Error ? error.message : String(error)} />
+        <StateMachineErrorCard kind="internal" context="The signed-in account could not be loaded." />
       </DashboardFallback>
     )
   }
@@ -27,7 +27,7 @@ export default async function UnifiedCaseDashboard({
       <DashboardFallback>
         <StateMachineErrorCard
           kind="unauthorised"
-          context="No Clerk session or missing Supabase JWT was available to the dashboard server route."
+          context="Sign in to continue to this case."
         />
       </DashboardFallback>
     )
@@ -36,10 +36,10 @@ export default async function UnifiedCaseDashboard({
   let supabase: Awaited<ReturnType<typeof createUserClient>>
   try {
     supabase = await createUserClient()
-  } catch (error) {
+  } catch {
     return (
       <DashboardFallback>
-        <StateMachineErrorCard kind="unauthorised" context={error instanceof Error ? error.message : String(error)} />
+        <StateMachineErrorCard kind="unauthorised" context="The case service is not available right now." />
       </DashboardFallback>
     )
   }
@@ -48,7 +48,6 @@ export default async function UnifiedCaseDashboard({
     .from('cases')
     .select('*')
     .eq('id', caseId)
-    .eq('user_id', user.supabaseUuid)
     .maybeSingle()
 
   if (caseError) {
@@ -56,7 +55,7 @@ export default async function UnifiedCaseDashboard({
       <DashboardFallback>
         <StateMachineErrorCard
           kind={caseError.code === '42501' ? 'rls_violation' : 'internal'}
-          context={`${caseError.code ?? 'unknown'}: ${caseError.message}`}
+          context="The case could not be loaded."
         />
       </DashboardFallback>
     )
@@ -67,17 +66,11 @@ export default async function UnifiedCaseDashboard({
       <DashboardFallback>
         <StateMachineErrorCard
           kind="not_found"
-          context={`No case row returned for case ${caseId} and Supabase UUID ${user.supabaseUuid}.`}
+          context="This case was not found or is not available to this account."
         />
       </DashboardFallback>
     )
   }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('email')
-    .eq('id', user.supabaseUuid)
-    .maybeSingle()
 
   const { data: latestExtract } = await supabase
     .from('case_extract_runs')
@@ -99,10 +92,13 @@ export default async function UnifiedCaseDashboard({
   return (
     <DashboardClient
       caseId={caseId}
-      initialUser={{ id: user.supabaseUuid, email: profile?.email ?? '' }}
       initialCaseSnapshot={{
         institutionName: extract?.case_meta?.institution_name ?? caseData.institution_name ?? null,
         claimAmount: extractedAmount ?? coerceNumber(caseData.claim_amount),
+      }}
+      priceLabels={{
+        report: `S$${PRODUCT_CATALOGUE.self_serve_report.amountSgd}`,
+        tier2: `S$${PRODUCT_CATALOGUE.fidrec_tier2_pack.amountSgd}`,
       }}
     />
   )
@@ -136,7 +132,6 @@ function coerceNumber(value: unknown): number | null {
 function DashboardFallback({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
-      <SiteHeader />
       <main className="container mx-auto max-w-5xl px-4 py-8">{children}</main>
     </div>
   )

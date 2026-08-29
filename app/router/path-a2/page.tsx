@@ -1,252 +1,117 @@
-import Link from "next/link"
-import { ArrowRight, AlertTriangle, MessageSquare, Phone, FileText, ShieldCheck } from "lucide-react"
+﻿import Link from "next/link"
+import { ExternalLink, FileText, MessageSquareText, RadioTower, ShieldAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { SiteHeader } from "@/components/site-header"
 
 export const metadata = {
-  title: "Telco Complaint Guide (SRF Path A2) | GuideBuoy AI",
+  title: "Telecommunications Information | GuideBuoy AI",
 }
 
-const TELCO_CONTACTS = [
-  { name: "Singtel", hotline: "1688", website: "singtel.com/contactus" },
-  { name: "StarHub", hotline: "1633", website: "starhub.com/contactus" },
-  { name: "M1", hotline: "1627", website: "m1.com.sg/contactus" },
-  { name: "TPG Telecom", hotline: "6011 8888", website: "tpgtelecom.com.sg" },
-  { name: "Grid Communications", hotline: "6278 1788", website: "grid.com.sg" },
-]
+const INFORMATION_STEPS = [
+  {
+    title: "Keep the original message details",
+    description:
+      "Keep the message, sender details, date and any related transaction records. Keep originals unchanged where possible.",
+    icon: MessageSquareText,
+  },
+  {
+    title: "Use verified contact details",
+    description:
+      "If you contact a telecommunications provider or financial institution, use contact details from its official website rather than a suspicious message.",
+    icon: RadioTower,
+  },
+  {
+    title: "Review current IMDA information",
+    description:
+      "IMDA publishes current information about scam and spam prevention. Its official website explains the available channels and their scope.",
+    href: "https://www.imda.gov.sg/how-we-can-help/scam-and-spam-prevention",
+    source: "IMDA",
+    icon: ShieldAlert,
+  },
+  {
+    title: "Find the relevant Police e-service",
+    description:
+      "The Singapore Police Force website lists current online reporting services and their requirements.",
+    href: "https://www.police.gov.sg/E-Services",
+    source: "Singapore Police Force",
+    icon: FileText,
+  },
+] as const
 
 export default function PathA2Page() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <Link href="/" className="flex items-center gap-2 w-fit">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">GB</span>
+      <SiteHeader />
+      <main id="main-content" className="gb-container py-8 sm:py-12">
+        <div className="mx-auto max-w-2xl space-y-6">
+          <header className="text-center">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10">
+              <RadioTower className="size-7 text-primary" aria-hidden="true" />
             </div>
-            <span className="font-semibold text-lg">GuideBuoy AI</span>
-          </Link>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-10">
-        <div className="max-w-2xl mx-auto space-y-6">
-
-          {/* Path context badge */}
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">SRF — Telco Liability (Path A2)</Badge>
-          </div>
-
-          {/* Hero */}
-          <div>
-            <h1 className="text-2xl font-bold text-balance mb-2">
-              The telco may be responsible for this scam
-            </h1>
-            <p className="text-muted-foreground text-base">
-              Under Singapore&apos;s Shared Responsibility Framework (SRF), telcos must block fraudulent SMS sender IDs
-              and implement anti-scam filters. If your bank met all its obligations but the telco did not, the telco
-              bears liability — and you can file a complaint with IMDA.
+            <p className="mt-5 text-sm font-semibold uppercase tracking-[0.14em] text-primary">Telecommunications information</p>
+            <h1 className="mt-3 text-3xl font-semibold text-harbor-deep sm:text-4xl">Review current official guidance</h1>
+            <p className="mx-auto mt-4 max-w-xl leading-7 text-muted-foreground">
+              Sender details and telecommunications controls may be relevant to the incident. GuideBuoy cannot determine whether an organisation is responsible or whether a complaint will be accepted.
             </p>
-          </div>
+          </header>
 
-          {/* What happened */}
-          <Card className="rounded-xl border-primary/20 bg-primary/5">
-            <CardContent className="pt-5 space-y-2">
-              <div className="flex items-start gap-3">
-                <ShieldCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-sm">Why you&apos;re on this path</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Your triage suggests your bank likely complied with its SRF duties. Under the SRF waterfall, when
-                    the bank meets its obligations but the telco failed to block a spoofed SMS sender ID, liability
-                    shifts to the telco.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Step-by-step guide */}
-          <Card className="rounded-xl">
-            <CardHeader>
-              <CardTitle className="text-lg">What to do — step by step</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {[
-                {
-                  step: 1,
-                  title: "File a police report first",
-                  icon: FileText,
-                  content: (
-                    <p className="text-sm text-muted-foreground">
-                      File at{" "}
-                      <a
-                        href="https://eservices.police.gov.sg/content/policehubhome/homepage/police-report.html"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline text-primary"
-                      >
-                        police.gov.sg/iwitness
-                      </a>{" "}
-                      or call ScamShield:{" "}
-                      <a href="tel:1799" className="underline text-primary">
-                        1799
-                      </a>
-                      . Keep the police report reference number — IMDA will ask for it.
-                    </p>
-                  ),
-                },
-                {
-                  step: 2,
-                  title: "Preserve all SMS evidence",
-                  icon: MessageSquare,
-                  content: (
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <p>Before contacting IMDA, screenshot and back up:</p>
-                      <ul className="list-disc list-inside space-y-0.5 ml-2">
-                        <li>The fraudulent SMS messages (showing the spoofed sender name)</li>
-                        <li>Your legitimate messages from the same sender name (to show the spoofing)</li>
-                        <li>Bank transaction records</li>
-                        <li>Your bank&apos;s correspondence confirming it met its SRF duties</li>
-                      </ul>
-                    </div>
-                  ),
-                },
-                {
-                  step: 3,
-                  title: "Contact your telco directly first",
-                  icon: Phone,
-                  content: (
-                    <div className="text-sm text-muted-foreground space-y-3">
-                      <p>
-                        Before involving IMDA, raise the issue with your telco. Keep a record of all communications
-                        (date, channel, what was said).
-                      </p>
-                      <div className="grid gap-2">
-                        {TELCO_CONTACTS.map((t) => (
-                          <div
-                            key={t.name}
-                            className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2"
-                          >
-                            <span className="font-medium">{t.name}</span>
-                            <span className="text-muted-foreground">
-                              <a href={`tel:${t.hotline.replace(/\s/g, "")}`} className="underline">
-                                {t.hotline}
-                              </a>{" "}
-                              ·{" "}
-                              <a
-                                href={`https://${t.website}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="underline"
-                              >
-                                {t.website}
-                              </a>
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ),
-                },
-                {
-                  step: 4,
-                  title: "File a complaint with IMDA",
-                  icon: AlertTriangle,
-                  content: (
-                    <div className="text-sm text-muted-foreground space-y-2">
-                      <p>
-                        If the telco does not resolve your complaint satisfactorily, file formally with IMDA — the
-                        regulator for telcos in Singapore.
-                      </p>
-                      <p>
-                        File at:{" "}
-                        <a
-                          href="https://www.imda.gov.sg/complaints"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline text-primary"
-                        >
-                          imda.gov.sg/complaints
-                        </a>
-                      </p>
-                      <p>Include in your complaint:</p>
-                      <ul className="list-disc list-inside space-y-0.5 ml-2">
-                        <li>Police report reference number</li>
-                        <li>Screenshots of the fraudulent SMS with spoofed sender ID</li>
-                        <li>Your telco&apos;s response (or lack of response)</li>
-                        <li>Approximate date and amount lost</li>
-                        <li>Your bank&apos;s confirmation that it complied with SRF duties</li>
-                      </ul>
-                    </div>
-                  ),
-                },
-              ].map(({ step, title, icon: Icon, content }) => (
-                <div key={step} className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
-                    {step}
-                  </div>
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <p className="font-medium text-sm">{title}</p>
-                    </div>
-                    {content}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* FIDReC parallel path */}
-          <Card className="rounded-xl bg-muted/50">
-            <CardContent className="pt-5">
-              <p className="text-sm font-medium mb-1">Can I still go to FIDReC?</p>
-              <p className="text-sm text-muted-foreground">
-                Yes. If you believe your bank also played a role, you can pursue FIDReC at the same time as your IMDA
-                complaint. The two paths are not mutually exclusive. FIDReC filing is free.
-              </p>
-              <Button asChild variant="outline" size="sm" className="mt-3 rounded-full">
-                <Link href="/onboarding">
-                  Also build a FIDReC case
-                  <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Legal disclaimer */}
-          <p className="text-xs text-center text-muted-foreground">
-            GuideBuoy AI is not a law firm and does not provide legal advice. This guide is for general information
-            only. For professional advice, visit{" "}
-            <a href="https://probono.sg" target="_blank" rel="noopener noreferrer" className="underline">
-              Pro Bono SG
-            </a>
-            .
+          <p className="rounded-xl border bg-muted/40 p-4 text-sm text-muted-foreground" role="note">
+            Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
           </p>
 
-          {/* Crisis footer */}
-          <div className="text-center text-xs text-muted-foreground space-y-1 pt-2 border-t border-border/50">
-            <p className="font-medium">Need immediate support?</p>
-            <p>
-              Samaritans (SOS):{" "}
-              <a href="tel:1767" className="underline">
-                1767
-              </a>{" "}
-              · SAGE Counselling:{" "}
-              <a href="tel:18005555555" className="underline">
-                1800-555-5555
-              </a>{" "}
-              · National Care Hotline:{" "}
-              <a href="tel:18002026868" className="underline">
-                1800-202-6868
-              </a>
-            </p>
+          <section aria-labelledby="information-steps-heading">
+            <h2 id="information-steps-heading" className="sr-only">Information to keep and official sources</h2>
+            <div className="space-y-4">
+              {INFORMATION_STEPS.map((step, index) => {
+                const Icon = step.icon
+                return (
+                  <Card key={step.title}>
+                    <CardHeader className="flex flex-row items-start gap-3">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary" aria-hidden="true">{index + 1}</span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Icon className="size-4 text-primary" aria-hidden="true" />
+                          <h3 className="font-semibold">{step.title}</h3>
+                        </div>
+                        <p className="mt-1 text-sm leading-6 text-muted-foreground">{step.description}</p>
+                      </div>
+                    </CardHeader>
+                    {"href" in step && step.href && (
+                      <CardContent>
+                        <Button asChild variant="outline" className="w-full sm:w-auto">
+                          <a href={step.href} target="_blank" rel="noopener noreferrer">
+                            Open {step.source}<ExternalLink className="ml-2 size-4" aria-hidden="true" />
+                          </a>
+                        </Button>
+                      </CardContent>
+                    )}
+                  </Card>
+                )
+              })}
+            </div>
+          </section>
+
+          <Card className="bg-muted/40">
+            <CardContent className="space-y-3 pt-0">
+              <h2 className="font-semibold">A financial-dispute route may also be relevant</h2>
+              <p className="text-sm leading-6 text-muted-foreground">
+                If a financial institution was involved, review its complaints process and confirm current FIDReC eligibility directly with FIDReC. GuideBuoy does not decide eligibility.
+              </p>
+              <Button asChild variant="outline"><Link href="/onboarding">Start organising my case</Link></Button>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button asChild><Link href="/resources">Browse official resources</Link></Button>
+            <Button asChild variant="outline"><Link href="/router/results">Back to my result</Link></Button>
           </div>
+
+          <p className="text-center text-xs leading-5 text-muted-foreground">
+            GuideBuoy helps organise information. It does not decide your case or provide legal advice. External organisations are not affiliated with or endorsed by GuideBuoy.
+          </p>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

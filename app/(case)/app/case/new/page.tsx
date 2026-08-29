@@ -1,38 +1,34 @@
-import { redirect } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 
 export default async function NewCasePage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
-          <Card className="rounded-xl shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-2xl">Create New Case for a Client</CardTitle>
-              <CardDescription>
-                Start a free triage to assess eligibility. You can invite your client to take over ownership later.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                We&apos;ll guide you through a few questions to classify the report and recommend next steps.
-              </p>
-              <Link href="/router">
-                <Button variant="default" size="lg" className="rounded-full w-full">Start Free Triage</Button>
-              </Link>
-              <p className="text-xs text-muted-foreground text-center">
-                After triage, use &quot;Invite a Helper/Client&quot; from the dashboard to share and transfer case ownership.
-              </p>
-            </CardContent>
-          </Card>
+    <main className="gb-container py-10 sm:py-16">
+      <section className="gb-card mx-auto max-w-2xl p-6 sm:p-8" aria-labelledby="new-case-title">
+        <p className="gb-eyebrow">New case</p>
+        <h1 id="new-case-title" className="gb-display mt-3 text-4xl font-semibold text-harbor-deep">
+          Start in the way that feels easier.
+        </h1>
+        <p className="mt-4 leading-7 text-muted-foreground">
+          Tell your story in your own words or begin with guided questions. GuideBuoy helps organise information; it does not submit a complaint or decide your case.
+        </p>
+        <div className="mt-7 grid gap-3 sm:grid-cols-2">
+          <Button asChild size="lg" className="min-h-11">
+            <Link href="/#tell-your-story">Tell your story</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="min-h-11">
+            <Link href="/router">Answer guided questions</Link>
+          </Button>
         </div>
-      </div>
-    </div>
+        <p className="mt-6 text-sm leading-6 text-muted-foreground">
+          Your case information may indicate a next step. Check the official requirements before acting.
+        </p>
+      </section>
+    </main>
   )
 }

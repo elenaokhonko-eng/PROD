@@ -98,6 +98,10 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
 
   if (!eligibility) return 'T-EligibilityGate'
 
+  if (!eligibility.eligible_actions.run_report_selfserve) {
+    return 'T-EligibilityGate'
+  }
+
   if (eligibility.plan !== 'self_serve_report') {
     return 'T-BuyReportCTA'
   }

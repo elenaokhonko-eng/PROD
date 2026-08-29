@@ -33,7 +33,7 @@ export function Tier2PackView({
 }: Tier2PackViewProps) {
   if (isLoading && !pack) {
     return (
-      <Card className="border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/20">
+      <Card className="border-harbor-success/40 bg-harbor-success-tint">
         <CardHeader>
           <CardTitle>Preparing your FIDReC Tier 2 pack</CardTitle>
           <CardDescription>Generating the executive summary and chronology.</CardDescription>
@@ -68,7 +68,7 @@ export function Tier2PackView({
 
   return (
     <div className="space-y-6">
-      <Card className="border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/20">
+      <Card className="border-harbor-success/40 bg-harbor-success-tint">
         <CardHeader className="flex flex-row items-start gap-3">
           <div className="flex-1">
             <CardTitle>FIDReC Tier 2 pack is ready</CardTitle>
@@ -79,6 +79,9 @@ export function Tier2PackView({
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
+          <p className="rounded-lg border bg-background/70 p-3 text-sm text-muted-foreground" role="note">
+            Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+          </p>
           {errorMessage ? (
             <p className="text-sm text-destructive" role="alert">
               {errorMessage}
