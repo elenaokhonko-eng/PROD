@@ -7,6 +7,14 @@ import { useSupabaseBrowser } from '@/hooks/state-machine/use-supabase-browser'
 const RealtimeContext = createContext<SupabaseClient | null>(null)
 
 export function RealtimeProvider({ children }: { children: ReactNode }) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return <>{children}</>
+  }
+
+  return <ConfiguredRealtimeProvider>{children}</ConfiguredRealtimeProvider>
+}
+
+function ConfiguredRealtimeProvider({ children }: { children: ReactNode }) {
   const supabase = useSupabaseBrowser()
   const value = useMemo(() => supabase, [supabase])
   return <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>

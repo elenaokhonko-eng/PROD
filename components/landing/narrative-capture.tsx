@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { FileText, Loader2, Mic, Pause, Play, Square, Trash2, WifiOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { createRouterSession, getSessionToken, updateRouterSession } from '@/lib/router-session'
 import { trackClientEvent } from '@/lib/analytics/client'
 import { persistPendingNarrative, readPendingNarrative } from '@/components/landing/hero-capture'
 
@@ -42,12 +41,6 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
     updateOnlineStatus()
     window.addEventListener('online', updateOnlineStatus)
     window.addEventListener('offline', updateOnlineStatus)
-
-    if (navigator.onLine && !getSessionToken()) {
-      void createRouterSession().catch(() => {
-        setError('The complaint helper could not start. Check your connection and try again.')
-      })
-    }
 
     return () => {
       window.removeEventListener('online', updateOnlineStatus)
@@ -186,21 +179,14 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
     setError(null)
     setIsProcessing(true)
     try {
-      let sessionToken = getSessionToken()
-      if (!sessionToken) {
-        await createRouterSession()
-        sessionToken = getSessionToken()
-      }
-      if (!sessionToken) throw new Error('No session token found')
-      await updateRouterSession(sessionToken, { dispute_narrative: narrative.trim() })
       persistPendingNarrative({ narrative: narrative.trim(), transcript: inputMethod === 'voice' ? narrative.trim() : undefined })
       await trackClientEvent({
         eventName: 'story_submitted',
-        sessionId: sessionToken,
+        sessionId: null,
         pageUrl: window.location.href,
         eventData: { narrative_length: narrative.trim().length, input_method: inputMethod },
       })
-      router.push('/router/classify')
+      router.push('/sign-up?redirect_url=/onboarding')
     } catch {
       setError('Your story could not be saved. It is still here — check your connection and try again.')
     } finally {

@@ -27,6 +27,7 @@ const productionSource = sourceTree('app', 'components', 'hooks', 'lib')
 const dashboardSource = readSource('app/(case)/app/case/[id]/dashboard/_components/dashboard-client.tsx')
 const onboardingSource = readSource('app/(auth)/onboarding/page.tsx')
 const routerSource = readSource('app/router/page.tsx')
+const narrativeCaptureSource = readSource('components/landing/narrative-capture.tsx')
 const settingsSource = readSource('app/(case)/app/settings/_components/settings-client.tsx')
 const stateMachineSource = readSource('hooks/state-machine/use-state-machine.ts')
 const paymentStatusSource = readSource('hooks/state-machine/transition/use-payment-status.ts')
@@ -63,19 +64,16 @@ describe('Harbor UI functionality contract', () => {
 
   it('preserves narrative capture while using the canonical authenticated bootstrap', () => {
     protects([
-      '/api/router/session',
       '/api/transcribe',
-      '/api/router/classify',
-      '/api/router/assess',
       'story_submitted',
-      '/router/classify',
-      '/router/results',
+      '/sign-up?redirect_url=/onboarding',
     ])
     assert.match(onboardingSource, /readPendingNarrative/)
     assert.match(onboardingSource, /\/api\/cases\/bootstrap/)
     assert.match(onboardingSource, /router_conversion_imported/)
     assert.match(routerSource, /clearPendingNarrative\(\)/)
     assert.doesNotMatch(onboardingSource, /create-from-session/)
+    assert.doesNotMatch(narrativeCaptureSource, /createRouterSession|updateRouterSession|getSessionToken/)
     assert.doesNotMatch(readSource('app/layout.tsx'), /PendingNarrativeHandoff/)
     assert.doesNotMatch(readSource('components/landing/hero-capture.tsx'), /Clerk|unsafeMetadata/)
   })
