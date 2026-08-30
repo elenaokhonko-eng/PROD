@@ -51,7 +51,7 @@
 |---|---|---|
 | `git diff --check` | Passed | Checks this delivery’s whitespace/errors only. |
 | `npm run typecheck` | Passed | Static TypeScript validation only. |
-| `npm run build` | Not release-valid in this workspace | Compilation previously completed, but route-data collection requires the existing `GOOGLE_GENERATIVE_AI_API_KEY`. No credential is added by this delivery. |
+| `npm run build` | Passed | Built with non-production public Supabase placeholders only; deployed environments still require their configured public Supabase values and runtime AI routes return unavailable when Gemini is absent. |
 
 ## Explicitly blocked activation
 

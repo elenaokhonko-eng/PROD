@@ -3,12 +3,6 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/ge
 import { z } from "zod"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
 
-const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-if (!API_KEY) {
-  throw new Error("GOOGLE_GENERATIVE_AI_API_KEY environment variable not set.")
-}
-
-const genAI = new GoogleGenerativeAI(API_KEY)
 const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-2.0-flash"
 
 function scrub<T>(obj: T): T {
@@ -47,6 +41,12 @@ export async function POST(request: NextRequest) {
     const { session_token: sessionToken, classification } = parsed
     void sessionToken
 
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) {
+      return NextResponse.json({ error: "Questions service is unavailable" }, { status: 503 })
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({
       model: modelName,
       generationConfig: { responseMimeType: "application/json" },

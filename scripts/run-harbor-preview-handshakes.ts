@@ -25,4 +25,9 @@ const result = spawnSync(
 )
 
 if (result.error) throw result.error
+if (result.status === 0) {
+  console.log(
+    `Timestamped evidence: ${process.env.HARBOR_PREVIEW_EVIDENCE_FILE ?? "test-results/harbor-preview-handshake-evidence.jsonl"}`,
+  )
+}
 process.exitCode = result.status ?? 1

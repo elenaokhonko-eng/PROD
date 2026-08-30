@@ -34,34 +34,43 @@ export function mapEvidenceCategoryToDocumentType(category: string): string | nu
 
 export type ProfileCaseAccess = "ok" | "not_found" | "forbidden"
 
+type CaseAccessRpcRow = {
+  access_result: ProfileCaseAccess
+}
+
+async function getProfileCaseAccessByMode(
+  supabase: SupabaseClient,
+  caseId: string,
+  profileId: string,
+  requireEdit: boolean,
+): Promise<ProfileCaseAccess> {
+  const { data, error } = await supabase.rpc("case_actor_access_v1", {
+    p_case_id: caseId,
+    p_actor_profile_id: profileId,
+    p_require_edit: requireEdit,
+  })
+  if (error || !data) return "not_found"
+
+  const row = (Array.isArray(data) ? data[0] : data) as CaseAccessRpcRow | undefined
+  return row?.access_result === "ok" || row?.access_result === "forbidden"
+    ? row.access_result
+    : "not_found"
+}
+
 export async function getProfileCaseAccess(
   supabase: SupabaseClient,
   caseId: string,
   profileId: string
 ): Promise<ProfileCaseAccess> {
-  const { data: caseRow, error: caseError } = await supabase
-    .from("cases")
-    .select("id, user_id")
-    .eq("id", caseId)
-    .maybeSingle()
+  return getProfileCaseAccessByMode(supabase, caseId, profileId, false)
+}
 
-  if (caseError || !caseRow) {
-    return "not_found"
-  }
-
-  if (caseRow.user_id === profileId) {
-    return "ok"
-  }
-
-  const { data: collaborator } = await supabase
-    .from("case_collaborators")
-    .select("user_id")
-    .eq("case_id", caseId)
-    .eq("user_id", profileId)
-    .eq("status", "active")
-    .maybeSingle()
-
-  return collaborator ? "ok" : "forbidden"
+export async function getProfileCaseEditAccess(
+  supabase: SupabaseClient,
+  caseId: string,
+  profileId: string
+): Promise<ProfileCaseAccess> {
+  return getProfileCaseAccessByMode(supabase, caseId, profileId, true)
 }
 
 export async function profileHasCaseAccess(
@@ -116,7 +125,7 @@ export async function registerCaseDocumentFromEvidenceV1(
   const storageBucket = args.storageBucket ?? EVIDENCE_STORAGE_BUCKET
   const initialProcessingStatus = args.initialProcessingStatus ?? "uploaded"
 
-  const access = await getProfileCaseAccess(supabase, caseId, profileId)
+  const access = await getProfileCaseEditAccess(supabase, caseId, profileId)
   if (access === "not_found") {
     return { ok: false, error: "Case not found" }
   }

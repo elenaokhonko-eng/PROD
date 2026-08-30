@@ -7,8 +7,13 @@ export type ProductKey = 'self_serve_report' | 'fidrec_tier2_pack' | 'human_cons
 
 interface CreateCheckoutSessionResponse {
   url?: string | null
+  reconciled?: boolean
   error?: string
 }
+
+export type CreateCheckoutSessionResult =
+  | { status: 'redirect'; url: string }
+  | { status: 'reconciled' }
 
 export interface CreateCheckoutSessionInput {
   caseId: string
@@ -39,11 +44,15 @@ export function useCreateCheckoutSession() {
         throw new Error(json?.error ?? 'Failed to create checkout session')
       }
 
+      if (json?.reconciled === true) {
+        return { status: 'reconciled' } satisfies CreateCheckoutSessionResult
+      }
+
       if (!json?.url) {
         throw new Error('Checkout session did not return a redirect URL')
       }
 
-      return { url: json.url }
+      return { status: 'redirect', url: json.url } satisfies CreateCheckoutSessionResult
     },
   })
 }

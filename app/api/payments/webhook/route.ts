@@ -2,8 +2,69 @@ import { NextResponse, type NextRequest } from "next/server"
 import Stripe from "stripe"
 import { createServiceClient } from "@/lib/supabase/service"
 import { fulfilCheckoutSessionCompleted } from "@/lib/payments/fulfil-checkout-session"
+import { reconcilePaymentLifecycleEvents as reconcilePaymentLifecycle } from "@/lib/payments/reconcile-payment-lifecycle"
 
 export const dynamic = "force-dynamic"
+
+async function reconcilePaymentLifecycleEvents(
+  supabase: ReturnType<typeof createServiceClient>,
+  paymentIntentId: string,
+): Promise<void> {
+  await reconcilePaymentLifecycle(
+    {
+      loadPurchase: async (intentId) => {
+        const { data, error } = await supabase
+          .from("case_purchases")
+          .select("id, case_id")
+          .eq("provider_payment_intent_id", intentId)
+          .maybeSingle()
+        if (error) throw new Error(error.message)
+        return data
+      },
+      loadEvents: async (intentId) => {
+        const { data, error } = await supabase
+          .from("payment_webhook_events")
+          .select("id, event_type, payload")
+          .in("event_type", ["charge.refunded", "charge.dispute.created"])
+          .in("processing_status", ["received", "failed"])
+          .contains("payload", { payment_intent_id: intentId })
+          .order("created_at", { ascending: true })
+        if (error) throw new Error(error.message)
+        return (data ?? []) as Array<{
+          id: string
+          event_type: "charge.refunded" | "charge.dispute.created"
+          payload: Record<string, unknown>
+        }>
+      },
+      markLedger: async (ledgerId, patch) => {
+        const { error } = await supabase
+          .from("payment_webhook_events")
+          .update(patch)
+          .eq("id", ledgerId)
+        if (error) throw new Error(error.message)
+      },
+      recordRefund: async (args) => {
+        const { error } = await supabase.rpc("record_case_purchase_refund_v1", {
+          p_purchase_id: args.purchaseId,
+          p_payment_intent_id: args.paymentIntentId,
+          p_refunded_amount: args.refundedAmount,
+          p_currency: args.currency,
+        })
+        if (error) throw new Error(error.message)
+      },
+      recordDispute: async (args) => {
+        const { error } = await supabase.rpc("record_case_purchase_dispute_v1", {
+          p_purchase_id: args.purchaseId,
+          p_payment_intent_id: args.paymentIntentId,
+          p_disputed_at: args.disputedAt,
+        })
+        if (error) throw new Error(error.message)
+      },
+      nowIso: () => new Date().toISOString(),
+    },
+    paymentIntentId,
+  )
+}
 
 export async function POST(request: NextRequest) {
   const stripeSecret = process.env.STRIPE_SECRET_KEY
@@ -32,12 +93,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const supabase = createServiceClient()
-
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session
         const paymentIntentId =
-          typeof session.payment_intent === "string" ? session.payment_intent : null
+          typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : session.payment_intent?.id ?? null
 
         const result = await fulfilCheckoutSessionCompleted(
           {
@@ -64,12 +126,19 @@ export async function POST(request: NextRequest) {
                 .eq("id", ledgerId)
               if (error) throw new Error(error.message)
             },
-            completeLegacyPayment: async (paymentRowId) => {
-              const { error } = await supabase
-                .from("payments")
-                .update({ payment_status: "completed" })
-                .eq("id", paymentRowId)
-              if (error) throw new Error(error.message)
+            completeLegacyPayment: async (args) => {
+              const { data, error } = await supabase.rpc("complete_legacy_payment_v1", {
+                p_payment_id: args.paymentRowId,
+                p_case_id: args.caseId,
+                p_owner_user_id: args.ownerUserId,
+                p_amount: args.amountSgd,
+                p_currency: args.currency,
+                p_service_type: args.serviceType,
+                p_payment_intent_id: args.paymentIntentId,
+              })
+              if (error || !data) {
+                throw new Error(error?.message ?? "legacy payment identity mismatch")
+              }
             },
             loadCase: async (caseId) => {
               const { data, error } = await supabase
@@ -80,27 +149,31 @@ export async function POST(request: NextRequest) {
               if (error) throw new Error(error.message)
               return data
             },
+            loadPurchase: async (args) => {
+              const { data, error } = await supabase
+                .from("case_purchases")
+                .select(
+                  "id, user_id, case_id, product_code, payment_status, amount, currency, provider_checkout_session_id, fulfilment_provider_event_id",
+                )
+                .eq("id", args.purchaseId)
+                .maybeSingle()
+              if (error) throw new Error(error.message)
+              return data
+            },
             upsertPaidPurchase: async (args) => {
-              const { data, error } = await supabase.rpc("upsert_case_purchase_from_provider", {
+              const { data, error } = await supabase.rpc("mark_case_purchase_paid_v1", {
+                p_purchase_id: args.purchaseId,
                 p_case_id: args.caseId,
                 p_product_code: args.productCode,
                 p_amount: args.amount,
                 p_currency: args.currency,
-                p_payment_provider: "stripe",
-                p_provider_checkout_session_id: args.checkoutSessionId,
-                p_provider_payment_intent_id: args.paymentIntentId,
-                p_payment_status: "paid",
-                p_purchased_by_profile_id: null,
-                p_fulfilment_provider_event_id: args.fulfilmentEventId,
-                p_paid_at: new Date().toISOString(),
-                p_refunded_amount: null,
-                p_disputed_at: null,
-                p_cancelled_at: null,
+                p_checkout_session_id: args.checkoutSessionId,
+                p_payment_intent_id: args.paymentIntentId,
+                p_fulfilment_event_id: args.fulfilmentEventId,
                 p_metadata: {
                   checkout_product_key: args.checkoutProductKey,
                   stripe_event_id: args.fulfilmentEventId,
                 },
-                p_actor_profile_id: null,
               })
               if (error || !data) {
                 throw new Error(error?.message ?? "upsert_case_purchase_from_provider failed")
@@ -123,25 +196,9 @@ export async function POST(request: NextRequest) {
               if (error) throw new Error(error.message)
             },
             upsertEscalationPackEntitlement: async (args) => {
-              const { error } = await supabase.from("case_entitlements").upsert(
-                {
-                  case_id: args.caseId,
-                  plan: "escalation_pack",
-                  features: { allow_escalation_pack: true },
-                  source: "stripe",
-                  purchase_ref: args.purchaseRef,
-                  updated_at: new Date().toISOString(),
-                },
-                { onConflict: "case_id" },
-              )
-              if (error) throw new Error(error.message)
-            },
-            createConsultation: async (args) => {
-              const { error } = await supabase.rpc("create_consultation_from_paid_purchase", {
-                p_purchase_id: args.purchaseId,
-                p_duration_minutes: args.durationMinutes,
-                p_actor_profile_id: null,
-                p_actor_type: "system",
+              const { error } = await supabase.rpc("grant_fidrec_pack_capability_v1", {
+                p_case_id: args.caseId,
+                p_purchase_ref: args.purchaseRef,
               })
               if (error) throw new Error(error.message)
             },
@@ -150,9 +207,12 @@ export async function POST(request: NextRequest) {
           {
             eventId: event.id,
             sessionId: session.id,
+            mode: session.mode,
+            paymentStatus: session.payment_status,
             amountTotalCents: session.amount_total,
             currency: session.currency,
             paymentIntentId,
+            clientReferenceId: session.client_reference_id,
             metadata: session.metadata,
           },
         )
@@ -161,12 +221,18 @@ export async function POST(request: NextRequest) {
           console.error("[payments] checkout fulfilment failed:", result.error)
           return new NextResponse("Webhook handler failed", { status: 500 })
         }
+        if (
+          paymentIntentId &&
+          (result.status === "processed" || result.status === "duplicate")
+        ) {
+          await reconcilePaymentLifecycleEvents(supabase, paymentIntentId)
+        }
 
         break
       }
       case "payment_intent.succeeded": {
         const pi = event.data.object as Stripe.PaymentIntent
-        await supabase.rpc("record_payment_webhook_event", {
+        const { error } = await supabase.rpc("record_payment_webhook_event", {
           p_payment_provider: "stripe",
           p_provider_event_id: event.id,
           p_event_type: event.type,
@@ -176,55 +242,103 @@ export async function POST(request: NextRequest) {
           p_payload: { payment_intent_id: pi.id },
           p_error: null,
         })
-        await supabase
-          .from("payments")
-          .update({ payment_status: "completed" })
-          .eq("stripe_payment_intent_id", pi.id)
+        if (error) throw new Error(error.message)
         break
       }
       case "checkout.session.expired": {
         const session = event.data.object as Stripe.Checkout.Session
-        await supabase.rpc("record_payment_webhook_event", {
+        const { data: ledger, error: ledgerError } = await supabase.rpc("record_payment_webhook_event", {
           p_payment_provider: "stripe",
           p_provider_event_id: event.id,
           p_event_type: event.type,
           p_case_purchase_id: session.metadata?.case_purchase_id ?? null,
           p_case_id: session.metadata?.case_id ?? null,
-          p_processing_status: "processed",
+          p_processing_status: "received",
           p_payload: { session_id: session.id },
           p_error: null,
         })
+        if (ledgerError || !ledger) {
+          throw new Error(ledgerError?.message ?? "Failed to record expired Checkout session")
+        }
+
         const paymentRowId = session.metadata?.payment_row_id
-        if (paymentRowId) {
-          await supabase
-            .from("payments")
-            .update({ payment_status: "failed" })
-            .eq("id", paymentRowId)
+        const casePurchaseId = session.metadata?.case_purchase_id
+        if (paymentRowId && casePurchaseId) {
+          const { error } = await supabase.rpc("cancel_checkout_reservation_v1", {
+            p_purchase_id: casePurchaseId,
+            p_legacy_payment_id: paymentRowId,
+            p_checkout_session_id: session.id,
+          })
+          if (error) throw new Error(error.message)
         }
-        if (session.metadata?.case_purchase_id) {
-          await supabase
-            .from("case_purchases")
-            .update({
-              payment_status: "cancelled",
-              cancelled_at: new Date().toISOString(),
-            })
-            .eq("id", session.metadata.case_purchase_id)
-            .eq("payment_status", "pending")
-        }
+
+        const ledgerId = (ledger as { id?: string }).id
+        if (!ledgerId) throw new Error("Expired Checkout ledger has no id")
+        const { error: processedError } = await supabase
+          .from("payment_webhook_events")
+          .update({
+            processing_status: "processed",
+            error: null,
+            processed_at: new Date().toISOString(),
+          })
+          .eq("id", ledgerId)
+        if (processedError) throw new Error(processedError.message)
         break
       }
-      case "charge.refunded":
-      case "charge.dispute.created": {
-        await supabase.rpc("record_payment_webhook_event", {
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge
+        const paymentIntentId =
+          typeof charge.payment_intent === "string"
+            ? charge.payment_intent
+            : charge.payment_intent?.id ?? null
+        const { error } = await supabase.rpc("record_payment_webhook_event", {
           p_payment_provider: "stripe",
           p_provider_event_id: event.id,
           p_event_type: event.type,
           p_case_purchase_id: null,
           p_case_id: null,
-          p_processing_status: "received",
-          p_payload: event.data.object as unknown as Record<string, unknown>,
-          p_error: null,
+          p_processing_status: paymentIntentId ? "received" : "ignored",
+          p_payload: {
+            charge_id: charge.id,
+            payment_intent_id: paymentIntentId,
+            amount_refunded: charge.amount_refunded,
+            currency: charge.currency,
+          },
+          p_error: paymentIntentId ? null : "Refunded charge has no PaymentIntent",
         })
+        if (error) throw new Error(error.message)
+        if (paymentIntentId) {
+          await reconcilePaymentLifecycleEvents(supabase, paymentIntentId)
+        }
+        break
+      }
+      case "charge.dispute.created": {
+        const dispute = event.data.object as Stripe.Dispute
+        const paymentIntentId =
+          typeof dispute.payment_intent === "string"
+            ? dispute.payment_intent
+            : dispute.payment_intent?.id ?? null
+        const { error } = await supabase.rpc("record_payment_webhook_event", {
+          p_payment_provider: "stripe",
+          p_provider_event_id: event.id,
+          p_event_type: event.type,
+          p_case_purchase_id: null,
+          p_case_id: null,
+          p_processing_status: paymentIntentId ? "received" : "ignored",
+          p_payload: {
+            dispute_id: dispute.id,
+            charge_id: typeof dispute.charge === "string" ? dispute.charge : dispute.charge.id,
+            payment_intent_id: paymentIntentId,
+            disputed_at: new Date(event.created * 1000).toISOString(),
+            amount: dispute.amount,
+            currency: dispute.currency,
+          },
+          p_error: paymentIntentId ? null : "Dispute has no PaymentIntent",
+        })
+        if (error) throw new Error(error.message)
+        if (paymentIntentId) {
+          await reconcilePaymentLifecycleEvents(supabase, paymentIntentId)
+        }
         break
       }
       default:

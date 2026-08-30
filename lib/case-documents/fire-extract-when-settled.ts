@@ -21,15 +21,14 @@ const inFlightByCase = new Map<string, Promise<FireExtractWhenSettledResult>>()
 export async function fireExtractWhenSettled(args: {
   caseId: string
   docs: DocStatusRow[]
-  edgeProxyBaseUrl?: string
-  workerSecret?: string
-  /** @deprecated kept for older tests/callers; extract now goes through /api/edge/extract. */
+  invokeExtract?: () => Promise<{ ok: boolean; httpStatus: number; error?: string }>
+  /** @deprecated kept for older tests/callers. */
   supabaseUrl?: string
-  /** @deprecated kept for older tests/callers; extract now uses WORKER_SECRET. */
+  /** @deprecated kept for older tests/callers. */
   serviceKey?: string
   allowPartialEvidence?: boolean
 }): Promise<FireExtractWhenSettledResult> {
-  const { caseId, docs, allowPartialEvidence = false } = args
+  const { caseId, docs } = args
   const counts = countDocumentReadiness(docs)
 
   if (!areDocumentsSettled(docs)) {
@@ -39,45 +38,26 @@ export async function fireExtractWhenSettled(args: {
   const existing = inFlightByCase.get(caseId)
   if (existing) return { status: "skipped_overlap" }
 
-  const edgeProxyBaseUrl = args.edgeProxyBaseUrl ?? process.env.NEXT_PUBLIC_APP_URL
-  const workerSecret = args.workerSecret ?? process.env.WORKER_SECRET
-  if (!edgeProxyBaseUrl || !workerSecret) {
-    return { status: "fired", ok: false, http_status: 0, error: "missing_edge_proxy_env" }
+  if (!args.invokeExtract) {
+    return { status: "fired", ok: false, http_status: 0, error: "missing_extract_invoker" }
   }
 
   const work = (async (): Promise<FireExtractWhenSettledResult> => {
-    const url = new URL("/api/edge/extract", edgeProxyBaseUrl)
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-worker-secret": workerSecret,
-      },
-      body: JSON.stringify({
-        case_id: caseId,
-        allow_partial_evidence: allowPartialEvidence === true,
-      }),
-    })
+    const outcome = await args.invokeExtract!()
 
-    const json = (await res.json().catch(() => null)) as {
-      error?: string
-      ok?: boolean
-    } | null
-
-    if (res.status === 409 && json?.error === "documents_not_ready") {
+    if (outcome.httpStatus === 409 && outcome.error === "documents_not_ready") {
       return { status: "pending_documents_not_ready" }
     }
-
-    if (!res.ok) {
+    if (!outcome.ok) {
       return {
         status: "fired",
         ok: false,
-        http_status: res.status,
-        error: json?.error ?? `http_${res.status}`,
+        http_status: outcome.httpStatus,
+        error: outcome.error ?? `http_${outcome.httpStatus}`,
       }
     }
 
-    return { status: "fired", ok: true, http_status: res.status }
+    return { status: "fired", ok: true, http_status: outcome.httpStatus }
   })().finally(() => {
     inFlightByCase.delete(caseId)
   })

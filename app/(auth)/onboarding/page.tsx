@@ -17,6 +17,23 @@ import {
 } from "@/lib/router-session"
 import { trackClientEvent } from "@/lib/analytics/client"
 
+const BOOTSTRAP_IDEMPOTENCY_KEY = "gb_bootstrap_idempotency_key"
+const BOOTSTRAP_REQUEST_FINGERPRINT = "gb_bootstrap_request_fingerprint"
+
+async function getOrCreateBootstrapIdempotencyKey(requestBody: unknown) {
+  const encoded = new TextEncoder().encode(JSON.stringify(requestBody))
+  const digest = await crypto.subtle.digest("SHA-256", encoded)
+  const fingerprint = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")
+  const existing = sessionStorage.getItem(BOOTSTRAP_IDEMPOTENCY_KEY)
+  if (existing && sessionStorage.getItem(BOOTSTRAP_REQUEST_FINGERPRINT) === fingerprint) {
+    return existing
+  }
+  const created = crypto.randomUUID()
+  sessionStorage.setItem(BOOTSTRAP_IDEMPOTENCY_KEY, created)
+  sessionStorage.setItem(BOOTSTRAP_REQUEST_FINGERPRINT, fingerprint)
+  return created
+}
+
 export default function OnboardingPage() {
   const router = useRouter()
   const { isLoaded, isSignedIn } = useAuth()
@@ -66,7 +83,10 @@ export default function OnboardingPage() {
         setError(null)
         const response = await fetch("/api/cases/bootstrap", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": await getOrCreateBootstrapIdempotencyKey(pending),
+          },
           body: JSON.stringify(pending),
           signal: controller.signal,
         })
@@ -84,6 +104,8 @@ export default function OnboardingPage() {
 
         const legacySessionId = getSessionToken()
         clearPendingNarrative()
+        sessionStorage.removeItem(BOOTSTRAP_IDEMPOTENCY_KEY)
+        sessionStorage.removeItem(BOOTSTRAP_REQUEST_FINGERPRINT)
         clearConvertedRouterSessionToken()
         clearSessionToken()
         setStatus("complete")

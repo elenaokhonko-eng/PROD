@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai"
 
-const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-if (!API_KEY) {
-  throw new Error("GOOGLE_GENERATIVE_AI_API_KEY environment variable not set.")
-}
-
-const genAI = new GoogleGenerativeAI(API_KEY)
 const modelName = "gemini-2.5-pro"
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -16,6 +10,12 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 export async function POST(req: NextRequest) {
   console.log("Transcription request received (using @google/generative-ai)")
   try {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) {
+      return NextResponse.json({ error: "Transcription service is unavailable" }, { status: 503 })
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey)
     const formData = await req.formData()
     const file = formData.get("audio") as File | null
 

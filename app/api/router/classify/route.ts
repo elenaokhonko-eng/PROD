@@ -7,12 +7,6 @@ import { getNextStepsForRuleEngine } from "@/lib/rules"
 import { logger } from "@/lib/logger"
 import type { TriageSignals } from "@/lib/rules"
 
-const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-if (!API_KEY) {
-  throw new Error("GOOGLE_GENERATIVE_AI_API_KEY environment variable not set.")
-}
-
-const genAI = new GoogleGenerativeAI(API_KEY)
 const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-2.0-flash"
 const log = logger.withContext({ module: "router-classify", model: modelName })
 
@@ -116,6 +110,13 @@ export async function POST(request: NextRequest) {
     const { session_token: sessionToken, narrative } = parsedBody
     void sessionToken
 
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) {
+      log.error("Classification AI service is not configured")
+      return NextResponse.json({ error: "Classification service is unavailable" }, { status: 503 })
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey)
     const sanitizedNarrative = sanitizeText(narrative)
 
     const userPrompt = `User narrative:

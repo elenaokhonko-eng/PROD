@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { getCurrentUser } from "@/lib/auth"
-import {
-  EVIDENCE_STORAGE_BUCKET,
-  getProfileCaseAccess,
-  registerCaseDocumentFromEvidenceV1,
-} from "@/lib/case-documents/register-from-evidence-v1"
-import { EVIDENCE_FN } from "@/lib/edge-functions"
+import { getProfileCaseEditAccess } from "@/lib/case-documents/register-from-evidence-v1"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const runtime = "nodejs"
@@ -24,6 +19,27 @@ type ProcessResult = {
   error?: string | null
 }
 
+type EvidenceDispatchResult = {
+  evidence_id: string
+  document_id: string
+  job_id: string
+  job_status: string
+  queued: boolean
+  skipped: boolean
+}
+
+type EvidenceJob = {
+  id: string
+  document_id: string | null
+  status: string
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function firstRpcRow<T>(data: T | T[] | null): T | null {
+  return Array.isArray(data) ? (data[0] ?? null) : data
+}
+
 export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   const user = await getCurrentUser()
   if (!user) {
@@ -32,13 +48,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
 
   const { caseId } = await params
 
-  const functionName = EVIDENCE_FN
-
   const body = (await request.json().catch(() => ({}))) as ProcessRequest
-  const evidenceIds = Array.isArray(body.evidenceIds) ? body.evidenceIds.filter(Boolean) : []
+  const requestedIds = Array.isArray(body.evidenceIds)
+    ? [...new Set(body.evidenceIds.filter((id): id is string => typeof id === "string" && id.length > 0))]
+    : []
+  if (requestedIds.some((id) => !UUID_PATTERN.test(id))) {
+    return NextResponse.json({ error: "evidenceIds must contain UUIDs" }, { status: 400 })
+  }
 
   const service = createServiceClient()
-  const caseAccess = await getProfileCaseAccess(service, caseId, user.supabaseUuid)
+  const caseAccess = await getProfileCaseEditAccess(service, caseId, user.supabaseUuid)
   if (caseAccess === "not_found") {
     return NextResponse.json({ error: "Case not found" }, { status: 404 })
   }
@@ -46,189 +65,117 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  let evidenceRows: Array<{
-    id: string
-    case_id: string
-    filename: string
-    file_path: string
-    file_type: string
-    file_size: number
-    category: string
-  }> = []
-
-  if (evidenceIds.length > 0) {
-    const { data, error } = await service
+  let evidenceIds: string[] = []
+  let documentIds: string[] = []
+  let missingIds: string[] = []
+  if (requestedIds.length > 0) {
+    const { data: evidenceRows, error: evidenceError } = await service
       .from("evidence")
-      .select("id, case_id, filename, file_path, file_type, file_size, category")
-      .eq("case_id", caseId)
-      .in("id", evidenceIds)
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
-    }
-
-    evidenceRows = data ?? []
-  } else {
-    const { data, error } = await service
-      .from("evidence")
-      .select("id, case_id, filename, file_path, file_type, file_size, category")
-      .eq("case_id", caseId)
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
-    }
-
-    evidenceRows = data ?? []
-  }
-
-  if (!evidenceRows.length) {
-    let caseDocQuery = service
-      .from("case_documents")
       .select("id")
       .eq("case_id", caseId)
-
-    if (evidenceIds.length > 0) {
-      caseDocQuery = caseDocQuery.in("id", evidenceIds)
+      .in("id", requestedIds)
+    if (evidenceError) {
+      return NextResponse.json({ error: "Unable to resolve evidence" }, { status: 400 })
     }
 
-    const { data: caseDocs, error: caseDocError } = await caseDocQuery
-    if (caseDocError) {
-      return NextResponse.json({ error: caseDocError.message }, { status: 400 })
-    }
-
-    if (!caseDocs || caseDocs.length === 0) {
-      return NextResponse.json({ error: "No documents found" }, { status: 400 })
-    }
-
-    const results: ProcessResult[] = []
-    let queued = 0
-    let skipped = 0
-
-    for (const doc of caseDocs) {
-      const { data: existingDoc, error: existingError } = await service
+    evidenceIds = (evidenceRows ?? []).map((row) => row.id)
+    const evidenceSet = new Set(evidenceIds)
+    const unresolvedIds = requestedIds.filter((id) => !evidenceSet.has(id))
+    if (unresolvedIds.length > 0) {
+      const { data: documentRows, error: documentError } = await service
         .from("case_documents")
-        .select("id, is_processed, processing_status")
-        .eq("id", doc.id)
+        .select("id")
         .eq("case_id", caseId)
-        .maybeSingle()
-
-      if (existingError || !existingDoc) {
-        results.push({ evidence_id: doc.id, ok: false, error: existingError?.message ?? "Document not found" })
-        continue
+        .in("id", unresolvedIds)
+      if (documentError) {
+        return NextResponse.json({ error: "Unable to resolve documents" }, { status: 400 })
       }
-
-      const status = (existingDoc.processing_status ?? "").toString().toLowerCase()
-      if (existingDoc.is_processed || ["parsing", "verifying", "chunking", "extracting"].includes(status)) {
-        skipped += 1
-        results.push({
-          evidence_id: doc.id,
-          document_id: existingDoc.id,
-          ok: true,
-          queued: false,
-          skipped: true,
-        })
-        continue
-      }
-
-      const { error: statusError } = await service
-        .from("case_documents")
-        .update({ processing_status: "queued", processing_error: null, is_processed: false })
-        .eq("id", existingDoc.id)
-
-      if (statusError) {
-        results.push({ evidence_id: doc.id, document_id: existingDoc.id, ok: false, error: statusError.message })
-        continue
-      }
-
-      void service.functions
-        .invoke(functionName, { body: { document_id: existingDoc.id } })
-        .catch((error) => {
-          console.error("[evidence/process] Async invoke failed:", error)
-        })
-
-      queued += 1
-      results.push({ evidence_id: doc.id, document_id: existingDoc.id, ok: true, queued: true })
+      documentIds = (documentRows ?? []).map((row) => row.id)
+      const documentSet = new Set(documentIds)
+      missingIds = unresolvedIds.filter((id) => !documentSet.has(id))
     }
-
-    return NextResponse.json({ ok: true, queued, skipped, results })
-  }
-  const results: ProcessResult[] = []
-  let queued = 0
-  let skipped = 0
-
-  for (const evidence of evidenceRows) {
-    const { data: existingDoc, error: existingError } = await service
-      .from("case_documents")
-      .select("id, is_processed, processing_status")
+  } else {
+    const { data: evidenceRows, error: evidenceError } = await service
+      .from("evidence")
+      .select("id")
       .eq("case_id", caseId)
-      .eq("storage_bucket", EVIDENCE_STORAGE_BUCKET)
-      .eq("storage_path", evidence.file_path)
-      .maybeSingle()
-
-    if (existingError) {
-      results.push({ evidence_id: evidence.id, ok: false, error: existingError.message })
-      continue
+    if (evidenceError) {
+      return NextResponse.json({ error: "Unable to resolve evidence" }, { status: 400 })
     }
 
-    const status = (existingDoc?.processing_status ?? "").toString().toLowerCase()
-    if (existingDoc?.is_processed || ["parsing", "verifying", "chunking", "extracting"].includes(status)) {
-      skipped += 1
-      results.push({
-        evidence_id: evidence.id,
-        document_id: existingDoc?.id ?? null,
-        ok: true,
-        queued: false,
-        skipped: true,
-      })
-      continue
+    evidenceIds = (evidenceRows ?? []).map((row) => row.id)
+    if (evidenceIds.length === 0) {
+      const { data: documentRows, error: documentError } = await service
+        .from("case_documents")
+        .select("id")
+        .eq("case_id", caseId)
+      if (documentError) {
+        return NextResponse.json({ error: "Unable to resolve documents" }, { status: 400 })
+      }
+      documentIds = (documentRows ?? []).map((row) => row.id)
     }
-
-    const registered = await registerCaseDocumentFromEvidenceV1(service, {
-      caseId,
-      profileId: user.supabaseUuid,
-      evidence: {
-        id: evidence.id,
-        case_id: evidence.case_id,
-        filename: evidence.filename,
-        file_path: evidence.file_path,
-        file_type: evidence.file_type,
-        file_size: evidence.file_size,
-        category: evidence.category,
-      },
-      storageBucket: EVIDENCE_STORAGE_BUCKET,
-      initialProcessingStatus: "uploaded",
-    })
-
-    if (registered.ok === false) {
-      results.push({
-        evidence_id: evidence.id,
-        ok: false,
-        error: registered.error,
-      })
-      continue
-    }
-
-    const documentId = registered.document_id
-
-    const { error: statusError } = await service
-      .from("case_documents")
-      .update({ processing_status: "queued", processing_error: null, is_processed: false })
-      .eq("id", documentId)
-
-    if (statusError) {
-      results.push({ evidence_id: evidence.id, document_id: documentId, ok: false, error: statusError.message })
-      continue
-    }
-
-    void service.functions
-      .invoke(functionName, { body: { document_id: documentId } })
-      .catch((error) => {
-        console.error("[evidence/process] Async invoke failed:", error)
-      })
-
-    queued += 1
-    results.push({ evidence_id: evidence.id, document_id: documentId, ok: true, queued: true })
   }
 
-  return NextResponse.json({ ok: true, queued, skipped, results })
+  if (evidenceIds.length === 0 && documentIds.length === 0 && missingIds.length === 0) {
+    return NextResponse.json({ error: "No documents found" }, { status: 400 })
+  }
+
+  const results: ProcessResult[] = missingIds.map((id) => ({
+    evidence_id: id,
+    ok: false,
+    error: "Evidence or document not found",
+  }))
+  for (const evidenceId of evidenceIds) {
+    const { data, error } = await service.rpc("register_and_enqueue_evidence_v1", {
+      p_case_id: caseId,
+      p_evidence_id: evidenceId,
+      p_actor_profile_id: user.supabaseUuid,
+    })
+    const dispatch = firstRpcRow(data as EvidenceDispatchResult | EvidenceDispatchResult[] | null)
+    if (error || !dispatch) {
+      console.error("[evidence/process] Atomic evidence dispatch failed", {
+        evidenceId,
+        code: error?.code,
+      })
+      results.push({ evidence_id: evidenceId, ok: false, error: "Unable to queue evidence" })
+      continue
+    }
+
+    results.push({
+      evidence_id: evidenceId,
+      document_id: dispatch.document_id,
+      ok: true,
+      queued: dispatch.queued,
+      skipped: dispatch.skipped,
+    })
+  }
+
+  for (const documentId of documentIds) {
+    const { data, error } = await service.rpc("enqueue_evidence_processing_v1", {
+      p_case_id: caseId,
+      p_document_id: documentId,
+      p_actor_profile_id: user.supabaseUuid,
+    })
+    const job = firstRpcRow(data as EvidenceJob | EvidenceJob[] | null)
+    if (error || !job) {
+      console.error("[evidence/process] Existing-document enqueue failed", {
+        documentId,
+        code: error?.code,
+      })
+      results.push({ evidence_id: documentId, document_id: documentId, ok: false, error: "Unable to queue document" })
+      continue
+    }
+
+    results.push({
+      evidence_id: documentId,
+      document_id: job.document_id ?? documentId,
+      ok: true,
+      queued: job.status === "queued",
+      skipped: job.status === "running" || job.status === "completed",
+    })
+  }
+
+  const queued = results.filter((result) => result.queued).length
+  const skipped = results.filter((result) => result.skipped).length
+  return NextResponse.json({ ok: results.every((result) => result.ok), queued, skipped, results })
 }

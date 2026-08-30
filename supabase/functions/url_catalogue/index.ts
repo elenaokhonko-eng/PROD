@@ -12,6 +12,11 @@
 // Auth:
 // - Uses SUPABASE_SERVICE_ROLE_KEY (server-side only). Do NOT expose to client.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  authorizeHarborEdgeRequest,
+  HarborEdgeAuthError,
+  verifyHarborEdgeRequest,
+} from "../_shared/edge-auth.ts";
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body, null, 2), {
     status,
@@ -80,12 +85,7 @@ function requireString(v, field) {
 }
 Deno.serve(async (req)=>{
   try {
-    if (req.method !== "POST") {
-      return jsonResponse({
-        ok: false,
-        error: "Use POST"
-      }, 405);
-    }
+    const verified = await verifyHarborEdgeRequest(req, "url_catalogue");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) {
@@ -99,9 +99,9 @@ Deno.serve(async (req)=>{
         persistSession: false
       }
     });
-    const url = new URL(req.url);
-    const action = (url.searchParams.get("action") ?? "upsert").toLowerCase();
-    const body = await req.json().catch(()=>({}));
+    await authorizeHarborEdgeRequest(supabase, verified.context);
+    const body = verified.body;
+    const action = String(body.action ?? "upsert").toLowerCase();
     // ------------------------------------------------------------
     // action=upsert (default)
     // ------------------------------------------------------------
@@ -207,7 +207,7 @@ Deno.serve(async (req)=>{
   } catch (e) {
     return jsonResponse({
       ok: false,
-      error: e.message
-    }, 400);
+      error: e instanceof Error ? e.message : String(e)
+    }, e instanceof HarborEdgeAuthError ? e.status : 400);
   }
 });

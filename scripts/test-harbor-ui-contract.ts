@@ -29,6 +29,7 @@ const onboardingSource = readSource('app/(auth)/onboarding/page.tsx')
 const routerSource = readSource('app/router/page.tsx')
 const settingsSource = readSource('app/(case)/app/settings/_components/settings-client.tsx')
 const stateMachineSource = readSource('hooks/state-machine/use-state-machine.ts')
+const paymentStatusSource = readSource('hooks/state-machine/transition/use-payment-status.ts')
 const paymentLandingSource = readSource('components/state-machine/transition/payment-success-landing.tsx')
 
 function protects(markers: readonly string[]) {
@@ -94,14 +95,19 @@ describe('Harbor UI functionality contract', () => {
   it('preserves authoritative dashboard and report lifecycle owners', () => {
     protects([
       "rpc('get_case_eligibility'",
-      "from('case_entitlements')",
+      '/capabilities',
       "from('case_decision_runs')",
       "from('reports')",
       '/job-status',
       'useStateMachine',
     ])
+    assert.doesNotMatch(paymentStatusSource, /from\(['"]case_entitlements['"]\)/)
+    assert.match(paymentStatusSource, /capabilityBilling\.capabilities/)
+    assert.match(paymentStatusSource, /reconciliationRequired/)
     assert.match(stateMachineSource, /eligible_actions\.run_report_selfserve/)
     assert.match(dashboardSource, /eligible_actions\.run_escalation_pack/)
+    assert.match(dashboardSource, /reportCapability\?\.canCheckout/)
+    assert.match(dashboardSource, /fidrecCapability\?\.canCheckout/)
   })
 
   it('keeps one server-authoritative checkout and gates unavailable products', () => {
@@ -111,12 +117,40 @@ describe('Harbor UI functionality contract', () => {
       'PRODUCT_CATALOGUE',
       'self_serve_report',
       'fidrec_tier2_pack',
-      'window.location.assign(url)',
+      'window.location.assign(checkout.url)',
     ])
     assert.doesNotMatch(dashboardSource, /human_consult_30m|useSubmitContactRequest|ContactRequest/)
     assert.match(dashboardSource, /Human consultation is not currently available\./)
     assert.match(paymentLandingSource, /checking the server-recorded payment and access status/)
+    assert.match(dashboardSource, /searchParams\.get\('checkout'\) !== 'cancel'/)
+    assert.match(dashboardSource, /<PaymentCancelled/)
+    assert.match(dashboardSource, /canStartCheckout\(cancelledProduct\)/)
+    assert.match(dashboardSource, /handleCheckout\(cancelledProduct\)/)
+    assert.match(dashboardSource, /hasInvalidPaymentReturn/)
+    assert.match(dashboardSource, /Invalid payment return product/)
+    assert.match(dashboardSource, /paymentReturnProduct !== null && !returnedProductIsEntitled/)
     assert.doesNotMatch(paymentLandingSource, /few seconds|payment received|payment is safe/i)
+  })
+
+  it('keeps retired and policy-blocked API and marketing paths absent', () => {
+    for (const retiredPath of [
+      'app/api/cases/[caseId]/generate-pack/route.ts',
+      'app/api/cases/[caseId]/regenerate/route.ts',
+      'app/api/subscriptions',
+      'app/api/payments/create-subscription',
+      'app/api/payments/create-portal-session',
+      'app/pricing/page.tsx',
+      'app/how-it-works/page.tsx',
+    ]) {
+      assert.equal(existsSync(join(ROOT, retiredPath)), false, `Retired path must stay absent: ${retiredPath}`)
+    }
+    assert.equal(productionSource.includes('/generate-pack'), false, 'Production code still calls retired generation')
+    assert.ok(existsSync(join(ROOT, 'app/(marketing)/pricing/page.tsx')))
+    assert.ok(existsSync(join(ROOT, 'app/(marketing)/how-it-works/page.tsx')))
+
+    const capabilitiesSource = readSource('lib/billing/case-capabilities.ts')
+    assert.match(capabilitiesSource, /regeneration:\s*\{[\s\S]*?availability: "policy_blocked"/)
+    assert.match(capabilitiesSource, /subscription:\s*\{[\s\S]*?availability: "policy_blocked"/)
   })
 
   it('discloses automated output on every material tier surface', () => {

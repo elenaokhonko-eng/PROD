@@ -18,6 +18,8 @@ export interface BuyReportCTAProps {
   priceLabel: string
   isStartingCheckout?: boolean
   errorMessage?: string | null
+  disabled?: boolean
+  unavailableReason?: string
   onClick: () => void
 }
 
@@ -25,6 +27,8 @@ export function BuyReportCTA({
   priceLabel,
   isStartingCheckout = false,
   errorMessage,
+  disabled = false,
+  unavailableReason,
   onClick,
 }: BuyReportCTAProps) {
   return (
@@ -51,6 +55,11 @@ export function BuyReportCTA({
           Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
         </p>
 
+        {unavailableReason ? (
+          <p className="text-sm text-muted-foreground" role="status">
+            {unavailableReason}
+          </p>
+        ) : null}
         {errorMessage ? (
           <p className="text-sm text-destructive" role="alert">
             {errorMessage}
@@ -59,9 +68,11 @@ export function BuyReportCTA({
 
         <div className="flex items-center justify-between gap-3 pt-2">
           <div className="text-lg font-semibold">{priceLabel}</div>
-          <Button onClick={onClick} disabled={isStartingCheckout} size="lg">
+          <Button onClick={onClick} disabled={disabled || isStartingCheckout} size="lg">
             {isStartingCheckout ? (
               <StateMachineLoading size="inline" title="Redirecting..." />
+            ) : disabled ? (
+              'Checkout unavailable'
             ) : (
               <>
                 Get Bank Pack

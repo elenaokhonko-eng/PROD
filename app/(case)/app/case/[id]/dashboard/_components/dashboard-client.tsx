@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import { Layer1Shell } from '@/components/state-machine/layer1/layer1-shell'
 import type { IntakeAnswers } from '@/components/state-machine/layer1/intake-form'
@@ -13,6 +13,7 @@ import {
 } from '@/components/state-machine/transition/eligibility-gate'
 import { BlockedOnPrereq } from '@/components/state-machine/transition/blocked-on-prereq'
 import { PaymentSuccessLanding } from '@/components/state-machine/transition/payment-success-landing'
+import { PaymentCancelled } from '@/components/state-machine/transition/payment-cancelled'
 import { DecisionProgress } from '@/components/state-machine/layer2/decision-progress'
 import { ReportDrafting } from '@/components/state-machine/layer2/report-drafting'
 import { ReportFailed } from '@/components/state-machine/layer2/report-failed'
@@ -59,6 +60,7 @@ type DashboardClientProps = {
 }
 
 export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabels }: DashboardClientProps) {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const { getToken } = useAuth()
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
@@ -148,10 +150,40 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
       ),
     [searchParams],
   )
-  const hasPaidPlan =
-    paymentStatusQuery.data?.plan === 'self_serve_report' ||
-    paymentStatusQuery.data?.plan === 'escalation_pack'
-  const isAwaitingPaymentConfirmation = isPaymentReturn && !hasPaidPlan
+  const paymentReturnProduct = useMemo<ProductKey | null>(() => {
+    if (!isPaymentReturn) return null
+    const product = searchParams.get('product')
+    return product === 'self_serve_report' || product === 'fidrec_tier2_pack' ? product : null
+  }, [isPaymentReturn, searchParams])
+  const cancelledProduct = useMemo<ProductKey | null>(() => {
+    if (searchParams.get('checkout') !== 'cancel') return null
+    const product = searchParams.get('product')
+    return product === 'self_serve_report' || product === 'fidrec_tier2_pack' ? product : null
+  }, [searchParams])
+  const isPaymentCancelled = cancelledProduct !== null
+  const capabilityBilling = paymentStatusQuery.data?.capabilityBilling
+  const reportCapability = capabilityBilling?.capabilities.report
+  const fidrecCapability = capabilityBilling?.capabilities.fidrecPack
+  const returnedProductIsEntitled =
+    paymentReturnProduct === 'fidrec_tier2_pack'
+      ? fidrecCapability?.entitled === true
+      : paymentReturnProduct === 'self_serve_report'
+        ? reportCapability?.entitled === true
+        : false
+  const hasInvalidPaymentReturn = isPaymentReturn && paymentReturnProduct === null
+  const isAwaitingPaymentConfirmation = paymentReturnProduct !== null && !returnedProductIsEntitled
+  const reportCheckoutUnavailableReason = paymentStatusQuery.isError
+    ? 'Checkout status could not be loaded. Refresh before trying again.'
+    : reportCapability?.reconciliationRequired
+      ? 'Your payment is recorded and fulfilment is being reconciled. No new checkout is needed.'
+      : reportCapability?.canCheckout !== true
+        ? 'Checkout is not currently available for this case.'
+        : undefined
+  const tier2CheckoutUnavailableReason = paymentStatusQuery.isError
+    ? 'Checkout status could not be loaded. Refresh before trying again.'
+    : fidrecCapability?.reconciliationRequired
+      ? 'Your Tier 2 payment is recorded and fulfilment is being reconciled. No new checkout is needed.'
+      : 'Tier 2 is not currently available for this case.'
 
   async function saveResponses(
     answers: Record<string, ValidationAnswerValue>,
@@ -198,23 +230,39 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     uploadEvidence.mutate({ caseId, files })
   }
 
+  function canStartCheckout(productKey: ProductKey) {
+    if (productKey === 'self_serve_report') return reportCapability?.canCheckout === true
+    if (productKey === 'fidrec_tier2_pack') return fidrecCapability?.canCheckout === true
+    return false
+  }
+
   async function handleCheckout(productKey: ProductKey) {
     setCheckoutError(null)
     setCheckoutProduct(productKey)
+    if (!canStartCheckout(productKey)) {
+      setCheckoutError('Checkout is not currently available for this case.')
+      return
+    }
+
     try {
-      const { url } = await createCheckout.mutateAsync({ caseId, productKey })
+      const checkout = await createCheckout.mutateAsync({ caseId, productKey })
+      if (checkout.status === 'reconciled') {
+        setCheckoutProduct(null)
+        await paymentStatusQuery.refetch()
+        return
+      }
       setCheckoutRedirecting(true)
-      window.location.assign(url)
+      window.location.assign(checkout.url)
     } catch (error) {
-      setCheckoutError(error instanceof Error ? error.message : 'Could not start checkout')
-    } finally {
       setCheckoutRedirecting(false)
-      setCheckoutProduct(null)
+      setCheckoutError(error instanceof Error ? error.message : 'Could not start checkout')
     }
   }
 
-  const isTier2Ready = paymentStatusQuery.data?.plan === 'escalation_pack'
-  const canBuyTier2 = eligibilityQuery.data?.eligible_actions.run_escalation_pack === true
+  const isTier2Ready = fidrecCapability?.entitled === true
+  const canBuyTier2 =
+    eligibilityQuery.data?.eligible_actions.run_escalation_pack === true &&
+    fidrecCapability?.canCheckout === true
 
   const renderLayer3 = () => (
     <div className="space-y-6">
@@ -249,7 +297,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
         <Tier2PackPanel
           priceLabel={priceLabels.tier2}
           disabled={!canBuyTier2}
-          unavailableReason={!canBuyTier2 ? 'Tier 2 is not currently available for this case.' : undefined}
+          unavailableReason={!canBuyTier2 ? tier2CheckoutUnavailableReason : undefined}
           isStartingCheckout={createCheckout.isPending && checkoutProduct === 'fidrec_tier2_pack'}
           errorMessage={checkoutProduct === 'fidrec_tier2_pack' ? checkoutError : null}
           onClick={() => void handleCheckout('fidrec_tier2_pack')}
@@ -273,6 +321,19 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
       <main className="container mx-auto max-w-5xl px-4 py-8">
         {eligibilityQuery.isError ? (
           <StateMachineErrorCard kind="internal" context="Case eligibility could not be loaded." />
+        ) : isPaymentCancelled ? (
+          <PaymentCancelled
+            onTryAgain={
+              cancelledProduct && canStartCheckout(cancelledProduct)
+                ? () => void handleCheckout(cancelledProduct)
+                : undefined
+            }
+            onBackToDraft={
+              cancelledProduct === 'self_serve_report'
+                ? () => router.replace(`/app/case/${caseId}/dashboard`)
+                : undefined
+            }
+          />
         ) : node === 'S1-IntakeForm' ||
           node === 'S1-GapLoop' ||
           node === 'S1-EvidenceUpload' ||
@@ -323,6 +384,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
                 <div className="pt-4">
                   <BuyReportCTA
                     priceLabel={priceLabels.report}
+                    disabled={reportCapability?.canCheckout !== true}
+                    unavailableReason={reportCheckoutUnavailableReason}
                     isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
                     errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
                     onClick={() => void handleCheckout('self_serve_report')}
@@ -330,6 +393,12 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
                 </div>
               ),
             }}
+          />
+        ) : hasInvalidPaymentReturn ? (
+          <StateMachineErrorCard
+            kind="internal"
+            context="Invalid payment return product"
+            onRetry={() => router.replace(`/app/case/${caseId}/dashboard`)}
           />
         ) : isAwaitingPaymentConfirmation ? (
           <PaymentSuccessLanding isConfirming />
@@ -353,6 +422,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
         ) : node === 'T-BuyReportCTA' ? (
           <BuyReportCTA
             priceLabel={priceLabels.report}
+            disabled={reportCapability?.canCheckout !== true}
+            unavailableReason={reportCheckoutUnavailableReason}
             isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
             errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
             onClick={() => void handleCheckout('self_serve_report')}

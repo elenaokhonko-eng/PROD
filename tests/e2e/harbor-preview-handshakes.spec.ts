@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
-import { existsSync } from "node:fs"
-import { resolve } from "node:path"
+import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs"
+import { dirname, resolve } from "node:path"
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import { expect, test, type Page } from "@playwright/test"
 import pg from "pg"
@@ -20,17 +20,22 @@ const requiredEnvironment = [
   "HARBOR_PREVIEW_EMAIL_SINK",
   "HARBOR_PREVIEW_WORKER_CASE_ID",
   "HARBOR_PREVIEW_CONFIRM_SUPABASE_REF",
+  "HARBOR_PREVIEW_EXPECTED_COMMIT_SHA",
 ] as const
 const mutationConfirmation = "RUN_MUTATING_PREVIEW_HANDSHAKES"
 const knownProductionHosts = new Set(["guidebuoyaisg.onrender.com", "guidebuoyai.sg", "www.guidebuoyai.sg"])
 
+const evidencePath = resolve(
+  process.env.HARBOR_PREVIEW_EVIDENCE_FILE ?? "test-results/harbor-preview-handshake-evidence.jsonl",
+)
 let serviceClient: SupabaseClient
+let observedReleaseSha = ""
 
 test.describe("Harbor preview integration handshakes", () => {
   test.skip(!enabled, "Run through pnpm test:e2e:preview-handshakes with isolated preview credentials.")
   test.use({ storageState: existsSync(authStatePath) ? authStatePath : undefined })
 
-  test.beforeAll(() => {
+  test.beforeAll(async () => {
     const missing = requiredEnvironment.filter((name) => !process.env[name]?.trim())
     if (missing.length > 0) {
       throw new Error(`Missing preview handshake environment: ${missing.join(", ")}`)
@@ -74,6 +79,30 @@ test.describe("Harbor preview integration handshakes", () => {
       requiredEnv("HARBOR_PREVIEW_SUPABASE_SERVICE_ROLE_KEY"),
       { auth: { persistSession: false, autoRefreshToken: false } },
     )
+
+    const expectedCommitSha = requiredEnv("HARBOR_PREVIEW_EXPECTED_COMMIT_SHA").toLowerCase()
+    if (!/^[0-9a-f]{40}$/.test(expectedCommitSha)) {
+      throw new Error("HARBOR_PREVIEW_EXPECTED_COMMIT_SHA must be a full 40-character Git SHA.")
+    }
+    const releaseResponse = await fetch(new URL("/api/health/release", baseUrl))
+    if (!releaseResponse.ok) {
+      throw new Error(`Release identity endpoint failed with ${releaseResponse.status}.`)
+    }
+    const release = (await releaseResponse.json()) as { commitSha?: unknown }
+    if (release.commitSha !== expectedCommitSha) {
+      throw new Error(`Preview serves ${String(release.commitSha)} instead of ${expectedCommitSha}.`)
+    }
+    observedReleaseSha = expectedCommitSha
+    mkdirSync(dirname(evidencePath), { recursive: true })
+    writeFileSync(evidencePath, "", "utf8")
+  })
+
+  test.afterEach(({}, testInfo) => {
+    recordPreviewEvidence({
+      check: testInfo.title,
+      status: testInfo.status,
+      durationMs: testInfo.duration,
+    })
   })
 
   test("fails closed anonymously and keeps internal analytics private", async ({ browser }) => {
@@ -203,13 +232,17 @@ test.describe("Harbor preview integration handshakes", () => {
     await client.connect()
 
     try {
-      const migration = await client.query<{ deployed: boolean }>(
-        `select exists (
-           select 1 from supabase_migrations.schema_migrations
-           where version = '20260828120000'
-         ) as deployed`,
+      const migrations = await client.query<{ version: string }>(
+        `select version
+         from supabase_migrations.schema_migrations
+         where version = any($1::text[])
+         order by version`,
+        [["20260829000000", "20260830000000"]],
       )
-      expect(migration.rows[0]?.deployed).toBe(true)
+      expect(migrations.rows.map((row) => row.version)).toEqual([
+        "20260829000000",
+        "20260830000000",
+      ])
 
       const policyNames = [
         "cases_select_authorized",
@@ -273,50 +306,45 @@ test.describe("Harbor preview integration handshakes", () => {
     }
   })
 
-  test("creates a Stripe test checkout and processes its signed webhook once", async ({ page, request }) => {
+  test("fulfils Tier 1 before Tier 2 and processes each signed webhook once", async ({ page, request }) => {
     const { token, profileId } = await authenticatedIdentity(page)
     const caseId = randomUUID()
-    const eventId = `evt_harbor_preview_${randomUUID().replaceAll("-", "")}`
+    const reportEventId = `evt_harbor_preview_${randomUUID().replaceAll("-", "")}`
+    const tier2EventId = `evt_harbor_preview_${randomUUID().replaceAll("-", "")}`
+    const stripe = new Stripe("sk_test_harbor_preview_signature_only", { apiVersion: "2024-06-20" })
+    const webhookUrl = new URL("/api/payments/webhook", requiredEnv("HARBOR_PREVIEW_BASE_URL")).toString()
 
-    try {
-      const { error: caseError } = await serviceClient.from("cases").insert({
-        id: caseId,
-        user_id: profileId,
-        owner_user_id: profileId,
-        creator_user_id: profileId,
-        claim_type: "phishing_scam",
-        status: "draft",
-        case_summary: "Disposable Harbor preview commerce handshake",
-        primary_narrative: "Disposable preview-only integration fixture.",
-        is_anonymous: false,
-      })
-      expect(caseError).toBeNull()
-
+    const checkoutAndFulfil = async ({
+      productKey,
+      productCode,
+      amountCents,
+      eventId,
+    }: {
+      productKey: "self_serve_report" | "fidrec_tier2_pack"
+      productCode: "self_serve_report" | "escalation_pack"
+      amountCents: number
+      eventId: string
+    }) => {
       const checkout = await appFetch(page, "/api/payments/create-checkout-session", {
         method: "POST",
         headers: { Authorization: "Bearer " + token },
-        body: { caseId, productKey: "fidrec_tier2_pack" },
+        body: { caseId, productKey },
       })
       expect(checkout.status).toBe(200)
-      const checkoutUrl = (checkout.body as { url?: string } | null)?.url
-      expect(checkoutUrl).toMatch(/^https:\/\/checkout\.stripe\.com\//)
+      expect((checkout.body as { url?: string } | null)?.url).toMatch(/^https:\/\/checkout\.stripe\.com\//)
 
       const { data: purchase, error: purchaseError } = await serviceClient
         .from("case_purchases")
-        .select("id, user_id, provider_checkout_session_id")
+        .select("id, user_id, provider_checkout_session_id, metadata")
         .eq("case_id", caseId)
-        .eq("product_code", "escalation_pack")
+        .eq("product_code", productCode)
         .single()
       expect(purchaseError).toBeNull()
       expect(purchase?.user_id).toBe(profileId)
       expect(purchase?.provider_checkout_session_id).toMatch(/^cs_test_/)
-
-      const { data: payment, error: paymentError } = await serviceClient
-        .from("payments")
-        .select("id")
-        .eq("case_id", caseId)
-        .single()
-      expect(paymentError).toBeNull()
+      const legacyPaymentId = (purchase?.metadata as { legacy_payment_id?: unknown } | null)
+        ?.legacy_payment_id
+      expect(legacyPaymentId).toMatch(/^[0-9a-f-]{36}$/i)
 
       const rawEvent = JSON.stringify({
         id: eventId,
@@ -327,16 +355,16 @@ test.describe("Harbor preview integration handshakes", () => {
           object: {
             id: purchase!.provider_checkout_session_id,
             object: "checkout.session",
-            amount_total: 18_800,
+            amount_total: amountCents,
             currency: "sgd",
             livemode: false,
             payment_intent: `pi_harbor_preview_${randomUUID().replaceAll("-", "")}`,
             metadata: {
               case_id: caseId,
-              product_key: "fidrec_tier2_pack",
-              product_code: "escalation_pack",
+              product_key: productKey,
+              product_code: productCode,
               case_purchase_id: purchase!.id,
-              payment_row_id: payment!.id,
+              payment_row_id: legacyPaymentId,
               user_id: randomUUID(),
             },
           },
@@ -346,12 +374,10 @@ test.describe("Harbor preview integration handshakes", () => {
         request: null,
         type: "checkout.session.completed",
       })
-      const stripe = new Stripe("sk_test_harbor_preview_signature_only", { apiVersion: "2024-06-20" })
       const signature = stripe.webhooks.generateTestHeaderString({
         payload: rawEvent,
         secret: requiredEnv("HARBOR_PREVIEW_STRIPE_WEBHOOK_SECRET"),
       })
-      const webhookUrl = new URL("/api/payments/webhook", requiredEnv("HARBOR_PREVIEW_BASE_URL")).toString()
       const deliver = () =>
         request.post(webhookUrl, {
           data: rawEvent,
@@ -380,26 +406,77 @@ test.describe("Harbor preview integration handshakes", () => {
         .single()
       expect(paidPurchaseError).toBeNull()
       expect(paidPurchase).toMatchObject({ payment_status: "paid", fulfilment_provider_event_id: eventId })
+      return purchase!
+    }
+
+    try {
+      const { error: caseError } = await serviceClient.from("cases").insert({
+        id: caseId,
+        user_id: profileId,
+        owner_user_id: profileId,
+        creator_user_id: profileId,
+        claim_type: "phishing_scam",
+        status: "draft",
+        case_summary: "Disposable Harbor preview commerce handshake",
+        primary_narrative: "Disposable preview-only integration fixture.",
+        is_anonymous: false,
+      })
+      expect(caseError).toBeNull()
+
+      const reportPurchase = await checkoutAndFulfil({
+        productKey: "self_serve_report",
+        productCode: "self_serve_report",
+        amountCents: 1_800,
+        eventId: reportEventId,
+      })
+      const tier2Purchase = await checkoutAndFulfil({
+        productKey: "fidrec_tier2_pack",
+        productCode: "escalation_pack",
+        amountCents: 18_800,
+        eventId: tier2EventId,
+      })
 
       const { data: entitlement, error: entitlementError } = await serviceClient
         .from("case_entitlements")
-        .select("plan, purchase_ref")
+        .select("plan, purchase_ref, features")
         .eq("case_id", caseId)
         .single()
       expect(entitlementError).toBeNull()
       expect(entitlement).toMatchObject({
         plan: "escalation_pack",
-        purchase_ref: purchase!.provider_checkout_session_id,
+        purchase_ref: reportPurchase.provider_checkout_session_id,
+        features: {
+          allow_self_serve_report: true,
+          allow_escalation_pack: true,
+        },
       })
 
-      const { count: jobCount, error: jobCountError } = await serviceClient
+      const { count: reportJobCount, error: reportJobCountError } = await serviceClient
         .from("jobs")
         .select("id", { count: "exact", head: true })
-        .eq("idempotency_key", purchase!.provider_checkout_session_id)
-      expect(jobCountError).toBeNull()
-      expect(jobCount).toBe(0)
+        .eq("idempotency_key", reportPurchase.provider_checkout_session_id)
+      expect(reportJobCountError).toBeNull()
+      expect(reportJobCount).toBe(1)
+
+      const { count: tier2JobCount, error: tier2JobCountError } = await serviceClient
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("idempotency_key", tier2Purchase.provider_checkout_session_id)
+      expect(tier2JobCountError).toBeNull()
+      expect(tier2JobCount).toBe(0)
+
+      const capability = await appFetch(page, `/api/cases/${caseId}/capabilities`, {
+        method: "GET",
+        headers: { Authorization: "Bearer " + token },
+      })
+      expect(capability.status).toBe(200)
+      const capabilities = capability.body as {
+        capabilities?: { report?: { entitled?: boolean }; fidrecPack?: { entitled?: boolean } }
+      }
+      expect(capabilities.capabilities?.report?.entitled).toBe(true)
+      expect(capabilities.capabilities?.fidrecPack?.entitled).toBe(true)
     } finally {
-      await cleanupCommerceFixture(caseId, eventId)
+      await cleanupCommerceFixture(caseId, [reportEventId, tier2EventId])
     }
   })
 
@@ -445,11 +522,15 @@ test.describe("Harbor preview integration handshakes", () => {
       expect(jobId).toBeTruthy()
 
       const deadline = Date.now() + timeoutMs
-      let observed: { status: string; error: string | null } | null = null
+      let observed: {
+        status: string
+        error: string | null
+        payload: Record<string, unknown> | null
+      } | null = null
       while (Date.now() < deadline) {
         const { data, error } = await serviceClient
           .from("jobs")
-          .select("status, error")
+          .select("status, error, payload")
           .eq("id", jobId!)
           .single()
         expect(error).toBeNull()
@@ -459,6 +540,7 @@ test.describe("Harbor preview integration handshakes", () => {
       }
 
       expect(observed?.status, observed?.error ?? "The preview worker did not finish before timeout.").toBe("completed")
+      expect(observed?.payload?.worker_commit_sha).toBe(requiredEnv("HARBOR_PREVIEW_EXPECTED_COMMIT_SHA"))
     } finally {
       if (jobId) {
         const { error } = await serviceClient.from("jobs").delete().eq("id", jobId)
@@ -488,6 +570,23 @@ function requiredEnv(name: (typeof requiredEnvironment)[number] | "HARBOR_PREVIE
   const value = process.env[name]?.trim()
   if (!value) throw new Error(`${name} is required`)
   return value
+}
+
+function recordPreviewEvidence(result: {
+  check: string
+  status: string
+  durationMs: number
+}) {
+  appendFileSync(
+    evidencePath,
+    `${JSON.stringify({
+      observedAt: new Date().toISOString(),
+      commitSha: observedReleaseSha,
+      previewOrigin: new URL(requiredEnv("HARBOR_PREVIEW_BASE_URL")).origin,
+      ...result,
+    })}\n`,
+    "utf8",
+  )
 }
 
 async function assertPreviewPageOrigin(page: Page) {
@@ -566,9 +665,9 @@ async function appFetch(
   )
 }
 
-async function cleanupCommerceFixture(caseId: string, eventId: string) {
+async function cleanupCommerceFixture(caseId: string, eventIds: readonly string[]) {
   const cleanupQueries = [
-    serviceClient.from("payment_webhook_events").delete().eq("provider_event_id", eventId),
+    serviceClient.from("payment_webhook_events").delete().in("provider_event_id", [...eventIds]),
     serviceClient.from("jobs").delete().eq("case_id", caseId),
     serviceClient.from("case_entitlements").delete().eq("case_id", caseId),
     serviceClient.from("payments").delete().eq("case_id", caseId),

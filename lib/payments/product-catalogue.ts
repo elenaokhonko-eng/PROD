@@ -20,18 +20,17 @@ export type CasePurchaseProductCode =
 export type ProductFulfilment =
   | "self_serve_report_job"
   | "escalation_pack_entitlement"
-  | "human_consult_allocation"
+  | "payment_record_only"
 
 export interface ProductDefinition {
   checkoutKey: CheckoutProductKey
   productCode: CasePurchaseProductCode
   priceEnvVar: string
   amountSgd: number
+  checkoutEnabled: boolean
   /** Legacy payments.service_type for dual-write during transition. */
   legacyServiceType: string
   fulfilment: ProductFulfilment
-  /** Default consult duration; ignored for non-consult products. */
-  defaultDurationMinutes?: number
 }
 
 export const PRODUCT_CATALOGUE: Record<CheckoutProductKey, ProductDefinition> = {
@@ -40,6 +39,7 @@ export const PRODUCT_CATALOGUE: Record<CheckoutProductKey, ProductDefinition> = 
     productCode: "self_serve_report",
     priceEnvVar: "STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD",
     amountSgd: 18,
+    checkoutEnabled: true,
     legacyServiceType: "standard",
     fulfilment: "self_serve_report_job",
   },
@@ -48,6 +48,7 @@ export const PRODUCT_CATALOGUE: Record<CheckoutProductKey, ProductDefinition> = 
     productCode: "escalation_pack",
     priceEnvVar: "STRIPE_PRICE_ID_FIDREC_TIER2_PACK_SGD",
     amountSgd: 188,
+    checkoutEnabled: true,
     legacyServiceType: "fidrec_tier2_pack",
     fulfilment: "escalation_pack_entitlement",
   },
@@ -56,9 +57,9 @@ export const PRODUCT_CATALOGUE: Record<CheckoutProductKey, ProductDefinition> = 
     productCode: "human_consult_99",
     priceEnvVar: "STRIPE_PRICE_ID_HUMAN_CONSULT_30M_SGD",
     amountSgd: 99,
+    checkoutEnabled: false,
     legacyServiceType: "human_consult_30m",
-    fulfilment: "human_consult_allocation",
-    defaultDurationMinutes: 30,
+    fulfilment: "payment_record_only",
   },
 }
 
@@ -96,6 +97,57 @@ export function resolvePriceId(
 ): string | null {
   const value = env[product.priceEnvVar]
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null
+}
+
+export function resolveCheckoutRedirectOrigin(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): string | null {
+  const deployment = env.HARBOR_DEPLOYMENT_ENVIRONMENT?.trim()
+  const configuredOrigin = env.CHECKOUT_REDIRECT_ORIGIN?.trim()
+  const publicOrigin = env.NEXT_PUBLIC_APP_URL?.trim()
+  const productionOrigin = env.HARBOR_PRODUCTION_APP_ORIGIN?.trim()
+  if (
+    !["development", "preview", "production"].includes(deployment ?? "") ||
+    !configuredOrigin ||
+    !publicOrigin
+  ) {
+    return null
+  }
+
+  try {
+    const checkoutUrl = new URL(configuredOrigin)
+    const publicUrl = new URL(publicOrigin)
+    const canonicalOrigin = checkoutUrl.origin
+    const isLocal = ["localhost", "127.0.0.1", "[::1]"].includes(checkoutUrl.hostname)
+
+    for (const url of [checkoutUrl, publicUrl]) {
+      if (url.username || url.password || url.pathname !== "/" || url.search || url.hash) return null
+    }
+    if (publicUrl.origin !== canonicalOrigin) return null
+
+    if (deployment === "development") {
+      return isLocal && ["http:", "https:"].includes(checkoutUrl.protocol) ? canonicalOrigin : null
+    }
+    if (checkoutUrl.protocol !== "https:" || isLocal || !productionOrigin) return null
+
+    const productionUrl = new URL(productionOrigin)
+    if (
+      productionUrl.protocol !== "https:" ||
+      productionUrl.username ||
+      productionUrl.password ||
+      productionUrl.pathname !== "/" ||
+      productionUrl.search ||
+      productionUrl.hash
+    ) {
+      return null
+    }
+
+    if (deployment === "preview" && canonicalOrigin === productionUrl.origin) return null
+    if (deployment === "production" && canonicalOrigin !== productionUrl.origin) return null
+    return canonicalOrigin
+  } catch {
+    return null
+  }
 }
 
 /** Metadata written onto Stripe Checkout Session at create time. */
@@ -150,6 +202,5 @@ export const PAYMENT_IDEMPOTENCY = {
   webhookEvent: "UNIQUE(payment_provider, provider_event_id) on payment_webhook_events",
   checkoutSession: "UNIQUE(payment_provider, provider_checkout_session_id) WHERE NOT NULL on case_purchases",
   fulfilmentEvent: "UNIQUE(payment_provider, fulfilment_provider_event_id) WHERE NOT NULL on case_purchases",
-  consultationPerPurchase: "UNIQUE(purchase_id) on case_consultations",
   reportJob: "UNIQUE(idempotency_key) WHERE NOT NULL on jobs (key = Stripe session.id)",
 } as const

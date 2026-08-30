@@ -12,18 +12,24 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createUserClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import {
+  DECISION_FN,
+  EVIDENCE_FN,
+  EXTRACT_FN,
+  REPORT_FN,
+  TIER0_FN,
+} from '@/lib/edge-functions'
+import {
+  signEdgeRequest,
+  type EdgeRequestContext,
+} from '@/lib/server/edge-request-signing'
 
 export interface ProxyOptions {
   /** Supabase edge-function folder name (see `lib/edge-functions.ts`). */
   fnName: string
   /** The Next.js `Request`. We parse JSON from it; the raw body is not used. */
   request: Request
-  /**
-   * Optional body mutator called AFTER the ownership probe and BEFORE the
-   * edge function is invoked. Use it to inject server-only secrets (for
-   * example, `simulation_key` on `run_report_selfserve_v1`).
-   */
-  mutateBody?: (body: Record<string, unknown>) => Record<string, unknown>
   /**
    * Which field in the body carries the `case_id` used for the ownership
    * probe. Defaults to `case_id`. For evidence routes where only
@@ -44,49 +50,184 @@ export interface ProxyOptions {
   ) => Promise<{ ok: boolean; status?: number }>
 }
 
+type WorkerAuthorization =
+  | { ok: true; context: EdgeRequestContext; jobType: string }
+  | { ok: false; response: Response }
+
+type WorkerLeaseRow = {
+  user_id: string
+  job_type: string
+  document_id: string | null
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+async function verifyWorkerJob(body: Record<string, unknown>): Promise<WorkerAuthorization> {
+  const jobId = body.job_id
+  const caseId = body.case_id
+  const lockToken = body.job_lock_token
+  const documentId = body.document_id
+  if (
+    typeof jobId !== 'string' ||
+    !UUID_PATTERN.test(jobId) ||
+    typeof caseId !== 'string' ||
+    !UUID_PATTERN.test(caseId) ||
+    typeof lockToken !== 'string' ||
+    !Number.isFinite(Date.parse(lockToken)) ||
+    (documentId !== undefined && (typeof documentId !== 'string' || !UUID_PATTERN.test(documentId)))
+  ) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: 'A valid job, case, document, and lease binding is required' },
+        { status: 400 },
+      ),
+    }
+  }
+
+  const canonicalDocumentId = typeof documentId === 'string' ? documentId : null
+  const serviceClient = createServiceClient()
+  const { data, error } = await serviceClient.rpc('assert_active_worker_lease_v1', {
+    p_job_id: jobId,
+    p_case_id: caseId,
+    p_job_locked_at: lockToken,
+    p_document_id: canonicalDocumentId,
+    p_allowed_job_types: ['post_payment_report_generation', 'evidence_document_processing'],
+  })
+  if (error) {
+    if (error.code === '42501' || error.message.includes('worker_lease_lost')) {
+      return {
+        ok: false,
+        response: NextResponse.json({ error: 'Worker job is not eligible' }, { status: 409 }),
+      }
+    }
+    console.error('[edge-proxy] worker lease assertion failed', { jobId, code: error.code })
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Worker authorization unavailable' }, { status: 503 }),
+    }
+  }
+
+  const job = (Array.isArray(data) ? data[0] : data) as WorkerLeaseRow | null
+  if (!job?.user_id || !job.job_type) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Worker job is not eligible' }, { status: 409 }),
+    }
+  }
+
+  return {
+    ok: true,
+    jobType: job.job_type,
+    context: {
+      actorKind: 'worker',
+      actorId: job.user_id,
+      caseId,
+      documentId: canonicalDocumentId ?? undefined,
+      jobId,
+      jobLockedAt: lockToken,
+    },
+  }
+}
+
+function buildForwardBody(
+  fnName: string,
+  context: EdgeRequestContext,
+): Record<string, unknown> {
+  const workerBinding =
+    context.actorKind === 'worker'
+      ? { job_id: context.jobId, job_lock_token: context.jobLockedAt }
+      : {}
+
+  if (fnName === EVIDENCE_FN) {
+    return {
+      case_id: context.caseId,
+      document_id: context.documentId,
+      ...workerBinding,
+    }
+  }
+  if (fnName === EXTRACT_FN) {
+    return {
+      case_id: context.caseId,
+      ...(context.documentId ? { document_id: context.documentId } : {}),
+      allow_partial_evidence: false,
+      ...workerBinding,
+    }
+  }
+  if (fnName === TIER0_FN || fnName === DECISION_FN) {
+    return { case_id: context.caseId, ...workerBinding }
+  }
+  if (fnName === REPORT_FN) {
+    return {
+      case_id: context.caseId,
+      simulation_key: process.env.SIMULATION_KEY,
+      ...workerBinding,
+    }
+  }
+  throw new Error(`Unsupported Edge function: ${fnName}`)
+}
+
 /**
- * Proxy a request to a Supabase edge function with Pattern C auth + RLS
- * edit-permission probe + service-role outbound. Returns a `Response` that
- * the `/api/edge/*` route handler can return directly.
+ * Proxy a request to a privileged Supabase Edge Function. The public anon key
+ * is transport-only; an HMAC envelope carries the canonical actor/case/lease.
  */
 export async function proxyEdgeFunction({
   fnName,
   request,
-  mutateBody,
   caseIdField = 'case_id',
   probe,
 }: ProxyOptions): Promise<Response> {
-  // 1) Parse and validate the body. The edge functions only accept JSON.
   let body: Record<string, unknown>
   try {
     body = (await request.json()) as Record<string, unknown>
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
+  if (!body || Array.isArray(body)) {
+    return NextResponse.json({ error: 'JSON body must be an object' }, { status: 400 })
+  }
 
-  // 2) Worker bypass: the Render background worker has no Clerk session, so it
-  //    authenticates with a shared secret in the x-worker-secret header.
-  //    When the secret matches, we skip Clerk auth and the ownership probe;
-  //    the worker is responsible for only enqueuing work it has already locked.
   const workerSecret = request.headers.get('x-worker-secret')
   const isWorkerRequest =
     typeof workerSecret === 'string' &&
     workerSecret.length > 0 &&
     workerSecret === process.env.WORKER_SECRET
+  let context: EdgeRequestContext
+  let workerJobType: string | null = null
 
-  if (!isWorkerRequest) {
-    // 2a) Clerk session -> 401 if missing.
+  if (isWorkerRequest) {
+    if (fnName === TIER0_FN) {
+      return NextResponse.json({ error: 'Workers cannot invoke Tier 0' }, { status: 403 })
+    }
+    const workerAuthorization = await verifyWorkerJob(body)
+    if (workerAuthorization.ok === false) return workerAuthorization.response
+    context = workerAuthorization.context
+    workerJobType = workerAuthorization.jobType
+    if (
+      (workerJobType === 'evidence_document_processing' && fnName !== EVIDENCE_FN) ||
+      (workerJobType === 'post_payment_report_generation' && fnName === EVIDENCE_FN)
+    ) {
+      return NextResponse.json(
+        { error: 'Worker function does not match the claimed job type' },
+        { status: 403 },
+      )
+    }
+  } else {
+    if ([EVIDENCE_FN, DECISION_FN, REPORT_FN].includes(fnName)) {
+      return NextResponse.json({ error: 'This function is worker-only' }, { status: 403 })
+    }
+
     const { userId, getToken } = await auth()
     const userSupabaseJwt = userId ? await getToken({ template: 'supabase' }) : null
     if (!userId || !userSupabaseJwt) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 2b) Require edit permission before invoking a mutating edge function.
-    //     Missing probes short-circuit so nobody accidentally ships an
-    //     unprobed wrapper.
+    const caseId = caseIdField ? body[caseIdField] : null
+    if (typeof caseId !== 'string' || caseId.length === 0) {
+      return NextResponse.json({ error: `${caseIdField ?? 'case_id'} is required` }, { status: 400 })
+    }
     const userClient = await createUserClient()
-
     if (probe) {
       const probeResult = await probe(userClient, body)
       if (!probeResult.ok) {
@@ -95,41 +236,24 @@ export async function proxyEdgeFunction({
           { status: probeResult.status ?? 404 },
         )
       }
-    } else if (caseIdField) {
-      const caseId = body[caseIdField]
-      if (typeof caseId !== 'string' || caseId.length === 0) {
-        return NextResponse.json(
-          { error: `${caseIdField} is required` },
-          { status: 400 },
-        )
-      }
-
+    } else {
       const { data: canEdit, error: permissionError } = await userClient.rpc(
         'app_case_permission',
         { p_case_id: caseId, p_permission: 'edit' },
       )
-
       if (permissionError || canEdit !== true) {
         return NextResponse.json({ error: 'Not found' }, { status: 404 })
       }
-    } else {
-      return NextResponse.json(
-        {
-          error:
-            'proxyEdgeFunction called without caseIdField or probe — refusing to forward unauthenticated request',
-        },
-        { status: 500 },
-      )
     }
+    const { data: actorId, error: actorError } = await userClient.rpc('current_app_user_id')
+    if (actorError || typeof actorId !== 'string' || actorId.length === 0) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    context = { actorKind: 'user', actorId, caseId }
   }
 
-  // 3) Mutate body with server-only secrets if needed.
-  const forwardBody = mutateBody ? mutateBody(body) : body
-
-  // 5) Fanout to Edge Function using the caller's Supabase JWT.
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
   if (!supabaseUrl || !anonKey) {
     return NextResponse.json(
       { error: 'Edge proxy is not configured (missing Supabase URL or anon key)' },
@@ -137,25 +261,37 @@ export async function proxyEdgeFunction({
     )
   }
 
-  const edgeRes = await fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: anonKey,
-      Authorization: `Bearer ${anonKey}`,
-    },
-    body: JSON.stringify(forwardBody),
-  })
-
-  // Preserve the edge function's status code. Parse JSON defensively — some
-  // failure paths return non-JSON.
-  const text = await edgeRes.text()
-  let data: unknown
+  let forwardBody: Record<string, unknown>
+  let signedHeaders: Record<string, string>
   try {
-    data = text.length > 0 ? JSON.parse(text) : null
-  } catch {
-    data = { ok: false, error: text.slice(0, 500) }
-  }
+    forwardBody = buildForwardBody(fnName, context)
+    const bodyText = JSON.stringify(forwardBody)
+    signedHeaders = signEdgeRequest(fnName, bodyText, context)
+    const edgeRes = await fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        ...signedHeaders,
+      },
+      body: bodyText,
+    })
 
-  return NextResponse.json(data, { status: edgeRes.status })
+    const text = await edgeRes.text()
+    let data: unknown
+    try {
+      data = text.length > 0 ? JSON.parse(text) : null
+    } catch {
+      data = { ok: false, error: text.slice(0, 500) }
+    }
+    return NextResponse.json(data, { status: edgeRes.status })
+  } catch (error) {
+    console.error('[edge-proxy] signed fanout failed', {
+      fnName,
+      workerJobType,
+      message: error instanceof Error ? error.message : String(error),
+    })
+    return NextResponse.json({ error: 'Edge invocation unavailable' }, { status: 503 })
+  }
 }

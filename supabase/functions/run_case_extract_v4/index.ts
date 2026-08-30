@@ -1,6 +1,11 @@
 // supabase/functions/run_case_extract_v1/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  authorizeHarborEdgeRequest,
+  HarborEdgeAuthError,
+  verifyHarborEdgeRequest,
+} from "../_shared/edge-auth.ts";
 /**
  * v2.1.3 changes (institution first-report + type-aware preference):
  * - Institution keyword set now prioritises FIRST REPORT phrases (receive/report/submitted/reference no)
@@ -82,10 +87,11 @@ function classifyDocument(row) {
   const s = normalizeDocStatus(row.processing_status);
   if (s === "failed") return "failed";
   const hasContent = row.has_extraction_content === true;
-  const statusReady = s === "ready";
+  const legacyReadyStatuses = new Set(["ready", "processed", "completed"]);
+  const isLegacyReadyStatus = legacyReadyStatuses.has(s);
   const processedFlag = row.is_processed === true;
-  if (statusReady && processedFlag && hasContent) return "ready";
-  if (statusReady || processedFlag) return "not_ready_other";
+  if (isLegacyReadyStatus && processedFlag && hasContent) return "ready";
+  if (isLegacyReadyStatus || processedFlag) return "not_ready_other";
   if (s === "queued") return "queued";
   if (IN_FLIGHT_STATUSES.includes(s)) return "processing";
   if (s === "uploaded") return "uploaded";
@@ -1096,10 +1102,13 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
 /* =========================================================
    MAIN
    ========================================================= */ serve(async (req)=>{
-  const request_id = crypto.randomUUID();
+  let request_id = "unverified";
   const { stage, marks, mark } = createStageMarker();
   try {
-    mark("01_env");
+    mark("01_edge_auth");
+    const verified = await verifyHarborEdgeRequest(req, "run_case_extract_v4");
+    request_id = verified.context.requestId;
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction");
@@ -1108,25 +1117,12 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
     if (!OPENAI_API_KEY) throw new Error("Missing GuideBuoy_EdgeFunction secret");
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    // Healthcheck
-    if (req.method === "GET") return jsonResp({
-      ok: true,
-      version: VERSION,
-      request_id
-    }, 200);
-    // Parse request
+    await authorizeHarborEdgeRequest(supabase, verified.context);
+
     mark("02_parse");
-    if (req.method !== "POST") {
-      return jsonResp({
-        ok: false,
-        version: VERSION,
-        request_id,
-        stage,
-        error: "POST only"
-      }, 405);
-    }
-    const body = await req.json().catch(()=>({}));
-    const case_id = body.case_id;
+    const body = verified.body;
+    const edge_context = verified.context;
+    const case_id = edge_context.caseId;
     // Explicit tri-state persistence: always write true/false on new extracts (never null).
     const skip_validation = body.skip_validation === true;
     const allow_partial_evidence = body.allow_partial_evidence === true;
@@ -1306,154 +1302,52 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
       ]
     ];
     for (const [k, v] of requiredFields)if (v === null || v === undefined) missing_fields.push(k);
-    mark("09_insert_extract_run_start");
-    const runIns = await supabase.from("case_extract_runs").insert({
-      case_id,
-      extract_json: ej,
-      missing_fields,
-      model_name: EXTRACT_MODEL,
-      prompt_version: VERSION,
-      intake_id: intake?.id ?? null,
-      // Persisted so reconcile RPCs can distinguish intentional skip (requires migration).
-      skip_validation,
-      ...readinessPersist
-    }).select("*").single();
-    const extract_run = ensureOk(runIns.data, runIns.error, "Insert case_extract_runs");
-    mark("09_insert_extract_run_ok", {
+    mark("09_commit_extract_start");
+    const evidence_docs_used_unique = Array.from(new Set(
+      (evidenceForPrompt ?? []).map((d)=>String(d.document_id)).filter(Boolean)
+    ));
+    const commitRes = await supabase.rpc("commit_extract_run_v1", {
+      p_actor_kind: edge_context.actorKind,
+      p_actor_id: edge_context.actorId,
+      p_job_id: edge_context.jobId,
+      p_case_id: case_id,
+      p_job_locked_at: edge_context.jobLockedAt,
+      p_extract: {
+        extract_json: ej,
+        missing_fields,
+        model_name: EXTRACT_MODEL,
+        prompt_version: VERSION,
+        intake_id: intake?.id ?? null,
+        skip_validation,
+        ...readinessPersist
+      }
+    });
+    if (commitRes.error || !commitRes.data) {
+      throw new Error(`Fenced extract commit failed: ${JSON.stringify(normalizePgError(commitRes.error))}`);
+    }
+    const extract_run = commitRes.data.extract_run;
+    const validation_run_id = commitRes.data.validation_run_id ?? null;
+    const validation_error = commitRes.data.validation_error ?? null;
+    mark("10_commit_extract_ok", {
       extract_run_id: extract_run.id,
+      validation_run_id,
+      validation_error,
       allow_partial_evidence,
       not_ready_document_count: readinessPersist.not_ready_document_count
     });
-    // Atomic RPC wrapper (NO schema prefix)
-    mark("10_rpc_start", {
-      skip_validation
-    });
-    const evidence_docs_used_unique = Array.from(new Set((evidenceForPrompt ?? []).map((d)=>String(d.document_id)).filter(Boolean)));
-    if (skip_validation) {
-      mark("10_rpc_skipped");
-      console.log("[extract_validation]", JSON.stringify({
-        case_id,
-        extract_run_id: extract_run.id,
-        validation_attempted: false,
-        validation_error: null,
-        skip_validation: true
-      }));
-      return jsonResp({
-        ok: true,
-        version: VERSION,
-        request_id,
-        stage,
-        extract_run,
-        extract_run_id: extract_run.id,
-        validation_run_id: null,
-        validation_attempted: false,
-        partial_success: false,
-        partial_evidence: allow_partial_evidence,
-        document_readiness: readinessPersist.evidence_snapshot.counts,
-        rpc_error: null,
-        evidence_docs_used: evidence_docs_used_unique,
-        server_computed: serverFacts,
-        debug_counts: {
-          all_unique_docs: allEvidence.length,
-          prompt_docs: evidenceForPrompt.length
-        },
-        warning: "Validation skipped (skip_validation=true)."
-      }, 200);
-    }
-    const rpcRes = await supabase.rpc("run_validation_v1", {
-      p_extract_run_id: extract_run.id
-    });
-    console.log("RPC RAW:", JSON.stringify({
-      status: rpcRes?.status,
-      statusText: rpcRes?.statusText,
-      data: rpcRes.data,
-      error: normalizePgError(rpcRes.error)
-    }));
-    if (rpcRes.error) {
-      const validation_error = normalizePgError(rpcRes.error);
-      mark("10_rpc_failed", {
-        rpc_error: validation_error
-      });
-      // Compatibility: keep HTTP 200 so existing callers that treat non-2xx as
-      // hard failure still receive extract_run_id. Explicit ok=false +
-      // partial_success surface the integrity gap for new callers / logs.
-      console.log("[extract_validation]", JSON.stringify({
-        case_id,
-        extract_run_id: extract_run.id,
-        validation_attempted: true,
-        validation_error
-      }));
-      return jsonResp({
-        ok: false,
-        partial_success: true,
-        version: VERSION,
-        request_id,
-        stage,
-        extract_run,
-        extract_run_id: extract_run.id,
-        validation_run_id: null,
-        validation_attempted: true,
-        error: "validation_failed_after_extract",
-        rpc_error: validation_error,
-        evidence_docs_used: evidence_docs_used_unique,
-        server_computed: serverFacts,
-        debug_counts: {
-          all_unique_docs: allEvidence.length,
-          prompt_docs: evidenceForPrompt.length
-        },
-        warning: "Extraction succeeded but validation RPC failed or timed out. Reconcile via reconcile_validation_for_extract."
-      }, 200);
-    }
-    if (!rpcRes.data) {
-      mark("10_rpc_failed", {
-        rpc_error: {
-          message: "RPC returned null validation_run_id"
-        }
-      });
-      console.log("[extract_validation]", JSON.stringify({
-        case_id,
-        extract_run_id: extract_run.id,
-        validation_attempted: true,
-        validation_error: {
-          message: "RPC returned null validation_run_id"
-        }
-      }));
-      return jsonResp({
-        ok: false,
-        partial_success: true,
-        version: VERSION,
-        request_id,
-        stage,
-        extract_run,
-        extract_run_id: extract_run.id,
-        validation_run_id: null,
-        validation_attempted: true,
-        error: "validation_failed_after_extract",
-        rpc_error: {
-          message: "RPC returned null validation_run_id"
-        },
-        evidence_docs_used: evidence_docs_used_unique,
-        server_computed: serverFacts,
-        debug_counts: {
-          all_unique_docs: allEvidence.length,
-          prompt_docs: evidenceForPrompt.length
-        },
-        warning: "Extraction succeeded but validation returned null. Reconcile via reconcile_validation_for_extract."
-      }, 200);
-    }
-    mark("10_rpc_ok", {
-      validation_run_id: rpcRes.data
-    });
+
+    const partial_success = !skip_validation && !!validation_error;
     console.log("[extract_validation]", JSON.stringify({
       case_id,
       extract_run_id: extract_run.id,
-      validation_attempted: true,
-      validation_run_id: rpcRes.data,
-      validation_error: null
+      validation_attempted: !skip_validation,
+      validation_run_id,
+      validation_error,
+      skip_validation
     }));
     return jsonResp({
-      ok: true,
-      partial_success: false,
+      ok: !partial_success,
+      partial_success,
       partial_evidence: allow_partial_evidence,
       document_readiness: readinessPersist.evidence_snapshot.counts,
       version: VERSION,
@@ -1461,18 +1355,22 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
       stage,
       extract_run,
       extract_run_id: extract_run.id,
-      validation_run_id: rpcRes.data,
-      validation_attempted: true,
-      rpc_error: null,
+      validation_run_id,
+      validation_attempted: !skip_validation,
+      rpc_error: validation_error,
       evidence_docs_used: evidence_docs_used_unique,
       server_computed: serverFacts,
       debug_counts: {
         all_unique_docs: allEvidence.length,
         prompt_docs: evidenceForPrompt.length
       },
-      debug_marks: marks
-    }, 200);
-  } catch (e) {
+      debug_marks: marks,
+      warning: partial_success
+        ? "Extraction succeeded but validation failed. Reconcile via reconcile_validation_for_extract."
+        : skip_validation
+          ? "Validation skipped (skip_validation=true)."
+          : null
+    }, 200);  } catch (e) {
     const details = normalizeError(e);
     console.log("[ERROR]", JSON.stringify({
       request_id,
@@ -1486,6 +1384,6 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
       request_id,
       stage,
       error: details
-    }, 500);
+    }, e instanceof HarborEdgeAuthError ? e.status : 500);
   }
 });

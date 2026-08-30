@@ -1,6 +1,11 @@
 // supabase/functions/backfill_embeddings_v1/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  authorizeHarborEdgeRequest,
+  HarborEdgeAuthError,
+  verifyHarborEdgeRequest,
+} from "../_shared/edge-auth.ts";
 function nowIso() {
   return new Date().toISOString();
 }
@@ -66,16 +71,17 @@ function buildTextForPublicDecision(row) {
   return parts.join("\n").slice(0, 6000);
 }
 serve(async (req)=>{
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction") ?? "";
-  if (!SUPABASE_URL) return textResp("Missing SUPABASE_URL", 500);
-  if (!SUPABASE_SERVICE_ROLE_KEY) return textResp("Missing SUPABASE_SERVICE_ROLE_KEY", 500);
-  if (!OPENAI_API_KEY) return textResp("Missing GuideBuoy_EdgeFunction secret", 500);
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   try {
-    if (req.method !== "POST") return textResp("POST only", 405);
-    const body = await req.json().catch(()=>({}));
+    const verified = await verifyHarborEdgeRequest(req, "backfill_embeddings_v1");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction") ?? "";
+    if (!SUPABASE_URL) return textResp("Missing SUPABASE_URL", 500);
+    if (!SUPABASE_SERVICE_ROLE_KEY) return textResp("Missing SUPABASE_SERVICE_ROLE_KEY", 500);
+    if (!OPENAI_API_KEY) return textResp("Missing GuideBuoy_EdgeFunction secret", 500);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    await authorizeHarborEdgeRequest(supabase, verified.context);
+    const body = verified.body;
     const table = body.table;
     if (!table) return textResp('Missing "table". Use "regulatory_clauses" or "public_decisions".', 400);
     const limit = clampInt(body.limit, 1, 200, 50);
@@ -140,7 +146,7 @@ serve(async (req)=>{
     });
   } catch (e) {
     const msg = e instanceof Error ? `${e.name}: ${e.message}\n${e.stack ?? ""}` : String(e);
-    return textResp(msg, 500);
+    return textResp(msg, e instanceof HarborEdgeAuthError ? e.status : 500);
   }
 });
 /**

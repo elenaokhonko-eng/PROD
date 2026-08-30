@@ -1,9 +1,10 @@
 /**
  * Document readiness for extract preflight.
  *
- * Settled usable (ready): status=ready, is_processed=true, and extraction/content present.
- * Settled unavailable (failed): status=failed — count, do not block.
- * not_ready: uploaded, queued, in-flight, null/unknown, or "ready" missing extraction data.
+ * Settled usable (ready): status in {ready, processed, completed}, is_processed=true,
+ * and extraction/content present. Legacy processed/completed rows remain usable when
+ * content exists. Settled unavailable (failed): status=failed — count, do not block.
+ * not_ready: uploaded, queued, in-flight, null/unknown, or a legacy-ready row missing extraction data.
  */
 
 export type DocStatusRow = {
@@ -64,13 +65,14 @@ export function classifyDocument(row: DocStatusRow): DocumentBucket {
   if (s === "failed") return "failed"
 
   const hasContent = row.has_extraction_content === true
-  const statusReady = s === "ready"
+  const legacyReadyStatuses = new Set(["ready", "processed", "completed"])
+  const isLegacyReadyStatus = legacyReadyStatuses.has(s)
   const processedFlag = row.is_processed === true
 
-  if (statusReady && processedFlag && hasContent) return "ready"
+  if (isLegacyReadyStatus && processedFlag && hasContent) return "ready"
 
-  // Claimed ready/processed but missing extraction → not ready
-  if (statusReady || processedFlag) return "not_ready_other"
+  // Claimed ready/processed/completed but missing extraction or stale state → not ready.
+  if (isLegacyReadyStatus || processedFlag) return "not_ready_other"
 
   if (s === "queued") return "queued"
   if ((IN_FLIGHT_STATUSES as readonly string[]).includes(s)) return "processing"
