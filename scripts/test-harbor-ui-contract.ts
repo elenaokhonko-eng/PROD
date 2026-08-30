@@ -32,6 +32,8 @@ const settingsSource = readSource('app/(case)/app/settings/_components/settings-
 const stateMachineSource = readSource('hooks/state-machine/use-state-machine.ts')
 const paymentStatusSource = readSource('hooks/state-machine/transition/use-payment-status.ts')
 const paymentLandingSource = readSource('components/state-machine/transition/payment-success-landing.tsx')
+const resourceDirectorySource = readSource('components/harbor/resource-directory.tsx')
+const resourceRouteSource = readSource('app/api/resources/route.ts')
 
 function protects(markers: readonly string[]) {
   for (const marker of markers) {
@@ -74,6 +76,8 @@ describe('Harbor UI functionality contract', () => {
     assert.match(routerSource, /clearPendingNarrative\(\)/)
     assert.doesNotMatch(onboardingSource, /create-from-session/)
     assert.doesNotMatch(narrativeCaptureSource, /createRouterSession|updateRouterSession|getSessionToken/)
+    assert.match(readSource('lib/analytics/client.ts'), /NEXT_PUBLIC_SUPABASE_URL[\s\S]*NEXT_PUBLIC_SUPABASE_ANON_KEY/)
+    assert.match(readSource('app/api/analytics/track/route.ts'), /sessionId: z\.string\(\)\.nullable\(\)\.optional\(\)/)
     assert.doesNotMatch(readSource('app/layout.tsx'), /PendingNarrativeHandoff/)
     assert.doesNotMatch(readSource('components/landing/hero-capture.tsx'), /Clerk|unsafeMetadata/)
   })
@@ -194,6 +198,29 @@ describe('Harbor UI functionality contract', () => {
     assert.ok(existsSync(join(ROOT, 'app/error.tsx')))
     assert.ok(existsSync(join(ROOT, 'app/not-found.tsx')))
     assert.doesNotMatch(readSource('components/state-machine/error-card.tsx'), /Technical details/)
+  })
+
+  it('fails closed without Clerk on protected routes while leaving public routes available', () => {
+    const middleware = readSource('middleware.ts')
+    assert.match(middleware, /pathname === '\/app' \|\| pathname\.startsWith\('\/app\/'\)/)
+    assert.match(middleware, /needsAuthentication\(request\)[\s\S]*auth\.protect\(\)/)
+    assert.match(middleware, /!hasClerkConfig[\s\S]*needsAuthentication\(request\)[\s\S]*status: 503[\s\S]*NextResponse\.next\(\)/)
+    assert.match(middleware, /isPublicAppRoute\(request\)[\s\S]*NextResponse\.redirect\(new URL\('\/sign-up'/)
+    assert.doesNotMatch(middleware, /!process\.env\.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY\)[\s\S]*return NextResponse\.next\(\)/)
+  })
+
+  it('keeps resources provider-backed, retryable, and explicitly unavailable', () => {
+    assert.match(resourceDirectorySource, /fetch\('\/api\/resources'/)
+    assert.match(resourceDirectorySource, /status: 'loading'/)
+    assert.match(resourceDirectorySource, /status: 'error'/)
+    assert.match(resourceDirectorySource, /setRequestVersion/)
+    assert.match(resourceDirectorySource, /filteredResources/)
+    assert.match(resourceDirectorySource, /No official resources are available\./)
+    assert.match(resourceDirectorySource, /No resources match this filter\./)
+    assert.match(resourceRouteSource, /code: 'resources_unavailable'/)
+    assert.match(resourceRouteSource, /status: 503/)
+    assert.doesNotMatch(resourceRouteSource, /resources\s*:\s*\[/)
+    assert.equal(existsSync(join(ROOT, 'app/api/contact/route.ts')), false)
   })
 
   it('publishes exactly 61 synthetic fixtures behind a production guard', () => {

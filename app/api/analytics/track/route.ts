@@ -8,7 +8,7 @@ import { logger } from "@/lib/logger"
 const payloadSchema = z.object({
   eventName: z.string().min(1, "eventName is required"),
   eventData: z.record(z.any()).optional(),
-  sessionId: z.string().optional(),
+  sessionId: z.string().nullable().optional(),
   userId: z.string().uuid().nullable().optional(),
   pageUrl: z.string().optional(),
   userAgent: z.string().optional(),
