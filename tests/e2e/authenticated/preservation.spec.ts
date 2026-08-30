@@ -14,7 +14,7 @@ test('anonymous narrative is handed to the signed-in bootstrap exactly once', sy
   const bootstrapIdempotencyKeys: string[] = []
   await page.route('**/api/cases/bootstrap', async (route) => {
     bootstrapCount += 1
-    const idempotencyKey = route.request().headerValue('idempotency-key')
+    const idempotencyKey = await route.request().headerValue('idempotency-key')
     expect(idempotencyKey, 'Bootstrap must always send Idempotency-Key').toBeTruthy()
     bootstrapIdempotencyKeys.push(idempotencyKey!)
     expect(route.request().postDataJSON()).toEqual({ narrative: handoffNarrative })

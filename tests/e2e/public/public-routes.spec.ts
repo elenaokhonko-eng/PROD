@@ -6,6 +6,12 @@ import {
   monitorClientErrors,
 } from '../helpers/page-quality'
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/analytics/track', (route) =>
+    route.fulfill({ status: 202, contentType: 'application/json', body: '{}' }),
+  )
+})
+
 for (const route of [...marketingRoutes, ...routerStaticRoutes]) {
   test(`${route.path} renders without redirect, overflow, or client errors`, async ({ page }) => {
     const errors = monitorClientErrors(page)

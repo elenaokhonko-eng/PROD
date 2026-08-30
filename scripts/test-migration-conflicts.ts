@@ -13,7 +13,7 @@ const expectedFixtures = [
   },
   {
     file: "29-duplicate-established-purchases.sql",
-    markers: ["case_purchases", "fulfilled", "self_serve_report"],
+    markers: ["case_purchases", "paid", "self_serve_report"],
   },
   {
     file: "29-duplicate-fulfilment-event.sql",
@@ -21,7 +21,7 @@ const expectedFixtures = [
   },
   {
     file: "29-duplicate-legacy-payment-intent.sql",
-    markers: ["payments", "provider_payment_intent_id", "pi_conflict"],
+    markers: ["payments", "stripe_payment_intent_id", "pi_legacy_conflict"],
   },
   {
     file: "29-duplicate-payment-intent.sql",
@@ -33,15 +33,15 @@ const expectedFixtures = [
   },
   {
     file: "29-pending-without-legacy-payment.sql",
-    markers: ["case_purchases", "pending", "legacy_payment_id"],
+    markers: ["case_purchases", "pending", "metadata"],
   },
   {
     file: "30-duplicate-evidence-jobs.sql",
-    markers: ["jobs", "post_payment_report_generation", "payload"],
+    markers: ["jobs", "evidence_document_processing", "payload"],
   },
   {
     file: "30-evidence-job-missing-document.sql",
-    markers: ["jobs", "document_id", "post_payment_report_generation"],
+    markers: ["jobs", "evidence_document_processing", "queued"],
   },
   {
     file: "30-inconsistent-document-readiness.sql",

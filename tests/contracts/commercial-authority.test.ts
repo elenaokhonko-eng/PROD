@@ -20,7 +20,7 @@ test('only S$18 and S$188 are enabled for release checkout flows', () => {
   for (const key of enabledCheckoutKeys) {
     assert.equal(isCheckoutProductKey(key), true)
   }
-  assert.equal(enabledCheckoutKeys.some((key) => key === 'human_consult_30m'), false)
+  assert.equal((enabledCheckoutKeys as readonly string[]).includes('human_consult_30m'), false)
 })
 
 test('S$0 remains a non-checkout path', () => {
