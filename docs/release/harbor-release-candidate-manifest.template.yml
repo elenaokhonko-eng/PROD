@@ -1,0 +1,118 @@
+schema_version: 1
+status: DRAFT_NOT_EVIDENCE
+release:
+  exact_sha: "<40-character-integrated-sha>"
+  branch: "<integrated-branch>"
+  generated_at_utc: "<iso-8601>"
+  prepared_by: "<owner>"
+  rollback:
+    exact_sha: "<known-good-40-character-sha>"
+    database_restore_point: "<backup-or-pitr-marker>"
+    worker_version: "<known-good-worker-version>"
+
+deployment:
+  preview_origin: "https://<preview-host>"
+  environment_revision: "<immutable-environment-revision>"
+  production_hosts_denied_during_test:
+    - "guidebuoyai.sg"
+    - "www.guidebuoyai.sg"
+  preview_supabase_host: "<preview-project-ref>.supabase.co"
+  production_supabase_hosts_denied_during_test:
+    - "<production-project-ref>.supabase.co"
+  worker_version: "<worker-image-or-version>"
+  worker_source_sha: "<40-character-sha>"
+
+migrations:
+  clean_apply_from_zero: "<pass|fail>"
+  lint: "<pass|fail>"
+  ordered_set:
+    - file: "<supabase/migrations/timestamp_name.sql>"
+      sha256: "<checksum>"
+  deterministic_preflight_conflicts: "<pass|fail>"
+  pattern_c_two_user_rls: "<pass|fail>"
+
+commercial_authority:
+  currency: SGD
+  preview_mode: test
+  stripe_price_ids_by_mode:
+    test:
+      self_serve_report: "<price_test_...>"
+      fidrec_tier2_pack: "<price_test_...>"
+    live:
+      self_serve_report: "<price_live_...>"
+      fidrec_tier2_pack: "<price_live_...>"
+  free_path:
+    amount: 0
+    checkout_enabled: false
+  one_time_products:
+    - product_key: self_serve_report
+      amount: 18
+      enabled: true
+    - product_key: fidrec_tier2_pack
+      amount: 188
+      enabled: true
+  disabled:
+    consultation: true
+    subscription: true
+    regeneration_sgd_8: true
+    regeneration_sgd_12: true
+
+test_identity:
+  evidence_schema_version: 1
+  release_sha_match: "<pass|fail>"
+  fixture_schema_version: 1
+  fixture_revision: "<non-secret-fixture-revision>"
+  toolchain:
+    node: "<exact-version>"
+    pnpm: "<exact-version>"
+    playwright: "<exact-version>"
+    supabase_cli: "<exact-version>"
+  visual_baseline_approval: "<approver-and-timestamp>"
+
+required_checks:
+  frozen_install: "<url-and-result>"
+  typescript_build_contracts: "<url-and-result>"
+  migration_rls: "<url-and-result>"
+  playwright_public: "<url-and-result>"
+  playwright_synthetic: "<url-and-result>"
+  playwright_preview: "<url-and-result>"
+  playwright_authenticated: "<url-and-result>"
+
+external_handshakes:
+  clerk_pattern_c:
+    result: "<pass|fail>"
+    evidence: "<artifact/test-id>"
+  supabase_rls_realtime_storage:
+    result: "<pass|fail>"
+    evidence: "<artifact/test-id>"
+  stripe_test_mode:
+    result: "<pass|fail>"
+    evidence: "<artifact/test-id>"
+  worker_llm:
+    result: "<pass|fail>"
+    evidence: "<artifact/test-id>"
+  smtp_test_recipient:
+    result: "<pass|fail>"
+    provider_message_id: "<redacted-or-safe-id>"
+    evidence: "<artifact/test-id>"
+
+results:
+  summary: "<passed/failed/skipped by lane>"
+  evidence_indexes:
+    - "<artifact-name>/<lane>-<sha>.json"
+  encrypted_authenticated_artifact: "<artifact-name>"
+  skipped_tests: []
+  failures: []
+
+known_limitations:
+  - owner: "<agent-or-team>"
+    limitation: "<description>"
+    production_impact: "<impact>"
+    accepted_by: "<architect-or-NOT-ACCEPTED>"
+    expiry_or_follow_up: "<issue/date>"
+
+promotion:
+  decision: BLOCKED
+  decided_by: "<chief-architect>"
+  decided_at_utc: "<iso-8601>"
+  reason: "Template only; promotion requires all required checks and external handshakes to pass at exact_sha."

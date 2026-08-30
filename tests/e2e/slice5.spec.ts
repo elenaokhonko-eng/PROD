@@ -1,16 +1,13 @@
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
-import { expect, test, type Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { expect, test } from './fixtures/harbor-test'
+import { readReleaseFixtures } from '../release/release-fixtures'
 
-const authStatePath = resolve(process.env.SLICE5_AUTH_STORAGE_STATE ?? 'tests/e2e/.auth/slice5.json')
-const hasAuthState = existsSync(authStatePath)
-
-const controlledCaseId =
-  process.env.SLICE5_CONTROLLED_CASE_ID ?? '9eafdc9e-9431-4ba1-ae28-b62fd4da9098'
-const uploadCaseId = process.env.SLICE5_UPLOAD_CASE_ID
-const gapCaseId = process.env.SLICE5_GAP_CASE_ID
-const readyTimeoutMs = Number(process.env.SLICE5_UPLOAD_READY_TIMEOUT_MS ?? 120_000)
+const fixtures = readReleaseFixtures()
+const controlledCaseId = fixtures.evidence.missingQuestionsCaseId
+const uploadCaseId = fixtures.evidence.uploadCaseId
+const gapCaseId = fixtures.evidence.gapCaseId
+const readyTimeoutMs = Number(process.env.HARBOR_UPLOAD_READY_TIMEOUT_MS ?? 120_000)
 
 type UploadResponseBody = {
   evidence?: {
@@ -32,11 +29,6 @@ type ProcessResponseBody = {
 }
 
 test.describe('Slice 5 browser QA', () => {
-  test.skip(
-    !hasAuthState,
-    `Missing authenticated Clerk storage state. Run "pnpm.cmd run test:e2e:auth", sign in as the test case owner, then save ${authStatePath}.`,
-  )
-
   test('controlled missing-questions case shows fallback notice', async ({ page }) => {
     await page.goto(`/app/case/${controlledCaseId}/dashboard`)
 
@@ -47,9 +39,8 @@ test.describe('Slice 5 browser QA', () => {
     await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
   })
 
-  test('upload uses evidence row -> process route -> case document', async ({ page }) => {
-    test.skip(!uploadCaseId, 'Set SLICE5_UPLOAD_CASE_ID to a case currently showing the evidence upload step.')
-
+  test('upload uses evidence row -> process route -> case document', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium-1440', 'Mutating provider checks run once per release SHA.')
     await page.goto(`/app/case/${uploadCaseId}/dashboard`)
     await expect(page.getByText('Upload supporting evidence')).toBeVisible()
 
@@ -87,12 +78,11 @@ test.describe('Slice 5 browser QA', () => {
     await expect(page.getByText(fileName)).toBeVisible()
     await expect(page.getByText('Ready').first()).toBeVisible({ timeout: readyTimeoutMs })
 
-    await assertSingleCaseDocumentIfConfigured(result?.document_id ?? null)
+    await assertSingleCaseDocument(result?.document_id ?? null)
   })
 
-  test('gap answer save sends concrete question_key and typed response_type', async ({ page }) => {
-    test.skip(!gapCaseId, 'Set SLICE5_GAP_CASE_ID to a case currently showing at least one gap question.')
-
+  test('gap answer save sends concrete question_key and typed response_type', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium-1440', 'Mutating provider checks run once per release SHA.')
     await page.goto(`/app/case/${gapCaseId}/dashboard`)
     await expect(page.getByText('A few more details')).toBeVisible()
 
@@ -155,12 +145,14 @@ async function answerFirstVisibleGapQuestion(page: Page) {
   throw new Error('No supported visible gap-question control found.')
 }
 
-async function assertSingleCaseDocumentIfConfigured(documentId: string | null) {
+async function assertSingleCaseDocument(documentId: string | null) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!documentId || !supabaseUrl || !serviceKey) return
+  expect(documentId, 'Process response must identify the registered case document').toBeTruthy()
+  expect(supabaseUrl, 'NEXT_PUBLIC_SUPABASE_URL must be set').toBeTruthy()
+  expect(serviceKey, 'SUPABASE_SERVICE_ROLE_KEY must be set').toBeTruthy()
 
-  const supabase = createClient(supabaseUrl, serviceKey, {
+  const supabase = createClient(supabaseUrl!, serviceKey!, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
 

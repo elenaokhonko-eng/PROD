@@ -10,7 +10,13 @@ const require = createRequire(import.meta.url)
 const playwrightCli = require.resolve("@playwright/test/cli")
 const result = spawnSync(
   process.execPath,
-  [playwrightCli, "test", "tests/e2e/harbor-preview-handshakes.spec.ts", "--workers=1"],
+  [
+    playwrightCli,
+    "test",
+    "tests/e2e/harbor-preview-handshakes.spec.ts",
+    "--project=chromium-1440",
+    "--workers=1",
+  ],
   {
     stdio: "inherit",
     env: {

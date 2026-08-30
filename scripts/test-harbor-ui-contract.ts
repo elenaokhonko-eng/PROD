@@ -66,8 +66,13 @@ describe('Harbor UI functionality contract', () => {
 
   it('preserves narrative capture while using the canonical authenticated bootstrap', () => {
     protects([
+      '/api/router/session',
       '/api/transcribe',
+      '/api/router/classify',
+      '/api/router/assess',
       'story_submitted',
+      '/router/classify',
+      '/router/results',
       '/sign-up?redirect_url=/onboarding',
     ])
     assert.match(onboardingSource, /readPendingNarrative/)
@@ -222,7 +227,6 @@ describe('Harbor UI functionality contract', () => {
     assert.doesNotMatch(resourceRouteSource, /resources\s*:\s*\[/)
     assert.equal(existsSync(join(ROOT, 'app/api/contact/route.ts')), false)
   })
-
   it('publishes exactly 61 synthetic fixtures behind a production guard', () => {
     const definitions = readSource('lib/harbor/visual-fixtures.ts')
     const route = readSource('app/harbor-fixtures/page.tsx')

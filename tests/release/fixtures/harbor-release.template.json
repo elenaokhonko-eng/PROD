@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "users": {
+    "userA": {
+      "supabaseUuid": "<seeded-user-a-supabase-uuid>",
+      "ownedCaseId": "<seeded-user-a-case-uuid>"
+    },
+    "userB": {
+      "supabaseUuid": "<seeded-user-b-supabase-uuid>",
+      "ownedCaseId": "<seeded-user-b-case-uuid>"
+    },
+    "deletionUser": {
+      "supabaseUuid": "<disposable-deletion-user-supabase-uuid>",
+      "ownedCaseId": "<disposable-deletion-user-case-uuid>"
+    }
+  },
+  "ownership": {
+    "protectedCaseId": "<user-a-owned-case-uuid>",
+    "protectedQuestionKey": "release_gate_ownership_probe",
+    "originalResponseValue": "server-seeded-control-value"
+  },
+  "onboarding": {
+    "anonymousNarrative": "Release-gate anonymous narrative that must bootstrap exactly once."
+  },
+  "evidence": {
+    "uploadCaseId": "<evidence-upload-case-uuid>",
+    "gapCaseId": "<gap-answer-case-uuid>",
+    "missingQuestionsCaseId": "<missing-questions-fallback-case-uuid>",
+    "readyCaseId": "<successfully-processed-evidence-case-uuid>",
+    "mixedOutcomeCaseId": "<ready-plus-documents-not-ready-case-uuid>"
+  },
+  "collaboration": {
+    "expiredCaseId": "<expired-collaboration-case-uuid>",
+    "expiredEvidenceId": "<seeded-evidence-uuid-for-expired-collaboration-case>",
+    "expiredInvitationToken": "<expired-preview-only-invitation-token>"
+  },
+  "reports": {
+    "runningCaseId": "<decision-running-case-uuid>",
+    "draftingCaseId": "<report-drafting-case-uuid>",
+    "readyCaseId": "<report-ready-case-uuid>",
+    "failedCaseId": "<report-failed-case-uuid>"
+  },
+  "payments": {
+    "freeCaseId": "<free-case-uuid>",
+    "selfServeCheckoutCaseId": "<sgd-18-checkout-case-uuid>",
+    "tier2CheckoutCaseId": "<sgd-188-checkout-case-uuid>",
+    "cancelResumeCaseId": "<checkout-cancel-resume-case-uuid>",
+    "concurrentCheckoutCaseId": "<concurrent-checkout-reservation-case-uuid>",
+    "delayedEntitlement": {
+      "caseId": "<delayed-entitlement-case-uuid>",
+      "sessionId": "<stripe-test-checkout-session-id>"
+    },
+    "blockedSecondCheckout": {
+      "paid": {
+        "caseId": "<paid-unfulfilled-case-uuid>",
+        "purchaseId": "<paid-purchase-uuid>"
+      },
+      "partiallyRefunded": {
+        "caseId": "<partially-refunded-unfulfilled-case-uuid>",
+        "purchaseId": "<partially-refunded-purchase-uuid>"
+      },
+      "refunded": {
+        "caseId": "<refunded-unfulfilled-case-uuid>",
+        "purchaseId": "<refunded-purchase-uuid>"
+      },
+      "disputed": {
+        "caseId": "<disputed-unfulfilled-case-uuid>",
+        "purchaseId": "<disputed-purchase-uuid>"
+      }
+    }
+  },
+  "contact": {
+    "caseId": "<layer-3-contact-case-uuid>",
+    "email": "<provider-safe-contact-email>",
+    "expectedOwnerSupabaseUuid": "<server-seeded-owner-supabase-uuid>"
+  },
+  "privacy": {
+    "settingsCaseId": "<privacy-owner-case-uuid>"
+  },
+  "serviceRole": {
+    "protectedPaths": [
+      "/api/edge/decision",
+      "/api/edge/evidence",
+      "/api/edge/report"
+    ]
+  }
+}
