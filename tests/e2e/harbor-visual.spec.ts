@@ -2,13 +2,13 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { HARBOR_VISUAL_FIXTURES } from '../../lib/harbor/visual-fixtures'
 
 const PUBLIC_ROUTES = [
-  { name: 'home', path: '/' },
-  { name: 'how-it-works', path: '/how-it-works' },
-  { name: 'pricing', path: '/pricing' },
-  { name: 'resources', path: '/resources' },
-  { name: 'marketplace', path: '/marketplace' },
-  { name: 'about', path: '/about' },
-  { name: 'faq', path: '/faq' },
+  { name: 'home', path: '/', markers: ['Tell it once', 'A calmer way to move forward'] },
+  { name: 'how-it-works', path: '/how-it-works', markers: ['Six calm steps', 'From something went wrong'] },
+  { name: 'pricing', path: '/pricing', markers: ['Free to start. Paid only when you choose more.', 'Clear, one-off prices'] },
+  { name: 'resources', path: '/resources', markers: ['Search external resources', 'Loading official resources', 'Resources are temporarily unavailable'] },
+  { name: 'marketplace', path: '/marketplace', markers: ['Future help directory', 'Planned—not currently available through GuideBuoy.'] },
+  { name: 'about', path: '/about', markers: ['Why GuideBuoy exists', 'The burden should sit on the system'] },
+  { name: 'faq', path: '/faq', markers: ['FAQ and contact', 'Honest answers for a stressful moment.'] },
 ] as const
 
 const VIEWPORTS = [
@@ -43,6 +43,9 @@ test.describe('Harbor responsive visual acceptance', () => {
         await page.goto(route.path)
         await expect(page.locator('main')).toBeVisible()
         await expect(page.locator('h1').first()).toBeVisible()
+        for (const marker of route.markers) {
+          await expect(page.locator('body')).toContainText(marker)
+        }
         await expectNoHorizontalOverflow(page)
         await attachScreenshot(page, testInfo, `${viewport.name}-${route.name}`)
       }

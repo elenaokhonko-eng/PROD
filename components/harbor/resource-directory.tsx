@@ -1,15 +1,20 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { VerifiedExternalLinkCard } from '@/components/harbor/verified-external-link-card'
 import { cn } from '@/lib/utils'
-import { HARBOR_RESOURCES } from '@/lib/harbor/resources'
 
-type Resource = (typeof HARBOR_RESOURCES)[number]
-type Category = 'All' | Resource['category']
+type Resource = {
+  category: string
+  title: string
+  description: string
+  href: string
+  source: string
+}
+type Category = 'All' | string
 
 export function ResourceDirectory() {
   const [resources, setResources] = useState<readonly Resource[]>([])
@@ -18,7 +23,7 @@ export function ResourceDirectory() {
   const [category, setCategory] = useState<Category>('All')
   const normalisedQuery = query.trim().toLocaleLowerCase()
 
-  const loadResources = async () => {
+  const loadResources = useCallback(async () => {
     setStatus('loading')
     try {
       const response = await fetch('/api/resources', { headers: { Accept: 'application/json' } })
@@ -27,14 +32,17 @@ export function ResourceDirectory() {
       if (!data || typeof data !== 'object' || !Array.isArray((data as { resources?: unknown }).resources)) {
         throw new Error('Resources response was invalid.')
       }
-      setResources((data as { resources: readonly Resource[] }).resources)
+      const nextResources = (data as { resources: unknown[] }).resources
+      if (!nextResources.every(isResource)) throw new Error('Resources response was invalid.')
+      setResources(nextResources)
       setStatus('ready')
     } catch {
       setStatus('error')
     }
-  }
 
-  useEffect(() => { void loadResources() }, [])
+  }, [])
+
+  useEffect(() => { void loadResources() }, [loadResources])
 
   const visibleResources = useMemo(
     () => resources.filter((resource) => {
@@ -56,6 +64,12 @@ export function ResourceDirectory() {
         <Button type="button" variant="outline" className="mt-4" onClick={() => { void loadResources() }}>Try again</Button>
       </section>
     )
+  }
+
+  function isResource(value: unknown): value is Resource {
+    if (!value || typeof value !== 'object') return false
+    const resource = value as Record<string, unknown>
+    return ['category', 'title', 'description', 'href', 'source'].every((key) => typeof resource[key] === 'string')
   }
 
   return (
