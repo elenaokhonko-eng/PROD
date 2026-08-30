@@ -3,7 +3,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useClerk, useUser } from '@clerk/nextjs'
 import { Menu } from 'lucide-react'
 import { useState } from 'react'
 import { marketingNavLinks } from '@/lib/navigation'
@@ -20,8 +19,6 @@ import { cn } from '@/lib/utils'
 
 export function PublicHeader() {
   const pathname = usePathname()
-  const { isLoaded, isSignedIn } = useUser()
-  const { signOut } = useClerk()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const linkClass = (href: string) =>
@@ -59,13 +56,11 @@ export function PublicHeader() {
 
         <div className="ml-auto flex items-center gap-1 lg:ml-2">
           <ModeSwitcher />
-          {isLoaded && (
-            <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-              <Link href={isSignedIn ? '/app' : '/sign-in'}>{isSignedIn ? 'My cases' : 'Sign in'}</Link>
-            </Button>
-          )}
+          <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
+            <Link href="/sign-in">Sign in</Link>
+          </Button>
           <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link href={isSignedIn ? '/app/case/new' : '/#tell-your-story'}>{isSignedIn ? 'New case' : 'Start free'}</Link>
+            <Link href="/#tell-your-story">Start free</Link>
           </Button>
           <Dialog open={drawerOpen} onOpenChange={setDrawerOpen}>
             <DialogTrigger asChild>
@@ -93,25 +88,14 @@ export function PublicHeader() {
                 ))}
               </nav>
               <div className="mt-6 border-t pt-6">
-                {isLoaded && isSignedIn ? (
-                  <div className="grid gap-2">
-                    <Button asChild onClick={() => setDrawerOpen(false)}>
-                      <Link href="/app">My cases</Link>
-                    </Button>
-                    <Button variant="outline" onClick={() => void signOut()}>
-                      Sign out
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid gap-2">
-                    <Button asChild className="w-full" onClick={() => setDrawerOpen(false)}>
-                      <Link href="/#tell-your-story">Start organising — free</Link>
-                    </Button>
-                    <Button asChild variant="outline" className="w-full" onClick={() => setDrawerOpen(false)}>
-                      <Link href="/sign-in">Sign in</Link>
-                    </Button>
-                  </div>
-                )}
+                <div className="grid gap-2">
+                  <Button asChild className="w-full" onClick={() => setDrawerOpen(false)}>
+                    <Link href="/#tell-your-story">Start organising — free</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full" onClick={() => setDrawerOpen(false)}>
+                    <Link href="/sign-in">Sign in</Link>
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
