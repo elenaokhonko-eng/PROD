@@ -13,7 +13,7 @@ export default function SignUpPage() {
           <p className="font-semibold">Singpass</p>
           <p className="mt-1 text-sm text-muted-foreground">Singpass sign-in is not currently available.</p>
           <button type="button" className="mt-3 min-h-11 w-full rounded-lg border px-4 text-sm font-semibold" disabled>
-            Continue with Singpass
+            Singpass sign-in is not currently available.
           </button>
         </div>
       </section>
