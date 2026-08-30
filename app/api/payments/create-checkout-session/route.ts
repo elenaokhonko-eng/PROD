@@ -3,9 +3,11 @@ import Stripe from "stripe"
 import { createClient } from "@supabase/supabase-js"
 import { z } from "zod"
 import { createServiceClient } from "@/lib/supabase/service"
+import { establishCheckoutSession } from "@/lib/payments/checkout-session-orchestration"
 import {
   PRODUCT_CATALOGUE,
   buildCheckoutSessionMetadata,
+  resolveCheckoutRedirectOrigin,
   resolvePriceId,
   type CheckoutProductKey,
 } from "@/lib/payments/product-catalogue"
@@ -55,6 +57,9 @@ export async function POST(request: NextRequest) {
 
     const { caseId, productKey } = parsed
     const product = PRODUCT_CATALOGUE[productKey]
+    if (!product.checkoutEnabled) {
+      return NextResponse.json({ error: "Product is not currently available" }, { status: 409 })
+    }
 
     const authHeader = request.headers.get("authorization")
     const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null
@@ -95,131 +100,180 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Case not found" }, { status: 404 })
     }
 
-    const stripeSecret = process.env.STRIPE_SECRET_KEY
-    const priceId = resolvePriceId(product)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL
-    if (!stripeSecret || !priceId) {
-      console.error("[payments] Missing Stripe configuration", {
-        productKey,
-        hasSecret: Boolean(stripeSecret),
-        priceIdPresent: Boolean(priceId),
-        priceEnvVar: product.priceEnvVar,
-      })
-      return NextResponse.json({ error: "Stripe not configured" }, { status: 500 })
-    }
-    const normalizedAppUrl = appUrl
-      ? appUrl.startsWith("http") ? appUrl : `https://${appUrl}`
-      : "https://guidebuoyaisg.onrender.com"
-
     const service = createServiceClient()
 
-    // Durable multi-SKU ledger. user_id is derived inside the RPC from cases.user_id.
-    const { data: purchase, error: purchaseErr } = await service.rpc(
-      "upsert_case_purchase_from_provider",
+    type CheckoutReservation = {
+      case_purchase_id: string
+      legacy_payment_id: string | null
+      owner_user_id: string
+      amount: number | string
+      currency: string
+      reservation_disposition: "created" | "resumed_pending" | "reconcile_established"
+    }
+
+    const { data: reservation, error: reservationError } = await service.rpc(
+      "reserve_checkout_purchase_v1",
       {
         p_case_id: caseId,
-        p_product_code: product.productCode,
-        p_amount: product.amountSgd,
-        p_currency: "SGD",
-        p_payment_provider: "stripe",
-        p_provider_checkout_session_id: null,
-        p_provider_payment_intent_id: null,
-        p_payment_status: "pending",
-        p_purchased_by_profile_id: supabaseUuid,
-        p_fulfilment_provider_event_id: null,
-        p_paid_at: null,
-        p_refunded_amount: null,
-        p_disputed_at: null,
-        p_cancelled_at: null,
-        p_metadata: {
-          checkout_product_key: productKey,
-        },
+        p_checkout_product_key: productKey,
         p_actor_profile_id: supabaseUuid,
       },
     )
 
-    if (purchaseErr || !purchase) {
-      console.error("[payments] Failed to create case_purchase", purchaseErr)
+    if (reservationError || !reservation) {
+      if (
+        reservationError?.message.includes("purchase required") ||
+        reservationError?.message.includes("already purchased") ||
+        reservationError?.message.includes("requires reconciliation") ||
+        reservationError?.message.includes("active purchase")
+      ) {
+        return NextResponse.json({ error: "Purchase is not eligible" }, { status: 409 })
+      }
+      console.error("[payments] Failed to reserve checkout purchase", reservationError)
       return NextResponse.json({ error: "Failed to create purchase record" }, { status: 500 })
     }
 
-    const purchaseRow = purchase as { id: string; user_id: string }
-    if (purchaseRow.user_id !== caseData.user_id) {
-      console.error("[payments] purchase owner mismatch vs cases.user_id")
-      return NextResponse.json({ error: "Purchase ownership mismatch" }, { status: 500 })
+    const purchaseRow = (Array.isArray(reservation) ? reservation[0] : reservation) as CheckoutReservation
+    if (
+      !purchaseRow ||
+      purchaseRow.owner_user_id !== caseData.user_id ||
+      Number(purchaseRow.amount) !== product.amountSgd ||
+      purchaseRow.currency !== "SGD"
+    ) {
+      console.error("[payments] Invalid checkout reservation")
+      return NextResponse.json({ error: "Purchase reservation mismatch" }, { status: 500 })
     }
 
-    // Legacy payments dual-write (transition). Pattern C: use cases.user_id.
-    const { data: legacyPayment, error: paymentInsertError } = await service
-      .from("payments")
-      .insert({
-        user_id: caseData.user_id,
-        case_id: caseId,
-        amount: product.amountSgd,
-        currency: "SGD",
-        service_type: product.legacyServiceType,
-        payment_status: "pending",
+    if (purchaseRow.reservation_disposition === "reconcile_established") {
+      const { data: reconciliation, error: reconciliationError } = await service.rpc(
+        "reconcile_established_case_purchase_fulfilment_v1",
+        {
+          p_purchase_id: purchaseRow.case_purchase_id,
+          p_actor_profile_id: supabaseUuid,
+        },
+      )
+
+      if (reconciliationError || !reconciliation) {
+        console.error("[payments] Established purchase reconciliation is required", reconciliationError)
+        return NextResponse.json(
+          {
+            error: "Purchase fulfilment is pending reconciliation",
+            code: "PURCHASE_RECONCILIATION_REQUIRED",
+          },
+          { status: 409 },
+        )
+      }
+
+      return NextResponse.json({ reconciled: true })
+    }
+
+    if (
+      !["created", "resumed_pending"].includes(purchaseRow.reservation_disposition) ||
+      !purchaseRow.legacy_payment_id
+    ) {
+      console.error("[payments] Invalid resumable checkout reservation")
+      return NextResponse.json({ error: "Purchase reservation mismatch" }, { status: 500 })
+    }
+
+    const legacyPaymentId = purchaseRow.legacy_payment_id
+    const stripeSecret = process.env.STRIPE_SECRET_KEY
+    const priceId = resolvePriceId(product)
+    const checkoutOrigin = resolveCheckoutRedirectOrigin()
+    if (!stripeSecret || !priceId || !checkoutOrigin) {
+      console.error("[payments] Missing or invalid Stripe checkout configuration", {
+        productKey,
+        hasSecret: Boolean(stripeSecret),
+        priceIdPresent: Boolean(priceId),
+        priceEnvVar: product.priceEnvVar,
+        checkoutOriginPresent: Boolean(checkoutOrigin),
       })
-      .select("id")
-      .single()
-    if (paymentInsertError || !legacyPayment) {
-      console.error("[payments] Failed to insert legacy payment", paymentInsertError)
-      return NextResponse.json({ error: "Failed to create payment record" }, { status: 500 })
+      return NextResponse.json({ error: "Stripe not configured" }, { status: 500 })
     }
 
     const stripe = new Stripe(stripeSecret, { apiVersion: "2024-06-20" })
+    const result = await establishCheckoutSession(
+      {
+        createSession: async (idempotencyKey) => {
+          try {
+            const session = await stripe.checkout.sessions.create(
+              {
+                mode: "payment",
+                payment_method_types: ["card"],
+                client_reference_id: purchaseRow.case_purchase_id,
+                line_items: [{ price: priceId, quantity: 1 }],
+                success_url: `${checkoutOrigin}/app/case/${caseId}/dashboard?checkout=success&product=${productKey}`,
+                cancel_url: `${checkoutOrigin}/app/case/${caseId}/dashboard?checkout=cancel&product=${productKey}`,
+                metadata: buildCheckoutSessionMetadata({
+                  caseId,
+                  product,
+                  casePurchaseId: purchaseRow.case_purchase_id,
+                  legacyPaymentId,
+                  caseOwnerUserId: caseData.user_id,
+                }),
+              },
+              { idempotencyKey },
+            )
+            return {
+              id: session.id,
+              status: session.status,
+              url: session.url,
+              paymentIntentId:
+                typeof session.payment_intent === "string"
+                  ? session.payment_intent
+                  : session.payment_intent?.id ?? null,
+            }
+          } catch (stripeError) {
+            console.error("[payments] Stripe checkout session creation is ambiguous", {
+              error: stripeError instanceof Error ? stripeError.message : stripeError,
+              priceId,
+              appUrl: checkoutOrigin,
+            })
+            throw stripeError
+          }
+        },
+        attachSession: async (session) => {
+          const { data, error } = await service.rpc("attach_checkout_session_v1", {
+            p_purchase_id: purchaseRow.case_purchase_id,
+            p_legacy_payment_id: legacyPaymentId,
+            p_actor_profile_id: supabaseUuid,
+            p_checkout_session_id: session.id,
+            p_payment_intent_id: session.paymentIntentId,
+          })
+          if (error || !data) {
+            console.error("[payments] Failed to atomically attach Stripe Checkout session", error)
+            throw new Error(error?.message ?? "Checkout attachment failed")
+          }
+        },
+        expireSession: async (sessionId) => {
+          const expired = await stripe.checkout.sessions.expire(sessionId)
+          return { status: expired.status }
+        },
+        cancelReservation: async (sessionId) => {
+          const { error } = await service.rpc("cancel_checkout_reservation_v1", {
+            p_purchase_id: purchaseRow.case_purchase_id,
+            p_legacy_payment_id: legacyPaymentId,
+            p_checkout_session_id: sessionId,
+          })
+          if (error) {
+            console.error("[payments] Failed to atomically cancel expired reservation", error)
+            throw new Error(error.message)
+          }
+        },
+      },
+      purchaseRow.case_purchase_id,
+    )
 
-    let session: Stripe.Checkout.Session
-    try {
-      session = await stripe.checkout.sessions.create({
-        mode: "payment",
-        payment_method_types: ["card"],
-        line_items: [{ price: priceId, quantity: 1 }],
-        success_url: `${normalizedAppUrl}/app/case/${caseId}/dashboard?checkout=success&product=${productKey}`,
-        cancel_url: `${normalizedAppUrl}/app/case/${caseId}/dashboard?checkout=cancel&product=${productKey}`,
-        metadata: buildCheckoutSessionMetadata({
-          caseId,
-          product,
-          casePurchaseId: purchaseRow.id,
-          legacyPaymentId: legacyPayment.id,
-          caseOwnerUserId: caseData.user_id,
-        }),
-      })
-    } catch (stripeError) {
-      console.error("[payments] Stripe checkout session creation failed", {
-        error: stripeError instanceof Error ? stripeError.message : stripeError,
-        priceId,
-        appUrl: normalizedAppUrl,
-      })
-      return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 })
+    if (result.status === "retryable") {
+      return NextResponse.json(
+        { error: "Checkout setup is pending reconciliation", retryable: true },
+        { status: 503, headers: { "Retry-After": "3" } },
+      )
+    }
+    if (result.status === "closed") {
+      return NextResponse.json({ error: "Checkout session is no longer open" }, { status: 409 })
     }
 
-    const paymentIntentId =
-      typeof session.payment_intent === "string" ? session.payment_intent : null
-
-    const { error: purchaseUpdateErr } = await service
-      .from("case_purchases")
-      .update({
-        provider_checkout_session_id: session.id,
-        provider_payment_intent_id: paymentIntentId,
-        updated_by_profile_id: supabaseUuid,
-      })
-      .eq("id", purchaseRow.id)
-
-    if (purchaseUpdateErr) {
-      console.error("[payments] Failed to attach Stripe session to case_purchase", purchaseUpdateErr)
-    }
-
-    const { error: legacyUpdateErr } = await service
-      .from("payments")
-      .update({ stripe_payment_intent_id: paymentIntentId })
-      .eq("id", legacyPayment.id)
-
-    if (legacyUpdateErr) {
-      console.error("[payments] Failed to store stripe payment intent id", legacyUpdateErr)
-    }
-
-    return NextResponse.json({ url: session.url })
+    return NextResponse.json({ url: result.url })
   } catch (err) {
     console.error("[payments] create session error:", err)
     return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 })

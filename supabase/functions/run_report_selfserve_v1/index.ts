@@ -1,6 +1,11 @@
 // supabase/functions/run_report_selfserve_v1/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  authorizeHarborEdgeRequest,
+  HarborEdgeAuthError,
+  verifyHarborEdgeRequest,
+} from "../_shared/edge-auth.ts";
 function nowIso() {
   return new Date().toISOString();
 }
@@ -862,22 +867,24 @@ function forceNeutralAuthorised(reportJson, enabled) {
   }
 }
 /** ---------------------------
- * Main handler (NO JWT)
+ * Main handler (signed worker requests only)
  * --------------------------- */ serve(async (req)=>{
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction") ?? "";
-  const MODEL = Deno.env.get("SELF_SERVE_REPORT_MODEL") ?? "gpt-4.1-mini";
-  const SIMULATION_KEY = Deno.env.get("SIMULATION_KEY") ?? "";
-  if (!SUPABASE_URL) return textResp("Missing SUPABASE_URL", 500);
-  if (!SUPABASE_SERVICE_ROLE_KEY) return textResp("Missing SUPABASE_SERVICE_ROLE_KEY", 500);
-  if (!OPENAI_API_KEY) return textResp("Missing GuideBuoy_EdgeFunction secret", 500);
-  if (!SIMULATION_KEY) return textResp("Missing SIMULATION_KEY secret", 500);
-  const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   try {
+    const verified = await verifyHarborEdgeRequest(req, "run_report_selfserve_v1");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction") ?? "";
+    const MODEL = Deno.env.get("SELF_SERVE_REPORT_MODEL") ?? "gpt-4.1-mini";
+    const SIMULATION_KEY = Deno.env.get("SIMULATION_KEY") ?? "";
+    if (!SUPABASE_URL) return textResp("Missing SUPABASE_URL", 500);
+    if (!SUPABASE_SERVICE_ROLE_KEY) return textResp("Missing SUPABASE_SERVICE_ROLE_KEY", 500);
+    if (!OPENAI_API_KEY) return textResp("Missing GuideBuoy_EdgeFunction secret", 500);
+    if (!SIMULATION_KEY) return textResp("Missing SIMULATION_KEY secret", 500);
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    await authorizeHarborEdgeRequest(supabaseAdmin, verified.context);
+
     let eligibilitySnapshot = null;
-    if (req.method !== "POST") return textResp("POST only", 405);
-    const body = await req.json().catch(()=>({}));
+    const body = verified.body;
     if (body.simulation_key !== SIMULATION_KEY) {
       return jsonResp({
         ok: false,
@@ -1048,17 +1055,14 @@ function forceNeutralAuthorised(reportJson, enabled) {
     /** 11) Final sanitization pass (glue/punctuation + enum enforcement) */ reportJson = finalSanitizeReport(reportJson);
     /** 12) Final shaping + dedupe */ ensureDefaults(reportJson);
     /** 12b) FINAL SAFETY NET: hard exec_summary merchant normalization after all other report processing */ reportJson.executive_summary = fixExecutiveSummaryMerchantAndLoss(toStr(reportJson.executive_summary), extractJson);
-    /** 13) Insert report
-     * TODO: Persist eligibility_snapshot on reports when a dedicated jsonb column exists (avoid extending locked report_json schema).
-     */ const { data: inserted, error: insErr } = await supabaseAdmin.from("reports").insert({
-      user_id,
-      case_id,
-      status: "COMPLETED",
-      report_json: reportJson,
-      created_at: nowIso(),
-      updated_at: nowIso()
-    }).select("id, user_id, case_id, status, report_json, created_at, updated_at").single();
-    if (insErr) throw new Error(`reports insert error: ${JSON.stringify(insErr)}`);
+    /** 13) Persist only while this exact worker lease still owns the job. */
+    const { data: inserted, error: insErr } = await supabaseAdmin.rpc("commit_report_v1", {
+      p_job_id: verified.context.jobId,
+      p_case_id: case_id,
+      p_job_locked_at: verified.context.jobLockedAt,
+      p_report_json: reportJson
+    });
+    if (insErr || !inserted) throw new Error(`Fenced report commit failed: ${JSON.stringify(insErr)}`);
     /** 14) Return */ return jsonResp({
       ok: true,
       reused: false,
@@ -1085,6 +1089,6 @@ function forceNeutralAuthorised(reportJson, enabled) {
   } catch (e) {
     const errText = errToText(e);
     console.error("run_report_selfserve_v1 ERROR:", errText);
-    return textResp(errText, 500);
+    return textResp(errText, e instanceof HarborEdgeAuthError ? e.status : 500);
   }
 });

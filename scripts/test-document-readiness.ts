@@ -46,6 +46,24 @@ describe("classifyDocument", () => {
     )
   })
 
+  it("legacy processed/completed rows with extraction are treated as ready", () => {
+    assert.equal(
+      classifyDocument(doc("legacy-processed", "processed", { is_processed: true, has_extraction_content: true })),
+      "ready",
+    )
+    assert.equal(
+      classifyDocument(doc("legacy-completed", "completed", { is_processed: true, has_extraction_content: true })),
+      "ready",
+    )
+    assert.equal(
+      decideExtractDocumentReadiness([
+        doc("legacy-processed", "processed", { is_processed: true, has_extraction_content: true }),
+        doc("pending", "queued"),
+      ]).ready,
+      false,
+    )
+  })
+
   it("uploaded / null / unknown are not_ready", () => {
     assert.equal(classifyDocument(doc("1", "uploaded")), "uploaded")
     assert.equal(classifyDocument(doc("2", null)), "not_ready_other")
@@ -143,6 +161,15 @@ describe("extract preflight gate", () => {
       "utf8",
     )
     assert.doesNotMatch(src, /auth\.uid\(|auth\.users/)
+  })
+})
+
+describe("worker lease hardening", () => {
+  it("only explicit lease loss is treated as LeaseLostError", () => {
+    const src = readFileSync(path.join(process.cwd(), "worker/index.ts"), "utf8")
+    assert.match(src, /worker_lease_lost/)
+    assert.match(src, /documents_not_ready/)
+    assert.doesNotMatch(src, /res\.status === 409\) throw new LeaseLostError\(message\)/)
   })
 })
 

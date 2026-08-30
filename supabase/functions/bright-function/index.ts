@@ -1,5 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  authorizeHarborEdgeRequest,
+  HarborEdgeAuthError,
+  verifyHarborEdgeRequest,
+} from "../_shared/edge-auth.ts";
 
 const PROJECT_URL = Deno.env.get("GUIDEBUOY_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("GUIDEBUOY_SERVICE_ROLE_KEY");
@@ -68,21 +73,19 @@ type Tier0NormalizeInput = {
 
 Deno.serve(async (req) => {
   try {
-    if (req.method !== "POST") {
-      return new Response("Method Not Allowed", { status: 405 });
-    }
+    const verified = await verifyHarborEdgeRequest(req, "bright-function");
     if (!PROJECT_URL) return new Response("Project URL Missing", { status: 500 });
     if (!SERVICE_ROLE_KEY) return new Response("Service Role Key Missing", { status: 500 });
     if (!OPENAI_API_KEY) return new Response("OpenAI API Key Missing", { status: 500 });
 
-    const body = await req.json();
-    const case_id = body.case_id as string | undefined;
+    const supabase = createClient(PROJECT_URL, SERVICE_ROLE_KEY);
+    await authorizeHarborEdgeRequest(supabase, verified.context);
+    const body = verified.body;
+    const case_id = verified.context.caseId ?? undefined;
     const prompt_version = (body.prompt_version ?? "v0.1") as string;
     const source_ref = `tier0:${prompt_version}`;
 
     if (!case_id) return new Response("Missing case_id", { status: 400 });
-
-    const supabase = createClient(PROJECT_URL, SERVICE_ROLE_KEY);
 
     const { data: caseRow, error: caseErr } = await supabase
       .from("cases")
@@ -214,7 +217,7 @@ Deno.serve(async (req) => {
     );
   } catch (e) {
     console.error(`Error: ${String(e)}`);
-    return json({ ok: false, error: String(e) }, 500);
+    return json({ ok: false, error: String(e) }, e instanceof HarborEdgeAuthError ? e.status : 500);
   }
 });
 

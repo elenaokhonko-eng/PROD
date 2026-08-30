@@ -1,6 +1,11 @@
 // supabase/functions/run_case_decision_v1/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  authorizeHarborEdgeRequest,
+  HarborEdgeAuthError,
+  verifyHarborEdgeRequest,
+} from "../_shared/edge-auth.ts";
 function nowIso() {
   return new Date().toISOString();
 }
@@ -802,23 +807,25 @@ function buildEvidenceFromDoc(d, maxItems = 6) {
 /** ---------------------------
  * Main handler
  * --------------------------- */ serve(async (req)=>{
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction") ?? "";
-  const MODEL = Deno.env.get("CASE_DECISION_MODEL") ?? "gpt-4.1-mini";
-  if (!SUPABASE_URL) return textResp("Missing SUPABASE_URL", 500);
-  if (!SUPABASE_SERVICE_ROLE_KEY) return textResp("Missing SUPABASE_SERVICE_ROLE_KEY", 500);
-  if (!OPENAI_API_KEY) return textResp("Missing GuideBuoy_EdgeFunction secret", 500);
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   try {
-    if (req.method !== "POST") return textResp("POST only", 405);
-    const body = await req.json().catch(()=>({}));
-    const case_id = body.case_id;
-    const force = body.force ?? false;
-    const topKClauses = clampInt(body.top_k_clauses, 1, 20, 10);
-    const topKDecisions = clampInt(body.top_k_decisions, 1, 20, 10);
-    const clauseThreshold = clampFloat(body.clause_similarity_threshold, 0, 1, 0.12);
-    const promptVersion = body.prompt_version ?? "decision_v1.2_spans_doc_types";
+    const verified = await verifyHarborEdgeRequest(req, "run_case_decision_v1");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction") ?? "";
+    const MODEL = Deno.env.get("CASE_DECISION_MODEL") ?? "gpt-4.1-mini";
+    if (!SUPABASE_URL) return textResp("Missing SUPABASE_URL", 500);
+    if (!SUPABASE_SERVICE_ROLE_KEY) return textResp("Missing SUPABASE_SERVICE_ROLE_KEY", 500);
+    if (!OPENAI_API_KEY) return textResp("Missing GuideBuoy_EdgeFunction secret", 500);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    await authorizeHarborEdgeRequest(supabase, verified.context);
+
+    const body = verified.body;
+    const case_id = verified.context.caseId;
+    const force = false;
+    const topKClauses = 10;
+    const topKDecisions = 10;
+    const clauseThreshold = 0.12;
+    const promptVersion = "decision_v1.2_spans_doc_types";
     if (!case_id) return textResp("Missing case_id", 400);
     // Decision generation is intentionally NOT gated on get_case_eligibility / entitlements here: case_decision_runs are not tied to case_entitlements yet (free tier runs decisions). Self-serve report eligibility is enforced in run_report_selfserve_v1 only.
     /** 1) Latest extract run */ const { data: extractRun, error: erErr } = await supabase.from("case_extract_runs").select("id, case_id, extract_json, missing_fields, created_at").eq("case_id", case_id).order("created_at", {
@@ -1085,30 +1092,20 @@ function buildEvidenceFromDoc(d, maxItems = 6) {
     // DB columns
     const eligibility_status = finalStatus;
     const strength_score_value = finalScore;
-    /** 16) Write to DB */ let savedRow;
-    if (existing) {
-      const { data: updated, error: upErr } = await supabase.from("case_decision_runs").update({
-        decision_json: decisionJson,
-        eligibility_status,
-        strength_score_value,
-        model_name: MODEL,
-        prompt_version: promptVersion
-      }).eq("id", existing.id).select("id, case_id, extract_run_id, eligibility_status, strength_score_value, decision_json, created_at").single();
-      if (upErr) throw new Error(`case_decision_runs update error: ${JSON.stringify(upErr)}`);
-      savedRow = updated;
-    } else {
-      const { data: inserted, error: insErr } = await supabase.from("case_decision_runs").insert({
-        case_id,
-        extract_run_id: extractRun.id,
-        decision_json: decisionJson,
-        eligibility_status,
-        strength_score_value,
-        model_name: MODEL,
-        prompt_version: promptVersion,
-        created_at: nowIso()
-      }).select("id, case_id, extract_run_id, eligibility_status, strength_score_value, decision_json, created_at").single();
-      if (insErr) throw new Error(`case_decision_runs insert error: ${JSON.stringify(insErr)}`);
-      savedRow = inserted;
+    /** 16) Persist only while this exact worker lease still owns the job. */
+    const { data: savedRow, error: saveError } = await supabase.rpc("commit_decision_run_v1", {
+      p_job_id: verified.context.jobId,
+      p_case_id: case_id,
+      p_job_locked_at: verified.context.jobLockedAt,
+      p_extract_run_id: extractRun.id,
+      p_decision_json: decisionJson,
+      p_eligibility_status: eligibility_status,
+      p_strength_score_value: strength_score_value,
+      p_model_name: MODEL,
+      p_prompt_version: promptVersion
+    });
+    if (saveError || !savedRow) {
+      throw new Error(`Fenced decision commit failed: ${JSON.stringify(saveError)}`);
     }
     const clauseSims = (clauseMatches ?? []).map((x)=>x.similarity).filter((x)=>typeof x === "number").sort((a, b)=>b - a).slice(0, 5);
     const decisionSims = (decisionMatches ?? []).map((x)=>x.similarity).filter((x)=>typeof x === "number").sort((a, b)=>b - a).slice(0, 5);
@@ -1141,6 +1138,6 @@ function buildEvidenceFromDoc(d, maxItems = 6) {
   } catch (e) {
     const errText = errToText(e);
     console.error("run_case_decision_v1 ERROR:", errText);
-    return textResp(errText, 500);
+    return textResp(errText, e instanceof HarborEdgeAuthError ? e.status : 500);
   }
 });

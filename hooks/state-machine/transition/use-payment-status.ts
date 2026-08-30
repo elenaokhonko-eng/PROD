@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { qk } from '@/hooks/state-machine/query-keys'
-import { useSupabaseBrowser } from '@/hooks/state-machine/use-supabase-browser'
+import type { CaseCapabilityBillingResponse } from '@/lib/billing/case-capabilities'
 import type { CaseEntitlementPlan } from '@/lib/types/case'
 
 export interface UsePaymentStatusOptions {
@@ -12,38 +12,51 @@ export interface UsePaymentStatusOptions {
 export interface PaymentStatusResult {
   plan: CaseEntitlementPlan | null
   updatedAt: string | null
+  capabilityBilling: CaseCapabilityBillingResponse
 }
 
 export function usePaymentStatus(caseId: string | null | undefined, options?: UsePaymentStatusOptions) {
-  const supabase = useSupabaseBrowser()
   const enabled = Boolean(caseId) && (options?.enabled ?? true)
 
   return useQuery({
     queryKey: caseId ? qk.entitlement(caseId) : ['entitlement', 'missing-case-id'],
     enabled,
     queryFn: async (): Promise<PaymentStatusResult> => {
-      const { data, error } = await supabase
-        .from('case_entitlements')
-        .select('plan, features, updated_at')
-        .eq('case_id', caseId as string)
-        .maybeSingle()
+      const response = await fetch(`/api/cases/${caseId}/capabilities`, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      })
+      const payload = (await response.json().catch(() => null)) as
+        | (CaseCapabilityBillingResponse & { error?: string })
+        | null
 
-      if (error) throw error
-      const features = data?.features as Record<string, unknown> | null | undefined
-      const allowsEscalationPack = features?.allow_escalation_pack === true
-      const plan = (data?.plan as CaseEntitlementPlan | null) ?? null
+      if (!response.ok || !payload || payload.version !== 1) {
+        throw new Error(payload?.error ?? 'Failed to load case capabilities')
+      }
+
+      const plan: CaseEntitlementPlan | null = payload.capabilities.fidrecPack.entitled
+        ? 'escalation_pack'
+        : payload.capabilities.report.entitled
+          ? 'self_serve_report'
+          : null
 
       return {
-        plan: allowsEscalationPack ? 'escalation_pack' : plan,
-        updatedAt: data?.updated_at ?? null,
+        plan,
+        updatedAt: payload.generatedAt,
+        capabilityBilling: payload,
       }
     },
     refetchInterval: (query) => {
-      const currentPlan = query.state.data?.plan ?? null
-      if (currentPlan === 'self_serve_report' || currentPlan === 'escalation_pack') {
-        return false
-      }
-      return 2_000
+      const capabilities = query.state.data?.capabilityBilling.capabilities
+      if (!capabilities) return 2_000
+
+      const fulfilmentPending =
+        capabilities.report.checkoutInProgress ||
+        capabilities.report.reconciliationRequired ||
+        capabilities.fidrecPack.checkoutInProgress ||
+        capabilities.fidrecPack.reconciliationRequired
+
+      return fulfilmentPending ? 2_000 : false
     },
   })
 }

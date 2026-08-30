@@ -118,14 +118,15 @@ describe("run_case_extract_v4 partial-failure contract", () => {
     assert.match(edge, /skip_validation/)
   })
 
-  it("surfaces partial_success when validation fails after extract", () => {
-    assert.match(edge, /partial_success:\s*true/)
-    assert.match(edge, /validation_failed_after_extract/)
+  it("surfaces partial_success when the atomic commit reports a validation error", () => {
+    assert.match(edge, /const partial_success = !skip_validation && !!validation_error/)
+    assert.match(edge, /partial_success,/)
+    assert.match(edge, /rpc_error:\s*validation_error/)
     assert.match(edge, /extract_run_id:\s*extract_run\.id/)
   })
 
   it("keeps HTTP 200 on validation failure for caller compatibility", () => {
-    assert.match(edge, /error:\s*"validation_failed_after_extract"[\s\S]*?\}, 200\)/)
+    assert.match(edge, /return jsonResp\(\{[\s\S]*?warning:\s*partial_success[\s\S]*?\}, 200\)/)
   })
 
   it("logs structured validation attempt fields", () => {
