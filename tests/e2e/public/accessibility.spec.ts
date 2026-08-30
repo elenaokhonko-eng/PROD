@@ -1,37 +1,30 @@
 import { expect, test } from '@playwright/test'
 import { expectMinimumTextContrast, expectNoHorizontalOverflow } from '../helpers/page-quality'
 
-test('keyboard-only flow reaches primary navigation and opens and closes Lumi support', async ({ page }) => {
-  await page.goto('/')
+test('keyboard-only flow reaches navigation and returns focus after closing settings dialog', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
 
   await page.keyboard.press('Tab')
   await expect(page.locator(':focus')).toHaveAttribute('href', '/')
 
-  const openLumi = page.getByRole('button', { name: 'Open Lumi support' })
-  await openLumi.focus()
+  const settings = page.getByRole('button', { name: 'Display and sensory settings' })
+  await settings.focus()
   await page.keyboard.press('Enter')
 
-  const dialog = page.getByRole('dialog', { name: 'Lumi is listening' })
-  await expect(dialog).toBeVisible()
-  await expect(dialog.locator(':focus')).toHaveCount(1)
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Display and sensory settings' })).toBeVisible()
 
-  const focusable = dialog.locator(
-    'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-  )
-  const focusableCount = await focusable.count()
-  await focusable.last().focus()
-  await page.keyboard.press('Tab')
-  await expect(focusable.first()).toBeFocused()
+  await dialog.getByRole('button', { name: 'quiet', exact: true }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-sensory', 'quiet')
 
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
-  await expect(openLumi).toBeFocused()
-  expect(focusableCount).toBeGreaterThan(0)
+  await expect(settings).toBeFocused()
 })
 
 test('router honors reduced motion and keeps readable contrast', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.goto('/router')
+  await page.goto('/router', { waitUntil: 'domcontentloaded' })
 
   const movingElements = await page.locator('body *').evaluateAll((elements) =>
     elements

@@ -1,14 +1,25 @@
 import { expect, test } from '@playwright/test'
 import { expectNoHorizontalOverflow, monitorClientErrors } from '../helpers/page-quality'
 
-for (const path of ['/sign-in', '/sign-up']) {
-  test(`${path} renders the Clerk authentication surface`, async ({ page }) => {
-    const errors = monitorClientErrors(page)
-    const response = await page.goto(path, { waitUntil: 'domcontentloaded' })
+const authPages = [
+  { path: '/sign-in', heading: 'Welcome back.' },
+  { path: '/sign-up', heading: 'Create your case account.' },
+]
 
-    expect(response?.status()).toBeLessThan(400)
-    expect(new URL(page.url()).pathname).toBe(path)
+for (const route of authPages) {
+  test(`${route.path} renders Clerk and exact Harbor auth copy`, async ({ page }) => {
+    const errors = monitorClientErrors(page)
+    const response = await page.goto(route.path, { waitUntil: 'domcontentloaded' })
+
+    expect(response?.status(), await response?.text()).toBeLessThan(400)
+    expect(new URL(page.url()).pathname).toBe(route.path)
     await expect(page.locator('.cl-rootBox')).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: route.heading })).toBeVisible()
+
+    const singpassCopy = 'Singpass sign-in is not currently available.'
+    await expect(page.getByText(singpassCopy)).toHaveCount(2)
+    await expect(page.getByRole('button', { name: singpassCopy })).toBeDisabled()
+
     await expectNoHorizontalOverflow(page)
     errors.assertNoHydrationErrors()
   })

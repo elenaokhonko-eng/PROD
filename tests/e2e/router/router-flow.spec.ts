@@ -5,103 +5,62 @@ const token = 'router_harbor_release_gate'
 const narrative =
   'In March I transferred SGD 5,000 after receiving a message that appeared to come from my bank. The bank declined my recovery request.'
 
-const classification = {
-  category: 'Scam-related bank transfer',
-  summary: 'A spoofed bank message led to a disputed transfer.',
-  fi_name: 'Harbor Test Bank',
-  distress_signals: false,
-}
+const handoffUrlMatches = (url: URL) =>
+  url.pathname === '/sign-up' && url.searchParams.get('redirect_url') === '/onboarding'
 
-const questions = [
-  { key: 'bank_contacted', question: 'Have you contacted the bank?', type: 'radio', options: ['Yes', 'No'], required: true },
-  { key: 'bank_reference', question: 'What reference did the bank provide?', type: 'text', required: true },
-]
-
-const assessment = {
-  triage_path: 'B',
-  srf_eligible: false,
-  fidrec_subscriber: true,
-  recommended_path: 'fidrec_eligible',
-  eligibility_score: 82,
-  success_probability: 'high',
-  reasoning: ['The financial institution has issued a response.'],
-  missing_info: [],
-  next_steps: ['Keep the bank response and transaction records.'],
-  estimated_timeline: 'Four to six weeks',
-  deadline_warning: null,
-  bank_contact_days_elapsed: 31,
-  is_fidrec_eligible: true,
-}
-
-test('typed story persists and survives classify, refresh, back, and forward navigation', async ({ page }) => {
+test('typed story is preserved locally and hands off to sign-up onboarding', async ({ page }) => {
   const api = await installRouterApi(page)
-  await page.goto('/router')
+  await page.goto('/router', { waitUntil: 'domcontentloaded' })
 
-  const story = page.getByPlaceholder(/Example: In March 2024/)
-  await story.fill(narrative)
-  await page.getByRole('button', { name: 'Continue' }).click()
-
-  await expect(page).toHaveURL(/\/router\/classify$/)
-  await expect(page.getByRole('heading', { name: /Analyzing Your Dispute|Analysis Complete/ })).toBeVisible()
-  await expect(page).toHaveURL(/\/router\/results$/)
-  await expect(page.getByText('You may be eligible to file with FIDReC')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Tell Lumi what happened.' })).toBeVisible()
   await expectNoHorizontalOverflow(page)
   await expectNamedInteractiveControls(page)
-  expect(api.session.dispute_narrative).toBe(narrative)
-  await expect
-    .poll(() => page.evaluate(() => sessionStorage.getItem('gb_pending_narrative')))
-    .toContain(narrative)
 
-  await page.reload()
-  await expect(page.getByText('You may be eligible to file with FIDReC')).toBeVisible()
-  await page.goBack()
-  await expect(page).toHaveURL(/\/router\/results$/, { timeout: 10_000 })
+  await page.getByLabel('Your story').fill(narrative)
+  await page.getByRole('button', { name: 'Start organising — free' }).click()
+
+  await expect(page).toHaveURL(handoffUrlMatches)
+  expect(api.createdSessions).toBe(1)
+
+  const storedDraft = await page.evaluate(() => sessionStorage.getItem('gb_pending_narrative'))
+  expect(storedDraft).toContain(narrative)
 })
 
-test('voice story is transcribed and can enter the same router flow', async ({ page }) => {
+test('local draft is restored when returning to router', async ({ page }) => {
+  await page.addInitScript((savedNarrative) => {
+    sessionStorage.setItem('gb_pending_narrative', JSON.stringify({ narrative: savedNarrative }))
+  }, narrative)
+
+  await installRouterApi(page)
+  await page.goto('/router', { waitUntil: 'domcontentloaded' })
+
+  await expect(page.getByText('Your unfinished story was restored from this device.')).toBeVisible()
+  await expect(page.getByLabel('Your story')).toHaveValue(narrative)
+
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await expect(page.getByLabel('Your story')).toHaveValue(narrative)
+})
+
+test('voice story is transcribed and follows the same auth handoff', async ({ page }) => {
   await installMockRecorder(page)
   await installRouterApi(page)
   await page.route('**/api/transcribe', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ transcription: narrative }) }),
   )
-  await page.goto('/router')
 
-  await page.getByRole('button', { name: 'Record Voice' }).click()
-  const recorder = page.locator('.border-dashed button')
-  await expect(recorder).toHaveAccessibleName(/record/i)
-  await recorder.click()
-  await expect(recorder).toHaveAccessibleName(/stop/i)
-  await recorder.click()
+  await page.goto('/router', { waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: 'Record my story' }).click()
+  await page.getByRole('button', { name: 'Start recording' }).click()
+  await page.getByRole('button', { name: 'Stop' }).click()
 
-  await expect(page.getByText('Transcript:')).toBeVisible()
-  await expect(page.getByText(narrative)).toBeVisible()
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await expect(page).toHaveURL(/\/router\/results$/)
-})
+  await expect(page.getByLabel('Your story')).toHaveValue(narrative)
+  await page.getByRole('button', { name: 'Start organising — free' }).click()
+  await expect(page).toHaveURL(handoffUrlMatches)
 
-test('questions route persists required answers before results', async ({ page }) => {
-  await page.addInitScript((value) => localStorage.setItem('router_session_token', value), token)
-  const api = await installRouterApi(page, {
-    existing: {
-      id: 'questions-session-id',
-      session_token: token,
-      classification_result: classification,
-      created_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 86_400_000).toISOString(),
-    },
-  })
-
-  await page.goto('/router/questions')
-  await expect(page.getByRole('heading', { name: questions[0].question })).toBeVisible()
-  await expectNoHorizontalOverflow(page)
-  await expectNamedInteractiveControls(page)
-  await page.getByLabel('Yes').click()
-  await page.getByRole('button', { name: 'Next' }).click()
-  await page.getByPlaceholder('Your answer...').fill('BANK-REF-123')
-  await page.getByRole('button', { name: 'See Results' }).click()
-
-  await expect(page).toHaveURL(/\/router\/results$/)
-  expect(api.session.user_responses).toEqual({ bank_contacted: 'Yes', bank_reference: 'BANK-REF-123' })
+  const storedDraftRaw = await page.evaluate(() => sessionStorage.getItem('gb_pending_narrative'))
+  const storedDraft = storedDraftRaw ? (JSON.parse(storedDraftRaw) as { narrative?: string; transcript?: string }) : null
+  expect(storedDraft?.narrative).toBe(narrative)
+  expect(storedDraft?.transcript).toBe(narrative)
 })
 
 test('expired anonymous session is replaced before story entry', async ({ page }) => {
@@ -116,28 +75,52 @@ test('expired anonymous session is replaced before story entry', async ({ page }
     },
   })
 
-  await page.goto('/router')
+  await page.goto('/router', { waitUntil: 'domcontentloaded' })
 
   await expect.poll(() => api.createdSessions).toBe(1)
   await expect.poll(() => page.evaluate(() => localStorage.getItem('router_session_token'))).toBe(token)
   await expect(page.getByText(/Welcome back/)).toHaveCount(0)
 })
 
-test('failed session write does not discard an anonymous story', async ({ page }) => {
-  const api = await installRouterApi(page)
-  await page.goto('/router')
-  await page.getByPlaceholder(/Example: In March 2024/).fill(narrative)
-  api.failWrites = true
+test('offline mode blocks auth handoff and keeps the local draft', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false })
+  })
 
-  await page.getByRole('button', { name: 'Continue' }).click()
+  await installRouterApi(page)
+  await page.goto('/router', { waitUntil: 'domcontentloaded' })
 
-  await expect(page).toHaveURL(/\/router$/)
-  await expect(page.getByPlaceholder(/Example: In March 2024/)).toHaveValue(narrative)
-  await expect(page.getByRole('alert')).toContainText(/try again/i)
+  const submit = page.getByRole('button', { name: 'Start organising — free' })
+  await expect(page.getByText('You’re offline. Your unfinished story stays on this device and can be submitted after you reconnect.')).toBeVisible()
+  await expect(submit).toBeDisabled()
 
-  api.failWrites = false
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await expect(page).toHaveURL(/\/router\/results$/)
+  await page.getByLabel('Your story').fill(narrative)
+  const storedDraft = await page.evaluate(() => sessionStorage.getItem('gb_pending_narrative'))
+  expect(storedDraft).toContain(narrative)
+})
+
+test('existing classified sessions show catch-up controls and can start fresh', async ({ page }) => {
+  await page.addInitScript((value) => localStorage.setItem('router_session_token', value), token)
+  const api = await installRouterApi(page, {
+    existing: {
+      id: 'classified-session-id',
+      session_token: token,
+      classification_result: {
+        category: 'Scam-related bank transfer',
+        summary: 'A spoofed bank message led to a disputed transfer.',
+      },
+      created_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+    },
+  })
+
+  await page.goto('/router', { waitUntil: 'domcontentloaded' })
+  await expect(page.getByRole('heading', { level: 2, name: 'Welcome back — your progress is saved' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Continue to results/ })).toHaveAttribute('href', '/router/results')
+
+  await page.getByRole('button', { name: 'Start fresh' }).click()
+  await expect.poll(() => api.createdSessions).toBe(1)
+  await expect(page.getByRole('heading', { level: 2, name: 'Welcome back — your progress is saved' })).toHaveCount(0)
 })
 
 type Session = {
@@ -163,23 +146,15 @@ async function installRouterApi(page: Page, options?: { existing?: Session }) {
         expires_at: new Date(Date.now() + 86_400_000).toISOString(),
       } as Session),
     createdSessions: 0,
-    failWrites: false,
   }
 
   await page.route('**/api/analytics/track', (route) =>
     route.fulfill({ status: 202, contentType: 'application/json', body: '{}' }),
   )
-  await page.route('**/api/router/classify', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(classification) }),
-  )
-  await page.route('**/api/router/assess', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(assessment) }),
-  )
-  await page.route('**/api/router/questions', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ questions }) }),
-  )
+
   await page.route('**/api/router/session**', async (route) => {
     const request = route.request()
+
     if (request.method() === 'POST') {
       state.createdSessions += 1
       state.session = {
@@ -193,12 +168,8 @@ async function installRouterApi(page: Page, options?: { existing?: Session }) {
     }
 
     if (request.method() === 'PATCH') {
-      if (state.failWrites) {
-        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'offline' }) })
-        return
-      }
-      const payload = request.postDataJSON() as { updates: Partial<Session> }
-      state.session = { ...state.session, ...payload.updates }
+      const payload = request.postDataJSON() as { updates?: Partial<Session> }
+      state.session = { ...state.session, ...(payload.updates ?? {}) }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session: state.session }) })
       return
     }
@@ -208,6 +179,7 @@ async function installRouterApi(page: Page, options?: { existing?: Session }) {
       await route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'not_found' }) })
       return
     }
+
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session: state.session }) })
   })
 
@@ -218,6 +190,7 @@ async function installMockRecorder(page: Page) {
   await page.addInitScript(() => {
     const track = { stop() {} }
     const stream = { getTracks: () => [track] }
+
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
       value: { getUserMedia: async () => stream },
@@ -228,9 +201,19 @@ async function installMockRecorder(page: Page) {
       stream = stream
       ondataavailable: ((event: { data: Blob }) => void) | null = null
       onstop: (() => void) | null = null
+
       start() {
         this.state = 'recording'
       }
+
+      pause() {
+        this.state = 'paused'
+      }
+
+      resume() {
+        this.state = 'recording'
+      }
+
       stop() {
         this.state = 'inactive'
         this.ondataavailable?.({ data: new Blob(['harbor voice sample'], { type: 'audio/webm' }) })

@@ -48,6 +48,7 @@ test('live run context requires exact HEAD, environment revision, and worker ver
   withEnvironment(
     {
       HARBOR_RELEASE_SHA: head,
+      HARBOR_PREVIEW_CONFIRMED_SHA: head,
       HARBOR_ENVIRONMENT_REVISION: undefined,
       HARBOR_WORKER_VERSION: undefined,
     },
@@ -56,6 +57,7 @@ test('live run context requires exact HEAD, environment revision, and worker ver
   withEnvironment(
     {
       HARBOR_RELEASE_SHA: head,
+      HARBOR_PREVIEW_CONFIRMED_SHA: head,
       HARBOR_ENVIRONMENT_REVISION: 'preview-revision',
       HARBOR_WORKER_VERSION: undefined,
     },

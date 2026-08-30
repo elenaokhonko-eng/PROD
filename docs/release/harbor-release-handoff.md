@@ -3,10 +3,10 @@
 ## Status and guardrails
 
 - Preparation only. No item in this packet is release-candidate evidence.
-- Draft base is `1c0a16a241e437e9544b999b00274296dab764ae`; it is not the integrated candidate.
-- All drafts are uncommitted in the test worktree.
-- No rebase, migration apply, preview/production credential use, or release-candidate execution has occurred.
-- When Backend supplies one clean integrated SHA, preserve these drafts, rebase the test branch to that exact SHA, set `HARBOR_RELEASE_SHA`, and run the matrix below. Product failures go to the owning agent; the test branch must not fix application/backend behavior.
+- Current preparation head is `28a155ec9113f06a6b0ff7cc72a0ee1d89687855`; this is a draft readiness checkpoint, not a promotion candidate.
+- Draft test updates are preserved in this test worktree and remain pending formal execution assignment.
+- No preview deployment, live-provider evidence collection, or non-local migration execution has occurred.
+- On formal assignment, bind to one exact integrated SHA, set `HARBOR_RELEASE_SHA`, run the matrix below, and route product failures back to owning agents instead of changing product/backend behavior in the test branch.
 
 ## Draft inventory
 
@@ -14,8 +14,8 @@
 |---|---|---|---|
 | Lane configuration | `playwright.config.ts`, `tests/e2e/config.ts`, `tests/e2e/playwright.*.config.ts`, `tests/e2e/fixtures/harbor-test.ts` | Public, synthetic, authenticated and preview lanes; 390/768/1440; Chromium and mobile WebKit; exact-SHA checks; automatic production-origin blocking in every authenticated browser context | Configuration |
 | Run identity and reporting | `tests/e2e/evidence/run-context.ts`, `tests/e2e/reporters/harbor-evidence-reporter.ts`, `tests/release/harness-guards.test.ts` | SHA/environment/worker identity, fail-closed preview guards, evidence classification, project identity, redaction and artifacts | All lanes |
-| Public UI | `tests/e2e/public/*.spec.ts`, `tests/e2e/fixtures/public-routes.ts` | Public/auth/canonical routes, visual baselines, overflow, console/hydration errors, keyboard, dialog, focus, reduced motion and contrast | Local/static |
-| Router | `tests/e2e/router/router-flow.spec.ts` | Type/voice story, synthetic classification, persistence, expired session, failed write, refresh/back | Synthetic-provider |
+| Public UI | `tests/e2e/public/*.spec.ts`, `tests/e2e/fixtures/public-routes.ts` | Public/auth/canonical routes, exact auth-copy assertions, FAQ/contact contract checks, resources unavailable/ready states, disabled-service surfaces, visual baselines, overflow, console/hydration errors, keyboard, dialog, focus, reduced motion and contrast | Local/static |
+| Router | `tests/e2e/router/router-flow.spec.ts` | Type/voice story, local-draft restore, sign-up handoff, expired-session replacement, offline handoff denial, and catch-up/start-fresh recovery | Synthetic-provider |
 | Authenticated contract | `tests/e2e/authenticated/*.spec.ts`, `tests/e2e/slice5.spec.ts`, `tests/e2e/slice7.spec.ts` | Claims/RLS, ownership, states, checkout, collaboration, evidence, privacy, contact and external handshakes | Mixed; annotations distinguish synthetic cases |
 | Preview | `tests/e2e/preview/live-preview.spec.ts` | Public deploy and canonical-route checks; no production redirect; Supabase miss contract | Preview-provider-delivered |
 | Contract vectors | `tests/contracts/backend-blocker-cases.ts`, `tests/contracts/backend-blocker-cases.test.ts` | Worker leases, atomic enqueue, mixed evidence outcomes, payment concurrency, all 24 lifecycle orders, 480 duplicate-boundary replays and migration conflicts | Local/static prepared vectors |
@@ -75,13 +75,13 @@ Fixture invariants:
 
 ## Preparation-only harness validation
 
-These checks validate draft syntax and collection on base `1c0a16a241e437e9544b999b00274296dab764ae`. They are not candidate evidence and did not start a browser/server, apply migrations, or contact a provider.
+These checks validate draft syntax and collection on preparation head `28a155ec9113f06a6b0ff7cc72a0ee1d89687855`. They are not candidate evidence and did not execute a release-acceptance browser matrix, apply non-local migrations, or contact live providers.
 
 - `pnpm typecheck`: passed after the latest checkout-provider and contract changes.
-- Deterministic contract/release validation: 32/34 passed. The two failures are expected current-base findings: consultation remains enabled, so the frozen commercial-authority assertions reject the enabled-key set and `human_consult_30m`. This preparation-only result is baseline drift—not a defect to fix in the test branch and not candidate evidence.
+- Latest pre-integration deterministic contract/release validation: 32/34 passed. The two failures were expected baseline drift (consultation catalogue mismatch) and were explicitly recorded as preparation-only, not candidate evidence.
 - `git diff --check`: passed.
-- Public Playwright collection: 172 tests across 5 files.
-- Synthetic Playwright collection: 20 tests across 1 file.
+- Public Playwright collection: 204 tests across 6 files.
+- Synthetic Playwright collection: 24 tests across 1 file.
 - Authenticated collection with generated non-secret UUID-shaped fixtures and all 14 state families: 164 tests across 12 files.
 - Preview and authenticated configs without live inputs: both failed closed at `HARBOR_RELEASE_SHA` as intended; deterministic guard tests also cover missing revision/worker identity plus non-HTTPS, wrong-host and production-host app/Supabase inputs.
 - Workflow YAML parsing remains unvalidated because no YAML/actionlint parser is installed; no tool was added.
@@ -166,7 +166,7 @@ Rules:
 2. Invalid upload type/size/magic-byte and expired-collaborator storage/row denial gates are prepared. Collaborator processing now targets a seeded evidence ID; job-table no-mutation still needs Backend's final durable-enqueue adapter.
 3. Live anonymous-to-Clerk bootstrap, live invitation acceptance/share, report download/share and checkout cancel/resume remain open.
 4. Provider action-required payment, SMTP delivery receipt (beyond acceptance), worker crash/retry and live realtime offline/reconnect remain open.
-5. `/router/classify` and `/router/questions` are covered synthetically; authenticated new-case/signup and manual semantic/accessibility review remain open.
+5. Synthetic router coverage now validates typed/voice handoff, draft restore, offline denial, expired-session replacement and catch-up/start-fresh recovery; authenticated new-case/signup and live bootstrap/report flows remain open.
 6. No visual snapshot is accepted until human review.
 7. Branch-protection settings must mark every workflow job as required; workflow YAML alone cannot prevent an administrator bypass.
 8. Workflow schema parsing, full migration apply and pgTAP execution must wait for available tooling and the integrated migration set.
