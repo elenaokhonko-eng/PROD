@@ -1,0 +1,300 @@
+name: Harbor release gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harbor-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: '1'
+  HARBOR_RELEASE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  frozen-install:
+    name: Frozen install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HARBOR_RELEASE_SHA }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+  static-gates:
+    name: TypeScript, build, and contracts
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://build.invalid
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: build-placeholder
+      SUPABASE_SERVICE_ROLE_KEY: build-placeholder
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_build_placeholder
+      CLERK_SECRET_KEY: sk_test_build_placeholder
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HARBOR_RELEASE_SHA }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: TypeScript
+        run: pnpm typecheck
+      - name: Production build
+        run: pnpm build
+      - name: State-machine rules
+        run: pnpm check:sm
+      - name: Release and contract tests
+        run: pnpm exec tsx --test tests/contracts/*.test.ts tests/release/*.test.ts
+      - name: Harbor UI contract
+        run: pnpm test:harbor-contract
+      - name: Edge authorization contract
+        run: pnpm test:edge-authorization
+      - name: Document readiness
+        run: pnpm test:document-readiness
+      - name: Validation reconciliation
+        run: pnpm test:validation-recon
+      - name: Payment and subscription branching
+        run: pnpm test:slice8-payments
+
+  migration-rls:
+    name: Migration apply, lint, and Pattern C RLS
+    runs-on: ubuntu-latest
+    env:
+      HARBOR_SUPABASE_CLI_VERSION: ${{ vars.HARBOR_SUPABASE_CLI_VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HARBOR_RELEASE_SHA }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Deterministic migration-conflict fixtures
+        run: pnpm test:migration-conflicts
+      - name: Require pinned Supabase CLI
+        run: test -n "$HARBOR_SUPABASE_CLI_VERSION"
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.HARBOR_SUPABASE_CLI_VERSION }}
+      - name: Record Supabase CLI version
+        run: supabase --version
+      - name: Start clean local Supabase
+        run: supabase start
+      - name: Apply all migrations from zero
+        run: supabase db reset --local
+      - name: Lint migrated database
+        run: supabase db lint --local --level error
+      - name: Two-user Pattern C RLS
+        run: supabase test db tests/database/pattern-c-rls.test.sql
+
+  playwright-public:
+    name: Playwright public UI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HARBOR_RELEASE_SHA }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm exec playwright test --config=playwright.config.ts
+      - name: Upload public browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-public-${{ env.HARBOR_RELEASE_SHA }}
+          path: |
+            test-results/public/
+            test-results/evidence/public-*.json
+            playwright-report/public/
+          retention-days: 14
+          if-no-files-found: error
+
+  playwright-synthetic:
+    name: Playwright synthetic provider
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HARBOR_RELEASE_SHA }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm exec playwright test --config=tests/e2e/playwright.synthetic.config.ts
+      - name: Upload synthetic browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-synthetic-${{ env.HARBOR_RELEASE_SHA }}
+          path: |
+            test-results/synthetic/
+            test-results/evidence/synthetic-*.json
+            playwright-report/synthetic/
+          retention-days: 14
+          if-no-files-found: error
+
+  playwright-preview:
+    name: Playwright preview handshakes
+    runs-on: ubuntu-latest
+    environment: harbor-preview
+    needs: [static-gates, migration-rls, playwright-public, playwright-synthetic]
+    env:
+      HARBOR_PREVIEW_BASE_URL: ${{ vars.HARBOR_PREVIEW_BASE_URL }}
+      HARBOR_PREVIEW_EXPECTED_HOST: ${{ vars.HARBOR_PREVIEW_EXPECTED_HOST }}
+      HARBOR_PRODUCTION_HOSTS: ${{ vars.HARBOR_PRODUCTION_HOSTS }}
+      HARBOR_ENVIRONMENT_REVISION: ${{ vars.HARBOR_ENVIRONMENT_REVISION }}
+      HARBOR_WORKER_VERSION: ${{ vars.HARBOR_WORKER_VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HARBOR_RELEASE_SHA }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright test --config=tests/e2e/playwright.preview.config.ts
+      - name: Upload preview evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-preview-${{ env.HARBOR_RELEASE_SHA }}
+          path: |
+            test-results/preview/
+            test-results/evidence/preview-*.json
+            playwright-report/preview/
+          retention-days: 14
+          if-no-files-found: error
+
+  playwright-authenticated:
+    name: Playwright authenticated and provider-delivered
+    runs-on: ubuntu-latest
+    environment: harbor-preview
+    needs: [playwright-preview]
+    env:
+      HARBOR_PREVIEW_BASE_URL: ${{ vars.HARBOR_PREVIEW_BASE_URL }}
+      HARBOR_PREVIEW_EXPECTED_HOST: ${{ vars.HARBOR_PREVIEW_EXPECTED_HOST }}
+      HARBOR_PRODUCTION_HOSTS: ${{ vars.HARBOR_PRODUCTION_HOSTS }}
+      HARBOR_ENVIRONMENT_REVISION: ${{ vars.HARBOR_ENVIRONMENT_REVISION }}
+      HARBOR_WORKER_VERSION: ${{ vars.HARBOR_WORKER_VERSION }}
+      HARBOR_SUPABASE_EXPECTED_HOST: ${{ vars.HARBOR_SUPABASE_EXPECTED_HOST }}
+      HARBOR_PRODUCTION_SUPABASE_HOSTS: ${{ vars.HARBOR_PRODUCTION_SUPABASE_HOSTS }}
+      HARBOR_STATE_CASES_JSON: ${{ secrets.HARBOR_STATE_CASES_JSON }}
+      HARBOR_RELEASE_FIXTURES_JSON: ${{ secrets.HARBOR_RELEASE_FIXTURES_JSON }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      HARBOR_SMTP_TEST_RECIPIENT: ${{ secrets.HARBOR_SMTP_TEST_RECIPIENT }}
+      HARBOR_PREVIEW_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      HARBOR_PREVIEW_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      HARBOR_PREVIEW_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      HARBOR_PREVIEW_DATABASE_URL: ${{ secrets.HARBOR_PREVIEW_DATABASE_URL }}
+      HARBOR_PREVIEW_STRIPE_WEBHOOK_SECRET: ${{ secrets.HARBOR_PREVIEW_STRIPE_WEBHOOK_SECRET }}
+      HARBOR_PREVIEW_EMAIL_SINK: ${{ secrets.HARBOR_PREVIEW_EMAIL_SINK }}
+      HARBOR_PREVIEW_WORKER_CASE_ID: ${{ secrets.HARBOR_PREVIEW_WORKER_CASE_ID }}
+      HARBOR_PREVIEW_CONFIRM_SUPABASE_REF: ${{ vars.HARBOR_PREVIEW_CONFIRM_SUPABASE_REF }}
+      HARBOR_PREVIEW_EXPECTED_COMMIT_SHA: ${{ env.HARBOR_RELEASE_SHA }}
+      HARBOR_PREVIEW_CONFIRM_MUTATIONS: RUN_MUTATING_PREVIEW_HANDSHAKES
+      HARBOR_PREVIEW_EVIDENCE_FILE: test-results/harbor-preview-handshake-evidence.jsonl
+      HARBOR_ARTIFACT_KEY: ${{ secrets.HARBOR_ARTIFACT_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HARBOR_RELEASE_SHA }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - name: Materialize ephemeral Clerk states
+        env:
+          USER_A: ${{ secrets.HARBOR_AUTH_STORAGE_STATE_USER_A_BASE64 }}
+          USER_B: ${{ secrets.HARBOR_AUTH_STORAGE_STATE_USER_B_BASE64 }}
+          DELETION_USER: ${{ secrets.HARBOR_AUTH_STORAGE_STATE_DELETION_USER_BASE64 }}
+        run: |
+          test -n "$USER_A" && test -n "$USER_B" && test -n "$DELETION_USER"
+          mkdir -p tests/e2e/.auth
+          printf '%s' "$USER_A" | base64 --decode > tests/e2e/.auth/harbor-user-a.json
+          printf '%s' "$USER_B" | base64 --decode > tests/e2e/.auth/harbor-user-b.json
+          printf '%s' "$DELETION_USER" | base64 --decode > tests/e2e/.auth/harbor-deletion-user.json
+      - run: pnpm exec playwright test --config=tests/e2e/playwright.authenticated.config.ts
+      - name: Playwright preview five-service handshakes
+        env:
+          HARBOR_PREVIEW_AUTH_STORAGE_STATE: tests/e2e/.auth/harbor-user-a.json
+        run: pnpm test:e2e:preview-handshakes
+      - name: Upload preview handshake evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-handshakes-${{ env.HARBOR_RELEASE_SHA }}
+          path: |
+            test-results/harbor-preview-handshake-evidence.jsonl
+            test-results/public/
+            playwright-report/public/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Encrypt authenticated traces and screenshots
+        if: always()
+        run: |
+          test -n "$HARBOR_ARTIFACT_KEY"
+          tar -czf authenticated-evidence.tar.gz test-results/authenticated playwright-report/authenticated
+          openssl enc -aes-256-cbc -salt -pbkdf2 -in authenticated-evidence.tar.gz -out authenticated-evidence.tar.gz.enc -pass env:HARBOR_ARTIFACT_KEY
+          rm authenticated-evidence.tar.gz
+      - name: Upload redacted evidence index
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: authenticated-index-${{ env.HARBOR_RELEASE_SHA }}
+          path: test-results/evidence/authenticated-*.json
+          retention-days: 14
+          if-no-files-found: error
+      - name: Upload encrypted authenticated artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: authenticated-encrypted-${{ env.HARBOR_RELEASE_SHA }}
+          path: authenticated-evidence.tar.gz.enc
+          retention-days: 3
+          if-no-files-found: error
