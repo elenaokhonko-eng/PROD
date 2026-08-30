@@ -1,5 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
 
 const blockedPathPatterns: RegExp[] = [
   /\.env/i,
@@ -15,7 +15,7 @@ const blockedUserAgents: RegExp[] = [/aiohttp/i, /cms-checker/i]
 const isProtectedRoute = createRouteMatcher(['/app(.*)'])
 const isPublicAppRoute = createRouteMatcher(['/app/signup'])
 
-export default clerkMiddleware(async function proxy(auth, request: NextRequest) {
+const withClerk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? clerkMiddleware(async function proxy(auth, request: NextRequest) {
   const { pathname } = request.nextUrl
   const userAgent = request.headers.get('user-agent') ?? ''
 
@@ -29,7 +29,14 @@ export default clerkMiddleware(async function proxy(auth, request: NextRequest) 
   if (isProtectedRoute(request) && !isPublicAppRoute(request)) {
     await auth.protect()
   }
-})
+}) : null
+
+export default function middleware(request: NextRequest, event: NextFetchEvent) {
+  if (process.env.NODE_ENV !== 'production' && !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    return NextResponse.next()
+  }
+  return withClerk ? withClerk(request, event) : NextResponse.next()
+}
 
 export const config = {
   matcher: [

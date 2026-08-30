@@ -1,14 +1,17 @@
 import { clerkMiddleware } from '@clerk/nextjs/server'
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
 
-const withClerk = clerkMiddleware()
+const withClerk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? clerkMiddleware() : null
 
 export default function middleware(request: NextRequest, event: NextFetchEvent) {
-  if (process.env.NODE_ENV !== 'production' && process.env.HARBOR_VISUAL_FIXTURES === '1') {
+  if (
+    (process.env.NODE_ENV !== 'production' && process.env.HARBOR_VISUAL_FIXTURES === '1') ||
+    (process.env.NODE_ENV !== 'production' && !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
+  ) {
     return NextResponse.next()
   }
 
-  return withClerk(request, event)
+  return withClerk ? withClerk(request, event) : NextResponse.next()
 }
 
 export const config = {
