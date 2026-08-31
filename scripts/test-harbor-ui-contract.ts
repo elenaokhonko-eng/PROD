@@ -28,6 +28,9 @@ const dashboardSource = readSource('app/(case)/app/case/[id]/dashboard/_componen
 const onboardingSource = readSource('app/(auth)/onboarding/page.tsx')
 const routerSource = readSource('app/router/page.tsx')
 const narrativeCaptureSource = readSource('components/landing/narrative-capture.tsx')
+const classifySource = readSource('app/router/classify/page.tsx')
+const routerQuestionsSource = readSource('app/router/questions/page.tsx')
+const publicFooterSource = readSource('components/harbor/public-footer.tsx')
 const settingsSource = readSource('app/(case)/app/settings/_components/settings-client.tsx')
 const stateMachineSource = readSource('hooks/state-machine/use-state-machine.ts')
 const paymentStatusSource = readSource('hooks/state-machine/transition/use-payment-status.ts')
@@ -87,6 +90,27 @@ describe('Harbor UI functionality contract', () => {
     assert.match(readSource('app/api/analytics/track/route.ts'), /sessionId: z\.string\(\)\.nullable\(\)\.optional\(\)/)
     assert.doesNotMatch(readSource('app/layout.tsx'), /PendingNarrativeHandoff/)
     assert.doesNotMatch(readSource('components/landing/hero-capture.tsx'), /Clerk|unsafeMetadata/)
+  })
+
+  it('keeps the public Router B sequence recoverable before results', () => {
+    assert.match(classifySource, /SiteHeader/)
+    assert.match(classifySource, /fetch\('\/api\/router\/classify'/)
+    assert.match(classifySource, /setPhase\('slow'\)/)
+    assert.match(classifySource, /This is taking longer than usual/)
+    assert.match(classifySource, /onClick=\{retry\}/)
+    assert.match(classifySource, /updateRouterSession/)
+    assert.match(classifySource, /router\.replace\('\/router\/questions'\)/)
+    assert.doesNotMatch(classifySource, /router\/results/)
+
+    assert.match(routerQuestionsSource, /fetch\("\/api\/router\/questions"/)
+    assert.match(routerQuestionsSource, /parseQuestions\(data\.questions\)/)
+    assert.match(routerQuestionsSource, /Retry questions/)
+    assert.match(routerQuestionsSource, /I’m not sure/)
+    assert.match(
+      routerQuestionsSource,
+      /const savedSession = await updateRouterSession[\s\S]*if \(!savedSession\)[\s\S]*router\.push\("\/router\/results"\)/,
+    )
+    assert.doesNotMatch(publicFooterSource, /security@guidebuoyai\.sg|Report a vulnerability/)
   })
 
   it('preserves the upload and authenticated question pipelines', () => {
