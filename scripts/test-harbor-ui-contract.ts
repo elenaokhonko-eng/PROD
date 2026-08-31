@@ -34,6 +34,8 @@ const paymentStatusSource = readSource('hooks/state-machine/transition/use-payme
 const paymentLandingSource = readSource('components/state-machine/transition/payment-success-landing.tsx')
 const resourceDirectorySource = readSource('components/harbor/resource-directory.tsx')
 const resourceRouteSource = readSource('app/api/resources/route.ts')
+const jobStatusRouteSource = readSource('app/api/cases/[caseId]/job-status/route.ts')
+const jobStatusHookSource = readSource('hooks/state-machine/layer2/use-job-status.ts')
 
 function protects(markers: readonly string[]) {
   for (const marker of markers) {
@@ -115,6 +117,15 @@ describe('Harbor UI functionality contract', () => {
     assert.match(dashboardSource, /eligible_actions\.run_escalation_pack/)
     assert.match(dashboardSource, /reportCapability\?\.canCheckout/)
     assert.match(dashboardSource, /fidrecCapability\?\.canCheckout/)
+  })
+
+  it('filters report job status by the server-owned job type', () => {
+    assert.match(jobStatusRouteSource, /const REPORT_GENERATION_JOB_TYPE = 'post_payment_report_generation'/)
+    assert.match(
+      jobStatusRouteSource,
+      /\.from\('jobs'\)[\s\S]*?\.eq\('case_id', caseId\)[\s\S]*?\.eq\('job_type', REPORT_GENERATION_JOB_TYPE\)[\s\S]*?\.order\('created_at'/,
+    )
+    assert.doesNotMatch(jobStatusHookSource, /job_type|[?&]jobType=/)
   })
 
   it('keeps one server-authoritative checkout and gates unavailable products', () => {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { inspectProfileMutations } from "./check-state-machine-rules"
+import { inspectInvitationMutations, inspectProfileMutations } from "./check-state-machine-rules"
 
 const inspect = (source: string) => inspectProfileMutations(source)
 
@@ -96,4 +96,22 @@ test("respects classic-for initializer shadowing", () => {
     }
   `)
   assert.deepEqual(result, { found: false, generatedIdentity: false })
+})
+
+test("detects direct and aliased invitation inserts", () => {
+  assert.equal(inspectInvitationMutations(`db.from("invitations").insert({ case_id: caseId })`), true)
+  assert.equal(
+    inspectInvitationMutations(`
+      const table = "invitations"
+      const invitationWriter = db.from(table)
+      const writerAlias = invitationWriter
+      writerAlias.upsert({ case_id: caseId })
+    `),
+    true,
+  )
+})
+
+test("allows invitation reads and the canonical RPC", () => {
+  assert.equal(inspectInvitationMutations(`db.from("invitations").select("id")`), false)
+  assert.equal(inspectInvitationMutations(`db.rpc("create_case_invitation", payload)`), false)
 })
