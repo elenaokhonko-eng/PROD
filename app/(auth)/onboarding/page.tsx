@@ -14,6 +14,7 @@ import {
   clearConvertedRouterSessionToken,
   clearSessionToken,
   getSessionToken,
+  rotateRouterSessionIntent,
 } from "@/lib/router-session"
 import { trackClientEvent } from "@/lib/analytics/client"
 
@@ -108,6 +109,7 @@ export default function OnboardingPage() {
         sessionStorage.removeItem(BOOTSTRAP_REQUEST_FINGERPRINT)
         clearConvertedRouterSessionToken()
         clearSessionToken()
+        rotateRouterSessionIntent()
         setStatus("complete")
         void trackClientEvent({
           eventName: "router_conversion_imported",

@@ -22,6 +22,8 @@
     "test:pattern-c-security": "tsx scripts/test-pattern-c-security.ts",
     "test:edge-authorization": "npx --yes tsx --test scripts/test-edge-authorization.ts",
     "test:migration-conflicts": "npx --yes tsx --test scripts/test-migration-conflicts.ts",
+    "test:router-session": "tsx --test scripts/test-router-session-idempotency.ts",
+    "test:pattern-b": "tsx --test scripts/test-pattern-b-analysis.ts",
     "test:e2e": "playwright test",
     "test:e2e:preview-handshakes": "npx --yes tsx scripts/run-harbor-preview-handshakes.ts",
     "test:e2e:slice5": "playwright test tests/e2e/slice5.spec.ts",

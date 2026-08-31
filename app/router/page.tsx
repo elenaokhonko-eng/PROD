@@ -7,7 +7,7 @@ import { clearPendingNarrative } from '@/components/landing/hero-capture'
 import { NarrativeCapture } from '@/components/landing/narrative-capture'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
-import { clearSessionToken, createRouterSession, getRouterSession, getSessionToken } from '@/lib/router-session'
+import { clearSessionToken, createRouterSession, getRouterSession, getSessionToken, rotateRouterSessionIntent } from '@/lib/router-session'
 
 type CatchUpState =
   | { type: 'none' }
@@ -32,6 +32,7 @@ export default function RouterPage() {
         const session = await getRouterSession(existingToken)
         if (!session || (session.expires_at && new Date(session.expires_at) < new Date())) {
           clearSessionToken()
+          rotateRouterSessionIntent()
           await createRouterSession()
           return
         }
@@ -60,6 +61,7 @@ export default function RouterPage() {
   const startFresh = async () => {
     setSessionError(null)
     clearSessionToken()
+    rotateRouterSessionIntent()
     clearPendingNarrative()
     setCatchUp({ type: 'none' })
     setInitialNarrative('')
