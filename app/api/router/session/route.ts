@@ -5,6 +5,10 @@ import type { PostgrestError } from "@supabase/supabase-js"
 import { createServiceClient } from "@/lib/supabase/service"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
 
+const createPayloadSchema = z.object({
+  intent: z.string().uuid(),
+}).strict()
+
 const updatePayloadSchema = z.object({
   session_token: z.string().min(1, "session_token is required"),
   updates: z
@@ -35,6 +39,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
   }
 
+  let parsed
+  try {
+    parsed = createPayloadSchema.parse(await request.json())
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json({ error: "Invalid request body", details: err.flatten() }, { status: 400 })
+    }
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
+  }
+
   const supabase = createServiceClient()
   const sessionToken = `router_${Date.now()}_${nanoid(12)}`
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null
@@ -43,6 +57,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase
     .from("router_sessions")
     .insert({
+      creation_intent: parsed.intent,
       session_token: sessionToken,
       ip_address: ip,
       user_agent: userAgent,
@@ -50,12 +65,21 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
 
-  if (error) {
-    console.error("[router/session] create error:", error)
-    return NextResponse.json({ error: "Failed to create router session" }, { status: 500 })
+  if (!error) return NextResponse.json({ session: data })
+
+  if (error.code === "23505") {
+    const existing = await supabase
+      .from("router_sessions")
+      .select("*")
+      .eq("creation_intent", parsed.intent)
+      .maybeSingle()
+    if (!existing.error && existing.data) {
+      return NextResponse.json({ session: existing.data })
+    }
   }
 
-  return NextResponse.json({ session: data })
+  console.error("[router/session] create error:", error)
+  return NextResponse.json({ error: "Failed to create router session" }, { status: 500 })
 }
 
 export async function GET(request: NextRequest) {

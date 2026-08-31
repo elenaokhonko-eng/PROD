@@ -20,7 +20,61 @@ export interface RouterSession {
 }
 
 const ROUTER_SESSION_TOKEN_KEY = "router_session_token"
+const ROUTER_SESSION_INTENT_KEY = "router_session_creation_intent"
 const CONVERTED_ROUTER_SESSION_TOKEN_KEY = "converted_router_session_token"
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+let createRouterSessionPromise: Promise<RouterSession> | null = null
+let createRouterSessionGeneration = 0
+let routerSessionIntentMemory: string | null = null
+
+function invalidateRouterSessionCreation(): void {
+  createRouterSessionGeneration += 1
+  createRouterSessionPromise = null
+}
+
+function generateCreationIntent(): string {
+  return crypto.randomUUID()
+}
+
+function getOrCreateRouterSessionIntent(): string {
+  if (typeof window !== "undefined") {
+    try {
+      const existing = localStorage.getItem(ROUTER_SESSION_INTENT_KEY)
+      if (existing && UUID_PATTERN.test(existing)) {
+        routerSessionIntentMemory = existing
+        return existing
+      }
+    } catch {
+      // Continue with an in-memory intent when storage is unavailable.
+    }
+  }
+  if (routerSessionIntentMemory) return routerSessionIntentMemory
+  const intent = generateCreationIntent()
+  routerSessionIntentMemory = intent
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(ROUTER_SESSION_INTENT_KEY, intent)
+    } catch {
+      // The in-memory intent still protects retries during this page lifetime.
+    }
+  }
+  return intent
+}
+
+export function rotateRouterSessionIntent(): string {
+  invalidateRouterSessionCreation()
+  const intent = generateCreationIntent()
+  routerSessionIntentMemory = intent
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(ROUTER_SESSION_INTENT_KEY, intent)
+    } catch {
+      // The new intent remains valid for this page lifetime.
+    }
+  }
+  return intent
+}
 
 export function generateSessionToken(): string {
   return `router_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
@@ -37,6 +91,7 @@ export function setSessionToken(token: string): void {
 }
 
 export function clearSessionToken(): void {
+  invalidateRouterSessionCreation()
   if (typeof window === "undefined") return
   localStorage.removeItem(ROUTER_SESSION_TOKEN_KEY)
 }
@@ -125,24 +180,36 @@ export function consumeConvertedRouterSessionToken(): string | null {
   return token
 }
 
-export async function createRouterSession(): Promise<RouterSession | null> {
-  try {
-    const res = await fetch("/api/router/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    })
-    if (!res.ok) {
-      const text = await res.text()
-      console.error("[v0] Error creating router session:", res.status, text)
-      return null
-    }
-    const { session } = (await res.json()) as { session: RouterSession }
-    setSessionToken(session.session_token)
-    return session
-  } catch (error) {
-    console.error("[v0] Error creating router session:", error)
-    return null
+export function createRouterSession(): Promise<RouterSession> {
+  if (createRouterSessionPromise) return createRouterSessionPromise
+
+  const generation = createRouterSessionGeneration
+  const intent = getOrCreateRouterSessionIntent()
+  const request = createRouterSessionRequest(intent, generation)
+  createRouterSessionPromise = request
+  const clearRequest = () => {
+    if (createRouterSessionPromise === request) createRouterSessionPromise = null
   }
+  void request.then(clearRequest, clearRequest)
+  return request
+}
+
+async function createRouterSessionRequest(intent: string, generation: number): Promise<RouterSession> {
+  const res = await fetch("/api/router/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ intent }),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    console.error("[v0] Error creating router session:", res.status, text)
+    throw new Error("Failed to create router session")
+  }
+  const { session } = (await res.json()) as { session: RouterSession }
+  if (generation === createRouterSessionGeneration && intent === getOrCreateRouterSessionIntent()) {
+    setSessionToken(session.session_token)
+  }
+  return session
 }
 
 export async function getRouterSession(sessionToken: string): Promise<RouterSession | null> {
