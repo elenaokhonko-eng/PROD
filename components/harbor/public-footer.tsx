@@ -20,9 +20,6 @@ export function PublicFooter() {
             <Link href="/privacy" className="min-h-11 py-3 underline-offset-4 hover:underline">
               Privacy
             </Link>
-            <a href="mailto:security@guidebuoyai.sg" className="min-h-11 py-3 underline-offset-4 hover:underline">
-              Report a vulnerability
-            </a>
           </nav>
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm md:justify-end">
             <a
