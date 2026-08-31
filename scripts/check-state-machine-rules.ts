@@ -207,15 +207,22 @@ function unwrapExpression(expression: ts.Expression): ts.Expression {
 
 type PatternBValue = {
   stringValue?: string
-  profileBuilder?: boolean
+  tableBuilder?: string
   generated?: boolean
 }
 
-export function inspectProfileMutations(text: string): { found: boolean; generatedIdentity: boolean } {
+type DataMutationInspection = {
+  profileMutation: boolean
+  generatedProfileIdentity: boolean
+  invitationMutation: boolean
+}
+
+function inspectDataMutations(text: string): DataMutationInspection {
   const sourceFile = ts.createSourceFile("pattern-b-check.tsx", text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
   const scopes: Map<string, PatternBValue>[] = [new Map()]
-  let found = false
-  let generatedIdentity = false
+  let profileMutation = false
+  let generatedProfileIdentity = false
+  let invitationMutation = false
 
   const lookup = (name: string): PatternBValue => {
     for (let index = scopes.length - 1; index >= 0; index -= 1) {
@@ -251,13 +258,9 @@ export function inspectProfileMutations(text: string): { found: boolean; generat
           ? callee.name.text
           : ""
       if (["randomUUID", "uuidv4", "v4", "nanoid"].includes(generatedName)) return { generated: true }
-      if (
-        ts.isPropertyAccessExpression(callee) &&
-        callee.name.text === "from" &&
-        value.arguments[0] &&
-        evaluate(value.arguments[0]).stringValue === "profiles"
-      ) {
-        return { profileBuilder: true }
+      if (ts.isPropertyAccessExpression(callee) && callee.name.text === "from" && value.arguments[0]) {
+        const tableName = evaluate(value.arguments[0]).stringValue
+        if (tableName) return { tableBuilder: tableName }
       }
     }
 
@@ -293,9 +296,13 @@ export function inspectProfileMutations(text: string): { found: boolean; generat
     }
     if (ts.isCallExpression(value) && ts.isPropertyAccessExpression(value.expression)) {
       const method = value.expression.name.text
-      if (["insert", "upsert"].includes(method) && evaluate(value.expression.expression).profileBuilder) {
-        found = true
-        if (value.arguments.some((argument) => evaluate(argument).generated)) generatedIdentity = true
+      if (["insert", "upsert"].includes(method)) {
+        const tableName = evaluate(value.expression.expression).tableBuilder
+        if (tableName === "profiles") {
+          profileMutation = true
+          if (value.arguments.some((argument) => evaluate(argument).generated)) generatedProfileIdentity = true
+        }
+        if (tableName === "invitations") invitationMutation = true
       }
     }
     const inspectChild = (child: ts.Node) => {
@@ -395,7 +402,16 @@ export function inspectProfileMutations(text: string): { found: boolean; generat
   }
 
   visit(sourceFile)
-  return { found, generatedIdentity }
+  return { profileMutation, generatedProfileIdentity, invitationMutation }
+}
+
+export function inspectProfileMutations(text: string): { found: boolean; generatedIdentity: boolean } {
+  const result = inspectDataMutations(text)
+  return { found: result.profileMutation, generatedIdentity: result.generatedProfileIdentity }
+}
+
+export function inspectInvitationMutations(text: string): boolean {
+  return inspectDataMutations(text).invitationMutation
 }
 
 function patternBHits(text: string): string[] {
@@ -436,6 +452,12 @@ for (const file of codeFiles) {
       file: rel,
       detail: `Pattern B profile-mapping remnant must not appear outside the Clerk webhook: ${hits.join(", ")}`,
     })
+  }
+}
+
+for (const file of codeFiles) {
+  if (inspectInvitationMutations(readCodeWithoutComments(file))) {
+    add("R16", file, "invitation inserts/upserts must use the create_case_invitation RPC")
   }
 }
 
