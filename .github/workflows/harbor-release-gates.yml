@@ -111,7 +111,7 @@ jobs:
 
   playwright-public:
     name: Playwright public UI
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -124,8 +124,12 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium webkit
-      - run: pnpm exec playwright test --config=playwright.config.ts
+      - run: pnpm exec playwright install chromium webkit
+      - run: pnpm build
+      - name: Production public UI
+        env:
+          HARBOR_E2E_WEB_SERVER_COMMAND: pnpm start
+        run: pnpm exec playwright test --config=playwright.config.ts
       - name: Upload public browser evidence
         if: always()
         uses: actions/upload-artifact@v4

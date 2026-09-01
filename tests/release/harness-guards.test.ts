@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import test from 'node:test'
 import { evidenceClassForLane, resolveRunContext } from '../e2e/evidence/run-context'
 import {
@@ -11,6 +13,7 @@ import {
 
 const rootDir = process.cwd()
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: rootDir, encoding: 'utf8' }).trim()
+const workflow = readFileSync(resolve(rootDir, '.github', 'workflows', 'harbor-release-gates.yml'), 'utf8')
 
 test('lane evidence classes cannot label synthetic or skipped work as provider delivered', () => {
   assert.equal(evidenceClassForLane('public'), 'local/static')
@@ -21,6 +24,16 @@ test('lane evidence classes cannot label synthetic or skipped work as provider d
 
 test('release evidence lanes never turn an initial failure into a green retry', () => {
   assert.equal(harborReleaseRetries, 0)
+})
+
+test('public CI validates reviewed Windows baselines against a production server', () => {
+  const publicJob = workflow.match(/  playwright-public:[\s\S]*?\n  playwright-synthetic:/)?.[0]
+  assert.ok(publicJob, 'playwright-public workflow job is missing')
+  assert.match(publicJob, /runs-on: windows-latest/)
+  assert.match(publicJob, /- run: pnpm build/)
+  assert.match(publicJob, /HARBOR_E2E_WEB_SERVER_COMMAND: pnpm start/)
+  assert.match(publicJob, /pnpm exec playwright install chromium webkit/)
+  assert.doesNotMatch(publicJob, /playwright install --with-deps/)
 })
 
 test('live run context requires exact HEAD, environment revision, and worker version', () => {

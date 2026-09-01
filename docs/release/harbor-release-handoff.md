@@ -14,7 +14,7 @@
 |---|---|---|---|
 | Lane configuration | `playwright.config.ts`, `tests/e2e/config.ts`, `tests/e2e/playwright.*.config.ts`, `tests/e2e/fixtures/harbor-test.ts` | Public, synthetic, authenticated and preview lanes; 390/768/1440; Chromium and mobile WebKit; exact-SHA checks; automatic production-origin blocking in every authenticated browser context | Configuration |
 | Run identity and reporting | `tests/e2e/evidence/run-context.ts`, `tests/e2e/reporters/harbor-evidence-reporter.ts`, `tests/release/harness-guards.test.ts` | SHA/environment/worker identity, fail-closed preview guards, evidence classification, project identity, redaction and artifacts | All lanes |
-| Public UI | `tests/e2e/public/*.spec.ts`, `tests/e2e/fixtures/public-routes.ts` | Public/auth/canonical routes, exact auth-copy assertions, FAQ/contact contract checks, resources unavailable/ready states, disabled-service surfaces, visual baselines, overflow, console/hydration errors, keyboard, dialog, focus, reduced motion and contrast | Local/static |
+| Public UI | `tests/e2e/public/*.spec.ts`, `tests/e2e/fixtures/public-routes.ts` | Public/auth/canonical routes, exact auth-copy assertions in configured and credential-withheld modes, FAQ/contact contract checks, resources unavailable/ready states, disabled-service surfaces, reviewed Windows visual baselines, overflow, console/hydration errors, keyboard, dialog, focus, reduced motion and contrast | Local/static |
 | Router | `tests/e2e/router/router-flow.spec.ts` | Type/voice story, local-draft restore, sign-up handoff, expired-session replacement, offline handoff denial, and catch-up/start-fresh recovery | Synthetic-provider |
 | Authenticated contract | `tests/e2e/authenticated/*.spec.ts`, `tests/e2e/slice5.spec.ts`, `tests/e2e/slice7.spec.ts` | Claims/RLS, ownership, states, checkout, collaboration, evidence, privacy, contact and external handshakes | Mixed; annotations distinguish synthetic cases |
 | Preview | `tests/e2e/preview/live-preview.spec.ts` | Public deploy and canonical-route checks; no production redirect; Supabase miss contract | Preview-provider-delivered |
@@ -122,7 +122,10 @@ supabase test db tests\database\pattern-c-rls.test.sql
 Browser lanes:
 
 ```powershell
+pnpm.cmd build
+$env:HARBOR_E2E_WEB_SERVER_COMMAND = "pnpm.cmd start"
 pnpm.cmd exec playwright test --config=playwright.config.ts
+Remove-Item Env:HARBOR_E2E_WEB_SERVER_COMMAND
 pnpm.cmd exec playwright test --config=tests\e2e\playwright.synthetic.config.ts
 pnpm.cmd exec playwright test --config=tests\e2e\playwright.preview.config.ts
 pnpm.cmd exec playwright test --config=tests\e2e\playwright.authenticated.config.ts
@@ -132,7 +135,7 @@ The preview and authenticated commands must be separate. Do not combine results 
 
 ## Visual baseline review
 
-The repository intentionally contains test definitions but no newly accepted screenshots yet.
+Reviewed public snapshots are Windows-specific, so the CI public lane runs on Windows against a production build. Auth-provider snapshots run only with configured nonproduction Clerk credentials; credential-withheld runs still validate the Harbor auth shell and skip those provider-owned images.
 
 1. Generate candidates only at the approved integrated SHA in a dedicated review run.
 2. Inspect every new/different image at 390, 768 and 1440 and the WebKit/mobile project.

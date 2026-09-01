@@ -8,21 +8,26 @@ const authPages = [
 ]
 
 for (const route of authPages) {
-  test(`${route.path} renders Clerk and exact Harbor auth copy`, async ({ page }) => {
+  test(`${route.path} renders its available auth mode and exact Harbor copy`, async ({ page }, testInfo) => {
     const errors = monitorClientErrors(page)
     const response = await page.goto(route.path, { waitUntil: 'domcontentloaded' })
 
     expect(response?.status(), await response?.text()).toBeLessThan(400)
     expect(new URL(page.url()).pathname).toBe(route.path)
-    await expect(page.locator('.cl-rootBox')).toBeVisible()
     await expect(page.getByRole('heading', { level: 1, name: route.heading })).toBeVisible()
+
+    if (readHarborAuthMode(testInfo.config.metadata) === 'configured') {
+      await expect(page.locator('.cl-rootBox')).toBeVisible()
+    } else {
+      await expect(page.locator('.cl-rootBox')).toHaveCount(0)
+    }
 
     const singpassCopy = 'Singpass sign-in is not currently available.'
     await expect(page.getByText(singpassCopy)).toHaveCount(2)
     await expect(page.getByRole('button', { name: singpassCopy })).toBeDisabled()
 
     await expectNoHorizontalOverflow(page)
-    errors.assertNoHydrationErrors()
+    errors.assertNone()
   })
 }
 

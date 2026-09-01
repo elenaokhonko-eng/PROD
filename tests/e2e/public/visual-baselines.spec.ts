@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { readHarborAuthMode } from '../config'
 
 const routes = [
   '/',
@@ -54,6 +55,10 @@ test.beforeEach(async ({ page }) => {
 
 for (const path of routes) {
   test(`${path} matches its reviewed visual baseline`, async ({ page }, testInfo) => {
+    const providerAuthUnavailable =
+      path.startsWith('/sign-') && readHarborAuthMode(testInfo.config.metadata) === 'credential-withheld'
+    test.skip(providerAuthUnavailable, 'Provider auth visuals require configured nonproduction Clerk credentials.')
+
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto(path, { waitUntil: 'domcontentloaded' })
 
