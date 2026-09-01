@@ -150,7 +150,7 @@ export function createHarborConfig(lane: HarborLane) {
       ? {
           command: process.env.HARBOR_E2E_WEB_SERVER_COMMAND ?? 'pnpm dev',
           url: baseURL,
-          reuseExistingServer: !process.env.CI,
+          reuseExistingServer: false,
           timeout: 180_000,
           stdout: 'pipe',
           stderr: 'pipe',
