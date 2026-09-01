@@ -36,10 +36,41 @@ const browserMatrix: PlaywrightTestConfig['projects'] = [
   },
 ]
 
+export type HarborAuthMode = 'configured' | 'credential-withheld'
+
+export function resolveHarborAuthMode(lane: HarborLane): HarborAuthMode {
+  if (isLiveLane(lane)) return 'configured'
+  return process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim() ? 'configured' : 'credential-withheld'
+}
+
+export function readHarborAuthMode(metadata: unknown): HarborAuthMode {
+  if (typeof metadata !== 'object' || metadata === null) {
+    throw new Error('Missing Playwright metadata for Harbor auth mode.')
+  }
+
+  const value = (metadata as { harborAuthMode?: unknown }).harborAuthMode
+  if (value === 'configured' || value === 'credential-withheld') return value
+  throw new Error(`Invalid harborAuthMode metadata value: ${String(value)}`)
+}
+
+export function readHarborAnalyticsConfigured(metadata: unknown) {
+  if (typeof metadata !== 'object' || metadata === null) {
+    throw new Error('Missing Playwright metadata for Harbor analytics mode.')
+  }
+
+  const value = (metadata as { harborAnalyticsConfigured?: unknown }).harborAnalyticsConfigured
+  if (typeof value === 'boolean') return value
+  throw new Error(`Invalid harborAnalyticsConfigured metadata value: ${String(value)}`)
+}
+
 export function createHarborConfig(lane: HarborLane) {
   const run = resolveRunContext(rootDir, lane)
   const liveLane = isLiveLane(lane)
   const authenticated = lane === 'authenticated'
+  const authMode = resolveHarborAuthMode(lane)
+  const analyticsConfigured = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim(),
+  )
   const baseURL = liveLane ? requirePreviewBaseUrl() : localBaseUrl
   const authStatePath = authenticated ? requireAuthState(rootDir, 'userA') : undefined
 
@@ -89,6 +120,8 @@ export function createHarborConfig(lane: HarborLane) {
       harborEnvironmentRevision: run.environmentRevision,
       harborWorkerVersion: run.workerVersion,
       harborGitRef: run.gitRef,
+      harborAuthMode: authMode,
+      harborAnalyticsConfigured: analyticsConfigured,
     },
     reporter: [
       ['list'],

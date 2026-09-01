@@ -1,15 +1,9 @@
 import { expect, test } from '@playwright/test'
+import { readHarborAnalyticsConfigured } from '../config'
 import { expectMinimumTextContrast, expectNoHorizontalOverflow } from '../helpers/page-quality'
 
 test('keyboard-only flow reaches navigation and returns focus after closing settings dialog', async ({ page }) => {
-  let analyticsCalls = 0
-  await page.route('**/api/analytics/track**', (route) => {
-    analyticsCalls += 1
-    return route.fulfill({ status: 202, contentType: 'application/json', body: '{}' })
-  })
-
-  await page.goto('/', { waitUntil: 'domcontentloaded' })
-  await expect.poll(() => analyticsCalls).toBeGreaterThanOrEqual(1)
+  await page.goto('/', { waitUntil: 'networkidle' })
 
   await page.keyboard.press('Tab')
   const firstFocus = page.locator(':focus')
@@ -25,7 +19,7 @@ test('keyboard-only flow reaches navigation and returns focus after closing sett
   const settings = page.getByRole('button', { name: 'Display and sensory settings' })
   await settings.focus()
   const dialog = page.getByRole('dialog')
-  await settings.press('Space')
+  await settings.press('Enter')
   await expect(dialog).toBeVisible()
 
   await expect(dialog.getByRole('heading', { name: 'Display and sensory settings' })).toBeVisible()
@@ -38,6 +32,26 @@ test('keyboard-only flow reaches navigation and returns focus after closing sett
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
   await expect(settings).toBeFocused()
+})
+
+test('home analytics delivery matches configured telemetry mode', async ({ page }, testInfo) => {
+  const analyticsConfigured = readHarborAnalyticsConfigured(testInfo.config.metadata)
+  let analyticsCalls = 0
+
+  await page.route('**/api/analytics/track**', (route) => {
+    analyticsCalls += 1
+    return route.fulfill({ status: 202, contentType: 'application/json', body: '{}' })
+  })
+
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+  if (analyticsConfigured) {
+    await expect.poll(() => analyticsCalls).toBeGreaterThanOrEqual(1)
+    return
+  }
+
+  await page.waitForTimeout(500)
+  expect(analyticsCalls).toBe(0)
 })
 
 test('router honors reduced motion and keeps readable contrast', async ({ page }) => {
