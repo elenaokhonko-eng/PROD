@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { readHarborAuthMode } from '../config'
 import { expectNoHorizontalOverflow, monitorClientErrors } from '../helpers/page-quality'
 
 const authPages = [
@@ -25,22 +26,35 @@ for (const route of authPages) {
   })
 }
 
-const anonymousGuards = [
-  { from: '/app', to: '/sign-in' },
-  { from: '/app/signup', to: '/sign-up' },
-  { from: '/app/case/new', to: '/sign-in' },
-]
+const protectedAnonymousGuards = [{ from: '/app' }, { from: '/app/case/new' }]
 
-for (const route of anonymousGuards) {
-  test(`${route.from} redirects anonymous users to ${route.to}`, async ({ page }) => {
-    await page.goto(route.from, { waitUntil: 'domcontentloaded' })
-    await expect(page).toHaveURL((url) => {
-      if (url.pathname !== route.to) return false
-      const redirectUrl = url.searchParams.get('redirect_url')
-      return !redirectUrl || decodeURIComponent(redirectUrl).endsWith(route.from)
-    })
+for (const route of protectedAnonymousGuards) {
+  test(`${route.from} enforces anonymous guard by configured auth mode`, async ({ page }, testInfo) => {
+    const authMode = readHarborAuthMode(testInfo.config.metadata)
+    const response = await page.goto(route.from, { waitUntil: 'domcontentloaded' })
+
+    if (authMode === 'configured') {
+      await expect(page).toHaveURL((url) => {
+        if (url.pathname !== '/sign-in') return false
+        const redirectUrl = url.searchParams.get('redirect_url')
+        return !redirectUrl || decodeURIComponent(redirectUrl).endsWith(route.from)
+      })
+      return
+    }
+
+    expect(new URL(page.url()).pathname).toBe(route.from)
+    expect(response?.status()).toBe(503)
+    await expect(page.getByText('Authentication is not configured.')).toBeVisible()
   })
 }
+
+test('/app/signup redirects anonymous users to canonical /sign-up', async ({ page }) => {
+  await page.goto('/app/signup', { waitUntil: 'domcontentloaded' })
+  await expect(page).toHaveURL((url) => {
+    if (url.pathname !== '/sign-up') return false
+    return !url.searchParams.has('redirect_url')
+  })
+})
 
 test('/onboarding renders a non-crashing setup shell when unauthenticated', async ({ page }) => {
   const errors = monitorClientErrors(page)

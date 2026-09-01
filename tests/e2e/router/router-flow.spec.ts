@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { readHarborAuthMode } from '../config'
 import { expectNamedInteractiveControls, expectNoHorizontalOverflow } from '../helpers/page-quality'
 
 const token = 'router_harbor_release_gate'
@@ -45,7 +46,7 @@ test('local draft is restored when returning to router', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'Your story' })).toHaveValue(narrative)
 })
 
-test('voice story is transcribed and follows the same auth handoff', async ({ page }) => {
+test('voice story is transcribed and follows the same auth handoff', async ({ page }, testInfo) => {
   await installMockRecorder(page)
   const api = await installRouterApi(page)
   await page.route('**/api/transcribe', (route) =>
@@ -66,6 +67,15 @@ test('voice story is transcribed and follows the same auth handoff', async ({ pa
   await capture.getByRole('button', { name: 'Stop' }).click()
 
   await expect(capture.getByRole('textbox', { name: 'Your story' })).toHaveValue(narrative)
+
+  if (readHarborAuthMode(testInfo.config.metadata) === 'credential-withheld') {
+    const protectedResponse = await page.goto('/app', { waitUntil: 'domcontentloaded' })
+    expect(protectedResponse?.status()).toBe(503)
+    expect(new URL(page.url()).pathname).toBe('/app')
+    await expect(page.getByText('Authentication is not configured.')).toBeVisible()
+    return
+  }
+
   await capture.getByRole('button', { name: /Start organising/ }).click()
   await expect(page).toHaveURL(handoffUrlMatches)
 
