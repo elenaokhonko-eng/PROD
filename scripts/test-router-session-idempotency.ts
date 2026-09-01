@@ -5,6 +5,7 @@ import test from "node:test"
 import {
   clearSessionToken,
   createRouterSession,
+  replaceRouterSessionIfCurrent,
   rotateRouterSessionIntent,
 } from "../lib/router-session"
 
@@ -79,6 +80,54 @@ test("a cross-tab intent rotation blocks a late token write", async () => {
   assert.equal(storage.getItem("router_session_token"), null)
 })
 
+test("concurrent expired-token initializers create one replacement and ignore a late result", async () => {
+  clearSessionToken()
+  storage.setItem("router_session_token", "expired-token")
+  const pending = deferred()
+  const bodies: string[] = []
+  globalThis.fetch = (async (_input, init) => {
+    bodies.push(String(init?.body))
+    return pending.promise
+  }) as typeof fetch
+
+  const first = replaceRouterSessionIfCurrent("expired-token")
+  const second = replaceRouterSessionIfCurrent("expired-token")
+  assert.equal(second, first)
+  assert.equal(bodies.length, 1)
+
+  pending.resolve(sessionResponse("replacement-token"))
+  const [firstSession, secondSession] = await Promise.all([first, second])
+  assert.equal(firstSession?.session_token, "replacement-token")
+  assert.equal(secondSession?.session_token, "replacement-token")
+  assert.equal(storage.getItem("router_session_token"), "replacement-token")
+
+  const lateResult = await replaceRouterSessionIfCurrent("expired-token")
+  assert.equal(lateResult, null)
+  assert.equal(bodies.length, 1)
+  assert.equal(storage.getItem("router_session_token"), "replacement-token")
+})
+
+test("failed expired-token replacement permits a same-intent retry", async () => {
+  clearSessionToken()
+  storage.setItem("router_session_token", "failed-expired-token")
+  const bodies: string[] = []
+  let attempt = 0
+  globalThis.fetch = (async (_input, init) => {
+    bodies.push(String(init?.body))
+    attempt += 1
+    if (attempt === 1) throw new Error("offline")
+    return sessionResponse("retried-replacement-token")
+  }) as typeof fetch
+
+  await assert.rejects(replaceRouterSessionIfCurrent("failed-expired-token"), /offline/)
+  assert.equal(storage.getItem("router_session_token"), null)
+
+  await createRouterSession()
+  assert.equal(bodies.length, 2)
+  assert.equal(JSON.parse(bodies[0]).intent, JSON.parse(bodies[1]).intent)
+  assert.equal(storage.getItem("router_session_token"), "retried-replacement-token")
+})
+
 test("creation failures reject visibly and retry with the same intent", async () => {
   clearSessionToken()
   const bodies: string[] = []
@@ -101,19 +150,31 @@ test("creation failures reject visibly and retry with the same intent", async ()
   assert.equal(storage.getItem("router_session_token"), "retry-token")
 })
 
-test("start-fresh intent rotation creates a distinct creation identity", async () => {
+test("start fresh supersedes a pending replacement with one distinct creation", async () => {
   clearSessionToken()
+  storage.setItem("router_session_token", "expired-before-start-fresh")
+  const expired = deferred()
+  const fresh = deferred()
   const bodies: string[] = []
   globalThis.fetch = (async (_input, init) => {
     bodies.push(String(init?.body))
-    return sessionResponse(`token-${bodies.length}`)
+    return bodies.length === 1 ? expired.promise : fresh.promise
   }) as typeof fetch
 
-  await createRouterSession()
+  const expiredRequest = replaceRouterSessionIfCurrent("expired-before-start-fresh")
   clearSessionToken()
   rotateRouterSessionIntent()
-  await createRouterSession()
+  const freshRequest = createRouterSession()
+  assert.equal(bodies.length, 2)
   assert.notEqual(JSON.parse(bodies[0]).intent, JSON.parse(bodies[1]).intent)
+
+  expired.resolve(sessionResponse("stale-replacement-token"))
+  await expiredRequest
+  assert.equal(storage.getItem("router_session_token"), null)
+
+  fresh.resolve(sessionResponse("start-fresh-token"))
+  await freshRequest
+  assert.equal(storage.getItem("router_session_token"), "start-fresh-token")
 })
 
 test("server and UI retain the durable idempotency and visible-error contracts", () => {
@@ -131,6 +192,7 @@ test("server and UI retain the durable idempotency and visible-error contracts",
   assert.match(route, /\.eq\("creation_intent", parsed\.intent\)/)
   assert.match(migration, /CREATE UNIQUE INDEX router_sessions_creation_intent_key/)
   assert.match(page, /setSessionError\('A new complaint check could not be started\./)
+  assert.match(page, /await replaceRouterSessionIfCurrent\(existingToken\)/)
   assert.match(page, /rotateRouterSessionIntent\(\)/)
   assert.match(onboarding, /clearSessionToken\(\)\s*\n\s*rotateRouterSessionIntent\(\)/)
 })

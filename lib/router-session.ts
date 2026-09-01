@@ -27,10 +27,12 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0
 let createRouterSessionPromise: Promise<RouterSession> | null = null
 let createRouterSessionGeneration = 0
 let routerSessionIntentMemory: string | null = null
+let routerSessionReplacement: { observedToken: string; request: Promise<RouterSession> } | null = null
 
 function invalidateRouterSessionCreation(): void {
   createRouterSessionGeneration += 1
   createRouterSessionPromise = null
+  routerSessionReplacement = null
 }
 
 function generateCreationIntent(): string {
@@ -191,6 +193,25 @@ export function createRouterSession(): Promise<RouterSession> {
     if (createRouterSessionPromise === request) createRouterSessionPromise = null
   }
   void request.then(clearRequest, clearRequest)
+  return request
+}
+
+export function replaceRouterSessionIfCurrent(observedToken: string): Promise<RouterSession | null> {
+  if (routerSessionReplacement?.observedToken === observedToken) {
+    return routerSessionReplacement.request
+  }
+  if (getSessionToken() !== observedToken) return Promise.resolve(null)
+
+  // Claim the observed token synchronously before another initializer can rotate the intent.
+  clearSessionToken()
+  rotateRouterSessionIntent()
+  const request = createRouterSession()
+  const replacement = { observedToken, request }
+  routerSessionReplacement = replacement
+  const clearReplacement = () => {
+    if (routerSessionReplacement === replacement) routerSessionReplacement = null
+  }
+  void request.then(clearReplacement, clearReplacement)
   return request
 }
 
