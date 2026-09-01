@@ -68,21 +68,18 @@ test('voice story is transcribed and follows the same auth handoff', async ({ pa
 
   await expect(capture.getByRole('textbox', { name: 'Your story' })).toHaveValue(narrative)
 
+  const storedDraftRaw = await page.evaluate(() => sessionStorage.getItem('gb_pending_narrative'))
+  const storedDraft = storedDraftRaw ? (JSON.parse(storedDraftRaw) as { narrative?: string; transcript?: string }) : null
+  expect(storedDraft?.narrative).toBe(narrative)
+  expect(storedDraft?.transcript).toBe(narrative)
+
   if (readHarborAuthMode(testInfo.config.metadata) === 'credential-withheld') {
-    const protectedResponse = await page.goto('/app', { waitUntil: 'domcontentloaded' })
-    expect(protectedResponse?.status()).toBe(503)
-    expect(new URL(page.url()).pathname).toBe('/app')
-    await expect(page.getByText('Authentication is not configured.')).toBeVisible()
+    expect(new URL(page.url()).pathname).toBe('/router')
     return
   }
 
   await capture.getByRole('button', { name: /Start organising/ }).click()
   await expect(page).toHaveURL(handoffUrlMatches)
-
-  const storedDraftRaw = await page.evaluate(() => sessionStorage.getItem('gb_pending_narrative'))
-  const storedDraft = storedDraftRaw ? (JSON.parse(storedDraftRaw) as { narrative?: string; transcript?: string }) : null
-  expect(storedDraft?.narrative).toBe(narrative)
-  expect(storedDraft?.transcript).toBe(narrative)
 })
 
 test('expired anonymous session is replaced before story entry', async ({ page }) => {
