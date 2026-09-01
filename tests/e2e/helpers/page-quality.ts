@@ -38,16 +38,31 @@ export async function expectNoHorizontalOverflow(page: Page) {
 }
 
 export async function expectNamedInteractiveControls(page: Page) {
-  const unnamed = await page.locator('a, button, input, select, textarea').evaluateAll((elements) =>
-    elements
+  const unnamed = await page.locator('a, button, input, select, textarea').evaluateAll((elements) => {
+    const hasAccessibleName = (element: HTMLElement) => {
+      const explicit = element.getAttribute('aria-label') || element.getAttribute('aria-labelledby') || element.title
+      if (explicit?.trim()) return true
+
+      if (element.id) {
+        const label = document.querySelector(`label[for="${CSS.escape(element.id)}"]`)
+        if (label?.textContent?.trim()) return true
+      }
+      if (element.closest('label')?.textContent?.trim()) return true
+      if (element.textContent?.trim()) return true
+
+      const imageAlt = element.querySelector('img[alt]')?.getAttribute('alt')
+      return Boolean(imageAlt?.trim())
+    }
+
+    return elements
       .filter((element) => {
         const style = getComputedStyle(element)
         const rect = element.getBoundingClientRect()
         return style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0
       })
       .filter((element) => !hasAccessibleName(element as HTMLElement))
-      .map((element) => `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ''}: ${element.outerHTML.slice(0, 180)}`),
-  )
+      .map((element) => `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ''}: ${element.outerHTML.slice(0, 180)}`)
+  })
 
   expect(unnamed, `Visible interactive controls must have accessible names on ${page.url()}`).toEqual([])
 }
@@ -97,19 +112,4 @@ export async function expectMinimumTextContrast(page: Page, minimumRatio = 4.5) 
   }, minimumRatio)
 
   expect(failures, `Text contrast below ${minimumRatio}:1 on ${page.url()}`).toEqual([])
-}
-
-function hasAccessibleName(element: HTMLElement) {
-  const explicit = element.getAttribute('aria-label') || element.getAttribute('aria-labelledby') || element.title
-  if (explicit?.trim()) return true
-
-  if (element.id) {
-    const label = document.querySelector(`label[for="${CSS.escape(element.id)}"]`)
-    if (label?.textContent?.trim()) return true
-  }
-  if (element.closest('label')?.textContent?.trim()) return true
-  if (element.textContent?.trim()) return true
-
-  const imageAlt = element.querySelector('img[alt]')?.getAttribute('alt')
-  return Boolean(imageAlt?.trim())
 }
