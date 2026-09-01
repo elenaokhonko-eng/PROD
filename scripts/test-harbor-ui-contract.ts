@@ -106,9 +106,10 @@ describe('Harbor UI functionality contract', () => {
     assert.match(routerQuestionsSource, /parseQuestions\(data\.questions\)/)
     assert.match(routerQuestionsSource, /Retry questions/)
     assert.match(routerQuestionsSource, /I’m not sure/)
+    assert.match(routerQuestionsSource, /restoreAcceptedResponses\(session\.user_responses\)/)
     assert.match(
       routerQuestionsSource,
-      /const savedSession = await updateRouterSession[\s\S]*if \(!savedSession\)[\s\S]*router\.push\("\/router\/results"\)/,
+      /await persistAcceptedAnswer\([\s\S]*onPersisted:[\s\S]*setCurrentStep\([\s\S]*router\.push\("\/router\/results"\)/,
     )
     assert.doesNotMatch(publicFooterSource, /security@guidebuoyai\.sg|Report a vulnerability/)
   })
