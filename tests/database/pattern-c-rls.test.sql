@@ -34,8 +34,8 @@ select ok(
   not exists(select 1 from public.cases where id = 'b0000000-0000-4000-8000-000000000002'),
   'user A cannot see user B case'
 );
-select is(
-  (
+select results_eq(
+  $$
     with changed as (
       update public.cases
       set case_summary = 'cross-user-write-must-not-persist'
@@ -43,12 +43,12 @@ select is(
       returning id
     )
     select count(*)::integer from changed
-  ),
-  0,
+  $$,
+  $$values (0)$$,
   'user A cross-user update changes zero rows'
 );
-select is(
-  (
+select results_eq(
+  $$
     with changed as (
       update public.cases
       set case_summary = 'owner-a-updated'
@@ -56,8 +56,8 @@ select is(
       returning id
     )
     select count(*)::integer from changed
-  ),
-  1,
+  $$,
+  $$values (1)$$,
   'user A can update its own case through Pattern C'
 );
 
