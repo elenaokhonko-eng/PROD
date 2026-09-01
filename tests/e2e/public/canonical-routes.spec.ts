@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test'
 import { expectNoHorizontalOverflow, monitorClientErrors } from '../helpers/page-quality'
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/analytics/track**', (route) =>
+    route.fulfill({ status: 202, contentType: 'application/json', body: '{}' }),
+  )
+})
+
 for (const path of ['/pricing', '/how-it-works']) {
   test(`${path} is a single canonical public route`, async ({ page, request }) => {
     const direct = await request.get(path, { maxRedirects: 0 })
@@ -31,13 +37,41 @@ test('/product serves canonical product content and routes to pricing', async ({
   expect(howItWorksLinks).toBeGreaterThan(0)
 })
 
-test('public plan CTAs use canonical pricing and avoid retired consultation links', async ({ page }) => {
-  for (const path of ['/', '/pricing', '/how-it-works']) {
+test('public plan CTAs use canonical routes and avoid retired consultation links', async ({ page }) => {
+  const routes = [
+    {
+      path: '/',
+      links: [
+        { name: /Check my complaint path/, href: '/router' },
+        { name: /See exactly how it works/, href: '/how-it-works' },
+      ],
+    },
+    {
+      path: '/pricing',
+      links: [
+        { name: 'Start free', href: '/' },
+        { name: 'See how it works', href: '/how-it-works' },
+      ],
+    },
+    {
+      path: '/how-it-works',
+      links: [
+        { name: 'Start organising — free', href: '/' },
+        { name: 'Read the FAQ', href: '/faq' },
+      ],
+    },
+  ] as const
+
+  for (const { path, links } of routes) {
     await page.goto(path, { waitUntil: 'domcontentloaded' })
 
-    const localPricingLinks = await page.locator('a[href="/pricing"]:visible').count()
-    expect(localPricingLinks).toBeGreaterThan(0)
-
+    const main = page.locator('main')
+    for (const link of links) {
+      await expect(main.getByRole('link', { name: link.name, exact: true })).toHaveAttribute('href', link.href)
+    }
+    if (path === '/') {
+      await expect(page.getByRole('button', { name: 'Start organising — free' })).toBeVisible()
+    }
     await expect(page.locator('a[href*="consultation"]')).toHaveCount(0)
     await expect(page.locator('a[href*="/api/payments/create-checkout"]')).toHaveCount(0)
   }

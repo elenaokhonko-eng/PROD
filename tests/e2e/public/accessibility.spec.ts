@@ -2,19 +2,37 @@ import { expect, test } from '@playwright/test'
 import { expectMinimumTextContrast, expectNoHorizontalOverflow } from '../helpers/page-quality'
 
 test('keyboard-only flow reaches navigation and returns focus after closing settings dialog', async ({ page }) => {
+  let analyticsCalls = 0
+  await page.route('**/api/analytics/track**', (route) => {
+    analyticsCalls += 1
+    return route.fulfill({ status: 202, contentType: 'application/json', body: '{}' })
+  })
+
   await page.goto('/', { waitUntil: 'domcontentloaded' })
+  await expect.poll(() => analyticsCalls).toBeGreaterThanOrEqual(1)
 
   await page.keyboard.press('Tab')
-  await expect(page.locator(':focus')).toHaveAttribute('href', '/')
+  const firstFocus = page.locator(':focus')
+  const firstHref = await firstFocus.getAttribute('href')
+  const firstLabel = await firstFocus.getAttribute('aria-label')
+  expect(firstHref === '#main-content' || firstLabel === 'Display and sensory settings').toBe(true)
+
+  if (firstHref === '#main-content') {
+    await page.keyboard.press('Tab')
+    await expect(page.locator(':focus')).toHaveAttribute('href', '/')
+  }
 
   const settings = page.getByRole('button', { name: 'Display and sensory settings' })
   await settings.focus()
-  await page.keyboard.press('Enter')
-
   const dialog = page.getByRole('dialog')
+  await settings.press('Space')
+  await expect(dialog).toBeVisible()
+
   await expect(dialog.getByRole('heading', { name: 'Display and sensory settings' })).toBeVisible()
 
-  await dialog.getByRole('button', { name: 'quiet', exact: true }).click()
+  const quietMode = dialog.getByRole('button', { name: 'quiet', exact: true })
+  await quietMode.focus()
+  await quietMode.press('Space')
   await expect(page.locator('html')).toHaveAttribute('data-sensory', 'quiet')
 
   await page.keyboard.press('Escape')

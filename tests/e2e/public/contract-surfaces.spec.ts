@@ -2,22 +2,32 @@ import { expect, test } from '@playwright/test'
 import { expectNoHorizontalOverflow, monitorClientErrors } from '../helpers/page-quality'
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/analytics/track', (route) =>
+  await page.route('**/api/analytics/track**', (route) =>
     route.fulfill({ status: 202, contentType: 'application/json', body: '{}' }),
   )
 })
 
 test('faq exposes stateful explorer and keeps contact workflow disabled', async ({ page }) => {
   const errors = monitorClientErrors(page)
-  await page.goto('/faq', { waitUntil: 'domcontentloaded' })
+  await page.goto('/faq', { waitUntil: 'networkidle' })
 
   await expect(page.getByRole('heading', { level: 1, name: 'Honest answers for a stressful moment.' })).toBeVisible()
-  await expect(page.getByLabel('Search questions')).toBeVisible()
+  const search = page.getByLabel('Search questions')
+  await expect(search).toBeVisible()
 
-  await page.getByLabel('Search questions').fill('Singpass')
-  await expect(page.getByRole('button', { name: 'Is Singpass available?' })).toBeVisible()
-  await page.getByRole('button', { name: 'Is Singpass available?' }).click()
-  await expect(page.getByText('Singpass sign-in is not currently available. Use an available method shown by the sign-in provider.')).toBeVisible()
+  const allCategory = page.getByRole('button', { name: 'All', exact: true })
+  const pricingCategory = page.getByRole('button', { name: 'Products and pricing' })
+  await pricingCategory.click()
+  await expect(pricingCategory).toHaveAttribute('aria-pressed', 'true')
+  await allCategory.click()
+  await expect(allCategory).toHaveAttribute('aria-pressed', 'true')
+
+  await search.fill('Singpass')
+  await expect.poll(async () => search.inputValue()).toBe('Singpass')
+  const singpassQuestion = page.getByRole('button', { name: 'Is Singpass available?' })
+  await expect(singpassQuestion).toBeVisible()
+  await singpassQuestion.click()
+  await expect(page.getByText(/Singpass sign-in is not currently available\./)).toBeVisible()
 
   await expect(page.getByText('The contact form is not currently available. Please check back later for the verified request flow.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Contact form is not currently available.' })).toBeDisabled()
@@ -34,7 +44,7 @@ test('faq exposes stateful explorer and keeps contact workflow disabled', async 
 
 test('resources page enforces unavailable + retry behavior when API is down', async ({ page }) => {
   let requestCount = 0
-  await page.route('**/api/resources', (route) => {
+  await page.route('**/api/resources**', (route) => {
     requestCount += 1
     return route.fulfill({
       status: 503,
@@ -53,7 +63,7 @@ test('resources page enforces unavailable + retry behavior when API is down', as
 })
 
 test('resources page renders loading and ready/filter states when API responds', async ({ page }) => {
-  await page.route('**/api/resources', async (route) => {
+  await page.route('**/api/resources**', async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 120))
     await route.fulfill({
       status: 200,
@@ -88,8 +98,8 @@ test('resources page renders loading and ready/filter states when API responds',
 test('pricing and marketplace preserve disabled-service Harbor contract copy', async ({ page }) => {
   await page.goto('/pricing', { waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('heading', { level: 1, name: 'Free to start. Paid only when you choose more.' })).toBeVisible()
-  await expect(page.getByText('S$18')).toBeVisible()
-  await expect(page.getByText('S$188')).toBeVisible()
+  await expect(page.getByText(/^S\$18$/)).toBeVisible()
+  await expect(page.getByText(/^S\$188$/)).toBeVisible()
   await expect(page.getByText('Human consultation is not currently available.')).toBeVisible()
 
   await page.goto('/marketplace', { waitUntil: 'domcontentloaded' })

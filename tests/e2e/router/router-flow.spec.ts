@@ -15,9 +15,13 @@ test('typed story is preserved locally and hands off to sign-up onboarding', asy
   await expect(page.getByRole('heading', { level: 1, name: 'Tell Lumi what happened.' })).toBeVisible()
   await expectNoHorizontalOverflow(page)
   await expectNamedInteractiveControls(page)
+  await expect.poll(() => api.createdSessions).toBe(1)
 
-  await page.getByLabel('Your story').fill(narrative)
-  await page.getByRole('button', { name: 'Start organising — free' }).click()
+  const capture = page.getByRole('region', { name: 'Tell Lumi what happened — in your own words.' })
+  const story = capture.getByRole('textbox', { name: 'Your story' })
+  await story.fill(narrative)
+  await expect.poll(async () => story.inputValue()).toBe(narrative)
+  await capture.getByRole('button', { name: /Start organising/ }).click()
 
   await expect(page).toHaveURL(handoffUrlMatches)
   expect(api.createdSessions).toBe(1)
@@ -35,26 +39,34 @@ test('local draft is restored when returning to router', async ({ page }) => {
   await page.goto('/router', { waitUntil: 'domcontentloaded' })
 
   await expect(page.getByText('Your unfinished story was restored from this device.')).toBeVisible()
-  await expect(page.getByLabel('Your story')).toHaveValue(narrative)
+  await expect(page.getByRole('textbox', { name: 'Your story' })).toHaveValue(narrative)
 
   await page.reload({ waitUntil: 'domcontentloaded' })
-  await expect(page.getByLabel('Your story')).toHaveValue(narrative)
+  await expect(page.getByRole('textbox', { name: 'Your story' })).toHaveValue(narrative)
 })
 
 test('voice story is transcribed and follows the same auth handoff', async ({ page }) => {
   await installMockRecorder(page)
-  await installRouterApi(page)
+  const api = await installRouterApi(page)
   await page.route('**/api/transcribe', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ transcription: narrative }) }),
   )
 
   await page.goto('/router', { waitUntil: 'domcontentloaded' })
-  await page.getByRole('button', { name: 'Record my story' }).click()
-  await page.getByRole('button', { name: 'Start recording' }).click()
-  await page.getByRole('button', { name: 'Stop' }).click()
+  await expect.poll(() => api.createdSessions).toBe(1)
 
-  await expect(page.getByLabel('Your story')).toHaveValue(narrative)
-  await page.getByRole('button', { name: 'Start organising — free' }).click()
+  const capture = page.getByRole('region', { name: 'Tell Lumi what happened — in your own words.' })
+  const voiceToggle = capture.getByRole('button', { name: 'Record my story' })
+  await voiceToggle.click()
+  await expect(voiceToggle).toHaveAttribute('aria-pressed', 'true')
+
+  const startRecording = capture.getByRole('button', { name: /Start recording/i })
+  await expect(startRecording).toBeVisible()
+  await startRecording.click()
+  await capture.getByRole('button', { name: 'Stop' }).click()
+
+  await expect(capture.getByRole('textbox', { name: 'Your story' })).toHaveValue(narrative)
+  await capture.getByRole('button', { name: /Start organising/ }).click()
   await expect(page).toHaveURL(handoffUrlMatches)
 
   const storedDraftRaw = await page.evaluate(() => sessionStorage.getItem('gb_pending_narrative'))
@@ -94,7 +106,7 @@ test('offline mode blocks auth handoff and keeps the local draft', async ({ page
   await expect(page.getByText('You’re offline. Your unfinished story stays on this device and can be submitted after you reconnect.')).toBeVisible()
   await expect(submit).toBeDisabled()
 
-  await page.getByLabel('Your story').fill(narrative)
+  await page.getByRole('textbox', { name: 'Your story' }).fill(narrative)
   const storedDraft = await page.evaluate(() => sessionStorage.getItem('gb_pending_narrative'))
   expect(storedDraft).toContain(narrative)
 })
@@ -148,7 +160,7 @@ async function installRouterApi(page: Page, options?: { existing?: Session }) {
     createdSessions: 0,
   }
 
-  await page.route('**/api/analytics/track', (route) =>
+  await page.route('**/api/analytics/track**', (route) =>
     route.fulfill({ status: 202, contentType: 'application/json', body: '{}' }),
   )
 
