@@ -12,6 +12,7 @@ import { Loader2, ArrowRight, ArrowLeft, RotateCcw } from "lucide-react"
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
 import { getSessionToken, getRouterSession, updateRouterSession } from "@/lib/router-session"
+import { persistAcceptedAnswer, restoreAcceptedResponses } from "./question-persistence"
 
 interface Question {
   key: string
@@ -56,9 +57,11 @@ export default function QuestionsPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [responses, setResponses] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [error, setError] = useState<string | null>(null)
   const questionHeadingRef = useRef<HTMLHeadingElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
+  const saveInFlightRef = useRef(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -84,14 +87,11 @@ export default function QuestionsPage() {
         }
 
         if (session.user_responses) {
-          setResponses((current) => {
-            if (Object.keys(current).length > 0) return current
-            return Object.fromEntries(
-              Object.entries(session.user_responses ?? {}).flatMap(([key, value]) =>
-                typeof value === "string" || typeof value === "number" ? [[key, String(value)]] : [],
-              ),
-            )
-          })
+          setResponses((current) =>
+            Object.keys(current).length > 0
+              ? current
+              : restoreAcceptedResponses(session.user_responses),
+          )
         }
 
         const response = await fetch("/api/router/questions", {
@@ -144,54 +144,61 @@ export default function QuestionsPage() {
   }, [error, isLoading])
 
   const setResponse = (value: string) => {
-    if (!currentQuestion) return
+    if (!currentQuestion || isSubmitting) return
     setError(null)
+    setSaveStatus("idle")
     setResponses((current) => ({ ...current, [currentQuestion.key]: value }))
   }
 
   const handleNext = async () => {
-    if (!currentQuestion) return
-    if (currentQuestion.required && !responses[currentQuestion.key]) {
+    if (!currentQuestion || saveInFlightRef.current) return
+    const acceptedAnswer = responses[currentQuestion.key] ?? ""
+    if (currentQuestion.required && !acceptedAnswer) {
+      setSaveStatus("idle")
       setError("Answer this question or choose ‘I’m not sure’ before continuing.")
       return
     }
 
+    saveInFlightRef.current = true
+    setIsSubmitting(true)
+    setSaveStatus("saving")
     setError(null)
-    if (currentStep < questions.length - 1) {
-      setCurrentStep((step) => step + 1)
-    } else {
-      await handleSubmit()
+
+    try {
+      const sessionToken = getSessionToken()
+      if (!sessionToken) throw new Error("No session token")
+
+      await persistAcceptedAnswer({
+        sessionToken,
+        responses,
+        questionKey: currentQuestion.key,
+        answer: acceptedAnswer,
+        persist: updateRouterSession,
+        onPersisted: (acceptedResponses) => {
+          setResponses(acceptedResponses)
+          setSaveStatus("saved")
+          if (currentStep < questions.length - 1) {
+            setCurrentStep((step) => step + 1)
+          } else {
+            router.push("/router/results")
+          }
+        },
+      })
+    } catch (submitError) {
+      console.error("Error saving response:", submitError)
+      setSaveStatus("error")
+      setError("This answer could not be saved. It is still here — check your connection and retry.")
+    } finally {
+      saveInFlightRef.current = false
+      setIsSubmitting(false)
     }
   }
 
   const handleBack = () => {
     if (currentStep > 0) {
       setError(null)
+      setSaveStatus("idle")
       setCurrentStep((step) => step - 1)
-    }
-  }
-
-  const handleSubmit = async () => {
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
-      const sessionToken = getSessionToken()
-      if (!sessionToken) {
-        throw new Error("No session token")
-      }
-
-      const savedSession = await updateRouterSession(sessionToken, {
-        user_responses: responses,
-      })
-      if (!savedSession) throw new Error("Answers could not be saved")
-
-      router.push("/router/results")
-    } catch (submitError) {
-      console.error("Error submitting responses:", submitError)
-      setError("Your answers could not be saved. They are still here — check your connection and try again.")
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
@@ -237,7 +244,7 @@ export default function QuestionsPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader badge="Free complaint path" />
-      <main id="main-content" className="hero-gradient min-h-[calc(100vh-4rem)] py-8 sm:py-12">
+      <main id="main-content" className="hero-gradient min-h-[calc(100vh-4rem)] scroll-pb-32 pb-32 pt-8 sm:scroll-pb-0 sm:py-12">
         <div className="gb-container max-w-2xl">
           <div className="mb-7 text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Complaint path · Step 3</p>
@@ -254,11 +261,20 @@ export default function QuestionsPage() {
             <Progress value={progress} className="h-2" aria-labelledby="question-progress" />
           </div>
 
-          {error && (
-            <div ref={errorRef} role="alert" tabIndex={-1} className="mb-4 rounded-xl border border-destructive/40 bg-harbor-error-tint p-4">
-              {error}
-            </div>
-          )}
+          <div id="answer-save-status" className="mb-4 min-h-6" aria-live="polite" aria-atomic="true">
+            {saveStatus === "saving" && <p role="status" className="text-sm text-muted-foreground">Saving this answer…</p>}
+            {saveStatus === "saved" && <p role="status" className="text-sm font-medium text-primary">Answer saved.</p>}
+            {error && (
+              <div ref={errorRef} role="alert" tabIndex={-1} className="rounded-xl border border-destructive/40 bg-harbor-error-tint p-4 outline-none">
+                <p>{error}</p>
+                {saveStatus === "error" && (
+                  <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void handleNext()} disabled={isSubmitting}>
+                    <RotateCcw aria-hidden="true" /> Retry saving
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
 
           <Card className="mb-7 border-primary/15 shadow-sm">
             <CardHeader>
@@ -272,6 +288,7 @@ export default function QuestionsPage() {
                 <RadioGroup
                   value={currentResponse}
                   aria-labelledby="current-question"
+                  disabled={isSubmitting}
                   onValueChange={setResponse}
                   className="gap-2"
                 >
@@ -295,6 +312,7 @@ export default function QuestionsPage() {
                   <Input
                     id={`response-${currentQuestion.key}`}
                     value={editableResponse}
+                    disabled={isSubmitting}
                     onChange={(event) => setResponse(event.target.value)}
                     placeholder="Your answer"
                   />
@@ -308,6 +326,7 @@ export default function QuestionsPage() {
                     id={`response-${currentQuestion.key}`}
                     type="number"
                     value={editableResponse}
+                    disabled={isSubmitting}
                     onChange={(event) => setResponse(event.target.value)}
                     placeholder="0"
                   />
@@ -321,6 +340,7 @@ export default function QuestionsPage() {
                     id={`response-${currentQuestion.key}`}
                     type="date"
                     value={editableResponse}
+                    disabled={isSubmitting}
                     onChange={(event) => setResponse(event.target.value)}
                   />
                 </>
@@ -328,33 +348,41 @@ export default function QuestionsPage() {
             </CardContent>
           </Card>
 
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
-            <Button variant="outline" onClick={handleBack} disabled={currentStep === 0 || isSubmitting}>
-              <ArrowLeft aria-hidden="true" /> Back
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              aria-pressed={currentResponse === NOT_SURE_RESPONSE}
-              disabled={isSubmitting}
-              onClick={() => setResponse(NOT_SURE_RESPONSE)}
-              className="sm:ml-auto"
-            >
-              I’m not sure
-            </Button>
-            <Button onClick={() => void handleNext()} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" aria-hidden="true" /> Saving answer…
-                </>
-              ) : currentStep === questions.length - 1 ? (
-                "See result"
-              ) : (
-                <>
-                  Next question <ArrowRight aria-hidden="true" />
-                </>
-              )}
-            </Button>
+          <div className="grid gap-3 sm:flex sm:items-center">
+            <div className="grid grid-cols-2 gap-3 sm:contents">
+              <Button variant="outline" onClick={handleBack} disabled={currentStep === 0 || isSubmitting}>
+                <ArrowLeft aria-hidden="true" /> Back
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                aria-pressed={currentResponse === NOT_SURE_RESPONSE}
+                disabled={isSubmitting}
+                onClick={() => setResponse(NOT_SURE_RESPONSE)}
+                className="sm:ml-auto"
+              >
+                I’m not sure
+              </Button>
+            </div>
+            <div className="sticky bottom-0 z-10 -mx-4 border-t bg-background/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+              <Button className="min-h-12 w-full sm:w-auto" onClick={() => void handleNext()} disabled={isSubmitting} aria-describedby="answer-save-status">
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="animate-spin" aria-hidden="true" /> Saving answer…
+                  </>
+                ) : saveStatus === "error" ? (
+                  <>
+                    Retry and continue <ArrowRight aria-hidden="true" />
+                  </>
+                ) : currentStep === questions.length - 1 ? (
+                  "Save and see result"
+                ) : (
+                  <>
+                    Save and continue <ArrowRight aria-hidden="true" />
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </main>
