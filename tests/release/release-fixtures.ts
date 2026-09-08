@@ -6,9 +6,9 @@ export type PurchaseFixture = {
 export type HarborReleaseFixtures = {
   schemaVersion: 1
   users: {
-    userA: { supabaseUuid: string; ownedCaseId: string }
-    userB: { supabaseUuid: string; ownedCaseId: string }
-    deletionUser: { supabaseUuid: string; ownedCaseId: string }
+    userA: { supabaseUuid: string; ownedCaseId: string; disposable: true }
+    userB: { supabaseUuid: string; ownedCaseId: string; disposable: true }
+    deletionUser: { supabaseUuid: string; ownedCaseId: string; disposable: true }
   }
   ownership: {
     protectedCaseId: string
@@ -138,6 +138,13 @@ export function assertReleaseFixtures(
   ) {
     invalid.push('serviceRole.protectedPaths')
   }
+  for (const path of [
+    'users.userA.disposable',
+    'users.userB.disposable',
+    'users.deletionUser.disposable',
+  ]) {
+    if (readPath(value, path) !== true) invalid.push(path)
+  }
   if (!options.allowPlaceholders) {
     if (hasDuplicateValues(value, [
       'users.userA.supabaseUuid',
@@ -149,6 +156,9 @@ export function assertReleaseFixtures(
       'users.userB.ownedCaseId',
       'users.deletionUser.ownedCaseId',
     ])) invalid.push('users.*.ownedCaseId must be distinct')
+    if (hasDuplicateValues(value, requiredReleaseFixturePaths.filter((path) => /caseId$/i.test(path)))) {
+      invalid.push('all fixture case IDs must be distinct disposable synthetic cases')
+    }
   }
   if (invalid.length) {
     throw new Error(`Harbor release fixtures are missing or invalid: ${Array.from(new Set(invalid)).join(', ')}`)

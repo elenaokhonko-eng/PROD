@@ -5,6 +5,12 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import { expect, test, type Page } from "@playwright/test"
 import pg from "pg"
 import Stripe from "stripe"
+import {
+  cleanupDisposableRecords,
+  createDisposableCase,
+  requireUuid,
+  type DisposableCleanupScope,
+} from "./helpers/disposable-records"
 
 const enabled = process.env.HARBOR_PREVIEW_HANDSHAKES === "1"
 const authStatePath = resolve(
@@ -12,18 +18,32 @@ const authStatePath = resolve(
 )
 const requiredEnvironment = [
   "HARBOR_PREVIEW_BASE_URL",
+  "HARBOR_PREVIEW_EXPECTED_HOST",
   "HARBOR_PREVIEW_SUPABASE_URL",
   "HARBOR_PREVIEW_SUPABASE_ANON_KEY",
   "HARBOR_PREVIEW_SUPABASE_SERVICE_ROLE_KEY",
   "HARBOR_PREVIEW_DATABASE_URL",
   "HARBOR_PREVIEW_STRIPE_WEBHOOK_SECRET",
   "HARBOR_PREVIEW_EMAIL_SINK",
-  "HARBOR_PREVIEW_WORKER_CASE_ID",
   "HARBOR_PREVIEW_CONFIRM_SUPABASE_REF",
   "HARBOR_PREVIEW_EXPECTED_COMMIT_SHA",
+  "HARBOR_PREVIEW_CONFIRMED_SHA",
+  "HARBOR_PRODUCTION_HOSTS",
+  "HARBOR_PRODUCTION_SUPABASE_HOSTS",
 ] as const
 const mutationConfirmation = "RUN_MUTATING_PREVIEW_HANDSHAKES"
+const previewSupabaseRef = "yqqkkftfddxuxmpxwbcj"
 const knownProductionHosts = new Set(["guidebuoyaisg.onrender.com", "guidebuoyai.sg", "www.guidebuoyai.sg"])
+
+function configuredHosts(name: "HARBOR_PRODUCTION_HOSTS" | "HARBOR_PRODUCTION_SUPABASE_HOSTS", defaults: Iterable<string> = []) {
+  return new Set([
+    ...Array.from(defaults, (host) => host.trim().toLowerCase()).filter(Boolean),
+    ...requiredEnv(name)
+      .split(",")
+      .map((host) => host.trim().toLowerCase())
+      .filter(Boolean),
+  ])
+}
 
 const evidencePath = resolve(
   process.env.HARBOR_PREVIEW_EVIDENCE_FILE ?? "test-results/harbor-preview-handshake-evidence.jsonl",
@@ -50,14 +70,26 @@ test.describe("Harbor preview integration handshakes", () => {
     }
 
     const baseUrl = new URL(requiredEnv("HARBOR_PREVIEW_BASE_URL"))
-    if (baseUrl.protocol !== "https:" || knownProductionHosts.has(baseUrl.hostname.toLowerCase())) {
-      throw new Error("Preview handshakes require HTTPS and refuse the known production hosts.")
+    const previewHost = baseUrl.hostname.toLowerCase()
+    const productionHosts = configuredHosts("HARBOR_PRODUCTION_HOSTS", knownProductionHosts)
+    if (
+      baseUrl.protocol !== "https:" ||
+      previewHost !== requiredEnv("HARBOR_PREVIEW_EXPECTED_HOST").toLowerCase() ||
+      !previewHost.endsWith(".onrender.com") ||
+      productionHosts.has(previewHost)
+    ) {
+      throw new Error("Preview handshakes require the exact HTTPS staging Render host and refuse production hosts.")
     }
 
     const supabaseUrl = new URL(requiredEnv("HARBOR_PREVIEW_SUPABASE_URL"))
     const projectRef = supabaseUrl.hostname.split(".")[0]
-    if (projectRef !== requiredEnv("HARBOR_PREVIEW_CONFIRM_SUPABASE_REF")) {
-      throw new Error("HARBOR_PREVIEW_CONFIRM_SUPABASE_REF does not match the preview Supabase URL.")
+    const productionSupabaseHosts = configuredHosts("HARBOR_PRODUCTION_SUPABASE_HOSTS")
+    if (
+      projectRef !== previewSupabaseRef ||
+      requiredEnv("HARBOR_PREVIEW_CONFIRM_SUPABASE_REF") !== previewSupabaseRef ||
+      productionSupabaseHosts.has(supabaseUrl.hostname.toLowerCase())
+    ) {
+      throw new Error("Preview handshakes require the confirmed staging Supabase ref and refuse production Supabase hosts.")
     }
 
     const databaseUrl = new URL(requiredEnv("HARBOR_PREVIEW_DATABASE_URL"))
@@ -81,18 +113,14 @@ test.describe("Harbor preview integration handshakes", () => {
     )
 
     const expectedCommitSha = requiredEnv("HARBOR_PREVIEW_EXPECTED_COMMIT_SHA").toLowerCase()
-    if (!/^[0-9a-f]{40}$/.test(expectedCommitSha)) {
-      throw new Error("HARBOR_PREVIEW_EXPECTED_COMMIT_SHA must be a full 40-character Git SHA.")
+    const confirmedCommitSha = requiredEnv("HARBOR_PREVIEW_CONFIRMED_SHA").toLowerCase()
+    if (!/^[0-9a-f]{40}$/.test(expectedCommitSha) || !/^[0-9a-f]{40}$/.test(confirmedCommitSha)) {
+      throw new Error("Preview handshakes require full 40-character Git SHAs.")
     }
-    const releaseResponse = await fetch(new URL("/api/health/release", baseUrl))
-    if (!releaseResponse.ok) {
-      throw new Error(`Release identity endpoint failed with ${releaseResponse.status}.`)
+    if (confirmedCommitSha !== expectedCommitSha) {
+      throw new Error("Authenticated preview release SHA does not match the expected candidate SHA.")
     }
-    const release = (await releaseResponse.json()) as { commitSha?: unknown }
-    if (release.commitSha !== expectedCommitSha) {
-      throw new Error(`Preview serves ${String(release.commitSha)} instead of ${expectedCommitSha}.`)
-    }
-    observedReleaseSha = expectedCommitSha
+    observedReleaseSha = confirmedCommitSha
     mkdirSync(dirname(evidencePath), { recursive: true })
     writeFileSync(evidencePath, "", "utf8")
   })
@@ -308,7 +336,13 @@ test.describe("Harbor preview integration handshakes", () => {
 
   test("fulfils Tier 1 before Tier 2 and processes each signed webhook once", async ({ page, request }) => {
     const { token, profileId } = await authenticatedIdentity(page)
-    const caseId = randomUUID()
+    const disposable = await createDisposableCase(serviceClient, {
+      ownerId: profileId,
+      summary: 'Disposable Harbor preview commerce handshake',
+      narrative: 'Disposable preview-only integration fixture.',
+    })
+    const caseId = disposable.caseId
+    const cleanup: DisposableCleanupScope = { ...disposable }
     const reportEventId = `evt_harbor_preview_${randomUUID().replaceAll("-", "")}`
     const tier2EventId = `evt_harbor_preview_${randomUUID().replaceAll("-", "")}`
     const stripe = new Stripe("sk_test_harbor_preview_signature_only", { apiVersion: "2024-06-20" })
@@ -345,6 +379,8 @@ test.describe("Harbor preview integration handshakes", () => {
       const legacyPaymentId = (purchase?.metadata as { legacy_payment_id?: unknown } | null)
         ?.legacy_payment_id
       expect(legacyPaymentId).toMatch(/^[0-9a-f-]{36}$/i)
+      cleanup.casePurchaseIds = [...(cleanup.casePurchaseIds ?? []), requireUuid(purchase!.id, "case purchase id")]
+      cleanup.paymentIds = [...(cleanup.paymentIds ?? []), requireUuid(String(legacyPaymentId), "payment id")]
 
       const rawEvent = JSON.stringify({
         id: eventId,
@@ -398,6 +434,7 @@ test.describe("Harbor preview integration handshakes", () => {
       expect(ledgerError).toBeNull()
       expect(ledgerCount).toBe(1)
       expect(ledger?.[0]?.processing_status).toBe("processed")
+      cleanup.webhookEventIds = [...(cleanup.webhookEventIds ?? []), requireUuid(String(ledger?.[0]?.id), "webhook event id")]
 
       const { data: paidPurchase, error: paidPurchaseError } = await serviceClient
         .from("case_purchases")
@@ -410,19 +447,6 @@ test.describe("Harbor preview integration handshakes", () => {
     }
 
     try {
-      const { error: caseError } = await serviceClient.from("cases").insert({
-        id: caseId,
-        user_id: profileId,
-        owner_user_id: profileId,
-        creator_user_id: profileId,
-        claim_type: "phishing_scam",
-        status: "draft",
-        case_summary: "Disposable Harbor preview commerce handshake",
-        primary_narrative: "Disposable preview-only integration fixture.",
-        is_anonymous: false,
-      })
-      expect(caseError).toBeNull()
-
       const reportPurchase = await checkoutAndFulfil({
         productKey: "self_serve_report",
         productCode: "self_serve_report",
@@ -438,11 +462,12 @@ test.describe("Harbor preview integration handshakes", () => {
 
       const { data: entitlement, error: entitlementError } = await serviceClient
         .from("case_entitlements")
-        .select("plan, purchase_ref, features")
+        .select("case_id, plan, purchase_ref, features")
         .eq("case_id", caseId)
         .single()
       expect(entitlementError).toBeNull()
       expect(entitlement).toMatchObject({
+        case_id: caseId,
         plan: "escalation_pack",
         purchase_ref: reportPurchase.provider_checkout_session_id,
         features: {
@@ -450,13 +475,15 @@ test.describe("Harbor preview integration handshakes", () => {
           allow_escalation_pack: true,
         },
       })
+      cleanup.entitlementCaseIds = [caseId]
 
-      const { count: reportJobCount, error: reportJobCountError } = await serviceClient
+      const { data: reportJobs, error: reportJobError } = await serviceClient
         .from("jobs")
-        .select("id", { count: "exact", head: true })
+        .select("id")
         .eq("idempotency_key", reportPurchase.provider_checkout_session_id)
-      expect(reportJobCountError).toBeNull()
-      expect(reportJobCount).toBe(1)
+      expect(reportJobError).toBeNull()
+      expect(reportJobs).toHaveLength(1)
+      cleanup.jobIds = [...(cleanup.jobIds ?? []), requireUuid(String(reportJobs?.[0]?.id), "report job id")]
 
       const { count: tier2JobCount, error: tier2JobCountError } = await serviceClient
         .from("jobs")
@@ -476,7 +503,7 @@ test.describe("Harbor preview integration handshakes", () => {
       expect(capabilities.capabilities?.report?.entitled).toBe(true)
       expect(capabilities.capabilities?.fidrecPack?.entitled).toBe(true)
     } finally {
-      await cleanupCommerceFixture(caseId, [reportEventId, tier2EventId])
+      await cleanupDisposableRecords(serviceClient, cleanup)
     }
   })
 
@@ -485,18 +512,25 @@ test.describe("Harbor preview integration handshakes", () => {
     test.setTimeout(timeoutMs + 30_000)
 
     const { profileId } = await authenticatedIdentity(page)
-    const caseId = requiredEnv("HARBOR_PREVIEW_WORKER_CASE_ID")
+    const disposable = await createDisposableCase(serviceClient, {
+      ownerId: profileId,
+      summary: "Disposable Harbor preview worker report case",
+    })
+    const cleanup: DisposableCleanupScope = { ...disposable }
+    const caseId = disposable.caseId
     const idempotencyKey = `harbor-preview-worker-${randomUUID()}`
     let jobId: string | null = null
 
     try {
-      const { data: controlledCase, error: caseError } = await serviceClient
-        .from("cases")
-        .select("id, user_id")
-        .eq("id", caseId)
-        .single()
-      expect(caseError).toBeNull()
-      expect(controlledCase?.user_id).toBe(profileId)
+      const { error: entitlementError } = await serviceClient.from("case_entitlements").insert({
+        case_id: caseId,
+        plan: "self_serve_report",
+        features: { allow_self_serve_report: true },
+        source: "harbor_preview_worker_handshake",
+        purchase_ref: idempotencyKey,
+      })
+      expect(entitlementError).toBeNull()
+      cleanup.entitlementCaseIds = [caseId]
 
       const { data: backlog, error: backlogError } = await serviceClient
         .from("jobs")
@@ -520,6 +554,7 @@ test.describe("Harbor preview integration handshakes", () => {
       expect(jobError).toBeNull()
       jobId = job?.id ?? null
       expect(jobId).toBeTruthy()
+      cleanup.jobIds = [requireUuid(jobId!, "worker job id")]
 
       const deadline = Date.now() + timeoutMs
       let observed: {
@@ -541,11 +576,21 @@ test.describe("Harbor preview integration handshakes", () => {
 
       expect(observed?.status, observed?.error ?? "The preview worker did not finish before timeout.").toBe("completed")
       expect(observed?.payload?.worker_commit_sha).toBe(requiredEnv("HARBOR_PREVIEW_EXPECTED_COMMIT_SHA"))
+
+      const [reports, decisionRuns, gapItems, validationRuns, extractRuns] = await Promise.all([
+        collectDisposableIds("reports", caseId),
+        collectDisposableIds("case_decision_runs", caseId),
+        collectDisposableIds("case_validation_gap_items", caseId),
+        collectDisposableIds("case_validation_runs", caseId),
+        collectDisposableIds("case_extract_runs", caseId),
+      ])
+      cleanup.reportIds = reports
+      cleanup.decisionRunIds = decisionRuns
+      cleanup.validationGapItemIds = gapItems
+      cleanup.validationRunIds = validationRuns
+      cleanup.extractRunIds = extractRuns
     } finally {
-      if (jobId) {
-        const { error } = await serviceClient.from("jobs").delete().eq("id", jobId)
-        expect(error).toBeNull()
-      }
+      await cleanupDisposableRecords(serviceClient, cleanup)
     }
   })
 
@@ -565,6 +610,15 @@ test.describe("Harbor preview integration handshakes", () => {
     expect((response.body as { messageId?: string } | null)?.messageId).toBeTruthy()
   })
 })
+
+async function collectDisposableIds(table: string, caseId: string) {
+  const { data, error } = await serviceClient
+    .from(table)
+    .select("id")
+    .eq("case_id", requireUuid(caseId, "disposable case id"))
+  if (error) throw new Error(`Unable to collect disposable ${table} ids: ${error.message}`)
+  return (data ?? []).map((row) => requireUuid(String(row.id), `${table} id`))
+}
 
 function requiredEnv(name: (typeof requiredEnvironment)[number] | "HARBOR_PREVIEW_CONFIRM_MUTATIONS") {
   const value = process.env[name]?.trim()
@@ -663,26 +717,4 @@ async function appFetch(
     },
     { requestPath: path, requestOptions: options },
   )
-}
-
-async function cleanupCommerceFixture(caseId: string, eventIds: readonly string[]) {
-  const cleanupQueries = [
-    serviceClient.from("payment_webhook_events").delete().in("provider_event_id", [...eventIds]),
-    serviceClient.from("jobs").delete().eq("case_id", caseId),
-    serviceClient.from("case_entitlements").delete().eq("case_id", caseId),
-    serviceClient.from("payments").delete().eq("case_id", caseId),
-    serviceClient.from("case_purchases").delete().eq("case_id", caseId),
-  ]
-  const results = await Promise.all(cleanupQueries)
-  const cleanupError = results.find((result) => result.error)?.error
-  if (cleanupError) throw new Error(`Preview commerce cleanup failed: ${cleanupError.message}`)
-
-  const { error: caseError } = await serviceClient.from("cases").delete().eq("id", caseId)
-  if (caseError) throw new Error(`Preview case cleanup failed: ${caseError.message}`)
-
-  const { count, error: verifyError } = await serviceClient
-    .from("cases")
-    .select("id", { count: "exact", head: true })
-    .eq("id", caseId)
-  if (verifyError || count !== 0) throw new Error("Preview commerce fixture cleanup could not be verified")
 }

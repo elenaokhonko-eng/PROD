@@ -7,32 +7,67 @@ import {
 } from '../fixtures/harbor-test'
 import { requireAuthState } from '../evidence/run-context'
 import { readReleaseFixtures } from '../../release/release-fixtures'
+import {
+  cleanupDisposableRecords,
+  createDisposableCase,
+  createServiceClientFromEnvironment,
+  type DisposableCleanupScope,
+} from '../helpers/disposable-records'
 
 const rootDir = resolve(__dirname, '..', '..', '..')
 const fixtures = readReleaseFixtures()
 
-test('data export contains only the authenticated owner data', async ({ request }) => {
-  const response = await request.post('/api/privacy/export', { maxRedirects: 0 })
-  expect(response.headers().location).toBeUndefined()
-  expect(response.status(), await response.text()).toBe(200)
+test('data export contains only the disposable deletion-user data', async ({ browser }) => {
+  const supabase = createServiceClientFromEnvironment()
+  const disposable = await createDisposableCase(supabase, {
+    ownerId: fixtures.users.deletionUser.supabaseUuid,
+    summary: 'Disposable privacy export release-gate case',
+  })
+  const context = await browser.newContext({
+    baseURL: process.env.HARBOR_PREVIEW_BASE_URL,
+    storageState: requireAuthState(rootDir, 'deletionUser'),
+  })
+  await guardContextAgainstProduction(context)
 
-  const body = await response.json() as {
-    user?: { id?: string }
-    cases?: Array<{ id?: string; user_id?: string }>
+  try {
+    const response = await context.request.post('/api/privacy/export', { maxRedirects: 0 })
+    expect(response.headers().location).toBeUndefined()
+    expect(response.status(), await response.text()).toBe(200)
+
+    const body = await response.json() as {
+      user?: { id?: string }
+      cases?: Array<{ id?: string; user_id?: string }>
+    }
+    expect(body.user?.id).toBe(fixtures.users.deletionUser.supabaseUuid)
+    expect(body.cases).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: disposable.caseId,
+        user_id: fixtures.users.deletionUser.supabaseUuid,
+      }),
+    ]))
+    const serializedBody = JSON.stringify(body)
+    expect(serializedBody).not.toContain(fixtures.users.userA.supabaseUuid)
+    expect(serializedBody).not.toContain(fixtures.users.userA.ownedCaseId)
+    expect(serializedBody).not.toContain(fixtures.users.userB.supabaseUuid)
+    expect(serializedBody).not.toContain(fixtures.users.userB.ownedCaseId)
+  } finally {
+    try {
+      expectNoProductionTraffic(context)
+    } finally {
+      await context.close()
+      await cleanupDisposableRecords(supabase, disposable)
+    }
   }
-  expect(body.user?.id).toBe(fixtures.users.userA.supabaseUuid)
-  expect(body.cases).toEqual(expect.arrayContaining([
-    expect.objectContaining({
-      id: fixtures.users.userA.ownedCaseId,
-      user_id: fixtures.users.userA.supabaseUuid,
-    }),
-  ]))
-  expect(JSON.stringify(body)).not.toContain(fixtures.users.userB.supabaseUuid)
-  expect(JSON.stringify(body)).not.toContain(fixtures.users.userB.ownedCaseId)
 })
 
-test('deletion request anonymizes only a disposable authenticated fixture', async ({ browser }, testInfo) => {
+test('deletion request queues only a disposable authenticated fixture', async ({ browser }, testInfo) => {
   test.skip(testInfo.project.name !== 'chromium-1440', 'Destructive provider checks run once per release SHA.')
+  const supabase = createServiceClientFromEnvironment()
+  const disposable = await createDisposableCase(supabase, {
+    ownerId: fixtures.users.deletionUser.supabaseUuid,
+    summary: 'Disposable privacy deletion release-gate case',
+  })
+  const cleanup: DisposableCleanupScope = { ...disposable }
   const context = await browser.newContext({
     baseURL: process.env.HARBOR_PREVIEW_BASE_URL,
     storageState: requireAuthState(rootDir, 'deletionUser'),
@@ -48,7 +83,7 @@ test('deletion request anonymizes only a disposable authenticated fixture', asyn
     }
     expect(preflightBody.user?.id).toBe(fixtures.users.deletionUser.supabaseUuid)
     expect(preflightBody.cases).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: fixtures.users.deletionUser.ownedCaseId }),
+      expect.objectContaining({ id: disposable.caseId }),
     ]))
     const serializedPreflight = JSON.stringify(preflightBody)
     expect(serializedPreflight).not.toContain(fixtures.users.userA.supabaseUuid)
@@ -58,17 +93,22 @@ test('deletion request anonymizes only a disposable authenticated fixture', asyn
 
     const response = await context.request.post('/api/privacy/delete-request', { maxRedirects: 0 })
     expect(response.headers().location).toBeUndefined()
-    expect(response.status(), await response.text()).toBe(200)
-    const body = await response.json() as { success?: boolean; anonymized_case_ids?: string[] }
-    expect(body.success).toBe(true)
-    expect(body.anonymized_case_ids).toContain(fixtures.users.deletionUser.ownedCaseId)
-    expect(body.anonymized_case_ids).not.toContain(fixtures.users.userA.ownedCaseId)
-    expect(body.anonymized_case_ids).not.toContain(fixtures.users.userB.ownedCaseId)
+    expect(response.status(), await response.text()).toBe(202)
+    const body = await response.json() as {
+      request?: { id?: string; status?: string; requestedAt?: string }
+      message?: string
+    }
+    expect(body.request?.id).toMatch(/^[0-9a-f-]{36}$/i)
+    expect(body.request?.status).toBe('queued')
+    expect(body.request?.requestedAt).toBeTruthy()
+    expect(body.message).toContain('queued')
+    cleanup.privacyDeletionRequestIds = [body.request!.id!]
   } finally {
     try {
       expectNoProductionTraffic(context)
     } finally {
       await context.close()
+      await cleanupDisposableRecords(supabase, cleanup)
     }
   }
 })
