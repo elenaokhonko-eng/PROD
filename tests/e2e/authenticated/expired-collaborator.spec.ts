@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import {
   expect,
@@ -11,13 +12,13 @@ import { captureAndCleanupEvidenceMutation } from '../helpers/evidence-mutation-
 
 const rootDir = resolve(__dirname, '..', '..', '..')
 const fixtures = readReleaseFixtures()
-const fileName = 'expired-collaborator-release-gate.png'
 
 test.beforeEach(async ({}, testInfo) => {
   test.skip(testInfo.project.name !== 'chromium-1440', 'Authorization mutation checks run once per release SHA.')
 })
 
 test('expired collaborator cannot upload or process evidence', async ({ browser }) => {
+  const fileName = `${randomUUID()}-expired-collaborator-release-gate.png`
   const context = await browser.newContext({
     baseURL: process.env.HARBOR_PREVIEW_BASE_URL,
     storageState: requireAuthState(rootDir, 'userB'),

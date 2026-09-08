@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { expect, test } from '../fixtures/harbor-test'
 import { readReleaseFixtures } from '../../release/release-fixtures'
 import { captureAndCleanupEvidenceMutation } from '../helpers/evidence-mutation-probe'
@@ -33,19 +34,20 @@ test.describe('evidence upload validation', () => {
 
   for (const invalid of invalidFiles) {
     test(`${invalid.name} is rejected before persistence`, async ({ request }) => {
+      const fileName = `${randomUUID()}-${invalid.fileName}`
       const response = await request.post('/api/evidence/upload', {
         multipart: {
           caseId: fixtures.evidence.uploadCaseId,
           category: 'evidence',
           file: {
-            name: invalid.fileName,
+            name: fileName,
             mimeType: invalid.mimeType,
             buffer: invalid.buffer(),
           },
         },
         maxRedirects: 0,
       })
-      const mutation = await captureAndCleanupEvidenceMutation(fixtures.evidence.uploadCaseId, invalid.fileName)
+      const mutation = await captureAndCleanupEvidenceMutation(fixtures.evidence.uploadCaseId, fileName)
 
       expect(response.status(), await response.text()).toBeGreaterThanOrEqual(400)
       expect(response.status(), 'Invalid files must be rejected by validation, not fail as a provider error').toBeLessThan(500)

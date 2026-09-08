@@ -20,8 +20,22 @@ test('release fixture template satisfies schema version 1', () => {
     },
   )
   assert.equal(parsed.schemaVersion, 1)
+  assert.equal(parsed.users.userA.disposable, true)
+  assert.equal(parsed.users.userB.disposable, true)
+  assert.equal(parsed.users.deletionUser.disposable, true)
   assert.equal(new Set(requiredReleaseFixturePaths).size, requiredReleaseFixturePaths.length)
   assert.ok(parsed.serviceRole.protectedPaths.length > 0)
+})
+
+test('release fixture validation requires disposable staging identities', () => {
+  const template = JSON.parse(readFileSync(templatePath, 'utf8'))
+  const valid = materializeTemplate(template)
+  ;(valid as { users: { userA: { disposable?: boolean } } }).users.userA.disposable = false
+
+  assert.throws(
+    () => assertReleaseFixtures(valid),
+    /users\.userA\.disposable/,
+  )
 })
 
 test('release fixture validation reports incomplete fixture paths without echoing values', () => {
@@ -52,6 +66,13 @@ test('release fixture validation requires distinct controlled user identities an
   assert.throws(
     () => assertReleaseFixtures(duplicateCase),
     /users\.\*\.ownedCaseId must be distinct/,
+  )
+
+  const duplicateFixtureCase = structuredClone(valid)
+  duplicateFixtureCase.payments.delayedEntitlement.caseId = duplicateFixtureCase.evidence.uploadCaseId
+  assert.throws(
+    () => assertReleaseFixtures(duplicateFixtureCase),
+    /all fixture case IDs must be distinct disposable synthetic cases/,
   )
 })
 

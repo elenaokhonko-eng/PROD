@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, devices, type PlaywrightTestConfig } from '@playwright/test'
 import {
@@ -7,6 +9,7 @@ import {
   resolveRunContext,
   type HarborLane,
 } from './evidence/run-context'
+import { assertReleaseFixtures } from '../release/release-fixtures'
 
 const rootDir = resolve(__dirname, '..', '..')
 const testDir = resolve(rootDir, 'tests', 'e2e')
@@ -16,6 +19,9 @@ const localBaseUrl =
   process.env.SLICE5_BASE_URL ??
   process.env.NEXT_PUBLIC_APP_URL ??
   'http://127.0.0.1:3000'
+
+const harborPreviewSupabaseRef = 'yqqkkftfddxuxmpxwbcj'
+const defaultProductionHosts = ['guidebuoyaisg.onrender.com', 'guidebuoyai.sg', 'www.guidebuoyai.sg']
 
 const browserMatrix: PlaywrightTestConfig['projects'] = [
   {
@@ -75,15 +81,16 @@ export function createHarborConfig(lane: HarborLane) {
   const authStatePath = authenticated ? requireAuthState(rootDir, 'userA') : undefined
 
   if (authenticated) {
-    requireAuthState(rootDir, 'userB')
-    requireAuthState(rootDir, 'deletionUser')
+    assertDistinctAuthStates(rootDir)
     for (const name of [
       'HARBOR_STATE_CASES_JSON',
       'HARBOR_RELEASE_FIXTURES_JSON',
       'NEXT_PUBLIC_SUPABASE_ANON_KEY',
       'SUPABASE_SERVICE_ROLE_KEY',
       'HARBOR_SMTP_TEST_RECIPIENT',
+      'HARBOR_PREVIEW_CONFIRM_SUPABASE_REF',
     ]) requireEnvironment(name)
+    assertDisposableReleaseFixtures(requireEnvironment('HARBOR_RELEASE_FIXTURES_JSON'))
     requirePreviewSupabaseUrl()
   }
 
@@ -179,7 +186,11 @@ export function requirePreviewBaseUrl() {
   if (url.hostname.toLowerCase() !== expectedHost) {
     throw new Error(`Preview host ${url.hostname} does not match HARBOR_PREVIEW_EXPECTED_HOST=${expectedHost}.`)
   }
-  if (isProductionHost(url.hostname)) {
+  if (!url.hostname.toLowerCase().endsWith('.onrender.com')) {
+    throw new Error('Preview tests must target the exact staging Render hostname.')
+  }
+  const productionHosts = configuredHosts('HARBOR_PRODUCTION_HOSTS', defaultProductionHosts)
+  if (productionHosts.includes(url.hostname.toLowerCase())) {
     throw new Error(`Refusing to run live-preview tests against production host ${url.hostname}.`)
   }
 
@@ -197,6 +208,13 @@ export function requirePreviewSupabaseUrl() {
   if (url.hostname.toLowerCase() !== expectedHost) {
     throw new Error(`Supabase host ${url.hostname} does not match HARBOR_SUPABASE_EXPECTED_HOST=${expectedHost}.`)
   }
+  const previewRef = url.hostname.split('.')[0]
+  if (previewRef !== harborPreviewSupabaseRef) {
+    throw new Error(`Preview Supabase ref must be ${harborPreviewSupabaseRef}.`)
+  }
+  if (requireEnvironment('HARBOR_PREVIEW_CONFIRM_SUPABASE_REF') !== harborPreviewSupabaseRef) {
+    throw new Error(`HARBOR_PREVIEW_CONFIRM_SUPABASE_REF must be ${harborPreviewSupabaseRef}.`)
+  }
 
   const productionHosts = configuredHosts('HARBOR_PRODUCTION_SUPABASE_HOSTS')
   if (productionHosts.length === 0) {
@@ -210,18 +228,46 @@ export function requirePreviewSupabaseUrl() {
 }
 
 export function isProductionHost(hostname: string) {
-  const configured = (process.env.HARBOR_PRODUCTION_HOSTS ?? 'guidebuoyai.sg,www.guidebuoyai.sg')
+  const configured = (process.env.HARBOR_PRODUCTION_HOSTS ?? '')
     .split(',')
     .map((host) => host.trim().toLowerCase())
     .filter(Boolean)
-  return configured.includes(hostname.toLowerCase())
+  return [...defaultProductionHosts, ...configured].includes(hostname.toLowerCase())
 }
 
-function configuredHosts(name: string) {
-  return requireEnvironment(name)
-    .split(',')
-    .map((host) => host.trim().toLowerCase())
-    .filter(Boolean)
+function assertDistinctAuthStates(root: string) {
+  const states = (['userA', 'userB', 'deletionUser'] as const).map((user) => ({
+    user,
+    path: requireAuthState(root, user),
+  }))
+  if (new Set(states.map((state) => state.path)).size !== states.length) {
+    throw new Error('Authenticated Harbor lane requires three distinct Clerk storage-state files.')
+  }
+  const hashes = states.map((state) => createHash('sha256').update(readFileSync(state.path, 'utf8')).digest('hex'))
+  if (new Set(hashes).size !== hashes.length) {
+    throw new Error('Authenticated Harbor lane requires three distinct disposable Clerk storage states.')
+  }
+}
+
+function configuredHosts(name: string, defaults: string[] = []) {
+  return Array.from(new Set([
+    ...defaults,
+    ...requireEnvironment(name)
+      .split(',')
+      .map((host) => host.trim().toLowerCase())
+      .filter(Boolean),
+  ]))
+}
+
+function assertDisposableReleaseFixtures(raw: string) {
+  try {
+    assertReleaseFixtures(JSON.parse(raw))
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error('HARBOR_RELEASE_FIXTURES_JSON must contain valid JSON.')
+    }
+    throw error
+  }
 }
 
 function isLoopbackUrl(value: string) {

@@ -2,22 +2,25 @@
   "schemaVersion": 1,
   "users": {
     "userA": {
-      "supabaseUuid": "<seeded-user-a-supabase-uuid>",
-      "ownedCaseId": "<seeded-user-a-case-uuid>"
+      "supabaseUuid": "<disposable-user-a-supabase-uuid>",
+      "ownedCaseId": "<disposable-user-a-case-uuid>",
+      "disposable": true
     },
     "userB": {
-      "supabaseUuid": "<seeded-user-b-supabase-uuid>",
-      "ownedCaseId": "<seeded-user-b-case-uuid>"
+      "supabaseUuid": "<disposable-user-b-supabase-uuid>",
+      "ownedCaseId": "<disposable-user-b-case-uuid>",
+      "disposable": true
     },
     "deletionUser": {
       "supabaseUuid": "<disposable-deletion-user-supabase-uuid>",
-      "ownedCaseId": "<disposable-deletion-user-case-uuid>"
+      "ownedCaseId": "<disposable-deletion-user-case-uuid>",
+      "disposable": true
     }
   },
   "ownership": {
-    "protectedCaseId": "<user-a-owned-case-uuid>",
+    "protectedCaseId": "<disposable-user-a-protected-case-uuid>",
     "protectedQuestionKey": "release_gate_ownership_probe",
-    "originalResponseValue": "server-seeded-control-value"
+    "originalResponseValue": "disposable-control-value"
   },
   "onboarding": {
     "anonymousNarrative": "Release-gate anonymous narrative that must bootstrap exactly once."
@@ -31,7 +34,7 @@
   },
   "collaboration": {
     "expiredCaseId": "<expired-collaboration-case-uuid>",
-    "expiredEvidenceId": "<seeded-evidence-uuid-for-expired-collaboration-case>",
+    "expiredEvidenceId": "<disposable-evidence-uuid-for-expired-collaboration-case>",
     "expiredInvitationToken": "<expired-preview-only-invitation-token>"
   },
   "reports": {
@@ -72,7 +75,7 @@
   "contact": {
     "caseId": "<layer-3-contact-case-uuid>",
     "email": "<provider-safe-contact-email>",
-    "expectedOwnerSupabaseUuid": "<server-seeded-owner-supabase-uuid>"
+    "expectedOwnerSupabaseUuid": "<disposable-owner-supabase-uuid>"
   },
   "privacy": {
     "settingsCaseId": "<privacy-owner-case-uuid>"

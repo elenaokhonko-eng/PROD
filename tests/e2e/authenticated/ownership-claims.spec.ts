@@ -7,6 +7,7 @@ import {
 } from '../fixtures/harbor-test'
 import { resolveAuthStatePath } from '../evidence/run-context'
 import { readReleaseFixtures } from '../../release/release-fixtures'
+import { cleanupDisposableRecords, createDisposableCase, createServiceClientFromEnvironment } from '../helpers/disposable-records'
 
 const fixtures = readReleaseFixtures()
 const baseURL = process.env.HARBOR_PREVIEW_BASE_URL!
@@ -36,27 +37,25 @@ test.describe.serial('Pattern C ownership and internal authorization', () => {
     }
   })
 
-  test('a cross-user zero-row write cannot change the owner-visible value', async ({ browser }) => {
+  test('a cross-user zero-row write cannot change owner-visible disposable cases', async ({ browser }) => {
+    const supabase = createServiceClientFromEnvironment()
+    const userACase = await createDisposableCase(supabase, {
+      ownerId: fixtures.users.userA.supabaseUuid,
+      summary: 'Disposable ownership User A case',
+    })
+    const userBCase = await createDisposableCase(supabase, {
+      ownerId: fixtures.users.userB.supabaseUuid,
+      summary: 'Disposable ownership User B case',
+    })
     const userA = await createUserContext(browser, 'userA')
     const userB = await createUserContext(browser, 'userB')
-    const { protectedCaseId, originalResponseValue } = fixtures.ownership
     try {
-      const before = await userA.request.get(`/api/cases/${protectedCaseId}/details`, { maxRedirects: 0 })
-      expect(before.status(), await before.text()).toBe(200)
-      expect((await before.json()).case_summary).toBe(originalResponseValue)
-
-      const write = await userB.request.put(`/api/cases/${protectedCaseId}/details`, {
-        data: { case_summary: 'cross-user write must never persist' },
-        maxRedirects: 0,
-      })
-      expect([403, 404], await write.text()).toContain(write.status())
-      expect(write.headers().location).toBeUndefined()
-
-      const after = await userA.request.get(`/api/cases/${protectedCaseId}/details`, { maxRedirects: 0 })
-      expect(after.status(), await after.text()).toBe(200)
-      expect((await after.json()).case_summary).toBe(originalResponseValue)
+      await expectCrossUserWriteDenied(userA, userB, userACase.caseId, 'Disposable ownership User A case')
+      await expectCrossUserWriteDenied(userB, userA, userBCase.caseId, 'Disposable ownership User B case')
     } finally {
       await closeUserContexts(userA, userB)
+      await cleanupDisposableRecords(supabase, userACase)
+      await cleanupDisposableRecords(supabase, userBCase)
     }
   })
 
@@ -122,6 +121,28 @@ async function expectDenied(context: BrowserContext, caseId: string) {
   const response = await context.request.get(`/api/cases/${caseId}/details`, { maxRedirects: 0 })
   expect([403, 404], await response.text()).toContain(response.status())
   expect(response.headers().location).toBeUndefined()
+}
+
+async function expectCrossUserWriteDenied(
+  owner: BrowserContext,
+  attacker: BrowserContext,
+  caseId: string,
+  originalSummary: string,
+) {
+  const before = await owner.request.get(`/api/cases/${caseId}/details`, { maxRedirects: 0 })
+  expect(before.status(), await before.text()).toBe(200)
+  expect((await before.json()).case_summary).toBe(originalSummary)
+
+  const write = await attacker.request.put(`/api/cases/${caseId}/details`, {
+    data: { case_summary: 'cross-user write must never persist' },
+    maxRedirects: 0,
+  })
+  expect([403, 404], await write.text()).toContain(write.status())
+  expect(write.headers().location).toBeUndefined()
+
+  const after = await owner.request.get(`/api/cases/${caseId}/details`, { maxRedirects: 0 })
+  expect(after.status(), await after.text()).toBe(200)
+  expect((await after.json()).case_summary).toBe(originalSummary)
 }
 
 function requestBodyFor(path: string) {

@@ -176,12 +176,15 @@ jobs:
     runs-on: ubuntu-latest
     environment: harbor-preview
     needs: [static-gates, migration-rls, playwright-public, playwright-synthetic]
+    outputs:
+      preview_confirmed_sha: ${{ steps.preview-release.outputs.harbor_preview_confirmed_sha }}
     env:
       HARBOR_PREVIEW_BASE_URL: ${{ vars.HARBOR_PREVIEW_BASE_URL }}
       HARBOR_PREVIEW_EXPECTED_HOST: ${{ vars.HARBOR_PREVIEW_EXPECTED_HOST }}
       HARBOR_PRODUCTION_HOSTS: ${{ vars.HARBOR_PRODUCTION_HOSTS }}
       HARBOR_ENVIRONMENT_REVISION: ${{ vars.HARBOR_ENVIRONMENT_REVISION }}
       HARBOR_WORKER_VERSION: ${{ vars.HARBOR_WORKER_VERSION }}
+      HARBOR_PREVIEW_RELEASE_STORAGE_STATE: tests/e2e/.auth/harbor-preview-release.json
     steps:
       - uses: actions/checkout@v4
         with:
@@ -195,6 +198,16 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Materialize preview release Clerk state
+        env:
+          USER_A: ${{ secrets.HARBOR_AUTH_STORAGE_STATE_USER_A_BASE64 }}
+        run: |
+          test -n "$USER_A"
+          mkdir -p tests/e2e/.auth
+          printf '%s' "$USER_A" | base64 --decode > "$HARBOR_PREVIEW_RELEASE_STORAGE_STATE"
+      - name: Verify authenticated preview release SHA
+        id: preview-release
+        run: pnpm exec tsx scripts/verify-harbor-preview-release.ts
       - run: pnpm exec playwright test --config=tests/e2e/playwright.preview.config.ts
       - name: Upload preview evidence
         if: always()
@@ -233,9 +246,9 @@ jobs:
       HARBOR_PREVIEW_DATABASE_URL: ${{ secrets.HARBOR_PREVIEW_DATABASE_URL }}
       HARBOR_PREVIEW_STRIPE_WEBHOOK_SECRET: ${{ secrets.HARBOR_PREVIEW_STRIPE_WEBHOOK_SECRET }}
       HARBOR_PREVIEW_EMAIL_SINK: ${{ secrets.HARBOR_PREVIEW_EMAIL_SINK }}
-      HARBOR_PREVIEW_WORKER_CASE_ID: ${{ secrets.HARBOR_PREVIEW_WORKER_CASE_ID }}
       HARBOR_PREVIEW_CONFIRM_SUPABASE_REF: ${{ vars.HARBOR_PREVIEW_CONFIRM_SUPABASE_REF }}
       HARBOR_PREVIEW_EXPECTED_COMMIT_SHA: ${{ env.HARBOR_RELEASE_SHA }}
+      HARBOR_PREVIEW_CONFIRMED_SHA: ${{ needs.playwright-preview.outputs.preview_confirmed_sha }}
       HARBOR_PREVIEW_CONFIRM_MUTATIONS: RUN_MUTATING_PREVIEW_HANDSHAKES
       HARBOR_PREVIEW_EVIDENCE_FILE: test-results/harbor-preview-handshake-evidence.jsonl
       HARBOR_ARTIFACT_KEY: ${{ secrets.HARBOR_ARTIFACT_KEY }}

@@ -11,14 +11,12 @@ const expectedStateText = {
   layer1DraftPending: 'Preparing your free draft',
   layer1FreeDraft: 'Your free triage draft',
   transitionBuyReport: 'Buy the full report',
-  transitionPaymentSuccess: 'Payment received',
   layer2Running: 'Analysing your case',
   layer2Drafting: 'Drafting your complaint report',
   layer2Ready: 'Your complaint report',
   layer2Failed: 'We hit a snag generating your report',
   layer3Form: 'Request specialist support',
   layer3Tier2: /FIDReC Tier 2 pack/i,
-  layer3Confirmed: 'Request received',
 } as const
 
 type StateCases = Record<keyof typeof expectedStateText, StateFixture>
@@ -52,6 +50,11 @@ function readFixtures(): StateCases {
     throw new Error('HARBOR_STATE_CASES_JSON must contain a fixture object.')
   }
   const record = parsed as Record<string, Partial<StateFixture>>
+  const unexpected = Object.keys(record).filter((key) => !required.includes(key as keyof StateCases))
+  if (unexpected.length) {
+    throw new Error(`HARBOR_STATE_CASES_JSON contains unreachable or unrecognized states: ${unexpected.join(', ')}`)
+  }
+
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   const missing = required.filter((key) => !uuidPattern.test(record[key]?.caseId ?? ''))
   if (missing.length) {
