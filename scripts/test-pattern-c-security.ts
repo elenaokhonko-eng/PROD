@@ -60,14 +60,21 @@ async function runMigrationConflictFixtures() {
     path.join(root, "supabase/migrations/20260830000000_privileged_edge_and_evidence_jobs.sql"),
     "utf8",
   )
+  const migration31 = await readFile(
+    path.join(root, "supabase/migrations/20260909120000_harden_clerk_profile_provisioning.sql"),
+    "utf8",
+  )
   const preflight29 = extractNamedPreflight(migration29)
   const preflight30 = extractNamedPreflight(migration30)
+  const preflight31 = extractNamedPreflight(migration31)
 
   if (
     migration29.indexOf("DO $preflight$") >
       migration29.indexOf("CREATE UNIQUE INDEX IF NOT EXISTS case_purchases_one_pending_checkout_idx") ||
     migration30.indexOf("DO $preflight$") >
-      migration30.indexOf("ADD CONSTRAINT jobs_job_type_check")
+      migration30.indexOf("ADD CONSTRAINT jobs_job_type_check") ||
+    migration31.indexOf("DO $preflight$") >
+      migration31.indexOf("ADD CONSTRAINT profiles_clerk_id_shape_check")
   ) {
     throw new Error("Migration preflight must precede release constraints and indexes")
   }
@@ -85,6 +92,8 @@ async function runMigrationConflictFixtures() {
     ["30-evidence-job-missing-document.sql", preflight30, "23514", "evidence jobs lack document bindings"],
     ["30-report-job-unexpected-document.sql", preflight30, "23514", "report jobs have unexpected document bindings"],
     ["30-inconsistent-document-readiness.sql", preflight30, "23514", "inconsistent ready markers or missing extraction content"],
+    ["31-duplicate-clerk-identities.sql", preflight31, "23505", "duplicate Clerk identities"],
+    ["31-whitespace-clerk-identity.sql", preflight31, "23514", "whitespace-padded Clerk identities"],
   ] as const
 
   const client = new pg.Client({ connectionString: localDatabaseUrl })
@@ -122,6 +131,41 @@ async function runMigrationConflictFixtures() {
   }
 
   console.log(`Migration preflight conflict fixtures passed (${fixtures.length}/${fixtures.length})`)
+}
+
+async function runConcurrentClerkProvisioningTest() {
+  const clerkId = "user_concurrentfixture"
+  const clientA = new pg.Client({ connectionString: localDatabaseUrl })
+  const clientB = new pg.Client({ connectionString: localDatabaseUrl })
+
+  await Promise.all([clientA.connect(), clientB.connect()])
+  try {
+    const provision = (client: pg.Client) => client.query<{ profile_id: string }>(
+      `SELECT public.provision_clerk_profile_v1(
+         $1, 'concurrent@example.test', 'Concurrent', 'Fixture'
+       )::text AS profile_id`,
+      [clerkId],
+    )
+    const [first, second] = await Promise.all([provision(clientA), provision(clientB)])
+    const firstId = first.rows[0]?.profile_id
+    const secondId = second.rows[0]?.profile_id
+    if (!firstId || firstId !== secondId) {
+      throw new Error("Concurrent Clerk provisioning did not return one stable profile UUID")
+    }
+
+    const canonical = await clientA.query(
+      `SELECT count(*)::integer AS profile_count, min(id::text) AS profile_id
+       FROM public.profiles
+       WHERE clerk_id = $1`,
+      [clerkId],
+    )
+    if (canonical.rows[0]?.profile_count !== 1 || canonical.rows[0]?.profile_id !== firstId) {
+      throw new Error("Concurrent Clerk provisioning created duplicate mappings")
+    }
+    console.log("Concurrent Clerk profile provisioning test passed")
+  } finally {
+    await Promise.all([clientA.end(), clientB.end()])
+  }
 }
 
 async function runConcurrentCompletionReservationTest() {
@@ -233,6 +277,7 @@ async function main() {
     await runSql("scripts/sql/tests/pattern-c-legacy-fixtures.sql")
     runSupabase(["migration", "up", "--local"])
     await runMigrationConflictFixtures()
+    await runConcurrentClerkProvisioningTest()
     await runConcurrentCompletionReservationTest()
     await runSql("scripts/sql/tests/test-pattern-c-security.sql")
     console.log("Pattern C local migration and authorization tests passed")

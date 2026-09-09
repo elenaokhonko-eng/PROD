@@ -1,4 +1,6 @@
 import { appendFileSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 import { request } from '@playwright/test'
 
 const shaPattern = /^[0-9a-f]{40}$/i
@@ -50,21 +52,33 @@ async function main() {
       throw new Error('Release identity endpoint did not return JSON.')
     }
 
-    const commitSha = typeof body === 'object' && body !== null
-      ? (body as { commitSha?: unknown }).commitSha
-      : undefined
-    if (typeof commitSha !== 'string' || !shaPattern.test(commitSha)) {
-      throw new Error('Release identity endpoint returned a malformed commitSha.')
-    }
-    if (commitSha.toLowerCase() !== expectedSha) {
-      throw new Error('Deployed preview commit SHA does not match HARBOR_RELEASE_SHA.')
-    }
-
-    exportValue('HARBOR_PREVIEW_CONFIRMED_SHA', commitSha.toLowerCase())
+    const commitSha = assertReleaseCommitSha(body, expectedSha)
+    exportValue('HARBOR_PREVIEW_CONFIRMED_SHA', commitSha)
     console.log('Verified authenticated preview release identity.')
   } finally {
     await api.dispose()
   }
+}
+
+export function assertReleaseCommitSha(body: unknown, expectedSha: string): string {
+  if (!shaPattern.test(expectedSha)) {
+    throw new Error('HARBOR_RELEASE_SHA must be a full 40-character Git SHA.')
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw new Error('Release identity endpoint returned an invalid response.')
+  }
+  const keys = Object.keys(body)
+  if (keys.length !== 1 || keys[0] !== 'commitSha') {
+    throw new Error('Release identity endpoint returned unexpected fields.')
+  }
+  const commitSha = (body as { commitSha?: unknown }).commitSha
+  if (typeof commitSha !== 'string' || !shaPattern.test(commitSha)) {
+    throw new Error('Release identity endpoint returned a malformed commitSha.')
+  }
+  if (commitSha.toLowerCase() !== expectedSha.toLowerCase()) {
+    throw new Error('Deployed preview commit SHA does not match HARBOR_RELEASE_SHA.')
+  }
+  return commitSha.toLowerCase()
 }
 
 async function assertReleaseEndpointRejectsAnonymous(origin: string) {
@@ -133,7 +147,9 @@ function exportValue(name: string, value: string) {
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${name.toLowerCase()}=${value}\n`, 'utf8')
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error))
-  process.exit(1)
-})
+if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error))
+    process.exit(1)
+  })
+}

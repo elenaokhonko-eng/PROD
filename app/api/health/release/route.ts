@@ -1,19 +1,19 @@
+import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
+import { buildReleaseHealthResult } from "@/lib/server/release-health"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
-  const commitSha = (process.env.RELEASE_COMMIT_SHA ?? process.env.RENDER_GIT_COMMIT ?? "").trim() || null
+  const { userId } = await auth()
+  const result = buildReleaseHealthResult({
+    authenticated: Boolean(userId),
+    renderGitCommit: process.env.RENDER_GIT_COMMIT,
+    releaseCommitSha: process.env.RELEASE_COMMIT_SHA,
+  })
 
-  return NextResponse.json(
-    {
-      commitSha,
-      observedAt: new Date().toISOString(),
-    },
-    {
-      headers: {
-        "Cache-Control": "no-store",
-      },
-    },
-  )
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: result.headers,
+  })
 }

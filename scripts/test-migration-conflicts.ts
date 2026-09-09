@@ -55,10 +55,18 @@ const expectedFixtures = [
     file: "30-unsupported-job-type.sql",
     markers: ["jobs_job_type_check", "stale_provider_job", "jobs"],
   },
+  {
+    file: "31-duplicate-clerk-identities.sql",
+    markers: ["profiles_clerk_id_unique_idx", "clerk_id", "user_duplicatefixture"],
+  },
+  {
+    file: "31-whitespace-clerk-identity.sql",
+    markers: ["profiles_clerk_id_shape_check", "clerk_id", "user_whitespacefixture"],
+  },
 ] as const
 
 describe("migration conflict fixtures", () => {
-  it("pins the deterministic 12-fixture conflict corpus", () => {
+  it("pins the deterministic 14-fixture conflict corpus", () => {
     assert.ok(existsSync(FIXTURE_DIR), `Missing fixture directory ${FIXTURE_DIR}`)
     const actual = readdirSync(FIXTURE_DIR)
       .filter((entry) => entry.endsWith(".sql"))
@@ -72,10 +80,13 @@ describe("migration conflict fixtures", () => {
   it("covers both migration phases in sorted preflight order", () => {
     const phase29 = expectedFixtures.filter((item) => item.file.startsWith("29-"))
     const phase30 = expectedFixtures.filter((item) => item.file.startsWith("30-"))
+    const phase31 = expectedFixtures.filter((item) => item.file.startsWith("31-"))
 
     assert.equal(phase29.length, 7)
     assert.equal(phase30.length, 5)
+    assert.equal(phase31.length, 2)
     assert.ok(phase29.every((item) => item.file < "30-"), "Phase 29 fixtures must sort before phase 30 fixtures")
+    assert.ok(phase30.every((item) => item.file < "31-"), "Phase 30 fixtures must sort before phase 31 fixtures")
   })
 
   it("contains deterministic SQL conflict seeds without randomization", () => {

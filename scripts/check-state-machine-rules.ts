@@ -426,23 +426,16 @@ function patternBHits(text: string): string[] {
   return hits
 }
 
-const clerkWebhookPath = "app/api/webhooks/clerk/route.ts"
-if (exists(clerkWebhookPath)) {
-  const webhookText = readCodeWithoutComments(path.join(root, clerkWebhookPath))
-  const webhookHits = patternBHits(webhookText)
-  if (webhookHits.length > 0) {
-    findings.push({
-      rule: "R14",
-      file: clerkWebhookPath,
-      detail: `Clerk webhook must not contain Pattern B profile/metadata sync remnants: ${webhookHits.join(", ")}`,
-    })
-  }
+export const canonicalProfileProvisionerPath = "lib/server/clerk-profile-provisioner.ts"
+
+export function isCanonicalProfileProvisionerPath(relativePath: string): boolean {
+  return toPosix(relativePath) === canonicalProfileProvisionerPath
 }
 
 for (const file of codeFiles) {
   const rel = toPosix(path.relative(root, file))
   if (!rel.startsWith("app/") && !rel.startsWith("lib/")) continue
-  if (rel === clerkWebhookPath) continue
+  if (isCanonicalProfileProvisionerPath(rel)) continue
 
   const text = readCodeWithoutComments(file)
   const hits = patternBHits(text)
@@ -450,7 +443,7 @@ for (const file of codeFiles) {
     findings.push({
       rule: "R14",
       file: rel,
-      detail: `Pattern B profile-mapping remnant must not appear outside the Clerk webhook: ${hits.join(", ")}`,
+      detail: `Pattern B profile-mapping remnant must not appear outside the canonical server provisioner: ${hits.join(", ")}`,
     })
   }
 }

@@ -1,6 +1,11 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { inspectInvitationMutations, inspectProfileMutations } from "./check-state-machine-rules"
+import {
+  canonicalProfileProvisionerPath,
+  inspectInvitationMutations,
+  inspectProfileMutations,
+  isCanonicalProfileProvisionerPath,
+} from "./check-state-machine-rules"
 
 const inspect = (source: string) => inspectProfileMutations(source)
 
@@ -114,4 +119,11 @@ test("detects direct and aliased invitation inserts", () => {
 test("allows invitation reads and the canonical RPC", () => {
   assert.equal(inspectInvitationMutations(`db.from("invitations").select("id")`), false)
   assert.equal(inspectInvitationMutations(`db.rpc("create_case_invitation", payload)`), false)
+})
+
+test("allows Pattern C mapping only in the exact canonical server provisioner", () => {
+  assert.equal(isCanonicalProfileProvisionerPath(canonicalProfileProvisionerPath), true)
+  assert.equal(isCanonicalProfileProvisionerPath(canonicalProfileProvisionerPath.replace(".ts", "-copy.ts")), false)
+  assert.equal(isCanonicalProfileProvisionerPath("app/api/webhooks/clerk/route.ts"), false)
+  assert.equal(isCanonicalProfileProvisionerPath(`nested/${canonicalProfileProvisionerPath}`), false)
 })

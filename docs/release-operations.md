@@ -17,6 +17,7 @@ This contract applies to the Next.js app, Render worker, Supabase project, Clerk
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same environment's Supabase project and public key. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only. Never expose through a `NEXT_PUBLIC_` variable or browser bundle. |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | Same environment's Clerk instance. The Clerk `supabase` JWT template must sign a stable UUID as `supabase_uuid`. |
+| `CLERK_WEBHOOK_SIGNING_SECRET` | Server-only Svix signing secret for the environment's `/api/webhooks/clerk` endpoint. Never reuse a Clerk API key. |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Same Stripe mode and endpoint. Preview uses test-mode keys only. |
 | `STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD` | One-time S$18 price. Currency and unit amount must match the catalogue. |
 | `STRIPE_PRICE_ID_FIDREC_TIER2_PACK_SGD` | One-time S$188 price. Currency and unit amount must match the catalogue. |
@@ -50,22 +51,25 @@ Apply migrations in filename order. Deploy Edge Functions from the same Git SHA.
 
 Clerk is the identity provider. Application ownership is `public.profiles.id`, carried only in the signed `supabase_uuid` claim and resolved by `public.current_app_user_id()`. Do not introduce `auth.uid()` or `auth.users` ownership dependencies.
 
+Configure the environment's signed Clerk webhook to send `user.created` to `/api/webhooks/clerk` only after the profile-provisioning migration is applied. The handler atomically obtains one stable profile UUID before patching only `public_metadata.supabase_uuid`; retries reuse that UUID. For the three approved disposable staging identities only, set `CLERK_RECONCILIATION_USER_ALLOWLIST_JSON` to the exact `userA`, `userB`, and `deletionUser` Clerk IDs and run `pnpm reconcile:staging-clerk-profiles` as a dry run. Use `--apply` only after reviewing all three dispositions. Never write only the Clerk or database side manually.
+
 Operational admin calls must use the server-only `signAdminEdgeRequest` helper with a non-empty audited actor ID. Both the signer and database accept admin envelopes only for `backfill_embeddings_v1` and `url_catalogue`; do not generalize this allowlist or use admin signing for case-scoped user/worker work.
 
 Consumed Edge request IDs remain replay-protected for 24 hours. Schedule a daily service-role call to `select public.purge_edge_request_nonces_v1(10000);`, repeat in bounded batches only while the result equals 10,000, and record deleted counts. Alert if expired rows grow across two runs. Never truncate the table or delete rows before `retain_until`.
 
 ### Unapplied release-candidate migrations
 
-These two files are unapplied, preview-only release-candidate material. Apply them in this exact order and never apply either file to production during this pass.
+These three files are unapplied, preview-only release-candidate material. Apply them in this exact order and never apply any file to production during this pass.
 
 | Order | Migration | Final SHA-256 |
 | --- | --- | --- |
 | 1 | `20260829000000_release_security_and_fulfilment_hardening.sql` | `855a64117d8189415fcbb816e69834fe066bf9d861a849cec7c10b2fa3d55576` |
 | 2 | `20260830000000_privileged_edge_and_evidence_jobs.sql` | `3eca73d64e98834cef92080654f8f832b80997b3411804cd7a183a20a00e47f7` |
+| 3 | `20260909120000_harden_clerk_profile_provisioning.sql` | `8a42315c24eaa5e14a7680e9b519e3d034b90e3d8d831b917c929d3900b65a26` |
 
-Verify both hashes from the clean review SHA immediately before applying. `20260829` must finish before `20260830`; the latter supplies the nonce, durable evidence dispatch, lease-fencing, and settlement protocol required by the worker and privileged Edge Functions. Do not mark either migration applied manually or deploy code against only one of them.
+Verify all three hashes from the clean review SHA immediately before applying. `20260829` must finish before `20260830`; the latter supplies the nonce, durable evidence dispatch, lease-fencing, and settlement protocol required by the worker and privileged Edge Functions. Apply `20260909` last to add the fail-closed Clerk identity preflight and atomic provisioning RPC. Do not mark a migration applied manually or deploy code against a partial sequence.
 
-Both migrations stop with actionable counts and sampled non-sensitive keys before their new historical-data constraints are created. A preflight failure is a release stop: compare the identified rows to Stripe/provider records or existing job outputs, record the decision, and rerun the unchanged migration. Do not auto-delete, auto-cancel, or guess which Stripe-backed purchase or job is canonical. Record the preview project ref, database output, migration hashes, and deployed commit SHA. Local fixtures and migration parsing are not live Supabase SQL evidence.
+All three migrations stop with actionable counts and sampled non-sensitive keys before their new historical-data constraints are created. A preflight failure is a release stop: compare the identified rows to provider records or existing job outputs, record the decision, and rerun the unchanged migration. Do not auto-delete, auto-cancel, or guess which purchase, job, or Clerk mapping is canonical. Record the preview project ref, database output, migration hashes, and deployed commit SHA. Local fixtures and migration parsing are not live Supabase SQL evidence.
 
 ### Type-safety gate
 
@@ -78,7 +82,8 @@ Run `pnpm test:e2e:preview-handshakes` only against disposable preview infrastru
 - `HARBOR_PREVIEW_EXPECTED_COMMIT_SHA`: full 40-character SHA served by both app and worker.
 - `HARBOR_PREVIEW_CONFIRM_MUTATIONS=RUN_MUTATING_PREVIEW_HANDSHAKES`.
 - `HARBOR_PREVIEW_CONFIRM_SUPABASE_REF`: exact preview project ref.
-- An authenticated Clerk storage state, test Stripe webhook secret, TLS database URL, controlled worker case, and email sink.
+- `HARBOR_PREVIEW_RELEASE_STORAGE_STATE`: an authenticated Clerk storage-state file used for the release-health request; the endpoint must reject the runner's anonymous preflight.
+- Test Stripe webhook secret, TLS database URL, controlled worker case, and email sink.
 
 The runner refuses known production hosts, verifies `/api/health/release`, and writes timestamped JSONL evidence to `test-results/harbor-preview-handshake-evidence.jsonl` by default. Retain that artifact with deployment logs; it contains no credentials.
 
