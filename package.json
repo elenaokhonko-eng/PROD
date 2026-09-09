@@ -13,6 +13,7 @@
     "dry-run:fidrec-tier2": "npx --yes tsx scripts/dry-run-fidrec-tier2-helpers.ts",
     "regression:fidrec-tier2": "npx --yes tsx scripts/dry-run-fidrec-tier2-helpers.ts",
     "regression:executive-summary-rich-case": "npx --yes tsx scripts/regression/test-executive-summary-rich-case.ts",
+    "reconcile:staging-clerk-profiles": "tsx scripts/reconcile-staging-clerk-profiles.ts",
     "lint": "next lint",
     "test:fidrec-tier2": "npx --yes tsx scripts/test-fidrec-tier2-flow.ts",
     "test:slice8-payments": "npx --yes tsx --test scripts/test-slice8-payment-branching.ts",

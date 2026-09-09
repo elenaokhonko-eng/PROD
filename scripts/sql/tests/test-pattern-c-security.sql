@@ -2106,4 +2106,67 @@ BEGIN
 END;
 $$;
 
+DO $$
+DECLARE
+  v_first uuid;
+  v_second uuid;
+  v_count integer;
+BEGIN
+  IF has_function_privilege('anon', 'public.provision_clerk_profile_v1(text,text,text,text)', 'EXECUTE')
+    OR has_function_privilege('authenticated', 'public.provision_clerk_profile_v1(text,text,text,text)', 'EXECUTE')
+    OR NOT has_function_privilege('service_role', 'public.provision_clerk_profile_v1(text,text,text,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Clerk provisioning RPC is not restricted to service_role';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_indexes
+    WHERE schemaname = 'public'
+      AND tablename = 'profiles'
+      AND indexname = 'profiles_clerk_id_unique_idx'
+      AND indexdef LIKE 'CREATE UNIQUE INDEX%'
+  ) THEN
+    RAISE EXCEPTION 'profiles Clerk identity unique index is missing';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = '10000000-0000-0000-0000-000000000001'
+      AND clerk_id IS NULL
+  ) THEN
+    RAISE EXCEPTION 'legacy profile UUID or nullable Clerk mapping was not preserved';
+  END IF;
+
+  v_first := public.provision_clerk_profile_v1(
+    'user_sqlfixture', 'SQL.Fixture@example.test', 'SQL', 'Fixture'
+  );
+  v_second := public.provision_clerk_profile_v1(
+    'user_sqlfixture', 'changed@example.test', 'Changed', 'Name'
+  );
+  IF v_first <> v_second THEN
+    RAISE EXCEPTION 'replayed Clerk provisioning changed the profile UUID';
+  END IF;
+
+  SELECT count(*)::integer INTO v_count
+  FROM public.profiles
+  WHERE clerk_id = 'user_sqlfixture'
+    AND id = v_first
+    AND email = 'sql.fixture@example.test';
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'Clerk provisioning did not preserve one canonical profile row';
+  END IF;
+
+  BEGIN
+    PERFORM public.provision_clerk_profile_v1(
+      ' user_sqlfixture ', 'fixture@example.test', 'SQL', 'Fixture'
+    );
+    RAISE EXCEPTION 'Clerk provisioning accepted a whitespace-padded identity';
+  EXCEPTION
+    WHEN invalid_parameter_value THEN NULL;
+  END;
+
+  RAISE NOTICE 'Clerk profile provisioning invariants passed';
+END;
+$$;
+
 ROLLBACK;
