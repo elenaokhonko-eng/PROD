@@ -19,8 +19,11 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const appUrl = process.env.NEXT_PUBLIC_APP_URL
 const workerSecret = process.env.WORKER_SECRET
 const edgeProxyHmacSecret = process.env.EDGE_PROXY_HMAC_SECRET
-const deploymentCommitSha = (process.env.RELEASE_COMMIT_SHA ?? process.env.RENDER_GIT_COMMIT ?? '').trim()
+const deploymentCommitSha = (process.env.RENDER_GIT_COMMIT ?? '').trim().toLowerCase()
 
+if (!/^[0-9a-f]{40}$/.test(deploymentCommitSha)) {
+  throw new Error('Immutable Render deployment identity is unavailable')
+}
 if (!supabaseUrl || !serviceKey) {
   throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
 }

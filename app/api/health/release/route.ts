@@ -9,7 +9,6 @@ export async function GET() {
   const result = buildReleaseHealthResult({
     authenticated: Boolean(userId),
     renderGitCommit: process.env.RENDER_GIT_COMMIT,
-    releaseCommitSha: process.env.RELEASE_COMMIT_SHA,
   })
 
   return NextResponse.json(result.body, {

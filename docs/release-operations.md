@@ -13,7 +13,7 @@ This contract applies to the Next.js app, Render worker, Supabase project, Clerk
 | `HARBOR_PRODUCTION_APP_ORIGIN` | Server-only canonical production HTTPS origin. Preview checkout is rejected if it targets this origin; production checkout must match it exactly. |
 | `NEXT_PUBLIC_APP_URL` | Canonical app origin for public links, app/worker communication, and comparison with the server-controlled checkout redirect origin. |
 | `NEXT_PUBLIC_SITE_URL` | Public site origin and allowed redirect origin. |
-| `RELEASE_COMMIT_SHA` | Full deployed Git SHA. Optional when Render supplies `RENDER_GIT_COMMIT`; one of them is required for release evidence. |
+| `RENDER_GIT_COMMIT` | Immutable full deployed Git SHA injected by Render. The app and worker fail closed when it is absent, empty, or malformed; no configurable fallback may attest a release. |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same environment's Supabase project and public key. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only. Never expose through a `NEXT_PUBLIC_` variable or browser bundle. |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | Same environment's Clerk instance. The Clerk `supabase` JWT template must sign a stable UUID as `supabase_uuid`. |
@@ -35,7 +35,7 @@ Optional SMTP pool, timeout, and retry variables are documented in `.env.example
 
 ### Render worker
 
-The worker requires `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_APP_URL`, `WORKER_SECRET`, and `EDGE_PROXY_HMAC_SECRET` with values matching the app environment. The HMAC secret must also exactly match the Supabase Edge secret; worker startup rejects values shorter than 32 bytes. It also requires `RELEASE_COMMIT_SHA` or Render's `RENDER_GIT_COMMIT` for SHA-bound evidence. `WORKER_RUN_ONCE=1` is for controlled diagnostics only.
+The worker requires `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_APP_URL`, `WORKER_SECRET`, and `EDGE_PROXY_HMAC_SECRET` with values matching the app environment. The HMAC secret must also exactly match the Supabase Edge secret; worker startup rejects values shorter than 32 bytes. Render must inject a valid `RENDER_GIT_COMMIT` for SHA-bound evidence; worker startup rejects a missing or malformed value. `WORKER_RUN_ONCE=1` is for controlled diagnostics only.
 
 `WORKER_SECRET` authenticates worker-to-app requests but does not authorize arbitrary work. Every worker request must also identify a running durable job, its case, its optional document binding, type, and exact immutable `locked_at` claim token. The app and database re-check the DB-time lease before signing or accepting any mutation. The worker never forwards `EDGE_PROXY_HMAC_SECRET` or `SUPABASE_SERVICE_ROLE_KEY`; the app uses the former only to sign the canonical request envelope.
 
@@ -57,9 +57,9 @@ Operational admin calls must use the server-only `signAdminEdgeRequest` helper w
 
 Consumed Edge request IDs remain replay-protected for 24 hours. Schedule a daily service-role call to `select public.purge_edge_request_nonces_v1(10000);`, repeat in bounded batches only while the result equals 10,000, and record deleted counts. Alert if expired rows grow across two runs. Never truncate the table or delete rows before `retain_until`.
 
-### Unapplied release-candidate migrations
+### Release-candidate migrations
 
-These three files are unapplied, preview-only release-candidate material. Apply them in this exact order and never apply any file to production during this pass.
+These three files are preview-only release-candidate material. The explicit staging migration ledger determines which are still missing. Apply only the missing subset in this exact order and never apply any file to production during this pass.
 
 | Order | Migration | Final SHA-256 |
 | --- | --- | --- |
@@ -67,9 +67,87 @@ These three files are unapplied, preview-only release-candidate material. Apply 
 | 2 | `20260830000000_privileged_edge_and_evidence_jobs.sql` | `3eca73d64e98834cef92080654f8f832b80997b3411804cd7a183a20a00e47f7` |
 | 3 | `20260909120000_harden_clerk_profile_provisioning.sql` | `8a42315c24eaa5e14a7680e9b519e3d034b90e3d8d831b917c929d3900b65a26` |
 
-Verify all three hashes from the clean review SHA immediately before applying. `20260829` must finish before `20260830`; the latter supplies the nonce, durable evidence dispatch, lease-fencing, and settlement protocol required by the worker and privileged Edge Functions. Apply `20260909` last to add the fail-closed Clerk identity preflight and atomic provisioning RPC. Do not mark a migration applied manually or deploy code against a partial sequence.
+Verify all three hashes from the clean review SHA immediately before applying. `20260829` must finish before `20260830`; the latter supplies the nonce, durable evidence dispatch, lease-fencing, and settlement protocol required by the worker and privileged Edge Functions. Apply `20260909` last to add the fail-closed Clerk identity preflight and atomic provisioning RPC. Do not mark a migration applied manually, apply an already-ledgered migration again, or deploy code against a partial sequence.
 
 All three migrations stop with actionable counts and sampled non-sensitive keys before their new historical-data constraints are created. A preflight failure is a release stop: compare the identified rows to provider records or existing job outputs, record the decision, and rerun the unchanged migration. Do not auto-delete, auto-cancel, or guess which purchase, job, or Clerk mapping is canonical. Record the preview project ref, database output, migration hashes, and deployed commit SHA. Local fixtures and migration parsing are not live Supabase SQL evidence.
+
+#### Staging-only migration procedure
+
+Keep checkout traffic frozen and the worker suspended for this entire procedure. Start from the clean reviewed SHA. Supply the staging database URL through the process environment, never in shell history, and never print it. Every remote command below uses `--db-url`; do not rely on, change, or infer a linked Supabase project.
+
+First, fail closed unless both the explicit operator confirmation and the database connection identity bind to the approved staging project ref. Then calculate and record all three hashes:
+
+```powershell
+$approvedStagingRef = "yqqkkftfddxuxmpxwbcj"
+if ($env:HARBOR_PREVIEW_CONFIRM_SUPABASE_REF -cne $approvedStagingRef) {
+  throw "Staging project confirmation does not match the approved project"
+}
+if ([string]::IsNullOrWhiteSpace($env:SUPABASE_STAGING_DB_URL)) {
+  throw "SUPABASE_STAGING_DB_URL is required"
+}
+
+$databaseUri = [Uri]$env:SUPABASE_STAGING_DB_URL
+$databaseUser = [Uri]::UnescapeDataString(($databaseUri.UserInfo -split ":", 2)[0])
+$refPattern = "(^|\.)$([Regex]::Escape($approvedStagingRef))(\.|$)"
+if (($databaseUri.Scheme -notin @("postgres", "postgresql")) -or
+    (($databaseUri.Host -notmatch $refPattern) -and ($databaseUser -notmatch $refPattern))) {
+  throw "Database connection is not bound to the approved staging project"
+}
+
+$migrations = @(
+  [pscustomobject]@{
+    Version = "20260829000000"
+    File = "20260829000000_release_security_and_fulfilment_hardening.sql"
+    Expected = "855a64117d8189415fcbb816e69834fe066bf9d861a849cec7c10b2fa3d55576"
+  },
+  [pscustomobject]@{
+    Version = "20260830000000"
+    File = "20260830000000_privileged_edge_and_evidence_jobs.sql"
+    Expected = "3eca73d64e98834cef92080654f8f832b80997b3411804cd7a183a20a00e47f7"
+  },
+  [pscustomobject]@{
+    Version = "20260909120000"
+    File = "20260909120000_harden_clerk_profile_provisioning.sql"
+    Expected = "8a42315c24eaa5e14a7680e9b519e3d034b90e3d8d831b917c929d3900b65a26"
+  }
+)
+
+$recordedHashes = foreach ($migration in $migrations) {
+  $path = Join-Path "supabase\migrations" $migration.File
+  $actual = (Get-FileHash -Algorithm SHA256 $path).Hash.ToLowerInvariant()
+  if ($actual -cne $migration.Expected) {
+    throw "Migration hash mismatch: $($migration.File)"
+  }
+  [pscustomobject]@{ Version = $migration.Version; File = $migration.File; SHA256 = $actual }
+}
+$recordedHashes | Format-Table -AutoSize
+```
+
+Next, record the remote ledger using the explicit URL and identify which of the three versions are absent:
+
+```powershell
+supabase migration list --db-url $env:SUPABASE_STAGING_DB_URL
+if ($LASTEXITCODE -ne 0) { throw "Unable to read the staging migration ledger" }
+```
+
+Run a dry push before any write. `--include-all` permits an older missing candidate to be applied even when a later unrelated migration is already ledgered; it does not waive review of the plan:
+
+```powershell
+supabase db push --db-url $env:SUPABASE_STAGING_DB_URL --include-all --dry-run
+if ($LASTEXITCODE -ne 0) { throw "Staging migration dry run failed" }
+```
+
+The dry-run plan must be a filename-ordered subset of exactly the three table entries above, must include every table entry absent from the recorded ledger, and must include no already-ledgered or unrelated migration. Stop on any discrepancy. If all three are already ledgered, do not run a write. Otherwise, apply the reviewed missing subset:
+
+```powershell
+supabase db push --db-url $env:SUPABASE_STAGING_DB_URL --include-all
+if ($LASTEXITCODE -ne 0) { throw "Staging migration push failed" }
+
+supabase migration list --db-url $env:SUPABASE_STAGING_DB_URL
+if ($LASTEXITCODE -ne 0) { throw "Unable to verify the final staging migration ledger" }
+```
+
+Record the final ledger and verify that all three versions appear exactly once in the documented order. Do not enable the Clerk webhook until `20260909120000` is present and its provisioning RPC/privileges have been verified. Keep the worker suspended after migration verification; worker enablement remains a later release gate.
 
 ### Type-safety gate
 
@@ -89,16 +167,17 @@ The runner refuses known production hosts, verifies `/api/health/release`, and w
 
 ## Preview deployment order
 
-1. Freeze preview checkout creation and pause the worker. Record the full clean Git SHA, its parent, the two migration hashes above, and all local gate results.
-2. Confirm the target project ref is the designated non-production Supabase project. Capture its migration ledger, row counts for affected payment/job tables, and a restorable database backup or provider point-in-time restore marker. Record the Storage bucket inventory separately; database backup does not back up object bytes.
-3. Run the embedded migration preflights against a restored preview clone when available. Otherwise apply with stop-on-error and a transaction-capable migration runner while traffic remains paused. Any reported duplicate pending/established purchase, Stripe identity, fulfilment identity, legacy payment identity, malformed reservation, duplicate evidence job, unsupported job type, or invalid document binding blocks deployment until provider-backed reconciliation is complete.
-4. Recompute both SHA-256 values from the checked-out clean SHA. Apply `20260829000000_release_security_and_fulfilment_hardening.sql`, verify it in the migration ledger, then apply `20260830000000_privileged_edge_and_evidence_jobs.sql` and verify again. Never reorder, squash, mark as applied, or run either migration on production.
-5. Deploy every privileged Supabase Edge Function from the same SHA and set the matching `EDGE_PROXY_HMAC_SECRET`. Probe direct-anon, invalid-signature, stale-signature, replay, and valid signed paths before enabling the worker.
-6. Verify the Clerk `supabase` JWT template, allowed origins, sign-up/sign-in/session-expiry behavior, and user webhook in preview.
-7. Verify Stripe test prices, the test-mode webhook endpoint/signing secret, and sender-domain/SMTP configuration. Set `HARBOR_DEPLOYMENT_ENVIRONMENT=preview`, set `CHECKOUT_REDIRECT_ORIGIN` and `NEXT_PUBLIC_APP_URL` to the same preview origin, and set `HARBOR_PRODUCTION_APP_ORIGIN` to the distinct production origin. Reconcile existing preview Checkout Sessions and PaymentIntents before accepting new checkout traffic.
-8. Deploy the Next.js app and confirm `/api/health/release` returns the expected SHA. Configure the same HMAC secret without a `NEXT_PUBLIC_*` prefix.
-9. Deploy the Render worker from the same SHA. Confirm its release health/readiness and HMAC minimum-length startup check while the queue remains paused.
-10. Run database/payment/job reconciliation, then enable the worker and preview checkout traffic. Run the preview handshake suite and retain timestamped JSONL evidence plus Clerk, Supabase, Stripe, Render, Storage/Realtime, and SMTP provider logs tied to the SHA.
+1. Freeze preview checkout creation and pause the worker. Record the full clean Git SHA, its parent, all three migration hashes above, and all local gate results.
+2. Use the staging-only procedure above to verify that the explicit database URL binds to the designated non-production project ref. Capture its migration ledger, row counts for affected payment/job tables, and a restorable database backup or provider point-in-time restore marker. Record the Storage bucket inventory separately; database backup does not back up object bytes.
+3. Run the embedded migration preflights against a restored preview clone when available. Otherwise apply with stop-on-error and a transaction-capable migration runner while traffic remains paused. Any reported duplicate pending/established purchase, Stripe identity, fulfilment identity, legacy payment identity, malformed reservation, duplicate evidence job, unsupported job type, invalid document binding, or Clerk mapping conflict blocks deployment until provider-backed reconciliation is complete.
+4. Follow the recorded ledger and reviewed dry-run plan to apply only missing files in this order: `20260829000000_release_security_and_fulfilment_hardening.sql`, `20260830000000_privileged_edge_and_evidence_jobs.sql`, then `20260909120000_harden_clerk_profile_provisioning.sql`. Verify all three in the final ledger. Never reorder, squash, mark as applied, or run any migration on production.
+5. Verify the Clerk provisioning RPC and service-role-only privileges from `20260909120000` before enabling the signed Clerk webhook. Keep the worker suspended.
+6. Deploy every privileged Supabase Edge Function from the same SHA and set the matching `EDGE_PROXY_HMAC_SECRET`. Probe direct-anon, invalid-signature, stale-signature, replay, and valid signed paths before enabling the worker.
+7. Verify the Clerk `supabase` JWT template, allowed origins, sign-up/sign-in/session-expiry behavior, and user webhook in preview.
+8. Verify Stripe test prices, the test-mode webhook endpoint/signing secret, and sender-domain/SMTP configuration. Set `HARBOR_DEPLOYMENT_ENVIRONMENT=preview`, set `CHECKOUT_REDIRECT_ORIGIN` and `NEXT_PUBLIC_APP_URL` to the same preview origin, and set `HARBOR_PRODUCTION_APP_ORIGIN` to the distinct production origin. Reconcile existing preview Checkout Sessions and PaymentIntents before accepting new checkout traffic.
+9. Deploy the Next.js app and confirm `/api/health/release` returns the expected immutable `RENDER_GIT_COMMIT`. Configure the same HMAC secret without a `NEXT_PUBLIC_*` prefix.
+10. Deploy the Render worker from the same SHA. Confirm its release health/readiness, immutable Render identity, and HMAC minimum-length startup check while the queue remains paused.
+11. Run database/payment/job reconciliation, then enable the worker and preview checkout traffic. Run the preview handshake suite and retain timestamped JSONL evidence plus Clerk, Supabase, Stripe, Render, Storage/Realtime, and SMTP provider logs tied to the SHA.
 
 Do not enable the proposed S$8/S$12 subscription or regeneration flow until product policy, Stripe price keys, entitlement statuses, proration, quotas, cancellation, grace periods, and refund behavior are approved. The current release supports case-scoped one-time purchases only. Human consultation checkout and allocation are disabled; a valid historic `human_consult_30m` webhook is retained as a verified payment record only and cannot create a consultation.
 

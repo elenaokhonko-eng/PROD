@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { Webhook } from "svix"
-import { handleClerkWebhook } from "../../app/api/webhooks/clerk/route"
+import { handleClerkWebhook } from "../../lib/server/clerk-webhook"
 
 const signingSecret = `whsec_${Buffer.from("deterministic-clerk-webhook-test-secret").toString("base64")}`
 const webhookId = "msg_test_clerk_profile"

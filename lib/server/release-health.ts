@@ -11,13 +11,12 @@ const noStoreHeaders = { "Cache-Control": "no-store" } as const
 export function buildReleaseHealthResult(input: {
   authenticated: boolean
   renderGitCommit?: string
-  releaseCommitSha?: string
 }): ReleaseHealthResult {
   if (!input.authenticated) {
     return { status: 401, body: { error: "Unauthorized" }, headers: noStoreHeaders }
   }
 
-  const commitSha = (input.renderGitCommit?.trim() || input.releaseCommitSha?.trim() || "").toLowerCase()
+  const commitSha = (input.renderGitCommit?.trim() || "").toLowerCase()
   if (!fullGitShaPattern.test(commitSha)) {
     return { status: 503, body: { error: "Release identity unavailable" }, headers: noStoreHeaders }
   }

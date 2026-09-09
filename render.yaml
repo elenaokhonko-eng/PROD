@@ -5,6 +5,7 @@ services:
     plan: standard
     buildCommand: pnpm install && pnpm build
     startCommand: pnpm start
+    # Render injects RENDER_GIT_COMMIT; deployment identity is never configured here.
     envVars:
       - key: NODE_ENV
         value: production
@@ -63,6 +64,7 @@ services:
     plan: standard
     buildCommand: pnpm install
     startCommand: pnpm run worker
+    # Render injects RENDER_GIT_COMMIT; deployment identity is never configured here.
     envVars:
       - key: NODE_ENV
         value: production

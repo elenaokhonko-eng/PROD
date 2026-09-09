@@ -9,8 +9,10 @@ const migration = readFileSync(
   "utf8",
 )
 const provisioner = readFileSync(resolve(root, "lib", "server", "clerk-profile-provisioner.ts"), "utf8")
-const webhook = readFileSync(resolve(root, "app", "api", "webhooks", "clerk", "route.ts"), "utf8")
+const webhookHandler = readFileSync(resolve(root, "lib", "server", "clerk-webhook.ts"), "utf8")
+const webhookRoute = readFileSync(resolve(root, "app", "api", "webhooks", "clerk", "route.ts"), "utf8")
 const renderBlueprint = readFileSync(resolve(root, "render.yaml"), "utf8")
+const releaseOperations = readFileSync(resolve(root, "docs", "release-operations.md"), "utf8")
 
 test("Clerk mapping migration normalizes only blanks before fail-closed preflight constraints", () => {
   const addColumn = migration.indexOf("ADD COLUMN IF NOT EXISTS clerk_id text")
@@ -42,9 +44,15 @@ test("runtime provisioner delegates UUID ownership to the RPC and patches only o
 })
 
 test("Clerk webhook verifies the raw Svix request before provisioning", () => {
-  assert.match(webhook, /const rawBody = await request\.text\(\)/)
-  assert.match(webhook, /new Webhook\(signingSecret\)\.verify\(rawBody/)
-  assert.ok(webhook.indexOf(".verify(rawBody") < webhook.indexOf("dependencies.provisionUser"))
+  assert.match(webhookHandler, /const rawBody = await request\.text\(\)/)
+  assert.match(webhookHandler, /new Webhook\(signingSecret\)\.verify\(rawBody/)
+  assert.ok(webhookHandler.indexOf(".verify(rawBody") < webhookHandler.indexOf("dependencies.provisionUser"))
+})
+
+test("Clerk route exports only supported Next.js route fields", () => {
+  assert.match(webhookRoute, /export const dynamic =/)
+  assert.match(webhookRoute, /export async function POST/)
+  assert.doesNotMatch(webhookRoute, /export (?:async )?function handleClerkWebhook/)
 })
 
 test("Render contract scopes webhook and Edge secrets to their consumers", () => {
@@ -56,4 +64,25 @@ test("Render contract scopes webhook and Edge secrets to their consumers", () =>
   assert.match(web, /EDGE_PROXY_HMAC_SECRET/)
   assert.match(worker, /EDGE_PROXY_HMAC_SECRET/)
   assert.doesNotMatch(worker, /CLERK_WEBHOOK_SIGNING_SECRET/)
+})
+
+test("staging migration procedure hashes, plans, applies, and verifies all three files", () => {
+  const procedure = releaseOperations.slice(
+    releaseOperations.indexOf("#### Staging-only migration procedure"),
+    releaseOperations.indexOf("### Type-safety gate"),
+  )
+  const filenames = [
+    "20260829000000_release_security_and_fulfilment_hardening.sql",
+    "20260830000000_privileged_edge_and_evidence_jobs.sql",
+    "20260909120000_harden_clerk_profile_provisioning.sql",
+  ]
+
+  for (const filename of filenames) assert.match(procedure, new RegExp(filename.replaceAll(".", "\\.")))
+  assert.match(procedure, /Get-FileHash -Algorithm SHA256/)
+  assert.match(procedure, /migration list --db-url/)
+  assert.match(procedure, /db push --db-url[^\n]+--dry-run/)
+  assert.match(procedure, /db push --db-url/)
+  assert.match(procedure, /Do not enable the Clerk webhook until `20260909120000` is present/)
+  assert.match(procedure, /Keep the worker suspended after migration verification/)
+  assert.doesNotMatch(procedure, /supabase link/)
 })

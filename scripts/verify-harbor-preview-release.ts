@@ -54,7 +54,7 @@ async function main() {
 
     const commitSha = assertReleaseCommitSha(body, expectedSha)
     exportValue('HARBOR_PREVIEW_CONFIRMED_SHA', commitSha)
-    console.log('Verified authenticated preview release identity.')
+    console.log('Verified authenticated immutable Render release identity.')
   } finally {
     await api.dispose()
   }
