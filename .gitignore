@@ -24,3 +24,6 @@ docs/.wiki-import/
 
 # Cursor IDE (local workspace, logs)
 .cursor/
+
+# Machine-specific git safe.directory config
+.gitconfig_sandbox
