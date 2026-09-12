@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures/harbor-test'
 import { readReleaseFixtures } from '../../release/release-fixtures'
+import { PRODUCT_CATALOGUE } from '../../../lib/payments/product-catalogue'
 
 const fixtures = readReleaseFixtures()
 const syntheticEvidence = { annotation: { type: 'evidence-class', description: 'synthetic-provider' } }
@@ -24,7 +25,8 @@ test('payment failure keeps the user on the case and offers a safe retry', synth
 
 test('successful return waits for delayed entitlement instead of showing a false failure', async ({ page }) => {
   const { caseId, sessionId } = fixtures.payments.delayedEntitlement
-  await page.goto(`/app/case/${caseId}/dashboard?payment=success&session_id=${sessionId}`)
+  const product = PRODUCT_CATALOGUE.self_serve_report.checkoutKey
+  await page.goto(`/app/case/${caseId}/dashboard?payment=success&session_id=${sessionId}&product=${product}`)
 
   await expect(page.getByText(/confirming your payment|payment received/i).first()).toBeVisible()
   await expect(page.getByText(/payment failed/i)).toHaveCount(0)

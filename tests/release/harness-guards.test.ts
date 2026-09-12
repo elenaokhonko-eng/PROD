@@ -139,14 +139,20 @@ test('preview URL guard rejects plaintext, host mismatch, non-Render hosts, and 
   assert.equal(isProductionHost('guidebuoyaisg.onrender.com'), true)
 })
 
-test('state fixtures exclude transient unreachable dashboard states', () => {
+test('state fixtures exclude transient and unavailable dashboard states', () => {
   const stateMachine = readFileSync(
     resolve(rootDir, 'tests', 'e2e', 'authenticated', 'state-machine-families.spec.ts'),
     'utf8',
   )
+  const stateFixtures = readFileSync(
+    resolve(rootDir, 'tests', 'e2e', 'helpers', 'state-case-fixtures.ts'),
+    'utf8',
+  )
   assert.doesNotMatch(stateMachine, /transitionPaymentSuccess/)
   assert.doesNotMatch(stateMachine, /layer3Confirmed/)
-  assert.match(stateMachine, /unreachable or unrecognized states/)
+  assert.doesNotMatch(stateFixtures, /layer3Form:/)
+  assert.match(stateFixtures, /layer3Unavailable:/)
+  assert.match(stateFixtures, /unreachable or unrecognized states/)
 })
 
 test('workflow derives preview confirmed SHA instead of reading a manual secret', () => {

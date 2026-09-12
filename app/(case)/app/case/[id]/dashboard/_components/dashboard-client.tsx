@@ -22,6 +22,7 @@ import { StateMachineErrorCard } from '@/components/state-machine/error-card'
 import { useStateMachine } from '@/hooks/state-machine/use-state-machine'
 import { useCaseEligibility } from '@/hooks/state-machine/layer1/use-case-eligibility'
 import { useValidationRun } from '@/hooks/state-machine/layer1/use-validation-run'
+import { useIntakeCompletion } from '@/hooks/state-machine/layer1/use-intake-completion'
 import { useSubmitIntake } from '@/hooks/state-machine/layer1/use-submit-intake'
 import { useUploadEvidence } from '@/hooks/state-machine/layer1/use-upload-evidence'
 import { useCaseDocumentsRealtime } from '@/hooks/state-machine/layer1/use-case-documents-realtime'
@@ -78,6 +79,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
 
   const eligibilityQuery = useCaseEligibility(caseId)
   const validationQuery = useValidationRun(caseId)
+  const intakeCompletionQuery = useIntakeCompletion(caseId)
   const documentsQuery = useCaseDocumentsRealtime(caseId)
   const tier0DraftQuery = useTier0Draft(caseId)
   const paymentStatusQuery = usePaymentStatus(caseId)
@@ -92,11 +94,12 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     enabled: paymentStatusQuery.data?.plan === 'escalation_pack',
   })
   const casePackExport = useCasePackExport()
+  const hasSubmittedIntake = intakeCompleted || intakeCompletionQuery.data === true
 
   useAutoRefireExtract({
     caseId,
     documents: documentsQuery.data,
-    hasNarrative: intakeCompleted,
+    hasNarrative: hasSubmittedIntake,
   })
   useTier0AutoFire({
     caseId,
@@ -138,7 +141,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     jobStatus: jobStatusQuery.data ?? null,
     isCheckoutRedirecting: checkoutRedirecting,
     isIntakeSubmitted: submitIntake.isPending,
-    hasSubmittedIntake: intakeCompleted,
+    hasSubmittedIntake,
   })
 
   const isPaymentReturn = useMemo(

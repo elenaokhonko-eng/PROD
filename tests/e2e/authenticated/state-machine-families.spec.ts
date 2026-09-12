@@ -1,27 +1,14 @@
-import { expect, test } from '../fixtures/harbor-test'
-import { requireEnvironment } from '../evidence/run-context'
+import { expect, expectNoProductionTraffic, guardContextAgainstProduction, test } from '../fixtures/harbor-test'
+import { requireEnvironment, resolveAuthStatePath } from '../evidence/run-context'
+import {
+  expectedStateText,
+  parseStateCaseFixtures,
+  type StateCases,
+  type StateFixture,
+} from '../helpers/state-case-fixtures'
 import { expectNamedInteractiveControls, expectNoHorizontalOverflow, monitorClientErrors } from '../helpers/page-quality'
 
-type StateFixture = { caseId: string }
-
-const expectedStateText = {
-  layer1Intake: 'Tell us about your complaint',
-  layer1Gap: 'A few more details',
-  layer1Evidence: 'Upload supporting evidence',
-  layer1DraftPending: 'Preparing your free draft',
-  layer1FreeDraft: 'Your free triage draft',
-  transitionBuyReport: 'Buy the full report',
-  layer2Running: 'Analysing your case',
-  layer2Drafting: 'Drafting your complaint report',
-  layer2Ready: 'Your complaint report',
-  layer2Failed: 'We hit a snag generating your report',
-  layer3Form: 'Request specialist support',
-  layer3Tier2: /FIDReC Tier 2 pack/i,
-} as const
-
-type StateCases = Record<keyof typeof expectedStateText, StateFixture>
-
-const fixtures = readFixtures()
+const fixtures = parseStateCaseFixtures(requireEnvironment('HARBOR_STATE_CASES_JSON'))
 
 for (const [family, fixture] of Object.entries(fixtures) as Array<[keyof StateCases, StateFixture]>) {
   test(`${family} fixture renders its contract state`, async ({ page }) => {
@@ -36,30 +23,29 @@ for (const [family, fixture] of Object.entries(fixtures) as Array<[keyof StateCa
   })
 }
 
-function readFixtures(): StateCases {
-  const raw = requireEnvironment('HARBOR_STATE_CASES_JSON')
-  let parsed: unknown
+test('completed intake remains at evidence after refresh and a fresh authenticated context', async ({ browser, page }) => {
+  const dashboardPath = `/app/case/${fixtures.layer1Evidence.caseId}/dashboard`
+  await page.goto(dashboardPath, { waitUntil: 'networkidle' })
+  await expect(page.getByText(expectedStateText.layer1Evidence, { exact: false }).first()).toBeVisible()
+
+  await page.reload({ waitUntil: 'networkidle' })
+  await expect(page.getByText(expectedStateText.layer1Evidence, { exact: false }).first()).toBeVisible()
+
+  const context = await browser.newContext({
+    baseURL: process.env.HARBOR_PREVIEW_BASE_URL,
+    storageState: resolveAuthStatePath(process.cwd(), 'userA'),
+  })
+  await guardContextAgainstProduction(context)
   try {
-    parsed = JSON.parse(raw)
-  } catch (error) {
-    throw new Error(`HARBOR_STATE_CASES_JSON is not valid JSON: ${String(error)}`)
+    const freshPage = await context.newPage()
+    await freshPage.goto(dashboardPath, { waitUntil: 'networkidle' })
+    await expect(freshPage).not.toHaveURL(/\/sign-in(?:[/?]|$)/)
+    await expect(freshPage.getByText(expectedStateText.layer1Evidence, { exact: false }).first()).toBeVisible()
+  } finally {
+    try {
+      expectNoProductionTraffic(context)
+    } finally {
+      await context.close()
+    }
   }
-
-  const required = Object.keys(expectedStateText) as Array<keyof StateCases>
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new Error('HARBOR_STATE_CASES_JSON must contain a fixture object.')
-  }
-  const record = parsed as Record<string, Partial<StateFixture>>
-  const unexpected = Object.keys(record).filter((key) => !required.includes(key as keyof StateCases))
-  if (unexpected.length) {
-    throw new Error(`HARBOR_STATE_CASES_JSON contains unreachable or unrecognized states: ${unexpected.join(', ')}`)
-  }
-
-  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-  const missing = required.filter((key) => !uuidPattern.test(record[key]?.caseId ?? ''))
-  if (missing.length) {
-    throw new Error(`HARBOR_STATE_CASES_JSON is missing valid case UUIDs: ${missing.join(', ')}`)
-  }
-
-  return Object.fromEntries(required.map((key) => [key, record[key]])) as StateCases
-}
+})

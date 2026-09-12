@@ -72,6 +72,7 @@ Fixture invariants:
 4. The deletion user is disposable and isolated. Never substitute user A, user B, a staff account or a production account.
 5. Price mode is Stripe test mode; a live-mode checkout URL is an immediate stop.
 6. Runtime fixtures contain no `<placeholder>` values. UUID fields are UUID-shaped, and delayed-entitlement sessions use the `cs_test_` prefix.
+7. The state-family map uses `layer3Unavailable` for the disabled consultation surface; `layer3Form` is not a release fixture.
 
 ## Preparation-only harness validation
 

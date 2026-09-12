@@ -12,6 +12,7 @@ export const qk = {
   case: {
     base: (caseId: string) => ['case', caseId] as const,
     row: (caseId: string) => ['case', caseId, 'row'] as const,
+    intakeCompletion: (caseId: string) => ['case', caseId, 'intake-completion'] as const,
     eligibility: (caseId: string) => ['case', caseId, 'eligibility'] as const,
     extract: (caseId: string) => ['case', caseId, 'extract'] as const,
     validation: (caseId: string) => ['case', caseId, 'validation'] as const,
