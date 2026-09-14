@@ -45,6 +45,13 @@ VALUES
     'Legacy Helper'
   );
 
+INSERT INTO public.user_entitlements (user_id, plan, features)
+VALUES (
+  '10000000-0000-0000-0000-000000000001',
+  'self_serve_report',
+  '{"legacy_preserved": true, "allow_self_serve_report": true}'::jsonb
+);
+
 INSERT INTO public.cases (
   id,
   user_id,
@@ -145,3 +152,13 @@ INSERT INTO public.invitations (
     'pending',
     now() + interval '2 days'
   );
+
+CREATE TRIGGER legacy_aaa_entitlement_provision
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user_entitlement();
+
+CREATE TRIGGER legacy_zzz_profile_provision
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();

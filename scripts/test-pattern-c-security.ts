@@ -9,6 +9,20 @@ const root = process.cwd()
 const supabaseBin = process.env.SUPABASE_BIN || "supabase"
 const localDatabaseUrl = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 const legacyVersion = "20260827190000"
+const usePreparedDatabase = process.env.PATTERN_C_USE_PREPARED_DATABASE === "true"
+const databaseUrl = usePreparedDatabase
+  ? process.env.PATTERN_C_DATABASE_URL
+  : localDatabaseUrl
+
+if (!databaseUrl) {
+  throw new Error("PATTERN_C_DATABASE_URL is required for a prepared database")
+}
+if (usePreparedDatabase) {
+  const hostname = new URL(databaseUrl).hostname
+  if (hostname !== "127.0.0.1" && hostname !== "localhost") {
+    throw new Error("Prepared Pattern C tests are restricted to a local isolated database")
+  }
+}
 
 function runSupabase(args: string[]) {
   const result = spawnSync(supabaseBin, args, {
@@ -28,7 +42,7 @@ function runSupabase(args: string[]) {
 
 async function runSql(relativePath: string) {
   const sql = await readFile(path.join(root, relativePath), "utf8")
-  const client = new pg.Client({ connectionString: localDatabaseUrl })
+  const client = new pg.Client({ connectionString: databaseUrl })
 
   await client.connect()
   try {
@@ -64,9 +78,14 @@ async function runMigrationConflictFixtures() {
     path.join(root, "supabase/migrations/20260909120000_harden_clerk_profile_provisioning.sql"),
     "utf8",
   )
+  const migration32 = await readFile(
+    path.join(root, "supabase/migrations/20260914120000_align_user_entitlements_pattern_c.sql"),
+    "utf8",
+  )
   const preflight29 = extractNamedPreflight(migration29)
   const preflight30 = extractNamedPreflight(migration30)
   const preflight31 = extractNamedPreflight(migration31)
+  const preflight32 = extractNamedPreflight(migration32)
 
   if (
     migration29.indexOf("DO $preflight$") >
@@ -74,7 +93,9 @@ async function runMigrationConflictFixtures() {
     migration30.indexOf("DO $preflight$") >
       migration30.indexOf("ADD CONSTRAINT jobs_job_type_check") ||
     migration31.indexOf("DO $preflight$") >
-      migration31.indexOf("ADD CONSTRAINT profiles_clerk_id_shape_check")
+      migration31.indexOf("ADD CONSTRAINT profiles_clerk_id_shape_check") ||
+    migration32.indexOf("DO $preflight$") >
+      migration32.indexOf("ADD CONSTRAINT user_entitlements_user_id_fkey")
   ) {
     throw new Error("Migration preflight must precede release constraints and indexes")
   }
@@ -94,9 +115,10 @@ async function runMigrationConflictFixtures() {
     ["30-inconsistent-document-readiness.sql", preflight30, "23514", "inconsistent ready markers or missing extraction content"],
     ["31-duplicate-clerk-identities.sql", preflight31, "23505", "duplicate Clerk identities"],
     ["31-whitespace-clerk-identity.sql", preflight31, "23514", "whitespace-padded Clerk identities"],
+    ["32-orphan-user-entitlement.sql", preflight32, "23503", "user_entitlements rows have no matching profile"],
   ] as const
 
-  const client = new pg.Client({ connectionString: localDatabaseUrl })
+  const client = new pg.Client({ connectionString: databaseUrl })
   await client.connect()
   try {
     for (const [fixtureName, preflight, expectedCode, expectedMessage] of fixtures) {
@@ -135,8 +157,8 @@ async function runMigrationConflictFixtures() {
 
 async function runConcurrentClerkProvisioningTest() {
   const clerkId = "user_concurrentfixture"
-  const clientA = new pg.Client({ connectionString: localDatabaseUrl })
-  const clientB = new pg.Client({ connectionString: localDatabaseUrl })
+  const clientA = new pg.Client({ connectionString: databaseUrl })
+  const clientB = new pg.Client({ connectionString: databaseUrl })
 
   await Promise.all([clientA.connect(), clientB.connect()])
   try {
@@ -154,15 +176,22 @@ async function runConcurrentClerkProvisioningTest() {
     }
 
     const canonical = await clientA.query(
-      `SELECT count(*)::integer AS profile_count, min(id::text) AS profile_id
-       FROM public.profiles
-       WHERE clerk_id = $1`,
+      `SELECT count(*)::integer AS profile_count,
+              min(p.id::text) AS profile_id,
+              count(ue.user_id)::integer AS entitlement_count
+       FROM public.profiles p
+       LEFT JOIN public.user_entitlements ue ON ue.user_id = p.id
+       WHERE p.clerk_id = $1`,
       [clerkId],
     )
-    if (canonical.rows[0]?.profile_count !== 1 || canonical.rows[0]?.profile_id !== firstId) {
-      throw new Error("Concurrent Clerk provisioning created duplicate mappings")
+    if (
+      canonical.rows[0]?.profile_count !== 1 ||
+      canonical.rows[0]?.profile_id !== firstId ||
+      canonical.rows[0]?.entitlement_count !== 1
+    ) {
+      throw new Error("Concurrent Clerk provisioning did not converge on one profile entitlement")
     }
-    console.log("Concurrent Clerk profile provisioning test passed")
+    console.log("Concurrent Clerk profile and entitlement provisioning test passed")
   } finally {
     await Promise.all([clientA.end(), clientB.end()])
   }
@@ -173,8 +202,8 @@ async function runConcurrentCompletionReservationTest() {
   const caseId = "91000000-0000-4000-8000-000000000001"
   const purchaseId = "92000000-0000-4000-8000-000000000001"
   const paymentId = "93000000-0000-4000-8000-000000000001"
-  const clientA = new pg.Client({ connectionString: localDatabaseUrl })
-  const clientB = new pg.Client({ connectionString: localDatabaseUrl })
+  const clientA = new pg.Client({ connectionString: databaseUrl })
+  const clientB = new pg.Client({ connectionString: databaseUrl })
   let transactionOpen = false
 
   await Promise.all([clientA.connect(), clientB.connect()])
@@ -273,9 +302,11 @@ async function main() {
 
   try {
     await runEdgeAuthorizationContractTests()
-    runSupabase(["db", "reset", "--local", "--no-seed", "--version", legacyVersion])
-    await runSql("scripts/sql/tests/pattern-c-legacy-fixtures.sql")
-    runSupabase(["migration", "up", "--local"])
+    if (!usePreparedDatabase) {
+      runSupabase(["db", "reset", "--local", "--no-seed", "--version", legacyVersion])
+      await runSql("scripts/sql/tests/pattern-c-legacy-fixtures.sql")
+      runSupabase(["migration", "up", "--local"])
+    }
     await runMigrationConflictFixtures()
     await runConcurrentClerkProvisioningTest()
     await runConcurrentCompletionReservationTest()
@@ -284,13 +315,15 @@ async function main() {
   } catch (error) {
     testError = error
   } finally {
-    try {
-      runSupabase(["db", "reset", "--local", "--no-seed"])
-    } catch (cleanupError) {
-      if (!testError) {
-        testError = cleanupError
-      } else {
-        console.error("Pattern C test cleanup failed", cleanupError)
+    if (!usePreparedDatabase) {
+      try {
+        runSupabase(["db", "reset", "--local", "--no-seed"])
+      } catch (cleanupError) {
+        if (!testError) {
+          testError = cleanupError
+        } else {
+          console.error("Pattern C test cleanup failed", cleanupError)
+        }
       }
     }
   }

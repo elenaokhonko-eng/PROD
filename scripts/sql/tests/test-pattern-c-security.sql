@@ -16,9 +16,87 @@ BEGIN
     WHERE c.contype = 'f'
       AND source_schema.nspname = 'public'
       AND c.confrelid = 'auth.users'::regclass
-      AND source_table.relname <> 'user_entitlements'
   ) THEN
     RAISE EXCEPTION 'application identity foreign keys must not reference auth.users';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint c
+    WHERE c.conname = 'user_entitlements_user_id_fkey'
+      AND c.conrelid = 'public.user_entitlements'::regclass
+      AND c.confrelid = 'public.profiles'::regclass
+      AND c.contype = 'f'
+      AND c.confdeltype = 'c'
+      AND c.convalidated
+  ) THEN
+    RAISE EXCEPTION 'user_entitlements.user_id must reference profiles.id with validated cascade semantics';
+  END IF;
+
+  SELECT count(*)::integer
+  INTO v_count
+  FROM pg_trigger trigger_object
+  JOIN pg_proc trigger_function ON trigger_function.oid = trigger_object.tgfoid
+  WHERE trigger_object.tgrelid = 'public.profiles'::regclass
+    AND NOT trigger_object.tgisinternal
+    AND trigger_function.proname = 'handle_new_user_entitlement';
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'profiles must have exactly one authoritative entitlement provisioning trigger';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_trigger trigger_object
+    JOIN pg_proc trigger_function ON trigger_function.oid = trigger_object.tgfoid
+    WHERE trigger_object.tgrelid = 'auth.users'::regclass
+      AND NOT trigger_object.tgisinternal
+      AND trigger_function.proname = 'handle_new_user_entitlement'
+  ) THEN
+    RAISE EXCEPTION 'obsolete auth.users entitlement triggers must not remain installed';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_trigger trigger_object
+    JOIN pg_proc trigger_function ON trigger_function.oid = trigger_object.tgfoid
+    WHERE trigger_object.tgrelid = 'auth.users'::regclass
+      AND NOT trigger_object.tgisinternal
+      AND trigger_function.proname = 'handle_new_user'
+  ) THEN
+    RAISE EXCEPTION 'supported legacy auth.users profile provisioning trigger was not preserved';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'user_entitlements'
+      AND policyname = 'entitlements_select_own'
+      AND cmd = 'SELECT'
+      AND roles = ARRAY['authenticated']::name[]
+      AND qual ~ 'user_id = (public\.)?current_app_user_id\(\)'
+      AND qual !~ 'auth\.uid\('
+  ) THEN
+    RAISE EXCEPTION 'entitlements_select_own must use current_app_user_id() for authenticated reads';
+  END IF;
+
+  IF pg_get_functiondef('public.handle_new_user_entitlement()'::regprocedure) !~ 'ON CONFLICT \(user_id\) DO NOTHING'
+     OR pg_get_functiondef('public.handle_new_user_entitlement()'::regprocedure) ~ 'auth\.users|auth\.uid\(' THEN
+    RAISE EXCEPTION 'entitlement provisioning must be profile-owned, idempotent, and independent of auth.users';
+  END IF;
+
+  IF pg_get_functiondef('public.get_effective_entitlement(uuid)'::regprocedure)
+       !~ 'where ue.user_id = v_case_user_id' THEN
+    RAISE EXCEPTION 'effective entitlement must resolve cases.user_id to user_entitlements.user_id';
+  END IF;
+
+  IF has_function_privilege('anon', 'public.get_effective_entitlement(uuid)', 'EXECUTE')
+     OR has_function_privilege('authenticated', 'public.get_effective_entitlement(uuid)', 'EXECUTE')
+     OR NOT has_function_privilege('service_role', 'public.get_effective_entitlement(uuid)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.handle_new_user_entitlement()', 'EXECUTE')
+     OR has_function_privilege('authenticated', 'public.handle_new_user_entitlement()', 'EXECUTE')
+     OR NOT has_function_privilege('service_role', 'public.handle_new_user_entitlement()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'entitlement functions do not have the required service-role-only direct execution grants';
   END IF;
 
   IF EXISTS (
@@ -43,6 +121,7 @@ BEGIN
       'case_decision_runs',
       'reports',
       'case_entitlements',
+      'user_entitlements',
       'privacy_deletion_requests'
     ]) AS expected(table_name)
     LEFT JOIN pg_class c
@@ -76,6 +155,7 @@ BEGIN
         'case_decision_runs',
         'reports',
         'case_entitlements',
+        'user_entitlements',
         'privacy_deletion_requests'
       ])
       AND (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) ~* 'auth\.uid\(|auth\.users'
@@ -120,6 +200,7 @@ BEGIN
       'case_decision_runs',
       'reports',
       'case_entitlements',
+      'user_entitlements',
       'analytics_events',
       'consent_logs',
       'referrals',
@@ -154,7 +235,8 @@ BEGIN
       'case_validation_gap_items',
       'case_decision_runs',
       'reports',
-      'case_entitlements'
+      'case_entitlements',
+      'user_entitlements'
     ]) AS derived(table_name)
     WHERE NOT has_table_privilege('authenticated', format('public.%I', derived.table_name), 'SELECT')
        OR has_table_privilege('authenticated', format('public.%I', derived.table_name), 'INSERT')
@@ -272,6 +354,38 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'valid legacy invitation token was not hashed and normalized';
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.user_entitlements
+    WHERE user_id = '10000000-0000-0000-0000-000000000001'
+      AND plan = 'self_serve_report'
+      AND features = '{"legacy_preserved": true, "allow_self_serve_report": true}'::jsonb
+  ) THEN
+    RAISE EXCEPTION 'existing valid paid entitlement did not survive the Pattern C migration';
+  END IF;
+
+  IF public.get_effective_entitlement('20000000-0000-0000-0000-000000000001'::uuid)->>'plan'
+       <> 'self_serve_report' THEN
+    RAISE EXCEPTION 'Clerk-owned case did not resolve its profile-level entitlement';
+  END IF;
+
+  INSERT INTO public.case_entitlements (case_id, plan, features, source, purchase_ref)
+  VALUES (
+    '20000000-0000-0000-0000-000000000001',
+    'escalation_pack',
+    '{"case_override": true}'::jsonb,
+    'pattern-c-test',
+    'pattern-c-case-override'
+  );
+
+  IF public.get_effective_entitlement('20000000-0000-0000-0000-000000000001'::uuid)->>'plan'
+       <> 'escalation_pack' THEN
+    RAISE EXCEPTION 'case-level entitlement did not override the profile-level entitlement';
+  END IF;
+
+  DELETE FROM public.case_entitlements
+  WHERE case_id = '20000000-0000-0000-0000-000000000001';
 END;
 $$;
 
@@ -282,6 +396,100 @@ VALUES
   ('10000000-0000-0000-0000-000000000005', 'expired@example.test', 'Expired Invitee'),
   ('10000000-0000-0000-0000-000000000006', 'conflict@example.test', 'Conflict Invitee'),
   ('10000000-0000-0000-0000-000000000007', 'takeover@example.test', 'Takeover Owner');
+
+DO $$
+DECLARE
+  v_count integer;
+BEGIN
+  SELECT count(DISTINCT p.id)::integer
+  INTO v_count
+  FROM public.profiles p
+  LEFT JOIN auth.users au ON au.id = p.id
+  JOIN public.user_entitlements ue ON ue.user_id = p.id
+  WHERE p.id IN (
+    '10000000-0000-0000-0000-000000000003',
+    '10000000-0000-0000-0000-000000000004',
+    '10000000-0000-0000-0000-000000000005'
+  )
+    AND au.id IS NULL;
+  IF v_count <> 3 THEN
+    RAISE EXCEPTION 'three distinct Clerk-style profile UUIDs must receive entitlements without auth.users rows';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.jobs
+    WHERE user_id IN (
+      '10000000-0000-0000-0000-000000000003',
+      '10000000-0000-0000-0000-000000000004',
+      '10000000-0000-0000-0000-000000000005',
+      '10000000-0000-0000-0000-000000000006',
+      '10000000-0000-0000-0000-000000000007'
+    )
+  ) THEN
+    RAISE EXCEPTION 'profile fixture provisioning must not create worker jobs';
+  END IF;
+
+  BEGIN
+    INSERT INTO public.user_entitlements (user_id)
+    VALUES ('10000000-0000-0000-0000-000000000099');
+    RAISE EXCEPTION 'unmatched entitlement UUID was accepted unexpectedly';
+  EXCEPTION
+    WHEN foreign_key_violation THEN NULL;
+  END;
+
+  INSERT INTO public.profiles (id, email, full_name)
+  VALUES ('10000000-0000-0000-0000-000000000098', 'cascade@example.test', 'Cascade Test');
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.user_entitlements
+    WHERE user_id = '10000000-0000-0000-0000-000000000098'
+  ) THEN
+    RAISE EXCEPTION 'profile insert did not provision its default entitlement';
+  END IF;
+
+  DELETE FROM public.profiles
+  WHERE id = '10000000-0000-0000-0000-000000000098';
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.user_entitlements
+    WHERE user_id = '10000000-0000-0000-0000-000000000098'
+  ) THEN
+    RAISE EXCEPTION 'profile deletion did not cascade to its entitlement';
+  END IF;
+
+  INSERT INTO auth.users (
+    id,
+    aud,
+    role,
+    email,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    created_at,
+    updated_at
+  ) VALUES (
+    '10000000-0000-0000-0000-000000000097',
+    'authenticated',
+    'authenticated',
+    'legacy-signup@example.test',
+    '{}'::jsonb,
+    '{"full_name":"Legacy Signup"}'::jsonb,
+    now(),
+    now()
+  );
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.profiles p
+    JOIN public.user_entitlements ue ON ue.user_id = p.id
+    WHERE p.id = '10000000-0000-0000-0000-000000000097'
+  ) THEN
+    RAISE EXCEPTION 'supported legacy Supabase Auth signup did not provision profile and entitlement atomically';
+  END IF;
+END;
+$$;
 
 INSERT INTO public.case_collaborators (
   case_id,

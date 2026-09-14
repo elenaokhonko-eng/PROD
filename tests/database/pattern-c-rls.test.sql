@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(7);
+select plan(9);
 
 insert into public.profiles (id, email)
 values
@@ -70,6 +70,22 @@ select results_eq(
   $$select id from public.cases order by id$$,
   $$values ('b0000000-0000-4000-8000-000000000002'::uuid)$$,
   'user B sees only its own case after user A writes'
+);
+select results_eq(
+  $$select user_id from public.user_entitlements order by user_id$$,
+  $$values ('20000000-0000-4000-8000-000000000002'::uuid)$$,
+  'user B cannot read user A entitlement'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"role":"authenticated","sub":"user_clerk_a","supabase_uuid":"10000000-0000-4000-8000-000000000001"}',
+  true
+);
+select results_eq(
+  $$select user_id from public.user_entitlements order by user_id$$,
+  $$values ('10000000-0000-4000-8000-000000000001'::uuid)$$,
+  'user A can read only user A entitlement'
 );
 
 select * from finish();

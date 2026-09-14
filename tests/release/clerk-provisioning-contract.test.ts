@@ -8,6 +8,10 @@ const migration = readFileSync(
   resolve(root, "supabase", "migrations", "20260909120000_harden_clerk_profile_provisioning.sql"),
   "utf8",
 )
+const entitlementMigration = readFileSync(
+  resolve(root, "supabase", "migrations", "20260914120000_align_user_entitlements_pattern_c.sql"),
+  "utf8",
+)
 const provisioner = readFileSync(resolve(root, "lib", "server", "clerk-profile-provisioner.ts"), "utf8")
 const webhookHandler = readFileSync(resolve(root, "lib", "server", "clerk-webhook.ts"), "utf8")
 const webhookRoute = readFileSync(resolve(root, "app", "api", "webhooks", "clerk", "route.ts"), "utf8")
@@ -34,6 +38,8 @@ test("Clerk provisioning RPC is atomic and service-role-only", () => {
   assert.match(migration, /RETURNING id INTO v_profile_id/)
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.provision_clerk_profile_v1[\s\S]*FROM authenticated/)
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.provision_clerk_profile_v1[\s\S]*TO service_role/)
+  assert.match(entitlementMigration, /AFTER INSERT ON public\.profiles/)
+  assert.match(entitlementMigration, /ON CONFLICT \(user_id\) DO NOTHING/)
 })
 
 test("runtime provisioner delegates UUID ownership to the RPC and patches only one metadata key", () => {
@@ -66,7 +72,7 @@ test("Render contract scopes webhook and Edge secrets to their consumers", () =>
   assert.doesNotMatch(worker, /CLERK_WEBHOOK_SIGNING_SECRET/)
 })
 
-test("staging migration procedure hashes, plans, applies, and verifies all three files", () => {
+test("staging migration procedure hashes, plans, applies, and verifies all four files", () => {
   const procedure = releaseOperations.slice(
     releaseOperations.indexOf("#### Staging-only migration procedure"),
     releaseOperations.indexOf("### Type-safety gate"),
@@ -75,6 +81,7 @@ test("staging migration procedure hashes, plans, applies, and verifies all three
     "20260829000000_release_security_and_fulfilment_hardening.sql",
     "20260830000000_privileged_edge_and_evidence_jobs.sql",
     "20260909120000_harden_clerk_profile_provisioning.sql",
+    "20260914120000_align_user_entitlements_pattern_c.sql",
   ]
 
   for (const filename of filenames) assert.match(procedure, new RegExp(filename.replaceAll(".", "\\.")))
@@ -82,7 +89,10 @@ test("staging migration procedure hashes, plans, applies, and verifies all three
   assert.match(procedure, /migration list --db-url/)
   assert.match(procedure, /db push --db-url[^\n]+--dry-run/)
   assert.match(procedure, /db push --db-url/)
-  assert.match(procedure, /Do not enable the Clerk webhook until `20260909120000` is present/)
+  assert.match(
+    procedure,
+    /Do not enable the Clerk webhook until `20260909120000` and `20260914120000` are present/,
+  )
   assert.match(procedure, /Keep the worker suspended after migration verification/)
   assert.doesNotMatch(procedure, /supabase link/)
 })

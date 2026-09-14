@@ -51,7 +51,7 @@ Apply migrations in filename order. Deploy Edge Functions from the same Git SHA.
 
 Clerk is the identity provider. Application ownership is `public.profiles.id`, carried only in the signed `supabase_uuid` claim and resolved by `public.current_app_user_id()`. Do not introduce `auth.uid()` or `auth.users` ownership dependencies.
 
-Configure the environment's signed Clerk webhook to send `user.created` to `/api/webhooks/clerk` only after the profile-provisioning migration is applied. The handler atomically obtains one stable profile UUID before patching only `public_metadata.supabase_uuid`; retries reuse that UUID. For the three approved disposable staging identities only, set `CLERK_RECONCILIATION_USER_ALLOWLIST_JSON` to the exact `userA`, `userB`, and `deletionUser` Clerk IDs and run `pnpm reconcile:staging-clerk-profiles` as a dry run. Use `--apply` only after reviewing all three dispositions. Never write only the Clerk or database side manually.
+Configure the environment's signed Clerk webhook to send `user.created` to `/api/webhooks/clerk` only after the profile-provisioning and Pattern C entitlement migrations are applied. The handler atomically obtains one stable profile UUID and the profile trigger creates one default entitlement before Clerk is patched with `public_metadata.supabase_uuid`; retries reuse that UUID and cannot duplicate the entitlement. For the three approved disposable staging identities only, set `CLERK_RECONCILIATION_USER_ALLOWLIST_JSON` to the exact `userA`, `userB`, and `deletionUser` Clerk IDs and run `pnpm reconcile:staging-clerk-profiles` as a dry run. Use `--apply` only after reviewing all three dispositions. Never write only the Clerk or database side manually.
 
 Operational admin calls must use the server-only `signAdminEdgeRequest` helper with a non-empty audited actor ID. Both the signer and database accept admin envelopes only for `backfill_embeddings_v1` and `url_catalogue`; do not generalize this allowlist or use admin signing for case-scoped user/worker work.
 
@@ -59,23 +59,117 @@ Consumed Edge request IDs remain replay-protected for 24 hours. Schedule a daily
 
 ### Release-candidate migrations
 
-These three files are preview-only release-candidate material. The explicit staging migration ledger determines which are still missing. Apply only the missing subset in this exact order and never apply any file to production during this pass.
+These four files are preview-only release-candidate material. The explicit staging migration ledger determines which are still missing. Apply only the missing subset in this exact order and never apply any file to production during this pass.
 
 | Order | Migration | Final SHA-256 |
 | --- | --- | --- |
 | 1 | `20260829000000_release_security_and_fulfilment_hardening.sql` | `855a64117d8189415fcbb816e69834fe066bf9d861a849cec7c10b2fa3d55576` |
 | 2 | `20260830000000_privileged_edge_and_evidence_jobs.sql` | `3eca73d64e98834cef92080654f8f832b80997b3411804cd7a183a20a00e47f7` |
 | 3 | `20260909120000_harden_clerk_profile_provisioning.sql` | `8a42315c24eaa5e14a7680e9b519e3d034b90e3d8d831b917c929d3900b65a26` |
+| 4 | `20260914120000_align_user_entitlements_pattern_c.sql` | `a631f459d5b86d5d696cbf5fb4615e4ff0f2bc7e832e7c3b385b7b5f133d6732` |
 
-Verify all three hashes from the clean review SHA immediately before applying. `20260829` must finish before `20260830`; the latter supplies the nonce, durable evidence dispatch, lease-fencing, and settlement protocol required by the worker and privileged Edge Functions. Apply `20260909` last to add the fail-closed Clerk identity preflight and atomic provisioning RPC. Do not mark a migration applied manually, apply an already-ledgered migration again, or deploy code against a partial sequence.
+Verify all four hashes from the clean review SHA immediately before applying. `20260829` must finish before `20260830`; the latter supplies the nonce, durable evidence dispatch, lease-fencing, and settlement protocol required by the worker and privileged Edge Functions. Apply `20260909` next to add the fail-closed Clerk identity preflight and atomic provisioning RPC. Apply `20260914` last so `public.user_entitlements.user_id` uses the canonical `public.profiles.id` application UUID, one profile trigger provisions defaults, and entitlement RLS resolves the signed `supabase_uuid` claim. Do not mark a migration applied manually, apply an already-ledgered migration again, or deploy code against a partial sequence.
 
-All three migrations stop with actionable counts and sampled non-sensitive keys before their new historical-data constraints are created. A preflight failure is a release stop: compare the identified rows to provider records or existing job outputs, record the decision, and rerun the unchanged migration. Do not auto-delete, auto-cancel, or guess which purchase, job, or Clerk mapping is canonical. Record the preview project ref, database output, migration hashes, and deployed commit SHA. Local fixtures and migration parsing are not live Supabase SQL evidence.
+All four migrations stop with actionable counts and sampled non-sensitive keys before their new historical-data constraints are created. The entitlement migration specifically stops with SQLSTATE `23503`, an orphan count, and up to ten unmatched UUIDs. A preflight failure is a release stop: compare the identified rows to provider records or existing job outputs, record the decision, and rerun the unchanged migration. Do not auto-delete, auto-cancel, synthesize `auth.users` rows, or guess which purchase, job, Clerk mapping, or profile is canonical. Record the preview project ref, database output, migration hashes, and deployed commit SHA. Local fixtures and migration parsing are not live Supabase SQL evidence.
+
+#### Entitlement preflight and preservation evidence
+
+Immediately before the staging dry run, execute and retain these read-only results. The orphan query must return zero rows. Record `profile_count`, `entitlement_count`, and `profiles_missing_entitlement`; after migration, the expected entitlement count is the original `entitlement_count + profiles_missing_entitlement`. Export the ordered entitlement rows as restricted release evidence so every pre-existing `user_id`, plan, feature document, and timestamp can be compared after migration.
+
+```sql
+select ue.user_id
+from public.user_entitlements ue
+left join public.profiles p on p.id = ue.user_id
+where p.id is null;
+
+select
+  (select count(*) from public.profiles) as profile_count,
+  (select count(*) from public.user_entitlements) as entitlement_count,
+  (
+    select count(*)
+    from public.profiles p
+    left join public.user_entitlements ue on ue.user_id = p.id
+    where ue.user_id is null
+  ) as profiles_missing_entitlement;
+
+select user_id, plan, features, created_at, updated_at
+from public.user_entitlements
+order by user_id;
+
+select trigger_schema.nspname as table_schema,
+       trigger_table.relname as table_name,
+       trigger_object.tgname as trigger_name,
+       function_schema.nspname || '.' || trigger_function.proname as function_name
+from pg_catalog.pg_trigger trigger_object
+join pg_catalog.pg_class trigger_table on trigger_table.oid = trigger_object.tgrelid
+join pg_catalog.pg_namespace trigger_schema on trigger_schema.oid = trigger_table.relnamespace
+join pg_catalog.pg_proc trigger_function on trigger_function.oid = trigger_object.tgfoid
+join pg_catalog.pg_namespace function_schema on function_schema.oid = trigger_function.pronamespace
+where not trigger_object.tgisinternal
+  and (
+    (trigger_schema.nspname = 'auth' and trigger_table.relname = 'users')
+    or (trigger_schema.nspname = 'public' and trigger_table.relname = 'profiles')
+  )
+order by 1, 2, 3;
+```
+
+A successful migration emits no orphan exception, preserves every existing entitlement row unchanged, adds one free row only for each profile that was missing one, removes obsolete `handle_new_user_entitlement()` triggers from `auth.users`, preserves any separate `handle_new_user()` legacy profile trigger, and installs exactly one entitlement trigger on `public.profiles`. After the final ledger check, retain these post-migration inspections:
+
+```sql
+select c.conname,
+       c.convalidated,
+       pg_catalog.pg_get_constraintdef(c.oid) as definition
+from pg_catalog.pg_constraint c
+where c.conrelid = 'public.user_entitlements'::regclass
+  and c.contype = 'f';
+
+select policyname, roles, cmd, qual, with_check
+from pg_catalog.pg_policies
+where schemaname = 'public'
+  and tablename = 'user_entitlements';
+
+select trigger_schema.nspname as table_schema,
+       trigger_table.relname as table_name,
+       trigger_object.tgname as trigger_name,
+       trigger_function.proname as function_name
+from pg_catalog.pg_trigger trigger_object
+join pg_catalog.pg_class trigger_table on trigger_table.oid = trigger_object.tgrelid
+join pg_catalog.pg_namespace trigger_schema on trigger_schema.oid = trigger_table.relnamespace
+join pg_catalog.pg_proc trigger_function on trigger_function.oid = trigger_object.tgfoid
+where not trigger_object.tgisinternal
+  and trigger_function.proname in ('handle_new_user', 'handle_new_user_entitlement')
+order by 1, 2, 3;
+
+select grantee, privilege_type
+from information_schema.role_table_grants
+where table_schema = 'public'
+  and table_name = 'user_entitlements'
+order by grantee, privilege_type;
+
+select
+  has_function_privilege('anon', 'public.get_effective_entitlement(uuid)', 'execute') as anon_effective,
+  has_function_privilege('authenticated', 'public.get_effective_entitlement(uuid)', 'execute') as authenticated_effective,
+  has_function_privilege('service_role', 'public.get_effective_entitlement(uuid)', 'execute') as service_effective;
+
+select user_id, plan, features, created_at, updated_at
+from public.user_entitlements
+order by user_id;
+
+select count(*) as orphan_count
+from public.user_entitlements ue
+left join public.profiles p on p.id = ue.user_id
+where p.id is null;
+```
+
+The foreign-key inspection must show one validated `user_entitlements_user_id_fkey` referencing `public.profiles(id) ON DELETE CASCADE`. The policy inspection must show authenticated `SELECT` using `user_id = current_app_user_id()` and no `auth.uid()`. The trigger inspection must show exactly one `handle_new_user_entitlement` trigger on `public.profiles`, none on `auth.users`, and must preserve any separate legacy `handle_new_user` trigger. Authenticated receives table `SELECT` only, anon receives none, service role retains writes, and the function check must return `false`, `false`, `true`. `orphan_count` must be zero. Compare the post-migration ordered rows to the retained pre-migration export and stop if any original row changed or disappeared. Profile deletion intentionally cascades to the profile's entitlement; deleting an entitlement never deletes a profile. Any different retention requirement needs a separately approved additive migration.
+
+Stop without applying or enabling traffic if the backup/restore marker is absent, the worker is not suspended, checkout traffic is not frozen, the confirmed project ref or database identity differs, any hash differs, the ledger/dry-run plan differs, the orphan query returns a row, an original entitlement changes or disappears, the expected count equation fails, an obsolete auth entitlement trigger remains, more than one profile entitlement trigger exists, or any post-migration foreign-key, RLS, grant, or function inspection differs from this contract.
 
 #### Staging-only migration procedure
 
 Keep checkout traffic frozen and the worker suspended for this entire procedure. Start from the clean reviewed SHA. Supply the staging database URL through the process environment, never in shell history, and never print it. Every remote command below uses `--db-url`; do not rely on, change, or infer a linked Supabase project.
 
-First, fail closed unless both the explicit operator confirmation and the database connection identity bind to the approved staging project ref. Then calculate and record all three hashes:
+First, fail closed unless both the explicit operator confirmation and the database connection identity bind to the approved staging project ref. Then calculate and record all four hashes:
 
 ```powershell
 $approvedStagingRef = "yqqkkftfddxuxmpxwbcj"
@@ -109,6 +203,11 @@ $migrations = @(
     Version = "20260909120000"
     File = "20260909120000_harden_clerk_profile_provisioning.sql"
     Expected = "8a42315c24eaa5e14a7680e9b519e3d034b90e3d8d831b917c929d3900b65a26"
+  },
+  [pscustomobject]@{
+    Version = "20260914120000"
+    File = "20260914120000_align_user_entitlements_pattern_c.sql"
+    Expected = "a631f459d5b86d5d696cbf5fb4615e4ff0f2bc7e832e7c3b385b7b5f133d6732"
   }
 )
 
@@ -123,7 +222,7 @@ $recordedHashes = foreach ($migration in $migrations) {
 $recordedHashes | Format-Table -AutoSize
 ```
 
-Next, record the remote ledger using the explicit URL and identify which of the three versions are absent:
+Next, record the remote ledger using the explicit URL and identify which of the four versions are absent:
 
 ```powershell
 supabase migration list --db-url $env:SUPABASE_STAGING_DB_URL
@@ -137,7 +236,7 @@ supabase db push --db-url $env:SUPABASE_STAGING_DB_URL --include-all --dry-run
 if ($LASTEXITCODE -ne 0) { throw "Staging migration dry run failed" }
 ```
 
-The dry-run plan must be a filename-ordered subset of exactly the three table entries above, must include every table entry absent from the recorded ledger, and must include no already-ledgered or unrelated migration. Stop on any discrepancy. If all three are already ledgered, do not run a write. Otherwise, apply the reviewed missing subset:
+The dry-run plan must be a filename-ordered subset of exactly the four table entries above, must include every table entry absent from the recorded ledger, and must include no already-ledgered or unrelated migration. Stop on any discrepancy. If all four are already ledgered, do not run a write. Otherwise, apply the reviewed missing subset:
 
 ```powershell
 supabase db push --db-url $env:SUPABASE_STAGING_DB_URL --include-all
@@ -147,7 +246,7 @@ supabase migration list --db-url $env:SUPABASE_STAGING_DB_URL
 if ($LASTEXITCODE -ne 0) { throw "Unable to verify the final staging migration ledger" }
 ```
 
-Record the final ledger and verify that all three versions appear exactly once in the documented order. Do not enable the Clerk webhook until `20260909120000` is present and its provisioning RPC/privileges have been verified. Keep the worker suspended after migration verification; worker enablement remains a later release gate.
+Record the final ledger and verify that all four versions appear exactly once in the documented order. Do not enable the Clerk webhook until `20260909120000` and `20260914120000` are present and the profile RPC, entitlement trigger, foreign key, RLS, and privileges have been verified. Keep the worker suspended after migration verification; worker enablement remains a later release gate.
 
 ### Type-safety gate
 
@@ -167,11 +266,11 @@ The runner refuses known production hosts, verifies `/api/health/release`, and w
 
 ## Preview deployment order
 
-1. Freeze preview checkout creation and pause the worker. Record the full clean Git SHA, its parent, all three migration hashes above, and all local gate results.
+1. Freeze preview checkout creation and pause the worker. Record the full clean Git SHA, its parent, all four migration hashes above, and all local gate results.
 2. Use the staging-only procedure above to verify that the explicit database URL binds to the designated non-production project ref. Capture its migration ledger, row counts for affected payment/job tables, and a restorable database backup or provider point-in-time restore marker. Record the Storage bucket inventory separately; database backup does not back up object bytes.
-3. Run the embedded migration preflights against a restored preview clone when available. Otherwise apply with stop-on-error and a transaction-capable migration runner while traffic remains paused. Any reported duplicate pending/established purchase, Stripe identity, fulfilment identity, legacy payment identity, malformed reservation, duplicate evidence job, unsupported job type, invalid document binding, or Clerk mapping conflict blocks deployment until provider-backed reconciliation is complete.
-4. Follow the recorded ledger and reviewed dry-run plan to apply only missing files in this order: `20260829000000_release_security_and_fulfilment_hardening.sql`, `20260830000000_privileged_edge_and_evidence_jobs.sql`, then `20260909120000_harden_clerk_profile_provisioning.sql`. Verify all three in the final ledger. Never reorder, squash, mark as applied, or run any migration on production.
-5. Verify the Clerk provisioning RPC and service-role-only privileges from `20260909120000` before enabling the signed Clerk webhook. Keep the worker suspended.
+3. Run the embedded migration preflights against a restored preview clone when available. Otherwise apply with stop-on-error and a transaction-capable migration runner while traffic remains paused. Any reported duplicate pending/established purchase, Stripe identity, fulfilment identity, legacy payment identity, malformed reservation, duplicate evidence job, unsupported job type, invalid document binding, Clerk mapping conflict, or entitlement UUID without a matching profile blocks deployment until provider-backed reconciliation is complete.
+4. Follow the recorded ledger and reviewed dry-run plan to apply only missing files in this order: `20260829000000_release_security_and_fulfilment_hardening.sql`, `20260830000000_privileged_edge_and_evidence_jobs.sql`, `20260909120000_harden_clerk_profile_provisioning.sql`, then `20260914120000_align_user_entitlements_pattern_c.sql`. Verify all four in the final ledger. Never reorder, squash, mark as applied, or run any migration on production.
+5. Verify the Clerk provisioning RPC and service-role-only privileges from `20260909120000`, then verify the canonical entitlement foreign key, profile trigger, existing-row preservation, RLS, and service-role access from `20260914120000` before enabling the signed Clerk webhook. Keep the worker suspended.
 6. Deploy every privileged Supabase Edge Function from the same SHA and set the matching `EDGE_PROXY_HMAC_SECRET`. Probe direct-anon, invalid-signature, stale-signature, replay, and valid signed paths before enabling the worker.
 7. Verify the Clerk `supabase` JWT template, allowed origins, sign-up/sign-in/session-expiry behavior, and user webhook in preview.
 8. Verify Stripe test prices, the test-mode webhook endpoint/signing secret, and sender-domain/SMTP configuration. Set `HARBOR_DEPLOYMENT_ENVIRONMENT=preview`, set `CHECKOUT_REDIRECT_ORIGIN` and `NEXT_PUBLIC_APP_URL` to the same preview origin, and set `HARBOR_PRODUCTION_APP_ORIGIN` to the distinct production origin. Reconcile existing preview Checkout Sessions and PaymentIntents before accepting new checkout traffic.
@@ -294,9 +393,9 @@ For each unresolved `storage_cleanup_queue` row, verify that no matching `eviden
 ## Rollback and forward-fix recovery
 
 1. Pause the worker and disable new checkout creation before changing data or code. Keep the Stripe webhook reachable so events remain durably recorded in the provider and can be redelivered.
-2. If a migration preflight fails, stop. Preserve its output and the backup marker, reconcile the sampled keys against Stripe or existing job artefacts, and rerun the unchanged migration. Never bypass the preflight or edit migration history.
-3. If `20260829` succeeds but `20260830` fails, leave application/worker traffic paused. Do not deploy the release code against the partial schema. Reconcile the failure and finish `20260830`, or restore the entire preview database backup before any release traffic is admitted.
-4. After either migration has carried release traffic, use an additive forward corrective migration. Do not reverse applied RLS, grants, identity mapping, payment ledgers, durable jobs, or lease constraints in place.
+2. If a migration preflight fails, stop. Preserve its output and the backup marker, reconcile the sampled keys against Stripe, existing job artefacts, or canonical profiles, and rerun the unchanged migration. Never bypass the preflight, fabricate `auth.users` rows, delete unmatched entitlements, or edit migration history.
+3. If `20260829` succeeds but a later migration fails, leave application/worker traffic paused and the Clerk webhook disabled. Each file is transactional, so a failed `20260914` leaves that file unapplied while earlier ledgered files remain. Reconcile every orphan entitlement to an existing canonical profile and rerun the unchanged file, or restore the entire preview database backup before any release traffic is admitted. After a successful `20260914` but before traffic, restore the full backup if rollback is required; do not manually reverse only its foreign key, trigger, policy, grants, or backfill.
+4. After any candidate migration has carried release traffic, use an additive forward corrective migration. Do not reverse applied RLS, grants, identity mapping, payment ledgers, durable jobs, entitlement ownership, default rows, or lease constraints in place.
 5. Roll the app and worker together only to a schema-compatible known-good SHA. Do not run mixed worker/app revisions or point a previous worker at the new queue protocol without an explicit compatibility review.
 6. If a webhook failed, correct configuration or code and redeliver the same signed provider event. Do not fabricate a replacement event, move a refund/dispute state backward, or create a second purchase.
 7. If a job timed out or its lease is uncertain, leave it running for the 15-minute stale-lease window; do not manually requeue it while a downstream request could still be active. The original claim must remain denied after expiry or reclaim.
