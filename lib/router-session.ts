@@ -1,5 +1,3 @@
-import { trackClientEvent } from "@/lib/analytics/client"
-
 export interface RouterSession {
   id: string
   session_token: string
@@ -16,8 +14,20 @@ export interface RouterSession {
   converted_to_user_id?: string
   converted_to_case_id?: string | null
   converted_at?: string | null
-  status?: "ACTIVE" | "CONVERTED" | "EXPIRED"
+  status?: "ACTIVE" | "CONVERTED" | "IMPORTED" | "EXPIRED"
 }
+
+export type RouterSessionUpdate = Pick<
+  RouterSession,
+  | "dispute_narrative"
+  | "voice_transcript"
+  | "audio_file_url"
+  | "classification_result"
+  | "clarifying_questions"
+  | "user_responses"
+  | "eligibility_assessment"
+  | "recommended_path"
+>
 
 const ROUTER_SESSION_TOKEN_KEY = "router_session_token"
 const ROUTER_SESSION_INTENT_KEY = "router_session_creation_intent"
@@ -256,7 +266,7 @@ export async function getRouterSession(sessionToken: string): Promise<RouterSess
 
 export async function updateRouterSession(
   sessionToken: string,
-  updates: Partial<RouterSession>,
+  updates: RouterSessionUpdate,
 ): Promise<RouterSession | null> {
   try {
     const res = await fetch("/api/router/session", {
@@ -274,54 +284,5 @@ export async function updateRouterSession(
   } catch (error) {
     console.error("[v0] Error updating router session:", error)
     return null
-  }
-}
-
-export async function convertRouterSessionToUser(
-  sessionToken: string,
-  userId: string,
-): Promise<{ success: boolean; sessionData?: RouterSession }> {
-  try {
-    const res = await fetch("/api/router/session", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        session_token: sessionToken,
-        updates: {
-          converted_to_user_id: userId,
-          converted_at: new Date().toISOString(),
-        },
-      }),
-    })
-
-    if (!res.ok) {
-      const text = await res.text()
-      console.error("[v0] Error converting router session:", res.status, text)
-      return { success: false }
-    }
-
-    const { session: data } = (await res.json()) as { session: RouterSession }
-
-    if (typeof window !== "undefined") {
-      persistConvertedRouterSessionToken(sessionToken)
-    }
-
-    await trackClientEvent({
-      eventName: "router_conversion_complete",
-      userId: userId,
-      sessionId: sessionToken,
-      eventData: {
-        session_id: data.id,
-        recommended_path: data.recommended_path,
-        eligibility_score: data.eligibility_assessment?.eligibility_score,
-      },
-      pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
-      userAgent: typeof window !== "undefined" ? navigator.userAgent : undefined,
-    })
-
-    return { success: true, sessionData: data }
-  } catch (error) {
-    console.error("[v0] Conversion error:", error)
-    return { success: false }
   }
 }
