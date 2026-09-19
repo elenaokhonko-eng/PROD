@@ -179,7 +179,10 @@ test("start fresh supersedes a pending replacement with one distinct creation", 
 
 test("server and UI retain the durable idempotency and visible-error contracts", () => {
   const root = process.cwd()
-  const route = fs.readFileSync(path.join(root, "app/api/router/session/route.ts"), "utf8")
+  const route = [
+    fs.readFileSync(path.join(root, "app/api/router/session/route.ts"), "utf8"),
+    fs.readFileSync(path.join(root, "app/api/router/session/handlers.ts"), "utf8"),
+  ].join("\n")
   const migration = fs.readFileSync(
     path.join(root, "supabase/migrations/20260831180000_router_session_creation_intent.sql"),
     "utf8",
