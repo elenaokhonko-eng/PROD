@@ -247,7 +247,7 @@ jobs:
       HARBOR_PREVIEW_STRIPE_WEBHOOK_SECRET: ${{ secrets.HARBOR_PREVIEW_STRIPE_WEBHOOK_SECRET }}
       HARBOR_PREVIEW_EMAIL_SINK: ${{ secrets.HARBOR_PREVIEW_EMAIL_SINK }}
       HARBOR_PREVIEW_CONFIRM_SUPABASE_REF: ${{ vars.HARBOR_PREVIEW_CONFIRM_SUPABASE_REF }}
-      HARBOR_PREVIEW_EXPECTED_COMMIT_SHA: ${{ env.HARBOR_RELEASE_SHA }}
+      HARBOR_PREVIEW_EXPECTED_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       HARBOR_PREVIEW_CONFIRMED_SHA: ${{ needs.playwright-preview.outputs.preview_confirmed_sha }}
       HARBOR_PREVIEW_CONFIRM_MUTATIONS: RUN_MUTATING_PREVIEW_HANDSHAKES
       HARBOR_PREVIEW_EVIDENCE_FILE: test-results/harbor-preview-handshake-evidence.jsonl
