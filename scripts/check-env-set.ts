@@ -78,6 +78,8 @@ export const optionalKeys = [
   "CASE_EXTRACT_MODEL",
   "SELF_SERVE_REPORT_MODEL",
   "CLERK_RECONCILIATION_USER_ALLOWLIST_JSON",
+  "HARBOR_PREVIEW_EMAIL_SINK",
+  "HARBOR_SMTP_TEST_RECIPIENT",
   "SUPABASE_STAGING_DB_URL",
   "SUPABASE_PRODUCTION_DB_URL",
 ] as const
@@ -298,7 +300,10 @@ export function checkEnvironmentSet(
   const smtpHost = get("SMTP_HOST").toLowerCase()
   if (smtpHost) {
     const sandbox = smtpHost === "sandbox.smtp.mailtrap.io"
-    if (isStaging) add(sandbox ? "PASS" : "WARN", "staging SMTP is the Mailtrap sandbox", `host ${smtpHost}`)
+    if (isStaging) {
+      add(sandbox ? "PASS" : "WARN", "staging SMTP is the Mailtrap sandbox", `host ${smtpHost}`)
+      add(get("HARBOR_PREVIEW_EMAIL_SINK").includes("@") ? "PASS" : "WARN", "HARBOR_PREVIEW_EMAIL_SINK is a recipient address")
+    }
     else add(sandbox ? "FAIL" : "PASS", "production SMTP is not a sandbox", `host ${smtpHost}`)
   }
   if (!isStaging && get("EMAIL_FROM")) {
@@ -341,12 +346,24 @@ export async function verifyStripePrices(environment: EnvironmentName, file: Env
       findings.push({ status: "FAIL", check: `${key} exists in this Stripe mode`, detail: `HTTP ${response.status}` })
       continue
     }
-    const price = (await response.json()) as { livemode: boolean; currency: string; unit_amount: number | null; type: string; active: boolean }
+    const price = (await response.json()) as {
+      livemode: boolean
+      currency: string
+      unit_amount: number | null
+      type: string
+      active: boolean
+      tax_behavior: string | null
+    }
     const ok = price.livemode === (environment === "production") && price.currency === "sgd" && price.unit_amount === amount && price.type === "one_time" && price.active
     findings.push({
       status: ok ? "PASS" : "FAIL",
       check: `${key} is an active one-time S$${amount / 100} ${environment === "production" ? "live" : "test"} price`,
       detail: `livemode=${price.livemode} currency=${price.currency} amount=${price.unit_amount} type=${price.type} active=${price.active}`,
+    })
+    findings.push({
+      status: price.tax_behavior === "inclusive" ? "PASS" : "WARN",
+      check: `${key} is tax-inclusive`,
+      detail: `tax_behavior=${price.tax_behavior ?? "unspecified"}`,
     })
   }
   return findings
