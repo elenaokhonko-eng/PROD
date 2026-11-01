@@ -84,7 +84,21 @@ export const optionalKeys = [
   "SUPABASE_PRODUCTION_DB_URL",
 ] as const
 
-const generatedSecretKeys = ["EDGE_PROXY_HMAC_SECRET", "WORKER_SECRET", "SIMULATION_KEY"] as const
+// Values that only exist after provider setup in a later phase. Blank is PENDING, not FAIL.
+const deferredKeys: Record<EnvironmentName, Record<string, string>> = {
+  staging: {
+    CLERK_WEBHOOK_SIGNING_SECRET: "created with the staging Clerk webhook (Phase 3)",
+    STRIPE_WEBHOOK_SECRET: "created with the staging Stripe webhook (Phase 3)",
+    NEXT_PUBLIC_APP_URL: "staging Render web URL (Phase 3)",
+    CHECKOUT_REDIRECT_ORIGIN: "staging Render web URL (Phase 3)",
+  },
+  production: {
+    CLERK_WEBHOOK_SIGNING_SECRET: "created with the PROD Clerk webhook (brief B step 4)",
+    STRIPE_WEBHOOK_SECRET: "created with the PROD Stripe webhook (brief B step 4)",
+  },
+}
+
+const generatedSecretKeys =["EDGE_PROXY_HMAC_SECRET", "WORKER_SECRET", "SIMULATION_KEY"] as const
 const providerSecretKeys = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "CLERK_SECRET_KEY",
@@ -190,8 +204,11 @@ export function checkEnvironmentSet(
   add(file.duplicates.length ? "FAIL" : "PASS", "one value per key", file.duplicates.length ? `duplicated: ${file.duplicates.join(", ")}` : undefined)
   if (file.malformedLines.length) add("FAIL", "parseable lines", `malformed line numbers: ${file.malformedLines.join(", ")}`)
 
-  const missing = requiredKeys.filter((key) => !get(key))
+  const deferred = deferredKeys[environment]
+  const pending = requiredKeys.filter((key) => !get(key) && key in deferred)
+  const missing = requiredKeys.filter((key) => !get(key) && !(key in deferred))
   add(missing.length ? "FAIL" : "PASS", "required variables present", missing.length ? `blank or absent: ${missing.join(", ")}` : undefined)
+  for (const key of pending) add("PENDING", `${key} set later`, deferred[key])
   const placeholders = Object.keys(env).filter((key) => get(key) && isPlaceholder(get(key)))
   if (placeholders.length) add("FAIL", "no placeholder values", placeholders.join(", "))
   const known = new Set<string>([...requiredKeys, ...optionalKeys])
@@ -212,16 +229,19 @@ export function checkEnvironmentSet(
     get("HARBOR_DEPLOYMENT_ENVIRONMENT") === expectedDeployment ? "PASS" : "FAIL",
     `HARBOR_DEPLOYMENT_ENVIRONMENT is ${expectedDeployment}`,
   )
-  add(
-    get("CHECKOUT_REDIRECT_ORIGIN") && get("CHECKOUT_REDIRECT_ORIGIN") === get("NEXT_PUBLIC_APP_URL") ? "PASS" : "FAIL",
-    "CHECKOUT_REDIRECT_ORIGIN equals NEXT_PUBLIC_APP_URL",
-  )
-  add(
-    resolveCheckoutRedirectOrigin(env) ? "PASS" : "FAIL",
-    "checkout redirect origin resolves (lib/payments/product-catalogue)",
-    isStaging ? "preview origin must be HTTPS, path-free, and differ from HARBOR_PRODUCTION_APP_ORIGIN" : "production origin must equal HARBOR_PRODUCTION_APP_ORIGIN",
-  )
-  if (isStaging) {
+  const originsPending = pending.includes("NEXT_PUBLIC_APP_URL") && pending.includes("CHECKOUT_REDIRECT_ORIGIN")
+  if (!originsPending) {
+    add(
+      get("CHECKOUT_REDIRECT_ORIGIN") && get("CHECKOUT_REDIRECT_ORIGIN") === get("NEXT_PUBLIC_APP_URL") ? "PASS" : "FAIL",
+      "CHECKOUT_REDIRECT_ORIGIN equals NEXT_PUBLIC_APP_URL",
+    )
+    add(
+      resolveCheckoutRedirectOrigin(env) ? "PASS" : "FAIL",
+      "checkout redirect origin resolves (lib/payments/product-catalogue)",
+      isStaging ? "preview origin must be HTTPS, path-free, and differ from HARBOR_PRODUCTION_APP_ORIGIN" : "production origin must equal HARBOR_PRODUCTION_APP_ORIGIN",
+    )
+  }
+  if (isStaging && !originsPending) {
     let host = ""
     try { host = new URL(get("NEXT_PUBLIC_APP_URL")).hostname } catch { /* reported above */ }
     add(host.endsWith(".onrender.com") ? "PASS" : "WARN", "staging origin is a Render hostname", "preview test lanes refuse non-onrender.com hosts")
@@ -270,13 +290,17 @@ export function checkEnvironmentSet(
     const ok = isStaging ? frontendApi.endsWith(".clerk.accounts.dev") : frontendApi === productionClerkFrontendApi
     add(ok ? "PASS" : "FAIL", isStaging ? "Clerk instance is the Development instance" : `Clerk instance is ${productionClerkFrontendApi}`, `frontend API ${frontendApi}`)
   }
-  add(get("CLERK_WEBHOOK_SIGNING_SECRET").startsWith("whsec_") ? "PASS" : "FAIL", "CLERK_WEBHOOK_SIGNING_SECRET is a Svix whsec_ secret")
+  if (get("CLERK_WEBHOOK_SIGNING_SECRET")) {
+    add(get("CLERK_WEBHOOK_SIGNING_SECRET").startsWith("whsec_") ? "PASS" : "FAIL", "CLERK_WEBHOOK_SIGNING_SECRET is a Svix whsec_ secret")
+  }
 
   // Stripe mode.
   const stripeMode = isStaging ? "test" : "live"
   const stripeKey = get("STRIPE_SECRET_KEY")
   add(new RegExp(`^(sk|rk)_${stripeMode}_`).test(stripeKey) ? "PASS" : "FAIL", `Stripe secret key is ${stripeMode} mode`, `type ${keyType(stripeKey)}`)
-  add(get("STRIPE_WEBHOOK_SECRET").startsWith("whsec_") ? "PASS" : "FAIL", "STRIPE_WEBHOOK_SECRET is a whsec_ secret")
+  if (get("STRIPE_WEBHOOK_SECRET")) {
+    add(get("STRIPE_WEBHOOK_SECRET").startsWith("whsec_") ? "PASS" : "FAIL", "STRIPE_WEBHOOK_SECRET is a whsec_ secret")
+  }
   if (get("STRIPE_WEBHOOK_SECRET") && get("STRIPE_WEBHOOK_SECRET") === get("CLERK_WEBHOOK_SIGNING_SECRET")) {
     add("FAIL", "Stripe and Clerk webhook secrets differ")
   }

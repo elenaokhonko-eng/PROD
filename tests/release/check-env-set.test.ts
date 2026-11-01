@@ -99,6 +99,21 @@ test("production is pending until Gate G4 confirms the Supabase ref", () => {
   assert.ok(findings.some((finding) => finding.status === "PENDING"))
 })
 
+test("staging webhook secrets and origins are pending, not failing, before Phase 3", () => {
+  const values = stagingValues()
+  for (const key of ["CLERK_WEBHOOK_SIGNING_SECRET", "STRIPE_WEBHOOK_SECRET", "NEXT_PUBLIC_APP_URL", "CHECKOUT_REDIRECT_ORIGIN"]) values[key] = ""
+  const findings = checkEnvironmentSet("staging", file(values))
+  assert.deepEqual(failures(findings), [])
+  assert.equal(findings.filter((finding) => finding.status === "PENDING").length, 4)
+})
+
+test("a half-filled origin pair still fails", () => {
+  const values = stagingValues()
+  values.CHECKOUT_REDIRECT_ORIGIN = ""
+  assert.ok(failures(checkEnvironmentSet("staging", file(values))).includes("required variables present") === false)
+  assert.ok(failures(checkEnvironmentSet("staging", file(values))).includes("CHECKOUT_REDIRECT_ORIGIN equals NEXT_PUBLIC_APP_URL"))
+})
+
 test("duplicate keys fail and the last value is not silently trusted", () => {
   const parsed = parseEnvFile("NEXT_PUBLIC_SUPABASE_URL=https://a.supabase.co\r\n# note\r\nNEXT_PUBLIC_SUPABASE_URL=https://b.supabase.co\r\n")
   assert.deepEqual(parsed.duplicates, ["NEXT_PUBLIC_SUPABASE_URL"])
