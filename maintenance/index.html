@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en-SG">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>GuideBuoy AI is getting a major upgrade</title>
+  <style>
+    :root {
+      --canvas: #faf7f2;
+      --surface: #fdfcfa;
+      --primary: #2e6e6a;
+      --text: #2e3a3f;
+      --muted: #5c6b70;
+      --border: #d8ddd8;
+      --tint: #e3ebf0;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+      background: radial-gradient(120% 80% at 50% 0%, var(--tint) 0%, var(--canvas) 60%);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    main {
+      width: 100%;
+      max-width: 34rem;
+      padding: 40px 32px 36px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 1px 2px rgba(46, 58, 63, 0.04), 0 12px 32px rgba(46, 58, 63, 0.08);
+      text-align: center;
+    }
+    img {
+      display: block;
+      width: 112px;
+      height: 112px;
+      margin: 0 auto 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--tint);
+      box-shadow: 0 0 0 6px var(--canvas), 0 0 0 7px var(--border);
+    }
+    h1 {
+      margin: 0 0 16px;
+      color: var(--primary);
+      font-size: clamp(1.5rem, 1.15rem + 1.6vw, 2rem);
+      line-height: 1.25;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      text-wrap: balance;
+    }
+    p { margin: 0 0 12px; font-size: 1.0625rem; }
+    p:last-child { margin-bottom: 0; }
+    footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.875rem;
+      text-align: center;
+    }
+    a { color: var(--primary); text-underline-offset: 3px; }
+    a:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; border-radius: 4px; }
+    @media (max-width: 480px) {
+      main { padding: 32px 22px 28px; border-radius: 16px; }
+      img { width: 96px; height: 96px; }
+      p { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/maintenance/lumi-avatar.png" width="112" height="112" alt="Lumi, the GuideBuoy AI assistant">
+    <h1>GuideBuoy AI is getting a major upgrade</h1>
+    <p>Our web platform is undergoing a major upgrade and will be back online within the next 48 hours.</p>
+    <p>Thank you for your patience. We'll be online shortly.</p>
+  </main>
+  <footer>
+    GuideBuoy AI SG Pte Ltd · <a href="mailto:info@guidebuoyai.sg">info@guidebuoyai.sg</a>
+  </footer>
+</body>
+</html>
