@@ -112,6 +112,9 @@ jobs:
   playwright-public:
     name: Playwright public UI
     runs-on: windows-latest
+    env:
+      # CI-only: Clerk keyless mode must never inject its claim overlay into tests.
+      NEXT_PUBLIC_CLERK_KEYLESS_DISABLED: '1'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -145,6 +148,9 @@ jobs:
   playwright-synthetic:
     name: Playwright synthetic provider
     runs-on: ubuntu-latest
+    env:
+      # CI-only: Clerk keyless mode must never inject its claim overlay into tests.
+      NEXT_PUBLIC_CLERK_KEYLESS_DISABLED: '1'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -158,7 +164,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium webkit
-      - run: pnpm exec playwright test --config=tests/e2e/playwright.synthetic.config.ts
+      - run: pnpm build
+      - name: Production synthetic provider
+        env:
+          HARBOR_E2E_WEB_SERVER_COMMAND: pnpm start
+        run: pnpm exec playwright test --config=tests/e2e/playwright.synthetic.config.ts
       - name: Upload synthetic browser evidence
         if: always()
         uses: actions/upload-artifact@v4
