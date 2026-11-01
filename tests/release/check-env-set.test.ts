@@ -1,0 +1,158 @@
+import assert from "node:assert/strict"
+import test from "node:test"
+import {
+  checkEnvironmentSet,
+  compareEnvironmentSets,
+  parseEnvFile,
+  parseRenderBlueprint,
+  renderChecklist,
+  stagingSupabaseRef,
+  type EnvFile,
+  type Finding,
+} from "../../scripts/check-env-set"
+
+// Fabricated values only, assembled at runtime so no secret-shaped literal is committed.
+const fake = (prefix: string, seed: string) => `${prefix}${seed.repeat(4)}abcdefghijklmnopqrstuvwxyz0123456789`
+const jwt = (role: string, ref: string) =>
+  ["e30", Buffer.from(JSON.stringify({ role, ref })).toString("base64url"), "sig"].join(".")
+const clerkPublishable = (mode: string, host: string) => `pk_${mode}_${Buffer.from(`${host}$`).toString("base64")}`
+const productionRef = "abcdefghijklmnopqrst"
+
+function stagingValues(): Record<string, string> {
+  return {
+    HARBOR_DEPLOYMENT_ENVIRONMENT: "preview",
+    CHECKOUT_REDIRECT_ORIGIN: "https://guidebuoy-staging.onrender.com",
+    NEXT_PUBLIC_APP_URL: "https://guidebuoy-staging.onrender.com",
+    HARBOR_PRODUCTION_APP_ORIGIN: "https://guidebuoyai.sg",
+    NEXT_PUBLIC_SITE_URL: "https://guidebuoy-staging.onrender.com",
+    NEXT_PUBLIC_SUPABASE_URL: `https://${stagingSupabaseRef}.supabase.co`,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: jwt("anon", stagingSupabaseRef),
+    SUPABASE_SERVICE_ROLE_KEY: jwt("service_role", stagingSupabaseRef),
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: clerkPublishable("test", "clean-goblin-67.clerk.accounts.dev"),
+    CLERK_SECRET_KEY: fake("sk_" + "test_", "a"),
+    CLERK_WEBHOOK_SIGNING_SECRET: fake("whsec_", "b"),
+    STRIPE_SECRET_KEY: fake("sk_" + "test_", "c"),
+    STRIPE_WEBHOOK_SECRET: fake("whsec_", "d"),
+    STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD: "price_stagingselfserve",
+    STRIPE_PRICE_ID_FIDREC_TIER2_PACK_SGD: "price_stagingtier2",
+    WORKER_SECRET: fake("", "e"),
+    EDGE_PROXY_HMAC_SECRET: fake("", "f"),
+    SIMULATION_KEY: fake("", "g"),
+    GOOGLE_GENERATIVE_AI_API_KEY: "google-staging",
+    OPENAI_API_KEY: "openai-staging",
+    SMTP_HOST: "sandbox.smtp.mailtrap.io",
+    SMTP_PORT: "587",
+    SMTP_USER: "user",
+    SMTP_PASS: "pass-staging",
+    EMAIL_FROM: "hello@guidebuoyai.sg",
+    EMAIL_FROM_NAME: "GuideBuoy",
+    ADMIN_EMAIL: "admin@guidebuoyai.sg",
+    GuideBuoy_EdgeFunction: "edge-openai-staging",
+    GEMINI_API_KEY: "gemini-staging",
+  }
+}
+
+function productionValues(): Record<string, string> {
+  return {
+    ...stagingValues(),
+    HARBOR_DEPLOYMENT_ENVIRONMENT: "production",
+    CHECKOUT_REDIRECT_ORIGIN: "https://guidebuoyai.sg",
+    NEXT_PUBLIC_APP_URL: "https://guidebuoyai.sg",
+    NEXT_PUBLIC_SITE_URL: "https://guidebuoyai.sg",
+    NEXT_PUBLIC_SUPABASE_URL: `https://${productionRef}.supabase.co`,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: jwt("anon", productionRef),
+    SUPABASE_SERVICE_ROLE_KEY: jwt("service_role", productionRef),
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: clerkPublishable("live", "clerk.guidebuoyai.sg"),
+    CLERK_SECRET_KEY: fake("sk_" + "live_", "h"),
+    CLERK_WEBHOOK_SIGNING_SECRET: fake("whsec_", "i"),
+    STRIPE_SECRET_KEY: fake("sk_" + "live_", "j"),
+    STRIPE_WEBHOOK_SECRET: fake("whsec_", "k"),
+    STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD: "price_1TsLZdFp6sSKMUXXz5xEbxrA",
+    STRIPE_PRICE_ID_FIDREC_TIER2_PACK_SGD: "price_1TsLY5Fp6sSKMUXXdHFwRsny",
+    WORKER_SECRET: fake("", "l"),
+    EDGE_PROXY_HMAC_SECRET: fake("", "m"),
+    SIMULATION_KEY: fake("", "n"),
+    GOOGLE_GENERATIVE_AI_API_KEY: "google-production",
+    OPENAI_API_KEY: "openai-production",
+    SMTP_HOST: "live.smtp.mailtrap.io",
+    SMTP_PASS: "pass-production",
+    GuideBuoy_EdgeFunction: "edge-openai-production",
+    GEMINI_API_KEY: "gemini-production",
+  }
+}
+
+const file = (values: Record<string, string>): EnvFile => ({ values, duplicates: [], malformedLines: [] })
+const failures = (findings: Finding[]) => findings.filter((finding) => finding.status === "FAIL").map((finding) => finding.check)
+
+test("a complete staging set passes", () => {
+  assert.deepEqual(failures(checkEnvironmentSet("staging", file(stagingValues()))), [])
+})
+
+test("a complete production set passes once the PROD ref is confirmed", () => {
+  const findings = checkEnvironmentSet("production", file(productionValues()), { productionRef })
+  assert.deepEqual(failures(findings), [])
+  assert.ok(!findings.some((finding) => finding.status === "PENDING"))
+})
+
+test("production is pending until Gate G4 confirms the Supabase ref", () => {
+  const findings = checkEnvironmentSet("production", file(productionValues()))
+  assert.ok(findings.some((finding) => finding.status === "PENDING"))
+})
+
+test("duplicate keys fail and the last value is not silently trusted", () => {
+  const parsed = parseEnvFile("NEXT_PUBLIC_SUPABASE_URL=https://a.supabase.co\r\n# note\r\nNEXT_PUBLIC_SUPABASE_URL=https://b.supabase.co\r\n")
+  assert.deepEqual(parsed.duplicates, ["NEXT_PUBLIC_SUPABASE_URL"])
+  assert.ok(failures(checkEnvironmentSet("staging", parsed)).includes("one value per key"))
+})
+
+test("cross-wired Supabase keys, live Stripe keys, and live prices fail in staging", () => {
+  const values = stagingValues()
+  values.NEXT_PUBLIC_SUPABASE_ANON_KEY = jwt("anon", "ujilatkjweudsptpoqyr")
+  values.STRIPE_SECRET_KEY = fake("sk_" + "live_", "z")
+  values.STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD = "price_1TsLZdFp6sSKMUXXz5xEbxrA"
+  values.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = clerkPublishable("live", "clerk.guidebuoyai.sg")
+  const failed = failures(checkEnvironmentSet("staging", file(values)))
+  assert.ok(failed.includes("NEXT_PUBLIC_SUPABASE_ANON_KEY ref matches URL"))
+  assert.ok(failed.includes("Stripe secret key is test mode"))
+  assert.ok(failed.includes("STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD is not the live-mode price"))
+  assert.ok(failed.includes("Clerk publishable key is pk_test"))
+})
+
+test("staging checkout cannot target the production origin", () => {
+  const values = stagingValues()
+  values.CHECKOUT_REDIRECT_ORIGIN = "https://guidebuoyai.sg"
+  values.NEXT_PUBLIC_APP_URL = "https://guidebuoyai.sg"
+  assert.ok(failures(checkEnvironmentSet("staging", file(values))).includes("checkout redirect origin resolves (lib/payments/product-catalogue)"))
+})
+
+test("short HMAC secrets and service-role keys in NEXT_PUBLIC_* fail", () => {
+  const values = stagingValues()
+  values.EDGE_PROXY_HMAC_SECRET = "too-short"
+  values.NEXT_PUBLIC_SUPABASE_ANON_KEY = jwt("service_role", stagingSupabaseRef)
+  const failed = failures(checkEnvironmentSet("staging", file(values)))
+  assert.ok(failed.includes("EDGE_PROXY_HMAC_SECRET is at least 32 bytes"))
+  assert.ok(failed.includes("no secrets in NEXT_PUBLIC_*"))
+})
+
+test("generated secrets must differ between environments", () => {
+  const production = productionValues()
+  production.WORKER_SECRET = stagingValues().WORKER_SECRET
+  assert.deepEqual(failures(compareEnvironmentSets(file(stagingValues()), file(production))), ["WORKER_SECRET differs between staging and production"])
+})
+
+test("render checklist reports readiness without values", () => {
+  const blueprint = parseRenderBlueprint([
+    "services:",
+    "  - type: web",
+    "    name: web",
+    "    envVars:",
+    "      - key: STRIPE_SECRET_KEY",
+    "        sync: false",
+    "      - key: WORKER_SECRET",
+    "        generateValue: true",
+  ].join("\n"))
+  const checklist = renderChecklist(blueprint, { staging: file(stagingValues()) })
+  assert.match(checklist, /\| `STRIPE_SECRET_KEY` \| enter in dashboard \| ready \| no file \|/)
+  assert.match(checklist, /\| `WORKER_SECRET` \| generated by Render \| n\/a \| n\/a \|/)
+  assert.doesNotMatch(checklist, /sk_test_/)
+})
