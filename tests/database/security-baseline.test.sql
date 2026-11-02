@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(7);
+select plan(11);
 
 -- Catalog rules: each query lists the offenders, so a failure names them.
 select is_empty(
@@ -42,6 +42,50 @@ select is_empty(
 select is_empty(
   $$select id from storage.buckets where public$$,
   'no Storage bucket is public'
+);
+
+select is_empty(
+  $$
+    select p.oid::regprocedure::text
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+      and not coalesce(exists (select 1 from unnest(p.proconfig) c where c like 'search_path=%'), false)
+  $$,
+  'every public function pins search_path'
+);
+
+select is_empty(
+  $$
+    select tablename || ':' || policyname
+    from pg_policies
+    where schemaname = 'public'
+      and cmd in ('INSERT', 'UPDATE', 'DELETE', 'ALL')
+      and (qual = 'true' or with_check = 'true')
+  $$,
+  'no public write policy is always true'
+);
+
+select is_empty(
+  $$
+    select tablename || ':' || policyname
+    from pg_policies
+    where schemaname = 'public' and (qual ~ 'auth\.uid\(' or with_check ~ 'auth\.uid\(')
+  $$,
+  'no public policy compares auth.uid() (Pattern C uses current_app_user_id())'
+);
+
+select is_empty(
+  $$
+    select c.relname::text
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relkind = 'm'
+      and (has_table_privilege('anon', c.oid, 'SELECT') or has_table_privilege('authenticated', c.oid, 'SELECT'))
+  $$,
+  'no materialized view is readable through the Data API'
 );
 
 select ok(
