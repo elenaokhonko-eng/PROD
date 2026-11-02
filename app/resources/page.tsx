@@ -12,12 +12,12 @@ export const metadata: Metadata = {
 const articles = [
   {
     title: "How to stay calm after a scam incident",
-    href: "https://www.scamshield.org.sg/",
+    href: "https://www.scamshield.gov.sg/",
     summary: "Grounding tips and immediate actions to protect your accounts.",
   },
   {
     title: "Understanding dispute resolution for consumers",
-    href: "https://fidrec.com.sg/",
+    href: "https://www.fidrec.com.sg/",
     summary: "When and how to escalate a financial complaint with the right documents.",
   },
 ]
@@ -25,7 +25,7 @@ const articles = [
 const legalFrameworks = [
   { title: "MAS E-Payments User Protection Guidelines", href: "https://www.mas.gov.sg" },
   { title: "PDPA Overview", href: "https://www.pdpc.gov.sg" },
-  { title: "SPF E-Services (Police Report)", href: "https://eservices.police.gov.sg" },
+  { title: "SPF E-Services (Police Report)", href: "https://www.police.gov.sg/epc" },
 ]
 
 const guides = [

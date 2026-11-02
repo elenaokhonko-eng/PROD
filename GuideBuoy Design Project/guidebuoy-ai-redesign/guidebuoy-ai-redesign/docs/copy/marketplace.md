@@ -43,7 +43,7 @@ your report when the scam was technical.
 [Request a cyber report →]
 
 ## How this fits your packs
-Your User Pack and Bank Pack are self-serve. The FIDReC Pack includes
+Your User Pack and FI Pack are self-serve. The FIDReC Pack includes
 human case-pack preparation. Everything on this page is extra human
 support around those packs — never a requirement.
 

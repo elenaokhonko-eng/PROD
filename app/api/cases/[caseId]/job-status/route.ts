@@ -55,7 +55,6 @@ export async function GET(
     .from('cases')
     .select('id')
     .eq('id', caseId)
-    .eq('user_id', supabaseUuid)
     .maybeSingle()
 
   if (caseErr) {

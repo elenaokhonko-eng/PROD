@@ -52,12 +52,10 @@ export async function PUT(
     global: { headers: { Authorization: `Bearer ${bearer}` } },
   })
 
-  // Verify case ownership
   const { data: caseData, error: caseErr } = await supabase
     .from('cases')
     .select('id')
     .eq('id', caseId)
-    .eq('user_id', supabaseUuid)
     .maybeSingle()
 
   if (caseErr) {

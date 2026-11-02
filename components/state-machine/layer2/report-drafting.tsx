@@ -53,7 +53,7 @@ export function ReportDrafting({
     <Card className="mx-auto max-w-lg">
       <CardContent className="space-y-6 p-6">
         {decisionPreview?.eligibility ? (
-          <div className="rounded-md border border-emerald-500/30 bg-emerald-50/40 p-3 text-sm dark:bg-emerald-950/20">
+          <div className="rounded-md border border-primary/30 bg-[var(--gb-tint-teal)] p-3 text-sm">
             <p className="font-medium">Decision ready</p>
             <p className="text-muted-foreground">
               Status: <span className="font-medium">{decisionPreview.eligibility.status}</span>

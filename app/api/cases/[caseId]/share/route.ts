@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getCurrentUser } from "@/lib/auth"
-import { createClient } from "@/lib/supabase/server"
-import { nanoid } from "nanoid"
+import { keyFrom, rateLimit } from "@/lib/rate-limit"
+import { createUserClient } from "@/lib/supabase/server"
 
 const shareSchema = z.object({
   email: z.string().email(),
@@ -10,6 +10,11 @@ const shareSchema = z.object({
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
   try {
+    const rl = rateLimit(keyFrom(request, "/api/cases/share"), 10, 60_000)
+    if (!rl.ok) {
+      return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
+    }
+
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -25,73 +30,40 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
     }
 
-    const { email } = parsed
+    const email = parsed.email.trim().toLowerCase()
     const { caseId } = await params
-
-    const supabase = await createClient()
-
-    // Ensure user has permission to invite
-    const { data: caseData } = await supabase.from("cases").select("user_id").eq("id", caseId).single()
-    const isOwner = caseData?.user_id === user.supabaseUuid
-
-    let canInvite = isOwner
-    if (!canInvite) {
-      const { data: collab } = await supabase
-        .from("case_collaborators")
-        .select("can_invite")
-        .eq("case_id", caseId)
-        .eq("user_id", user.supabaseUuid)
-        .eq("status", "active")
-        .single()
-      canInvite = Boolean(collab?.can_invite)
+    if (!z.string().uuid().safeParse(caseId).success) {
+      return NextResponse.json({ error: "Invalid case id" }, { status: 400 })
     }
 
-    if (!canInvite) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
+    const supabase = await createUserClient()
+    const { data: invitationRows, error: inviteError } = await supabase.rpc("create_case_invitation", {
+      p_case_id: caseId,
+      p_invitee_email: email,
+      p_role: "defendant",
+      p_message: null,
+    })
+
+    if (inviteError) {
+      const status = inviteError.code === "23505" ? 409 : inviteError.code === "42501" ? 403 : 500
+      return NextResponse.json(
+        { error: status === 409 ? "Invitation already pending" : status === 403 ? "Insufficient permissions" : "Failed to create invitation" },
+        { status },
+      )
     }
 
-    // Prevent duplicate pending invitations
-    const { data: existingInvite } = await supabase
-      .from("invitations")
-      .select("id")
-      .eq("case_id", caseId)
-      .eq("invitee_email", email)
-      .eq("status", "pending")
-      .maybeSingle()
-
-    if (existingInvite) {
-      return NextResponse.json({ error: "Invitation already pending" }, { status: 400 })
-    }
-
-    // Generate invitation token
-    const invitation_token = nanoid(32)
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7)
-
-    // Create read-only invitation (can_view true only)
-    const { data: invitation, error: inviteError } = await supabase
-      .from("invitations")
-      .insert({
-        case_id: caseId,
-        inviter_user_id: user.supabaseUuid,
-        invitee_email: email,
-        role: "defendant",
-        invitation_token,
-        expires_at: expiresAt.toISOString(),
-        status: "pending",
-      })
-      .select()
-      .single()
-
-    if (inviteError || !invitation) {
+    const invitation = invitationRows?.[0]
+    if (!invitation) {
       return NextResponse.json({ error: "Failed to create invitation" }, { status: 500 })
     }
+
+    const invitationToken = invitation.invitation_token
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL
     const normalizedAppUrl = appUrl
       ? appUrl.startsWith("http") ? appUrl : `https://${appUrl}`
       : "https://guidebuoyaisg.onrender.com"
-    const shareLink = `${normalizedAppUrl}/invite/${invitation_token}`
+    const shareLink = `${normalizedAppUrl}/invite/${invitationToken}`
 
     return NextResponse.json({ success: true, message: "Invitation created", shareLink })
   } catch (error) {

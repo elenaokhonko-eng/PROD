@@ -91,8 +91,9 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
       const res = await fetch("/api/privacy/delete-request", { method: "POST" })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Delete request failed")
+      setShowDeleteConfirm(false)
       // eslint-disable-next-line no-alert
-      alert("Your data has been anonymized for your cases. You can now sign out if you wish.")
+      alert("Your deletion request is pending review. No data has been deleted yet.")
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Delete request error:", error)
@@ -247,19 +248,21 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
           </Card>
 
           {/* Danger Zone */}
-          <Card className="border-red-200">
+          <Card className="border-destructive/30">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-red-800">
+              <CardTitle className="flex items-center gap-2 text-destructive">
                 <Trash2 className="h-5 w-5" />
                 Danger Zone
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h4 className="font-medium text-red-800 mb-2">Delete Account</h4>
-                <p className="text-sm text-muted-foreground mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
+                <h4 className="mb-2 font-medium text-destructive">Request Account Deletion</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Submit a deletion request for reviewed processing. Your account and data will remain available while the request is pending, and nothing is deleted automatically.
+                </p>
                 <Button onClick={handleDeleteAccount} variant={showDeleteConfirm ? "destructive" : "outline"} className="w-full">
-                  {showDeleteConfirm ? "Confirm Delete Account" : "Delete Account"}
+                  {showDeleteConfirm ? "Submit Deletion Request" : "Request Account Deletion"}
                 </Button>
                 {showDeleteConfirm && (
                   <Button onClick={() => setShowDeleteConfirm(false)} variant="outline" size="sm" className="w-full mt-2">

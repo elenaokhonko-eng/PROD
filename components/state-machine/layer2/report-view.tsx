@@ -128,7 +128,7 @@ export function ReportView({ report, decision, onDownload, actionsSlot }: Report
             {json.evidence_checklist.map((item, i) => (
               <li key={i} className="flex items-center gap-2 text-sm">
                 {item.present ? (
-                  <Check className="h-4 w-4 text-emerald-600" aria-hidden />
+                  <Check className="h-4 w-4 text-primary" aria-hidden />
                 ) : (
                   <X className="h-4 w-4 text-muted-foreground" aria-hidden />
                 )}

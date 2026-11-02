@@ -134,6 +134,13 @@ for (const file of codeFiles) {
     add("R5", file, "`v_latest_validation` is deprecated")
   }
 
+  if (
+    (rel.startsWith("app/") || rel.startsWith("lib/")) &&
+    /import\s*\{[^}]*createClient[^}]*\}\s*from\s*["']@\/lib\/supabase\/server["']/.test(text)
+  ) {
+    add("R15", file, "legacy service-role `createClient` alias must not be imported")
+  }
+
   const isLayer3Ui = rel.startsWith("components/state-machine/layer3/")
   const isContactRoute = rel === "app/api/contact-requests/route.ts"
   if ((isLayer3Ui || isContactRoute) && (text.includes("/api/edge/") || text.includes("functions/v1"))) {
@@ -155,6 +162,14 @@ for (const file of codeFiles) {
       add("R13", file, "Layer 3/contact path must not include LinkedIn CTA props/rendering")
     }
   }
+}
+
+if (codeFiles.some((file) => toPosix(path.relative(root, file)).startsWith("app/api/debug/"))) {
+  findings.push({
+    rule: "R15",
+    file: "app/api/debug",
+    detail: "debug API routes must not ship in the production route tree",
+  })
 }
 
 for (const rel of archivedFunctionFolders) {

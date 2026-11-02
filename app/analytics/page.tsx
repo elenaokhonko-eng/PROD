@@ -1,8 +1,11 @@
 import type { Metadata } from "next"
+import { notFound } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createServiceClient } from "@/lib/supabase/service"
 import { SiteHeader } from "@/components/site-header"
+import { getCurrentUser } from "@/lib/auth"
+import { createUserClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
   title: "Analytics | GuideBuoy AI",
@@ -195,6 +198,15 @@ function formatNumber(value: number | null) {
 }
 
 export default async function AnalyticsPage() {
+  const currentUser = await getCurrentUser()
+  if (!currentUser) notFound()
+
+  const userClient = await createUserClient()
+  const { data: isAdmin, error: roleError } = await userClient.rpc("current_app_has_role", {
+    p_role: "admin",
+  })
+  if (roleError || !isAdmin) notFound()
+
   const [sessions, countries, sessionCounts, sessionPeriods, funnel, registeredUsers, waitlistUsers, complaintStatus, reportStatus] =
     await Promise.all([
       fetchSessionRows(),

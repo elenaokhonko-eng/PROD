@@ -84,7 +84,7 @@ export function ReferralWidget() {
           <div className="flex gap-2">
             <Input value={referralUrl} readOnly className="font-mono text-sm" />
             <Button onClick={handleCopy} variant="outline" size="icon" className="flex-shrink-0 bg-transparent">
-              {copied ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+              {copied ? <CheckCircle className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
             </Button>
             {canShare && (
               <Button onClick={handleShare} variant="outline" size="icon" className="flex-shrink-0 bg-transparent">
@@ -93,7 +93,7 @@ export function ReferralWidget() {
             )}
           </div>
         </div>
-        <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
+        <div className="rounded-[14px] bg-[var(--gb-tint-teal)] p-3">
           <p className="text-sm font-medium mb-1">Referral Rewards:</p>
           <ul className="text-xs text-muted-foreground space-y-1">
             <li>• Your friend gets priority waitlist access</li>

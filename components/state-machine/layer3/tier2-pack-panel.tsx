@@ -20,7 +20,7 @@ export interface Tier2PackPanelProps {
 }
 
 export function Tier2PackPanel({
-  priceLabel = 'SGD $188',
+  priceLabel = 'SGD 188',
   isStartingCheckout = false,
   errorMessage,
   onClick,
@@ -34,7 +34,7 @@ export function Tier2PackPanel({
         <div className="flex-1">
           <CardTitle>Prepare your FIDReC submission</CardTitle>
           <CardDescription>
-            Upgrade to a structured Tier 2 case pack with an executive summary and chronology you can
+            Prepare a structured FIDReC Pack with an executive summary and chronology you can
             download and submit to FIDReC.
           </CardDescription>
         </div>
@@ -55,14 +55,14 @@ export function Tier2PackPanel({
         ) : null}
 
         <div className="flex items-center justify-between gap-3 pt-2">
-          <div className="text-lg font-semibold">{priceLabel}</div>
+          <div className="gb-num text-lg font-semibold">{priceLabel}</div>
           <Button onClick={onClick} disabled={isStartingCheckout} size="lg">
             {isStartingCheckout ? (
               <StateMachineLoading size="inline" title="Redirecting..." />
             ) : (
               <>
                 <FileText className="mr-2 h-4 w-4" aria-hidden />
-                Buy Tier 2 pack
+                Buy FIDReC Pack
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
               </>
             )}

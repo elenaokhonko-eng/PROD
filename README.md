@@ -2,6 +2,8 @@
 
 *Automatically synced with your [v0.app](https://v0.app) deployments*
 
+> **Current production roadmap:** [Harbor Redesign and Production Completion Plan](docs/Harbor-Redesign-Production-Plan.md). It reconciles Harbor v3 with the current state machine, commerce catalogue, and release requirements. Product approval is required before implementation begins.
+
 [![Deployed on Render](https://img.shields.io/badge/Deployed%20on-Render-blue?style=for-the-badge&logo=render)](https://guidebuoyaisg.onrender.com)
 [![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/projects/nKEJQChfLLw)
 

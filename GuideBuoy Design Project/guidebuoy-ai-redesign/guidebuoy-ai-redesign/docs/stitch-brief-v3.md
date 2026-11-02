@@ -15,7 +15,7 @@ application, and the public pages with the job and content of each.
    Grounding) matched to how the user feels right now. The mode selector
    is **present on every screen at all times**. Google Stitch must produce
    every screen in all three variants.
-3. Everything else from v2 stands: tier naming (User Pack / Bank Pack /
+3. Everything else from v2 stands: tier naming (User Pack / FI Pack /
    FIDReC Pack), page structure, global rules, and the in-force sections
    of the original master brief.
 
@@ -68,7 +68,7 @@ The business model is a three-tier ladder:
 | Tier | Customer-facing name | Price | What it is |
 |---|---|---|---|
 | Tier 0 | **User Pack** | Free | Tell your story, upload evidence, answer Lumi's focused questions, receive a free organised draft: story summary, evidence checklist, and a preliminary pathway signal. |
-| Tier 1 | **Bank Pack** | Paid (one-off; price as a design token — do not bake into imagery) | The full self-serve complaint report: chronology, disputed transactions, responsibility points, requested resolution, evidence map — structured to send to the financial institution. |
+| Tier 1 | **FI Pack** | SGD 18 one-off | The full self-serve complaint report: chronology, disputed transactions, responsibility points, requested resolution, evidence map — structured to send to the financial institution. |
 | Tier 2 | **FIDReC Pack** | SGD 800 one-off case-pack preparation; optional SGD 99 thirty-minute Scam & Fraud Specialist consultation | Human-assisted preparation of the FIDReC submission after the bank's final response or the four-week waiting period. |
 
 The helper stays free at the entry point. Paid help activates only when the
@@ -182,7 +182,7 @@ Grounding canvas itself as its own screen.
 7. Never colour alone for status — always colour + icon + label + text.
 8. Never expose internal terms (edge function, RPC, Supabase, job row,
    Tier 0/1/2 internals, state-machine nodes, "low-sensory mode") to end
-   users. Customer-facing names: **User Pack**, **Bank Pack**, **FIDReC
+   users. Customer-facing names: **User Pack**, **FI Pack**, **FIDReC
    Pack**; **Steady / Quiet / "I need a moment"**.
 9. Distinguish clearly between: extracted information, user-confirmed
    information, preliminary guidance, the final report, and human
@@ -235,7 +235,7 @@ Quiet, and Grounding variants**:
   draft preparation, free draft ready (story summary, evidence checklist,
   preliminary pathway signal).
 - **Family E** — upgrade gate and Stripe checkout: eligible card, blocked
-  prerequisite, plan choice (**Bank Pack**), redirect, success, cancelled,
+  prerequisite, plan choice (**FI Pack**), redirect, success, cancelled,
   delayed confirmation.
 - **Family F** — report generation: last-chance update, reprocessing,
   analysing, drafting, slow/background, payment-safe failure, reconnection.
@@ -281,7 +281,7 @@ to trust; the six-step journey in one glance; one primary CTA
 **Job:** explain the journey from story to resolution path without jargon.
 **Content:** the six steps (Tell Lumi → Sign up & add proof → Lumi's short
 Q&A → your free draft in the Report Hub → choose your next step → human
-help if you want it); what the free stage includes; where the Bank Pack
+help if you want it); what the free stage includes; where the FI Pack
 and FIDReC Pack fit; the Singapore pathways in plain words; the four-week
 tracker.
 
@@ -289,7 +289,7 @@ tracker.
 
 **Job:** make the three packs comparable at a glance; remove fear of
 hidden charges.
-**Content:** **User Pack (Free)**, **Bank Pack (one-off)**, **FIDReC Pack
+**Content:** **User Pack (Free)**, **FI Pack (SGD 18 one-off)**, **FIDReC Pack
 (SGD 800 + optional SGD 99 consult)**; who each is for; includes and
 explicit "does not include"; one-off payment reassurance; no outcome
 guarantees; refund policy; primary CTA "Start free".
@@ -341,7 +341,7 @@ component, so `pages/*.md` needs no v3 changes.*
 > Singapore escalation path (bank, FIDReC, IMDA/telco, Police,
 > ScamShield), organises their evidence, asks focused gap questions, and
 > generates a free organised draft (the **User Pack**), then an optional
-> paid full complaint report for their bank (the **Bank Pack**, one-off
+> paid full complaint report for their financial institution (the **FI Pack**, SGD 18 one-off
 > via Stripe), then optional human help for FIDReC (the **FIDReC Pack** —
 > handoff request, SGD 99 specialist consultation, SGD 800 case-pack
 > preparation).
@@ -390,7 +390,7 @@ component, so `pages/*.md` needs no v3 changes.*
 > PDF/PNG/JPEG/DOCX validation and per-document
 > pending/reading/verifying/organising/extracting/ready/failed states;
 > gap-question workspace (two-column desktop, tabbed mobile); free User
-> Pack draft; Bank Pack eligibility gate, plan choice, Stripe redirect,
+> Pack draft; FI Pack eligibility gate, plan choice, Stripe redirect,
 > success/cancelled/delayed states; report analysing and drafting stages;
 > payment-safe failure recovery; full report hub (summary, chronology,
 > transactions, totals, responsibility points, requested resolution,
@@ -418,10 +418,9 @@ component, so `pages/*.md` needs no v3 changes.*
 
 Carried over — lock before production sign-off:
 
-- final **Bank Pack** price and bundle naming (keep as a token);
+- **Resolved 27 Aug 2026:** FI Pack is SGD 18 and is the Tier 1 customer-facing name;
 - whether DOCX is fully supported by the production evidence processor;
-- one consistent customer-facing name for the paid report ("Bank Pack"
-  recommended);
+- **Resolved 27 Aug 2026:** use "FI Pack" consistently for the paid financial-institution report;
 - whether the free draft auto-generates or waits for explicit CTA;
 - notification behaviour when background generation continues after the
   user leaves;

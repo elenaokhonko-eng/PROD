@@ -196,15 +196,9 @@ export default function PathEPage() {
                       </p>
                       <div className="flex flex-col gap-1">
                         <span>
-                          SAGE Counselling:{" "}
-                          <a href="tel:18005555555" className="underline text-primary">
-                            1800-555-5555
-                          </a>
-                        </span>
-                        <span>
-                          National Care Hotline:{" "}
-                          <a href="tel:18002026868" className="underline text-primary">
-                            1800-202-6868
+                          national mindline:{" "}
+                          <a href="tel:1771" className="underline text-primary">
+                            1771
                           </a>
                         </span>
                         <a
@@ -276,13 +270,9 @@ export default function PathEPage() {
               <a href="tel:1767" className="underline">
                 1767
               </a>{" "}
-              · SAGE:{" "}
-              <a href="tel:18005555555" className="underline">
-                1800-555-5555
-              </a>{" "}
-              · National Care Hotline:{" "}
-              <a href="tel:18002026868" className="underline">
-                1800-202-6868
+              · national mindline:{" "}
+              <a href="tel:1771" className="underline">
+                1771
               </a>
             </p>
           </div>

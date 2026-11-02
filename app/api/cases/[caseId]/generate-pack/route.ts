@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai"
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib"
 import { getCurrentUser } from "@/lib/auth"
-import { createClient } from "@/lib/supabase/server"
+import { createUserClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
 const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY
@@ -32,7 +32,7 @@ type FidrecCaseSummaryOutput = {
 }
 
 async function checkCaseAccess(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Awaited<ReturnType<typeof createUserClient>>,
   caseId: string,
   userId: string,
 ): Promise<boolean> {
@@ -80,7 +80,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ ca
   console.log(`[Generate Pack] Authenticated user: ${userId}`)
 
   try {
-    const supabase = await createClient()
+    const supabase = await createUserClient()
 
     const hasAccess = await checkCaseAccess(supabase, caseId, userId)
     if (!hasAccess) {
@@ -414,8 +414,6 @@ Important: strength must be honest. If the user has no police report and no bank
     if (!downloadUrl) {
       throw new Error("Failed to retrieve signed URL after generation.")
     }
-
-    console.log(`[Generate Pack] Signed URL generated: ${downloadUrl}`)
 
     return NextResponse.json({ downloadUrl })
   } catch (error) {

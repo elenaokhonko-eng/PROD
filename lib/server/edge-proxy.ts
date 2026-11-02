@@ -3,8 +3,8 @@
  * boundary described in `docs/Front-to-Back-End-Integration-Summary.md §9.2`.
  *
  * Every `/api/edge/*` route delegates to `proxyEdgeFunction(...)`. This keeps
- * auth (Clerk JWT → Pattern C), ownership probe (user-scoped SELECT enforced
- * by RLS), service-role fanout, and response forwarding in one place.
+ * auth (Clerk JWT → Pattern C), edit-permission probe, service-role fanout,
+ * and response forwarding in one place.
  *
  * Reference implementation — do NOT duplicate this logic per route.
  */
@@ -32,12 +32,11 @@ export interface ProxyOptions {
    */
   caseIdField?: string | null
   /**
-   * Custom ownership probe, used when `case_id` is not directly in the body
-   * (e.g. evidence routes POST `document_id`; we still need to prove the
-   * user owns the parent case).
+   * Custom authorization probe, used when `case_id` is not directly in the
+   * body. It must require edit permission for these mutating edge functions.
    *
    * Must return `{ ok: true }` if the user may proceed, `{ ok: false, status }`
-   * otherwise. Runs with the user-scoped client (RLS enforced).
+   * otherwise. Runs with the user-scoped client.
    */
   probe?: (
     userClient: Awaited<ReturnType<typeof createUserClient>>,
@@ -47,8 +46,8 @@ export interface ProxyOptions {
 
 /**
  * Proxy a request to a Supabase edge function with Pattern C auth + RLS
- * ownership probe + service-role outbound. Returns a `Response` that the
- * `/api/edge/*` route handler can return directly.
+ * edit-permission probe + service-role outbound. Returns a `Response` that
+ * the `/api/edge/*` route handler can return directly.
  */
 export async function proxyEdgeFunction({
   fnName,
@@ -83,10 +82,9 @@ export async function proxyEdgeFunction({
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 2b) Ownership probe (RLS enforced). Either the default "case_id ∈ cases"
-    //     probe or a custom probe supplied by the caller. Missing probes
-    //     short-circuit with 400 so nobody accidentally ships an unprobed
-    //     wrapper.
+    // 2b) Require edit permission before invoking a mutating edge function.
+    //     Missing probes short-circuit so nobody accidentally ships an
+    //     unprobed wrapper.
     const userClient = await createUserClient()
 
     if (probe) {
@@ -106,18 +104,12 @@ export async function proxyEdgeFunction({
         )
       }
 
-      const { data: own, error: ownErr } = await userClient
-        .from('cases')
-        .select('id')
-        .eq('id', caseId)
-        .maybeSingle()
+      const { data: canEdit, error: permissionError } = await userClient.rpc(
+        'app_case_permission',
+        { p_case_id: caseId, p_permission: 'edit' },
+      )
 
-      if (ownErr) {
-        // RLS denial typically surfaces as either no row or an error — both
-        // treated as 404 to avoid leaking the existence of the case.
-        return NextResponse.json({ error: 'Not found' }, { status: 404 })
-      }
-      if (!own) {
+      if (permissionError || canEdit !== true) {
         return NextResponse.json({ error: 'Not found' }, { status: 404 })
       }
     } else {
