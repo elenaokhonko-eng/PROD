@@ -63,8 +63,11 @@ test('resources page enforces unavailable + retry behavior when API is down', as
 })
 
 test('resources page renders loading and ready/filter states when API responds', async ({ page }) => {
+  // Hold the response until the loading state has been seen, so slow hydration cannot skip it.
+  let releaseResponse: () => void = () => {}
+  const responseReleased = new Promise<void>((resolve) => { releaseResponse = resolve })
   await page.route('**/api/resources**', async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 120))
+    await responseReleased
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -84,6 +87,7 @@ test('resources page renders loading and ready/filter states when API responds',
 
   await page.goto('/resources', { waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('heading', { name: 'Loading official resources…' })).toBeVisible()
+  releaseResponse()
   await expect(page.getByRole('heading', { name: 'Official resource directory' })).toBeVisible()
 
   const filter = page.getByLabel('Filter verified resources')
