@@ -5,8 +5,10 @@ import { EVIDENCE_FN, EXTRACT_FN } from "../lib/edge-functions.ts"
 
 const CASE_ID = "688154e7-9cda-47ef-9cff-a27581766c3a"
 const STORAGE_BUCKET = "case_evidence"
-const STORAGE_PATH = `cases/${CASE_ID}/documents/REDACTED`
-const ORIGINAL_FILENAME = "REDACTED"
+// Real uploaded filenames are personal data; supply the file name locally, never commit it.
+const ORIGINAL_FILENAME = process.env.HARBOR_DEV_POLICE_REPORT_FILENAME ?? ""
+if (!ORIGINAL_FILENAME) throw new Error("Set HARBOR_DEV_POLICE_REPORT_FILENAME to the uploaded police report file name")
+const STORAGE_PATH = `cases/${CASE_ID}/documents/${ORIGINAL_FILENAME}`
 
 async function callEdgeFunction(fnName: string, body: Record<string, unknown>) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
