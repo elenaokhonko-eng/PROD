@@ -1,0 +1,10 @@
+{
+  "case_id": "00000000-0000-4000-8000-000000000001",
+  "claimant_name": "Alex Example",
+  "loss_amount": "S$12,345.67",
+  "deposit_loss": "S$10,000.00",
+  "card_loss": "S$2,345.67",
+  "institution": "Example Bank",
+  "bank_decision": "rejected",
+  "must_not_contain": ["Synthetic Placeholder Person"]
+}

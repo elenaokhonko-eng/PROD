@@ -1,0 +1,469 @@
+{
+  "caseId": "00000000-0000-4000-8000-000000000001",
+  "generatedAt": "2026-01-15T09:00:00.000Z",
+  "counts": {
+    "bankAssertions": 3,
+    "caseFindings": 3,
+    "links": 9,
+    "investigationQuestions": 3,
+    "evidenceRequests": 3
+  },
+  "bankAssertions": [
+    {
+      "assertion_text": "Synthetic assertion text 1 for a fictional claimant and bank.",
+      "assertion_type": "technical",
+      "bank_conclusion_supported": "Synthetic bank conclusion supported 2 for a fictional claimant and bank."
+    },
+    {
+      "assertion_text": "Synthetic assertion text 3 for a fictional claimant and bank.",
+      "assertion_type": "technical",
+      "bank_conclusion_supported": "Synthetic bank conclusion supported 4 for a fictional claimant and bank."
+    },
+    {
+      "assertion_text": "Synthetic assertion text 5 for a fictional claimant and bank.",
+      "assertion_type": "technical",
+      "bank_conclusion_supported": "Synthetic bank conclusion supported 6 for a fictional claimant and bank."
+    }
+  ],
+  "caseFindings": [
+    {
+      "finding_text": "Synthetic finding text 7 for a fictional claimant and bank.",
+      "finding_type": "transaction_pattern",
+      "confidence": "high"
+    },
+    {
+      "finding_text": "Synthetic finding text 8 for a fictional claimant and bank.",
+      "finding_type": "authentication",
+      "confidence": "high"
+    },
+    {
+      "finding_text": "Synthetic finding text 9 for a fictional claimant and bank.",
+      "finding_type": "notification",
+      "confidence": "high"
+    }
+  ],
+  "links": [
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 10 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 11 for a fictional claimant and bank.",
+      "relationship": "requires_particulars",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 12 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 13 for a fictional claimant and bank.",
+      "relationship": "requires_particulars",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 14 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 15 for a fictional claimant and bank.",
+      "relationship": "requires_particulars",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 16 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 17 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 18 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 19 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 20 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 21 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 22 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 23 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 24 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 25 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 26 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 27 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    }
+  ],
+  "investigationQuestions": [
+    {
+      "question_text": "Synthetic question text 28 for a fictional claimant and bank.",
+      "question_type": "authentication_gap",
+      "priority": "critical"
+    },
+    {
+      "question_text": "Synthetic question text 29 for a fictional claimant and bank.",
+      "question_type": "containment_gap",
+      "priority": "medium"
+    },
+    {
+      "question_text": "Synthetic question text 30 for a fictional claimant and bank.",
+      "question_type": "chronology_gap",
+      "priority": "medium"
+    }
+  ],
+  "evidenceRequests": [
+    {
+      "request_text": "Synthetic request text 31 for a fictional claimant and bank.",
+      "evidence_category": "authentication_record",
+      "requested_from": "bank",
+      "priority": "critical"
+    },
+    {
+      "request_text": "Synthetic request text 32 for a fictional claimant and bank.",
+      "evidence_category": "other",
+      "requested_from": "bank",
+      "priority": "medium"
+    },
+    {
+      "request_text": "Synthetic request text 33 for a fictional claimant and bank.",
+      "evidence_category": "hotline_record",
+      "requested_from": "bank",
+      "priority": "medium"
+    }
+  ],
+  "submission_pack": {
+    "case_id": "00000000-0000-4000-8000-000000000001",
+    "generated_at": "2026-01-15T09:00:00.000Z",
+    "pack_version": "Synthetic pack version 34 for a fictional claimant and bank.",
+    "executive_summary": {
+      "narrative": "Synthetic narrative 35 for a fictional claimant and bank."
+    },
+    "chronology_of_events": [
+      {
+        "event_date": "2026-01-15T09:00:00.000Z",
+        "event_time": null,
+        "event_description": "Synthetic event description 36 for a fictional claimant and bank.",
+        "evidence_labels": [
+          "Synthetic evidence labels 37 for a fictional claimant and bank."
+        ],
+        "sort_order": 0
+      },
+      {
+        "event_date": "2026-01-15T09:00:00.000Z",
+        "event_time": null,
+        "event_description": "Synthetic event description 38 for a fictional claimant and bank.",
+        "evidence_labels": [
+          "Synthetic evidence labels 39 for a fictional claimant and bank."
+        ],
+        "sort_order": 0
+      },
+      {
+        "event_date": "2026-01-15T09:00:00.000Z",
+        "event_time": "Synthetic event time 40 for a fictional claimant and bank.",
+        "event_description": "Synthetic event description 41 for a fictional claimant and bank.",
+        "evidence_labels": [
+          "Synthetic evidence labels 42 for a fictional claimant and bank."
+        ],
+        "sort_order": 0
+      },
+      {
+        "event_date": "2026-01-15T09:00:00.000Z",
+        "event_time": "Synthetic event time 43 for a fictional claimant and bank.",
+        "event_description": "Synthetic event description 44 for a fictional claimant and bank.",
+        "evidence_labels": [
+          "Synthetic evidence labels 45 for a fictional claimant and bank."
+        ],
+        "sort_order": 0
+      },
+      {
+        "event_date": "2026-01-15T09:00:00.000Z",
+        "event_time": "Synthetic event time 46 for a fictional claimant and bank.",
+        "event_description": "Synthetic event description 47 for a fictional claimant and bank.",
+        "evidence_labels": [
+          "Synthetic evidence labels 48 for a fictional claimant and bank."
+        ],
+        "sort_order": 0
+      },
+      {
+        "event_date": "2026-01-15T09:00:00.000Z",
+        "event_time": "Synthetic event time 49 for a fictional claimant and bank.",
+        "event_description": "Synthetic event description 50 for a fictional claimant and bank.",
+        "evidence_labels": [
+          "Synthetic evidence labels 51 for a fictional claimant and bank."
+        ],
+        "sort_order": 0
+      },
+      {
+        "event_date": "2026-01-15T09:00:00.000Z",
+        "event_time": "Synthetic event time 52 for a fictional claimant and bank.",
+        "event_description": "Synthetic event description 53 for a fictional claimant and bank.",
+        "evidence_labels": [
+          "Synthetic evidence labels 54 for a fictional claimant and bank."
+        ],
+        "sort_order": 0
+      },
+      {
+        "event_date": "2026-01-15T09:00:00.000Z",
+        "event_time": null,
+        "event_description": "Synthetic event description 55 for a fictional claimant and bank.",
+        "evidence_labels": [
+          "Synthetic evidence labels 56 for a fictional claimant and bank."
+        ],
+        "sort_order": 0
+      },
+      {
+        "event_date": null,
+        "event_time": null,
+        "event_description": "Synthetic event description 57 for a fictional claimant and bank.",
+        "evidence_labels": [
+          "Synthetic evidence labels 58 for a fictional claimant and bank."
+        ],
+        "sort_order": 0
+      },
+      {
+        "event_date": null,
+        "event_time": null,
+        "event_description": "Synthetic event description 59 for a fictional claimant and bank.",
+        "evidence_labels": [
+          "Synthetic evidence labels 60 for a fictional claimant and bank."
+        ],
+        "sort_order": 0
+      },
+      {
+        "event_date": null,
+        "event_time": null,
+        "event_description": "Synthetic event description 61 for a fictional claimant and bank.",
+        "evidence_labels": [
+          "Synthetic evidence labels 62 for a fictional claimant and bank."
+        ],
+        "sort_order": 0
+      }
+    ],
+    "customer_position": {
+      "narrative": "Synthetic narrative 63 for a fictional claimant and bank.",
+      "points": [
+        {
+          "statement": "Synthetic statement 64 for a fictional claimant and bank.",
+          "evidence_labels": [
+            "Synthetic evidence labels 65 for a fictional claimant and bank."
+          ]
+        },
+        {
+          "statement": "Synthetic statement 66 for a fictional claimant and bank.",
+          "evidence_labels": [
+            "Synthetic evidence labels 67 for a fictional claimant and bank.",
+            "Synthetic evidence labels 68 for a fictional claimant and bank.",
+            "Synthetic evidence labels 69 for a fictional claimant and bank."
+          ]
+        },
+        {
+          "statement": "Synthetic statement 70 for a fictional claimant and bank.",
+          "evidence_labels": [
+            "Synthetic evidence labels 71 for a fictional claimant and bank.",
+            "Synthetic evidence labels 72 for a fictional claimant and bank.",
+            "Synthetic evidence labels 73 for a fictional claimant and bank.",
+            "Synthetic evidence labels 74 for a fictional claimant and bank.",
+            "Synthetic evidence labels 75 for a fictional claimant and bank."
+          ]
+        }
+      ]
+    },
+    "bank_position": {
+      "summary": "Synthetic summary 76 for a fictional claimant and bank.",
+      "assertions": [
+        {
+          "statement": "Synthetic statement 77 for a fictional claimant and bank.",
+          "evidence_labels": []
+        },
+        {
+          "statement": "Synthetic statement 78 for a fictional claimant and bank.",
+          "evidence_labels": []
+        },
+        {
+          "statement": "Synthetic statement 79 for a fictional claimant and bank.",
+          "evidence_labels": []
+        }
+      ]
+    },
+    "issues_in_dispute": [
+      {
+        "issue_title": "Synthetic issue title 80 for a fictional claimant and bank.",
+        "explanation": "Synthetic explanation 81 for a fictional claimant and bank.",
+        "customer_position": "Synthetic customer position 82 for a fictional claimant and bank.",
+        "bank_position": "Synthetic bank position 83 for a fictional claimant and bank.",
+        "evidence_available": [
+          "Synthetic evidence available 84 for a fictional claimant and bank.",
+          "Synthetic evidence available 85 for a fictional claimant and bank."
+        ],
+        "evidence_required": [
+          "Synthetic evidence required 86 for a fictional claimant and bank."
+        ]
+      },
+      {
+        "issue_title": "Synthetic issue title 87 for a fictional claimant and bank.",
+        "explanation": "Synthetic explanation 88 for a fictional claimant and bank.",
+        "customer_position": "Synthetic customer position 89 for a fictional claimant and bank.",
+        "bank_position": "Synthetic bank position 90 for a fictional claimant and bank.",
+        "evidence_available": [
+          "Synthetic evidence available 91 for a fictional claimant and bank."
+        ],
+        "evidence_required": [
+          "Synthetic evidence required 92 for a fictional claimant and bank."
+        ]
+      },
+      {
+        "issue_title": "Synthetic issue title 93 for a fictional claimant and bank.",
+        "explanation": "Synthetic explanation 94 for a fictional claimant and bank.",
+        "customer_position": "Synthetic customer position 95 for a fictional claimant and bank.",
+        "bank_position": "Synthetic bank position 96 for a fictional claimant and bank.",
+        "evidence_available": [
+          "Synthetic evidence available 97 for a fictional claimant and bank.",
+          "Synthetic evidence available 98 for a fictional claimant and bank.",
+          "Synthetic evidence available 99 for a fictional claimant and bank."
+        ],
+        "evidence_required": [
+          "Synthetic evidence required 100 for a fictional claimant and bank."
+        ]
+      }
+    ],
+    "evidence_bundle": [
+      {
+        "evidence_label": "Synthetic evidence label 101 for a fictional claimant and bank.",
+        "title": "Synthetic title 102 for a fictional claimant and bank.",
+        "summary": "Synthetic summary 103 for a fictional claimant and bank.",
+        "why_it_matters": "Synthetic why it matters 104 for a fictional claimant and bank.",
+        "supports_issues": [
+          "Synthetic supports issues 105 for a fictional claimant and bank."
+        ],
+        "importance": "high"
+      },
+      {
+        "evidence_label": "Synthetic evidence label 106 for a fictional claimant and bank.",
+        "title": "Synthetic title 107 for a fictional claimant and bank.",
+        "summary": "Synthetic summary 108 for a fictional claimant and bank.",
+        "why_it_matters": "Synthetic why it matters 109 for a fictional claimant and bank.",
+        "supports_issues": [
+          "Synthetic supports issues 110 for a fictional claimant and bank."
+        ],
+        "importance": "medium"
+      },
+      {
+        "evidence_label": "Synthetic evidence label 111 for a fictional claimant and bank.",
+        "title": "Synthetic title 112 for a fictional claimant and bank.",
+        "summary": "Synthetic summary 113 for a fictional claimant and bank.",
+        "why_it_matters": "Synthetic why it matters 114 for a fictional claimant and bank.",
+        "supports_issues": [
+          "Synthetic supports issues 115 for a fictional claimant and bank."
+        ],
+        "importance": "medium"
+      },
+      {
+        "evidence_label": "Synthetic evidence label 116 for a fictional claimant and bank.",
+        "title": "Synthetic title 117 for a fictional claimant and bank.",
+        "summary": "Synthetic summary 118 for a fictional claimant and bank.",
+        "why_it_matters": "Synthetic why it matters 119 for a fictional claimant and bank.",
+        "supports_issues": [
+          "Synthetic supports issues 120 for a fictional claimant and bank."
+        ],
+        "importance": "low"
+      },
+      {
+        "evidence_label": "Synthetic evidence label 121 for a fictional claimant and bank.",
+        "title": "Synthetic title 122 for a fictional claimant and bank.",
+        "summary": "Synthetic summary 123 for a fictional claimant and bank.",
+        "why_it_matters": "Synthetic why it matters 124 for a fictional claimant and bank.",
+        "supports_issues": [
+          "Synthetic supports issues 125 for a fictional claimant and bank."
+        ],
+        "importance": "high"
+      },
+      {
+        "evidence_label": "Synthetic evidence label 126 for a fictional claimant and bank.",
+        "title": "Synthetic title 127 for a fictional claimant and bank.",
+        "summary": "Synthetic summary 128 for a fictional claimant and bank.",
+        "why_it_matters": "Synthetic why it matters 129 for a fictional claimant and bank.",
+        "supports_issues": [
+          "Synthetic supports issues 130 for a fictional claimant and bank."
+        ],
+        "importance": "medium"
+      },
+      {
+        "evidence_label": "Synthetic evidence label 131 for a fictional claimant and bank.",
+        "title": "Synthetic title 132 for a fictional claimant and bank.",
+        "summary": "Synthetic summary 133 for a fictional claimant and bank.",
+        "why_it_matters": "Synthetic why it matters 134 for a fictional claimant and bank.",
+        "supports_issues": [],
+        "importance": "low"
+      }
+    ],
+    "outstanding_evidence": {
+      "requested_from_bank": [
+        "Synthetic requested from bank 135 for a fictional claimant and bank.",
+        "Synthetic requested from bank 136 for a fictional claimant and bank.",
+        "Synthetic requested from bank 137 for a fictional claimant and bank."
+      ],
+      "requested_from_customer": []
+    },
+    "applicable_regulatory_framework": {
+      "introductory_text": "Synthetic introductory text 138 for a fictional claimant and bank.",
+      "provisions": [
+        {
+          "document_name": "Synthetic document name 139 for a fictional claimant and bank.",
+          "clause_reference": "Synthetic clause reference 140 for a fictional claimant and bank.",
+          "clause_title": "Synthetic clause title 141 for a fictional claimant and bank."
+        },
+        {
+          "document_name": "Synthetic document name 142 for a fictional claimant and bank.",
+          "clause_reference": "Synthetic clause reference 143 for a fictional claimant and bank.",
+          "clause_title": "Synthetic clause title 144 for a fictional claimant and bank."
+        },
+        {
+          "document_name": "Synthetic document name 145 for a fictional claimant and bank.",
+          "clause_reference": "Synthetic clause reference 146 for a fictional claimant and bank.",
+          "clause_title": "Synthetic clause title 147 for a fictional claimant and bank."
+        }
+      ]
+    },
+    "annexures": [
+      {
+        "annexure_label": "Synthetic annexure label 148 for a fictional claimant and bank.",
+        "evidence_label": "Synthetic evidence label 149 for a fictional claimant and bank.",
+        "title": "Synthetic title 150 for a fictional claimant and bank."
+      },
+      {
+        "annexure_label": "Synthetic annexure label 151 for a fictional claimant and bank.",
+        "evidence_label": "Synthetic evidence label 152 for a fictional claimant and bank.",
+        "title": "Synthetic title 153 for a fictional claimant and bank."
+      },
+      {
+        "annexure_label": "Synthetic annexure label 154 for a fictional claimant and bank.",
+        "evidence_label": "Synthetic evidence label 155 for a fictional claimant and bank.",
+        "title": "Synthetic title 156 for a fictional claimant and bank."
+      },
+      {
+        "annexure_label": "Synthetic annexure label 157 for a fictional claimant and bank.",
+        "evidence_label": "Synthetic evidence label 158 for a fictional claimant and bank.",
+        "title": "Synthetic title 159 for a fictional claimant and bank."
+      },
+      {
+        "annexure_label": "Synthetic annexure label 160 for a fictional claimant and bank.",
+        "evidence_label": "Synthetic evidence label 161 for a fictional claimant and bank.",
+        "title": "Synthetic title 162 for a fictional claimant and bank."
+      },
+      {
+        "annexure_label": "Synthetic annexure label 163 for a fictional claimant and bank.",
+        "evidence_label": "Synthetic evidence label 164 for a fictional claimant and bank.",
+        "title": "Synthetic title 165 for a fictional claimant and bank."
+      },
+      {
+        "annexure_label": "Synthetic annexure label 166 for a fictional claimant and bank.",
+        "evidence_label": "Synthetic evidence label 167 for a fictional claimant and bank.",
+        "title": "Synthetic title 168 for a fictional claimant and bank."
+      }
+    ]
+  }
+}
