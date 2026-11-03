@@ -83,10 +83,9 @@ once. Each check query takes your sign-up email: replace `you+clerk_test@example
 
 ## 8. Privacy, invitations, public pages
 - [ ] `/app/settings` → **Export my data**: a download starts and contains only your own data.
-- [ ] `/app/settings` → **Delete my account** (use a throwaway sign-up, not the one you are testing with):
-  ```sql
-  select status, requested_at from privacy_deletion_requests order by requested_at desc limit 1;
-  ```
+- [ ] `/app/settings` → **Data deletion**: the card says the reviewed deletion workflow is not currently available,
+      and the request button does not delete anything. (Self-service deletion is intentionally switched off in this
+      release.)
 - [ ] From a case, **invite a collaborator** (a second `+clerk_test@example.com` address). Open the invite in a
       private window, sign up, accept: the collaborator sees that case only.
 - [ ] Signed out, check `/`, `/pricing`, `/how-it-works`, `/privacy`, `/terms`: content and links look right, and
