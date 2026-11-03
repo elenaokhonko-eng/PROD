@@ -5,6 +5,9 @@ import { expectNoHorizontalOverflow, monitorClientErrors } from '../helpers/page
 
 test('preview serves the public release surface without production redirects', async ({ page }) => {
   for (const route of marketingRoutes) {
+    // Unload the previous route before monitoring the next one: the browser logs that page's cancelled link
+    // prefetches and page_view beacon as console errors while it unloads, and they belong to neither route.
+    await page.goto('about:blank')
     const errors = monitorClientErrors(page)
     await gotoWithoutProductionRedirect(page, route.path)
     await expect(page.getByRole('heading', { name: route.landmark }).first()).toBeVisible()
