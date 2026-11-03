@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { qk } from '@/hooks/state-machine/query-keys'
 import { useSupabaseBrowser } from '@/hooks/state-machine/use-supabase-browser'
-import type { CaseDocumentRow } from '@/lib/types/documents'
+import { CASE_DOCUMENT_SELECT, type CaseDocumentRow } from '@/lib/types/documents'
 
 export interface UseCaseDocumentsRealtimeOptions {
   enabled?: boolean
@@ -24,11 +24,9 @@ export function useCaseDocumentsRealtime(
     queryFn: async () => {
       const { data, error } = await supabase
         .from('case_documents')
-        .select(
-          'id, case_id, created_at, updated_at, filename, original_filename, file_size, mime_type, document_type, exhibit_label, upload_date, file_url, is_processed, sha256, processing_status, processing_error, verified_document_type, verification_status, verification_confidence, content_latest_id, storage_provider, storage_bucket, storage_path',
-        )
+        .select(CASE_DOCUMENT_SELECT)
         .eq('case_id', caseId as string)
-        .order('created_at', { ascending: false })
+        .order('upload_date', { ascending: false })
 
       if (error) throw error
       return (data ?? []) as CaseDocumentRow[]

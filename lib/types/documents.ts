@@ -65,3 +65,9 @@ export interface EvidenceResponse {
   processing_status?: DocumentProcessingStatus
   error?: string
 }
+
+// Columns the dashboard reads from case_documents, kept as one literal so the typed Supabase client can infer rows.
+// tests/database/client-columns.test.sql checks each one exists in the migrated schema (the table has no created_at;
+// upload_date is the upload time).
+export const CASE_DOCUMENT_SELECT =
+  'id, case_id, updated_at, filename, original_filename, file_size, mime_type, document_type, exhibit_label, upload_date, file_url, is_processed, sha256, processing_status, processing_error, verified_document_type, verification_status, verification_confidence, content_latest_id, storage_provider, storage_bucket, storage_path'

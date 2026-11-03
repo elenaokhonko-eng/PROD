@@ -110,6 +110,8 @@ jobs:
         run: supabase test db tests/database/pattern-c-rls.test.sql
       - name: Security baseline (RLS, anon writes, views, buckets)
         run: supabase test db tests/database/security-baseline.test.sql
+      - name: Browser-selected columns exist
+        run: supabase test db tests/database/client-columns.test.sql
 
   playwright-public:
     name: Playwright public UI
