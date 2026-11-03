@@ -2,6 +2,7 @@ import { appendFileSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import { chromium, request } from '@playwright/test'
+import { assertClerkSessionActive } from './check-harbor-auth-states'
 
 const shaPattern = /^[0-9a-f]{40}$/i
 const defaultProductionHosts = ['guidebuoyaisg.onrender.com', 'guidebuoyai.sg', 'www.guidebuoyai.sg']
@@ -37,13 +38,7 @@ async function main() {
 
   try {
     const context = await browser.newContext({ baseURL: baseUrl.origin, storageState: storageStatePath })
-    const page = await context.newPage()
-    await page.goto('/', { waitUntil: 'domcontentloaded' })
-    await page.waitForFunction(
-      () => Boolean((window as typeof window & { Clerk?: { session?: unknown } }).Clerk?.session),
-      undefined,
-      { timeout: 60_000 },
-    )
+    await assertClerkSessionActive(await context.newPage(), 'HARBOR_AUTH_STORAGE_STATE_USER_A_BASE64')
     const response = await context.request.get('/api/health/release', {
       maxRedirects: 0,
       headers: { accept: 'application/json' },

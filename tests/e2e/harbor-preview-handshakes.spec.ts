@@ -23,6 +23,7 @@ const requiredEnvironment = [
   "HARBOR_PREVIEW_SUPABASE_ANON_KEY",
   "HARBOR_PREVIEW_SUPABASE_SERVICE_ROLE_KEY",
   "HARBOR_PREVIEW_DATABASE_URL",
+  "HARBOR_PREVIEW_DB_CA",
   "HARBOR_PREVIEW_STRIPE_WEBHOOK_SECRET",
   "HARBOR_PREVIEW_EMAIL_SINK",
   "HARBOR_PREVIEW_CONFIRM_SUPABASE_REF",
@@ -96,9 +97,11 @@ test.describe("Harbor preview integration handshakes", () => {
     if (databaseUrl.protocol !== "postgres:" && databaseUrl.protocol !== "postgresql:") {
       throw new Error("HARBOR_PREVIEW_DATABASE_URL must be a PostgreSQL connection URL.")
     }
-    const sslMode = databaseUrl.searchParams.get("sslmode")?.toLowerCase()
-    if (!sslMode || !["require", "verify-ca", "verify-full"].includes(sslMode)) {
-      throw new Error("HARBOR_PREVIEW_DATABASE_URL must require TLS with a secure sslmode.")
+    if (databaseUrl.searchParams.get("sslmode")?.toLowerCase() !== "verify-full") {
+      throw new Error("HARBOR_PREVIEW_DATABASE_URL must use sslmode=verify-full.")
+    }
+    if (!requiredEnv("HARBOR_PREVIEW_DB_CA").includes("-----BEGIN CERTIFICATE-----")) {
+      throw new Error("HARBOR_PREVIEW_DB_CA must contain the Supabase CA certificate in PEM form.")
     }
     const databaseTargetParts = [databaseUrl.hostname, decodeURIComponent(databaseUrl.username)]
       .flatMap((value) => value.toLowerCase().split("."))
@@ -262,7 +265,7 @@ test.describe("Harbor preview integration handshakes", () => {
 
   test("confirms the Pattern C migration, ACLs, and transactional rollback", async ({ page }) => {
     const { profileId } = await authenticatedIdentity(page)
-    const client = new pg.Client({ connectionString: requiredEnv("HARBOR_PREVIEW_DATABASE_URL") })
+    const client = previewDatabaseClient()
     await client.connect()
 
     try {
@@ -625,6 +628,18 @@ async function collectDisposableIds(table: string, caseId: string) {
     .eq("case_id", requireUuid(caseId, "disposable case id"))
   if (error) throw new Error(`Unable to collect disposable ${table} ids: ${error.message}`)
   return (data ?? []).map((row) => requireUuid(String(row.id), `${table} id`))
+}
+
+// The Supabase pooler certificate chains to the Supabase Root 2021 CA, which Node doesn't trust by default, so verify
+// against HARBOR_PREVIEW_DB_CA with hostname checking. The TLS parameters are removed from the URL because pg would
+// otherwise rebuild its ssl options from them and drop the CA.
+function previewDatabaseClient() {
+  const url = new URL(requiredEnv("HARBOR_PREVIEW_DATABASE_URL"))
+  for (const parameter of ["sslmode", "sslrootcert", "uselibpqcompat"]) url.searchParams.delete(parameter)
+  return new pg.Client({
+    connectionString: url.toString(),
+    ssl: { ca: requiredEnv("HARBOR_PREVIEW_DB_CA"), rejectUnauthorized: true, servername: url.hostname },
+  })
 }
 
 function requiredEnv(name: (typeof requiredEnvironment)[number] | "HARBOR_PREVIEW_CONFIRM_MUTATIONS") {

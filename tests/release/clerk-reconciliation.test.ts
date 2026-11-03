@@ -100,13 +100,13 @@ test("reconciliation rejects broad, duplicate, malformed, or implicit selectors"
     () => parseReconciliationPlan([], safeEnvironment({
       CLERK_RECONCILIATION_USER_ALLOWLIST_JSON: JSON.stringify({ ...allowlist, allUsers: "user_everyone" }),
     })),
-    /exactly the three/,
+    /exactly the three disposable labels and optionally userGolden/,
   )
   assert.throws(
     () => parseReconciliationPlan([], safeEnvironment({
       CLERK_RECONCILIATION_USER_ALLOWLIST_JSON: JSON.stringify({ ...allowlist, userB: allowlist.userA }),
     })),
-    /three distinct/,
+    /distinct users/,
   )
   assert.throws(
     () => parseReconciliationPlan([], safeEnvironment({
@@ -114,6 +114,38 @@ test("reconciliation rejects broad, duplicate, malformed, or implicit selectors"
     })),
     /one explicit Clerk user/,
   )
+  assert.throws(
+    () => parseReconciliationPlan([], safeEnvironment({
+      CLERK_RECONCILIATION_USER_ALLOWLIST_JSON: JSON.stringify({ ...allowlist, userGolden: allowlist.userB }),
+    })),
+    /distinct users/,
+  )
+  assert.throws(
+    () => parseReconciliationPlan([], safeEnvironment({
+      CLERK_RECONCILIATION_USER_ALLOWLIST_JSON: JSON.stringify({ userA: allowlist.userA, userGolden: "user_fixtureGolden" }),
+    })),
+    /exactly the three disposable labels/,
+  )
   assert.throws(() => parseReconciliationPlan(["--all"], safeEnvironment()), /Only one optional --apply/)
   assert.throws(() => parseReconciliationPlan(["--apply", "--apply"], safeEnvironment()), /Only one optional --apply/)
+})
+
+test("the manual-walkthrough userGolden label is optional and reconciled after the three CI users", async () => {
+  const environment = safeEnvironment({
+    CLERK_RECONCILIATION_USER_ALLOWLIST_JSON: JSON.stringify({ ...allowlist, userGolden: "user_fixtureGolden" }),
+  })
+  const plan = parseReconciliationPlan([], environment)
+  assert.equal(plan.users.userGolden, "user_fixtureGolden")
+
+  const fixture = reconciliationDependencies()
+  fixture.users.set("user_fixtureGolden", {
+    id: "user_fixtureGolden",
+    primaryEmailAddress: "fixture-golden@example.test",
+    firstName: "Fixture",
+    lastName: "Golden",
+    publicMetadata: {},
+  })
+  const results = await runReconciliation(parseReconciliationPlan(["--apply"], environment), fixture.dependencies)
+  assert.deepEqual(results.map((item) => item.label), ["userA", "userB", "deletionUser", "userGolden"])
+  assert.equal(fixture.provisionCount(), 4)
 })

@@ -27,3 +27,6 @@ docs/.wiki-import/
 
 # Machine-specific git safe.directory config
 .gitconfig_sandbox
+
+# Local CA bundles for verify-full database connections (CI uses the HARBOR_PREVIEW_DB_CA secret)
+certs/

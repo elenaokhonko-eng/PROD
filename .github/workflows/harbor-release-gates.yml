@@ -188,6 +188,13 @@ jobs:
     runs-on: ubuntu-latest
     environment: harbor-preview
     needs: [static-gates, migration-rls, playwright-public, playwright-synthetic]
+    # Live staging jobs hold the harbor-preview secrets, so they run only for release/* pull requests from this
+    # repository and for main. Other branches and forks skip them.
+    if: >-
+      github.ref == 'refs/heads/main' ||
+      (github.event_name == 'pull_request' &&
+       startsWith(github.head_ref, 'release/') &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     outputs:
       preview_confirmed_sha: ${{ steps.preview-release.outputs.harbor_preview_confirmed_sha }}
     env:
@@ -221,23 +228,47 @@ jobs:
         id: preview-release
         run: pnpm exec tsx scripts/verify-harbor-preview-release.ts
       - run: pnpm exec playwright test --config=tests/e2e/playwright.preview.config.ts
-      - name: Upload preview evidence
+      - name: Upload preview evidence index
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-preview-${{ env.HARBOR_RELEASE_SHA }}
-          path: |
-            test-results/preview/
-            test-results/evidence/preview-*.json
-            playwright-report/preview/
+          path: test-results/evidence/preview-*.json
           retention-days: 14
-          if-no-files-found: error
+          if-no-files-found: warn
+      # Traces, screenshots and the HTML report show signed-in staging pages, so they are only uploaded encrypted.
+      - name: Encrypt preview traces and screenshots
+        if: always()
+        env:
+          HARBOR_ARTIFACT_KEY: ${{ secrets.HARBOR_ARTIFACT_KEY }}
+        run: |
+          test -n "$HARBOR_ARTIFACT_KEY"
+          dirs=$(ls -d test-results/preview playwright-report/preview 2>/dev/null || true)
+          if [ -z "$dirs" ]; then exit 0; fi
+          tar -czf preview-evidence.tar.gz $dirs
+          openssl enc -aes-256-cbc -salt -pbkdf2 -in preview-evidence.tar.gz -out preview-evidence.tar.gz.enc -pass env:HARBOR_ARTIFACT_KEY
+          rm preview-evidence.tar.gz
+      - name: Upload encrypted preview artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-encrypted-${{ env.HARBOR_RELEASE_SHA }}
+          path: preview-evidence.tar.gz.enc
+          retention-days: 3
+          if-no-files-found: ignore
 
   playwright-authenticated:
     name: Playwright authenticated and provider-delivered
     runs-on: ubuntu-latest
     environment: harbor-preview
     needs: [playwright-preview]
+    # Live staging jobs hold the harbor-preview secrets, so they run only for release/* pull requests from this
+    # repository and for main. Other branches and forks skip them.
+    if: >-
+      github.ref == 'refs/heads/main' ||
+      (github.event_name == 'pull_request' &&
+       startsWith(github.head_ref, 'release/') &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     env:
       HARBOR_PREVIEW_BASE_URL: ${{ vars.HARBOR_PREVIEW_BASE_URL }}
       HARBOR_PREVIEW_EXPECTED_HOST: ${{ vars.HARBOR_PREVIEW_EXPECTED_HOST }}
@@ -256,6 +287,7 @@ jobs:
       HARBOR_PREVIEW_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       HARBOR_PREVIEW_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       HARBOR_PREVIEW_DATABASE_URL: ${{ secrets.HARBOR_PREVIEW_DATABASE_URL }}
+      HARBOR_PREVIEW_DB_CA: ${{ secrets.HARBOR_PREVIEW_DB_CA }}
       HARBOR_PREVIEW_STRIPE_WEBHOOK_SECRET: ${{ secrets.HARBOR_PREVIEW_STRIPE_WEBHOOK_SECRET }}
       HARBOR_PREVIEW_EMAIL_SINK: ${{ secrets.HARBOR_PREVIEW_EMAIL_SINK }}
       HARBOR_PREVIEW_CONFIRM_SUPABASE_REF: ${{ vars.HARBOR_PREVIEW_CONFIRM_SUPABASE_REF }}
@@ -288,6 +320,12 @@ jobs:
           printf '%s' "$USER_A" | base64 --decode > tests/e2e/.auth/harbor-user-a.json
           printf '%s' "$USER_B" | base64 --decode > tests/e2e/.auth/harbor-user-b.json
           printf '%s' "$DELETION_USER" | base64 --decode > tests/e2e/.auth/harbor-deletion-user.json
+      - name: Check Clerk test sessions
+        run: >-
+          pnpm exec tsx scripts/check-harbor-auth-states.ts
+          HARBOR_AUTH_STORAGE_STATE_USER_A_BASE64=tests/e2e/.auth/harbor-user-a.json
+          HARBOR_AUTH_STORAGE_STATE_USER_B_BASE64=tests/e2e/.auth/harbor-user-b.json
+          HARBOR_AUTH_STORAGE_STATE_DELETION_USER_BASE64=tests/e2e/.auth/harbor-deletion-user.json
       - run: pnpm exec playwright test --config=tests/e2e/playwright.authenticated.config.ts
       - name: Playwright preview five-service handshakes
         env:
@@ -308,7 +346,8 @@ jobs:
         if: always()
         run: |
           test -n "$HARBOR_ARTIFACT_KEY"
-          tar -czf authenticated-evidence.tar.gz test-results/authenticated playwright-report/authenticated
+          # The handshake suite runs under the preview config, so its traces land in the preview folders.
+          tar -czf authenticated-evidence.tar.gz $(ls -d test-results/authenticated playwright-report/authenticated test-results/preview playwright-report/preview 2>/dev/null)
           openssl enc -aes-256-cbc -salt -pbkdf2 -in authenticated-evidence.tar.gz -out authenticated-evidence.tar.gz.enc -pass env:HARBOR_ARTIFACT_KEY
           rm authenticated-evidence.tar.gz
       - name: Upload redacted evidence index

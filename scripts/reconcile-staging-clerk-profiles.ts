@@ -6,15 +6,19 @@ import {
 } from "../lib/server/clerk-profile-provisioner"
 
 const stagingSupabaseHost = "yqqkkftfddxuxmpxwbcj.supabase.co"
-const labels = ["userA", "userB", "deletionUser"] as const
+const requiredLabels = ["userA", "userB", "deletionUser"] as const
+// userGolden owns the imported golden case for the manual walkthrough only; CI never signs in as it.
+const optionalLabels = ["userGolden"] as const
+const labels = [...requiredLabels, ...optionalLabels] as const
 const clerkUserIdPattern = /^user_[A-Za-z0-9]{3,}$/
 
+type RequiredLabel = (typeof requiredLabels)[number]
 type Label = (typeof labels)[number]
 type Environment = Record<string, string | undefined>
 
 export type ReconciliationPlan = {
   apply: boolean
-  users: Record<Label, string>
+  users: Record<RequiredLabel, string> & Partial<Record<Label, string>>
 }
 
 function requiredEnvironment(environment: Environment, name: string): string {
@@ -57,24 +61,30 @@ export function parseReconciliationPlan(
   }
 
   const record = parsed as Record<string, unknown>
-  if (Object.keys(record).sort().join(",") !== [...labels].sort().join(",")) {
-    throw new Error("The reconciliation allowlist must contain exactly the three disposable labels")
+  const keys = Object.keys(record)
+  if (
+    requiredLabels.some((label) => !keys.includes(label)) ||
+    keys.some((key) => !(labels as readonly string[]).includes(key))
+  ) {
+    throw new Error("The reconciliation allowlist must contain exactly the three disposable labels and optionally userGolden")
   }
 
-  const users = Object.fromEntries(labels.map((label) => [label, record[label]])) as Record<Label, unknown>
-  for (const label of labels) {
-    if (typeof users[label] !== "string" || !clerkUserIdPattern.test(users[label])) {
+  const present = labels.filter((label) => keys.includes(label))
+  const users = Object.fromEntries(present.map((label) => [label, record[label]])) as Record<string, unknown>
+  for (const label of present) {
+    const value = users[label]
+    if (typeof value !== "string" || !clerkUserIdPattern.test(value)) {
       throw new Error(`The ${label} selector must be one explicit Clerk user identity`)
     }
   }
-  const userIds = labels.map((label) => users[label] as string)
-  if (new Set(userIds).size !== labels.length) {
-    throw new Error("The reconciliation allowlist must contain three distinct users")
+  const userIds = present.map((label) => users[label] as string)
+  if (new Set(userIds).size !== present.length) {
+    throw new Error("The reconciliation allowlist must contain distinct users")
   }
 
   return {
     apply: args.includes("--apply"),
-    users: users as Record<Label, string>,
+    users: users as ReconciliationPlan["users"],
   }
 }
 
@@ -85,6 +95,7 @@ export async function runReconciliation(
   const results: Array<{ label: Label; disposition: string }> = []
   for (const label of labels) {
     const userId = plan.users[label]
+    if (!userId) continue
     if (plan.apply) {
       const result = await provisionClerkProfile(userId, dependencies)
       results.push({ label, disposition: result.disposition })

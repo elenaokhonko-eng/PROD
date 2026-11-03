@@ -51,7 +51,7 @@ Apply migrations in filename order. Deploy Edge Functions from the same Git SHA.
 
 Clerk is the identity provider. Application ownership is `public.profiles.id`, carried only in the signed `supabase_uuid` claim and resolved by `public.current_app_user_id()`. Do not introduce `auth.uid()` or `auth.users` ownership dependencies.
 
-Configure the environment's signed Clerk webhook to send `user.created` to `/api/webhooks/clerk` only after the profile-provisioning and Pattern C entitlement migrations are applied. The handler atomically obtains one stable profile UUID and the profile trigger creates one default entitlement before Clerk is patched with `public_metadata.supabase_uuid`; retries reuse that UUID and cannot duplicate the entitlement. For the three approved disposable staging identities only, set `CLERK_RECONCILIATION_USER_ALLOWLIST_JSON` to the exact `userA`, `userB`, and `deletionUser` Clerk IDs and run `pnpm reconcile:staging-clerk-profiles` as a dry run. Use `--apply` only after reviewing all three dispositions. Never write only the Clerk or database side manually.
+Configure the environment's signed Clerk webhook to send `user.created` to `/api/webhooks/clerk` only after the profile-provisioning and Pattern C entitlement migrations are applied. The handler atomically obtains one stable profile UUID and the profile trigger creates one default entitlement before Clerk is patched with `public_metadata.supabase_uuid`; retries reuse that UUID and cannot duplicate the entitlement. For the three approved disposable staging identities only, set `CLERK_RECONCILIATION_USER_ALLOWLIST_JSON` to the exact `userA`, `userB`, and `deletionUser` Clerk IDs and run `pnpm reconcile:staging-clerk-profiles` as a dry run. The allowlist may also name `userGolden`, the manual-walkthrough identity that owns the imported golden case; CI never signs in as it and its session is never saved. Use `--apply` only after reviewing every disposition. Never write only the Clerk or database side manually.
 
 Operational admin calls must use the server-only `signAdminEdgeRequest` helper with a non-empty audited actor ID. Both the signer and database accept admin envelopes only for `backfill_embeddings_v1` and `url_catalogue`; do not generalize this allowlist or use admin signing for case-scoped user/worker work.
 
@@ -272,9 +272,28 @@ Run `pnpm test:e2e:preview-handshakes` only against disposable preview infrastru
 - `HARBOR_PREVIEW_CONFIRM_MUTATIONS=RUN_MUTATING_PREVIEW_HANDSHAKES`.
 - `HARBOR_PREVIEW_CONFIRM_SUPABASE_REF`: exact preview project ref.
 - `HARBOR_PREVIEW_RELEASE_STORAGE_STATE`: an authenticated Clerk storage-state file used for the release-health request; the endpoint must reject the runner's anonymous preflight.
-- Test Stripe webhook secret, TLS database URL, controlled worker case, and email sink.
+- `HARBOR_PREVIEW_DATABASE_URL` with `sslmode=verify-full`, and `HARBOR_PREVIEW_DB_CA` holding the Supabase Root 2021 CA in PEM form (Supabase → project → Database → Settings → SSL Configuration → Download certificate). The connection verifies the certificate chain and hostname; `sslmode=require` is refused.
+- Test Stripe webhook secret, controlled worker case, and email sink.
 
 The runner refuses known production hosts, verifies `/api/health/release`, and writes timestamped JSONL evidence to `test-results/harbor-preview-handshake-evidence.jsonl` by default. Retain that artifact with deployment logs; it contains no credentials.
+
+### Refresh test sessions
+
+The preview and authenticated CI jobs sign in with saved Clerk Development sessions for the three disposable identities (`userA`, `userB`, `deletionUser`), stored in the `harbor-preview` environment as `HARBOR_AUTH_STORAGE_STATE_USER_A_BASE64`, `HARBOR_AUTH_STORAGE_STATE_USER_B_BASE64` and `HARBOR_AUTH_STORAGE_STATE_DELETION_USER_BASE64`. Clerk Development sessions last about seven days. When one has expired, the job's "Check Clerk test sessions" step (or the release verification step) fails and names the secret. To refresh:
+
+1. In the clone, with `.env.staging.local` holding the Clerk Development secret key and `NEXT_PUBLIC_APP_URL` set to the staging origin, set `CLERK_RECONCILIATION_USER_ALLOWLIST_JSON` to the labelled Clerk IDs (as for reconciliation).
+2. Run `pnpm exec tsx --env-file=.env.staging.local scripts/refresh-harbor-auth-states.ts`. It signs each identity in with a one-time Clerk sign-in token, checks the session against staging, and writes the git-ignored files under `tests/e2e/.auth/`. It refuses `userGolden`.
+3. Upload them without displaying them (PowerShell):
+
+   ```powershell
+   $states = @{ USER_A = 'harbor-user-a'; USER_B = 'harbor-user-b'; DELETION_USER = 'harbor-deletion-user' }
+   foreach ($name in $states.Keys) {
+     [Convert]::ToBase64String([IO.File]::ReadAllBytes("tests/e2e/.auth/$($states[$name]).json")) |
+       gh secret set "HARBOR_AUTH_STORAGE_STATE_${name}_BASE64" --env harbor-preview
+   }
+   ```
+
+4. Re-run the failed workflow. A session made this way is a live sign-in for that identity until it expires, so never paste, attach, or commit the files.
 
 ## Preview deployment order
 
