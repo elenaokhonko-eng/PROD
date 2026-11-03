@@ -8,6 +8,7 @@ import {
 import { resolveAuthStatePath } from '../evidence/run-context'
 import { readReleaseFixtures } from '../../release/release-fixtures'
 import { cleanupDisposableRecords, createDisposableCase, createServiceClientFromEnvironment } from '../helpers/disposable-records'
+import { refreshClerkSession, waitForClerkSession } from '../helpers/clerk-session'
 
 const fixtures = readReleaseFixtures()
 const baseURL = process.env.HARBOR_PREVIEW_BASE_URL!
@@ -85,6 +86,7 @@ async function createUserContext(browser: Browser, user: 'userA' | 'userB') {
     storageState: resolveAuthStatePath(process.cwd(), user),
   })
   await guardContextAgainstProduction(context)
+  await refreshClerkSession(context)
   return context
 }
 
@@ -99,6 +101,7 @@ async function closeUserContexts(...contexts: BrowserContext[]) {
 async function expectSupabaseUuid(context: BrowserContext, expected: string) {
   const page = await context.newPage()
   await page.goto('/app')
+  await waitForClerkSession(page)
   const claim = await page.evaluate(async () => {
     const clerk = (globalThis as unknown as {
       Clerk?: { session?: { getToken(options: { template: string }): Promise<string | null> } }

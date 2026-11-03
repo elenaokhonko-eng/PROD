@@ -9,6 +9,7 @@ import {
 import { requireAuthState } from '../evidence/run-context'
 import { readReleaseFixtures } from '../../release/release-fixtures'
 import { captureAndCleanupEvidenceMutation } from '../helpers/evidence-mutation-probe'
+import { refreshClerkSession } from '../helpers/clerk-session'
 
 const rootDir = resolve(__dirname, '..', '..', '..')
 const fixtures = readReleaseFixtures()
@@ -25,6 +26,7 @@ test('expired collaborator cannot upload or process evidence', async ({ browser 
   })
   await guardContextAgainstProduction(context)
   try {
+    await refreshClerkSession(context)
     const upload = await context.request.post('/api/evidence/upload', {
       multipart: {
         caseId: fixtures.collaboration.expiredCaseId,

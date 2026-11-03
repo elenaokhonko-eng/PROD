@@ -1,6 +1,7 @@
 import type { APIResponse, Page } from '@playwright/test'
 import { expect, test } from '../fixtures/harbor-test'
 import { readReleaseFixtures } from '../../release/release-fixtures'
+import { waitForClerkSession } from '../helpers/clerk-session'
 
 const fixtures = readReleaseFixtures()
 
@@ -25,10 +26,11 @@ test.describe('Stripe preview-provider checkout contract', () => {
 
       await page.goto(checkout.href, { waitUntil: 'domcontentloaded' })
       expect(new URL(page.url()).hostname).toBe('checkout.stripe.com')
-      const providerText = await page.locator('body').innerText()
-      expect(providerText).toMatch(
+      // Stripe Checkout renders client-side; wait for the amount before reading the page text.
+      await expect(page.locator('body')).toContainText(
         new RegExp(`(?:S\\$|SGD)\\s*${purchase.amount}(?:\\.00)?|${purchase.amount}(?:\\.00)?\\s*SGD`, 'i'),
       )
+      const providerText = await page.locator('body').innerText()
       expect(providerText).not.toMatch(/(?:per\s+month|\/\s*month|monthly)/i)
     })
   }
@@ -99,6 +101,7 @@ async function createCheckout(
 
 async function getSupabaseToken(page: Page) {
   await page.goto('/app')
+  await waitForClerkSession(page)
   const token = await page.evaluate(async () => {
     const clerk = (globalThis as unknown as {
       Clerk?: { session?: { getToken(options: { template: string }): Promise<string | null> } }

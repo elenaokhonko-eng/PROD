@@ -13,6 +13,7 @@ import {
   createServiceClientFromEnvironment,
   type DisposableCleanupScope,
 } from '../helpers/disposable-records'
+import { refreshClerkSession } from '../helpers/clerk-session'
 
 const rootDir = resolve(__dirname, '..', '..', '..')
 const fixtures = readReleaseFixtures()
@@ -30,6 +31,7 @@ test('data export contains only the disposable deletion-user data', async ({ bro
   await guardContextAgainstProduction(context)
 
   try {
+    await refreshClerkSession(context)
     const response = await context.request.post('/api/privacy/export', { maxRedirects: 0 })
     expect(response.headers().location).toBeUndefined()
     expect(response.status(), await response.text()).toBe(200)
@@ -74,6 +76,7 @@ test('deletion request queues only a disposable authenticated fixture', async ({
   })
   await guardContextAgainstProduction(context)
   try {
+    await refreshClerkSession(context)
     const preflight = await context.request.post('/api/privacy/export', { maxRedirects: 0 })
     expect(preflight.headers().location).toBeUndefined()
     expect(preflight.status(), await preflight.text()).toBe(200)

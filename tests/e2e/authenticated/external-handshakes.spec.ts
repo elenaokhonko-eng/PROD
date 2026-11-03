@@ -1,14 +1,16 @@
 import { expect, test } from '../fixtures/harbor-test'
+import { refreshClerkSession } from '../helpers/clerk-session'
 
 test.describe('external preview handshakes', () => {
   test.beforeEach(async ({}, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium-1440', 'Mutating provider checks run once per release SHA.')
   })
 
-  test('SMTP accepts a release-identified message for the controlled test recipient', async ({ request }) => {
+  test('SMTP accepts a release-identified message for the controlled test recipient', async ({ page }) => {
     const releaseSha = process.env.HARBOR_RELEASE_SHA!
     const recipient = process.env.HARBOR_SMTP_TEST_RECIPIENT!
-    const response = await request.post('/api/email/send', {
+    await refreshClerkSession(page.context())
+    const response = await page.request.post('/api/email/send', {
       data: {
         to: recipient,
         subject: `Harbor release handshake ${releaseSha}`,
