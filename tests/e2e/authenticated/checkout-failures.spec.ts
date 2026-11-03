@@ -16,11 +16,11 @@ test('payment failure keeps the user on the case and offers a safe retry', synth
     }),
   )
   await page.goto(`/app/case/${caseId}/dashboard`)
-  await page.getByRole('button', { name: /buy.*report|continue.*report/i }).first().click()
+  await page.getByRole('button', { name: 'Get Bank Pack' }).click()
 
   await expect(page).toHaveURL(new RegExp(`/app/case/${caseId}/dashboard`))
   await expect(page.getByText(/payment_action_required|payment.*failed|try again/i).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: /buy.*report|try again/i }).first()).toBeEnabled()
+  await expect(page.getByRole('button', { name: /^Get Bank Pack$|try again/i }).first()).toBeEnabled()
 })
 
 test('successful return waits for delayed entitlement instead of showing a false failure', async ({ page }) => {
@@ -28,6 +28,6 @@ test('successful return waits for delayed entitlement instead of showing a false
   const product = PRODUCT_CATALOGUE.self_serve_report.checkoutKey
   await page.goto(`/app/case/${caseId}/dashboard?payment=success&session_id=${sessionId}&product=${product}`)
 
-  await expect(page.getByText(/confirming your payment|payment received/i).first()).toBeVisible()
+  await expect(page.getByText('Confirming payment', { exact: true }).first()).toBeVisible()
   await expect(page.getByText(/payment failed/i)).toHaveCount(0)
 })

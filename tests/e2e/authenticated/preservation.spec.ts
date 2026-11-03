@@ -24,7 +24,8 @@ test('anonymous narrative is handed to the signed-in bootstrap exactly once', sy
     route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Handoff complete</h1>' }),
   )
 
-  await page.goto('/')
+  // Route matrix: /onboarding is the authenticated bootstrap that consumes the local pending narrative.
+  await page.goto('/onboarding')
   await expect(page).toHaveURL(/\/app\/case\/handoff-case\/dashboard$/)
   await expect(page.getByRole('heading', { name: 'Handoff complete' })).toBeVisible()
   expect(bootstrapCount).toBe(1)
@@ -41,13 +42,15 @@ test('settings export and deletion request preserve their request and response c
       body: JSON.stringify({ profile: { id: 'harbor-user' }, cases: [] }),
     }),
   )
-  await page.route('**/api/privacy/delete-request', (route) =>
-    route.fulfill({
+  let deleteRequests = 0
+  await page.route('**/api/privacy/delete-request', (route) => {
+    deleteRequests += 1
+    return route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ success: true, anonymized_case_ids: [] }),
-    }),
-  )
+    })
+  })
   await page.goto('/app/settings')
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
 
@@ -55,13 +58,12 @@ test('settings export and deletion request preserve their request and response c
   await page.getByRole('button', { name: 'Export My Data' }).click()
   await expect((await download).suggestedFilename()).toMatch(/^guidebuoy-data-export-.*\.json$/)
 
-  await page.getByRole('button', { name: 'Delete Account' }).click()
-  await expect(page.getByRole('button', { name: 'Confirm Delete Account' })).toBeVisible()
-  const confirmation = page.waitForEvent('dialog')
-  await page.getByRole('button', { name: 'Confirm Delete Account' }).click()
-  const dialog = await confirmation
-  expect(dialog.message()).toContain('anonymized')
-  await dialog.accept()
+  // Self-service deletion is switched off until the reviewed request-and-receipt workflow exists: the control is
+  // shown disabled with the reason, and nothing reaches the delete endpoint.
+  await expect(page.getByText('That reviewed workflow is not currently available.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Request data deletion' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: /delete account/i })).toHaveCount(0)
+  expect(deleteRequests).toBe(0)
 })
 
 test('invalid invitation is reported without navigating to another case', syntheticEvidence, async ({ page }) => {
@@ -71,7 +73,7 @@ test('invalid invitation is reported without navigating to another case', synthe
 
   await page.goto('/invite/harbor-invalid-token')
 
-  await expect(page.getByText('Invalid or expired invitation')).toBeVisible()
+  await expect(page.getByText('This invitation is invalid, expired, or unavailable to this account.')).toBeVisible()
   await expect(page).toHaveURL(/\/invite\/harbor-invalid-token$/)
 })
 
@@ -79,6 +81,7 @@ test('cross-user case URL reveals no case data or redirect target', async ({ pag
   const crossUserCaseId = fixtures.users.userB.ownedCaseId
   const response = await page.goto(`/app/case/${crossUserCaseId}/dashboard`)
   expect(response?.status()).toBeLessThan(500)
-  await expect(page.getByText(/case was not found/i)).toBeVisible()
+  await expect(page.getByText('Case not found', { exact: true })).toBeVisible()
+  await expect(page.getByText("We couldn't find this case, or the signed-in account does not have access.")).toBeVisible()
   await expect(page).toHaveURL(new RegExp(`/app/case/${crossUserCaseId}/dashboard$`))
 })

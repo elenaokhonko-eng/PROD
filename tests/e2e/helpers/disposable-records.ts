@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { REQUIRED_INTAKE_RESPONSE_KEYS } from '../../../lib/intake-completion'
 
 export type DisposableCleanupScope = {
   caseId: string
@@ -64,6 +65,21 @@ export async function createDisposableCase(
   })
   if (error) throw new Error(`Unable to create disposable case: ${error.message}`)
   return { caseId, ownerId: options.ownerId }
+}
+
+// Answers the six required intake questions, which the dashboard needs before it offers evidence upload.
+export async function completeDisposableIntake(supabase: SupabaseClient, caseId: string): Promise<string[]> {
+  requireUuid(caseId, 'disposable case id')
+  const rows = REQUIRED_INTAKE_RESPONSE_KEYS.map((key) => ({
+    id: randomUUID(),
+    case_id: caseId,
+    question_key: key,
+    response_value: `Disposable ${key.replaceAll('_', ' ')} answer.`,
+    response_type: 'text',
+  }))
+  const { error } = await supabase.from('case_responses').insert(rows)
+  if (error) throw new Error(`Unable to complete disposable intake: ${error.message}`)
+  return rows.map((row) => row.id)
 }
 
 export async function createDisposableGapCase(

@@ -5,6 +5,7 @@ import { expect, test } from './fixtures/harbor-test'
 import { readReleaseFixtures } from '../release/release-fixtures'
 import {
   cleanupDisposableRecords,
+  completeDisposableIntake,
   createDisposableCase,
   createDisposableGapCase,
   createServiceClientFromEnvironment,
@@ -64,6 +65,7 @@ test.describe('Slice 5 browser QA', () => {
       summary: 'Disposable Slice 5 upload processing case',
     })
     const cleanup: DisposableCleanupScope = { ...disposable }
+    cleanup.caseResponseIds = await completeDisposableIntake(supabase, disposable.caseId)
 
     try {
       await page.goto(`/app/case/${disposable.caseId}/dashboard`)
@@ -125,7 +127,7 @@ test.describe('Slice 5 browser QA', () => {
 
     try {
       await page.goto(`/app/case/${disposable.caseId}/dashboard`)
-      await expect(page.getByText('A few more details')).toBeVisible()
+      await expect(page.getByText('A few more details', { exact: true })).toBeVisible()
 
       await answerFirstVisibleGapQuestion(page)
 
