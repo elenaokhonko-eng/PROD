@@ -102,9 +102,11 @@ test('deletion request queues only a disposable authenticated fixture', async ({
       message?: string
     }
     expect(body.request?.id).toMatch(/^[0-9a-f-]{36}$/i)
-    expect(body.request?.status).toBe('queued')
+    // privacy_deletion_requests starts every request as 'pending' review (the CHECK has no 'queued').
+    expect(body.request?.status).toBe('pending')
     expect(body.request?.requestedAt).toBeTruthy()
-    expect(body.message).toContain('queued')
+    expect(body.message).toContain('queued for review')
+    expect(body.message).toContain('no data has been deleted')
     cleanup.privacyDeletionRequestIds = [body.request!.id!]
   } finally {
     try {

@@ -20,7 +20,8 @@ test('anonymous narrative is handed to the signed-in bootstrap exactly once', sy
     expect(route.request().postDataJSON()).toEqual({ narrative: handoffNarrative })
     await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ case_id: 'handoff-case' }) })
   })
-  await page.route('**/app/case/handoff-case/dashboard', (route) =>
+  // Match by path: Next's client navigation first requests the page with an ?_rsc= query.
+  await page.route((url) => url.pathname === '/app/case/handoff-case/dashboard', (route) =>
     route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Handoff complete</h1>' }),
   )
 

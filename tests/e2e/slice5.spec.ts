@@ -59,6 +59,8 @@ test.describe('Slice 5 browser QA', () => {
 
   test('upload uses evidence row -> process route -> case document', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium-1440', 'Mutating provider checks run once per release SHA.')
+    // The live lane's 60 s test limit would cut off the wait for processing below.
+    test.setTimeout(readyTimeoutMs + 60_000)
     const supabase = createServiceClientFromEnvironment()
     const disposable = await createDisposableCase(supabase, {
       ownerId: fixtures.users.userA.supabaseUuid,
