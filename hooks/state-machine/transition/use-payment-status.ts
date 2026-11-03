@@ -17,20 +17,28 @@ export interface PaymentStatusResult {
 }
 
 export function usePaymentStatus(caseId: string | null | undefined, options?: UsePaymentStatusOptions) {
-  const enabled = Boolean(caseId) && (options?.enabled ?? true)
-  const { getToken } = useAuth()
+  const { getToken, isLoaded } = useAuth()
+  // Wait for Clerk so the first call can refresh an expired session cookie (see queryFn).
+  const enabled = Boolean(caseId) && isLoaded && (options?.enabled ?? true)
 
   return useQuery({
     queryKey: caseId ? qk.entitlement(caseId) : ['entitlement', 'missing-case-id'],
     enabled,
     queryFn: async (): Promise<PaymentStatusResult> => {
-      // The route authenticates with Clerk's __session cookie, which expires after about a minute. Getting a token
-      // refreshes that cookie first, so a dashboard opened from an idle tab doesn't send an expired one (401).
+      // The route authenticates with Clerk's __session cookie, which expires after about a minute. A dashboard opened
+      // from an idle tab would otherwise send the expired cookie (401). getToken() refreshes it when expired; if the
+      // cookie still loses a race, force a fresh token and retry once.
       await getToken()
-      const response = await fetch(`/api/cases/${caseId}/capabilities`, {
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-      })
+      const load = () =>
+        fetch(`/api/cases/${caseId}/capabilities`, {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        })
+      let response = await load()
+      if (response.status === 401) {
+        await getToken({ skipCache: true })
+        response = await load()
+      }
       const payload = (await response.json().catch(() => null)) as
         | (CaseCapabilityBillingResponse & { error?: string })
         | null
