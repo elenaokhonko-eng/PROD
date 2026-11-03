@@ -72,7 +72,7 @@ test("Render contract scopes webhook and Edge secrets to their consumers", () =>
   assert.doesNotMatch(worker, /CLERK_WEBHOOK_SIGNING_SECRET/)
 })
 
-test("staging migration procedure hashes, plans, applies, and verifies all five files", () => {
+test("staging migration procedure hashes, plans, applies, and verifies all six files", () => {
   const procedure = releaseOperations.slice(
     releaseOperations.indexOf("#### Staging-only migration procedure"),
     releaseOperations.indexOf("### Type-safety gate"),
@@ -83,6 +83,7 @@ test("staging migration procedure hashes, plans, applies, and verifies all five 
     "20260909120000_harden_clerk_profile_provisioning.sql",
     "20260914120000_align_user_entitlements_pattern_c.sql",
     "20261102120000_secure_case_analysis_tables_and_anon_writes.sql",
+    "20261102130000_advisor_warning_fixes.sql",
   ]
 
   for (const filename of filenames) assert.match(procedure, new RegExp(filename.replaceAll(".", "\\.")))

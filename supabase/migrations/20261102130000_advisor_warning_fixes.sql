@@ -6,8 +6,10 @@
 -- 3) Analytics materialized views are read only by the service role (app/analytics); anon and authenticated
 --    lose SELECT.
 -- 4) Drop always-true write policies on router_sessions and waitlist. Both are written only by the service role.
--- 5) Legacy referrals / analytics_events / consent_logs policies compared auth.uid() with profile ids. Under
---    Pattern C the profile id is current_app_user_id(); evaluate it once per statement.
+-- 5) Legacy referrals / analytics_events / consent_logs policies compared auth.uid() with profile ids, which never
+--    matches under Pattern C. Only service-role routes write these tables (api/referral/track, api/analytics/track,
+--    api/cases/create-from-session) and nothing reads them as the signed-in user, so the user policies are dropped
+--    and the tables stay service-role only.
 -- 6) Cover every foreign key with an index.
 --
 -- Accepted, not changed: vector stays in public (moving it rewrites column types and operator lookups);
@@ -58,31 +60,12 @@ DROP POLICY IF EXISTS "Allow anonymous update for router sessions" ON public.rou
 DROP POLICY IF EXISTS "Allow public insert on waitlist" ON public.waitlist;
 
 DROP POLICY IF EXISTS "Users can create referrals" ON public.referrals;
-CREATE POLICY "Users can create referrals" ON public.referrals
-  FOR INSERT TO authenticated
-  WITH CHECK ((SELECT public.current_app_user_id()) = referrer_user_id);
 DROP POLICY IF EXISTS "Users can read their own referrals" ON public.referrals;
-CREATE POLICY "Users can read their own referrals" ON public.referrals
-  FOR SELECT TO authenticated
-  USING ((SELECT public.current_app_user_id()) IN (referrer_user_id, referred_user_id));
-
 DROP POLICY IF EXISTS "Users can insert analytics events" ON public.analytics_events;
-CREATE POLICY "Users can insert analytics events" ON public.analytics_events
-  FOR INSERT TO authenticated
-  WITH CHECK ((SELECT public.current_app_user_id()) = user_id OR user_id IS NULL);
 DROP POLICY IF EXISTS "Users can view own analytics events" ON public.analytics_events;
-CREATE POLICY "Users can view own analytics events" ON public.analytics_events
-  FOR SELECT TO authenticated
-  USING ((SELECT public.current_app_user_id()) = user_id);
-
 DROP POLICY IF EXISTS "Enable insert for users based on user_id" ON public.consent_logs;
-CREATE POLICY "Enable insert for users based on user_id" ON public.consent_logs
-  FOR INSERT TO authenticated
-  WITH CHECK ((SELECT public.current_app_user_id()) = user_id);
 DROP POLICY IF EXISTS "Users can view own consent logs" ON public.consent_logs;
-CREATE POLICY "Users can view own consent logs" ON public.consent_logs
-  FOR SELECT TO authenticated
-  USING ((SELECT public.current_app_user_id()) = user_id);
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.referrals, public.analytics_events, public.consent_logs FROM authenticated;
 
 CREATE INDEX IF NOT EXISTS ix_analytics_events_user_id ON public.analytics_events (user_id);
 CREATE INDEX IF NOT EXISTS ix_case_bank_assertions_source_document_id ON public.case_bank_assertions (source_document_id);
