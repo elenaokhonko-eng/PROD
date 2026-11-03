@@ -134,13 +134,17 @@ test.describe("Harbor preview integration handshakes", () => {
   })
 
   test("fails closed anonymously and keeps internal analytics private", async ({ browser }) => {
-    const context = await browser.newContext({ baseURL: requiredEnv("HARBOR_PREVIEW_BASE_URL") })
+    // Playwright Test applies the suite's storageState to browser.newContext(); start explicitly signed out.
+    const context = await browser.newContext({
+      baseURL: requiredEnv("HARBOR_PREVIEW_BASE_URL"),
+      storageState: { cookies: [], origins: [] },
+    })
     const page = await context.newPage()
 
     try {
       await page.goto("/")
       await assertPreviewPageOrigin(page)
-      await expect(page.getByRole("link", { name: "Chat with GuideBuoy on WhatsApp" })).toHaveAttribute(
+      await expect(page.getByRole("link", { name: /^WhatsApp/ })).toHaveAttribute(
         "href",
         "https://wa.me/6590727915",
       )
@@ -165,7 +169,9 @@ test.describe("Harbor preview integration handshakes", () => {
         headers: { "x-worker-secret": `invalid-${randomUUID()}` },
         body: { case_id: randomUUID() },
       })
-      expect(invalidWorker.status).toBe(401)
+      // The proxy refuses worker-only functions to non-worker callers before any sign-in check.
+      expect(invalidWorker.status).toBe(403)
+      expect((invalidWorker.body as { error?: string } | null)?.error).toBe("This function is worker-only")
 
       await page.goto("/analytics")
       await assertPreviewPageOrigin(page)
@@ -391,6 +397,9 @@ test.describe("Harbor preview integration handshakes", () => {
           object: {
             id: purchase!.provider_checkout_session_id,
             object: "checkout.session",
+            mode: "payment",
+            payment_status: "paid",
+            client_reference_id: purchase!.id,
             amount_total: amountCents,
             currency: "sgd",
             livemode: false,
@@ -492,10 +501,8 @@ test.describe("Harbor preview integration handshakes", () => {
       expect(tier2JobCountError).toBeNull()
       expect(tier2JobCount).toBe(0)
 
-      const capability = await appFetch(page, `/api/cases/${caseId}/capabilities`, {
-        method: "GET",
-        headers: { Authorization: "Bearer " + token },
-      })
+      // Same as use-payment-status: the Clerk session cookie, not the Supabase template token.
+      const capability = await appFetch(page, `/api/cases/${caseId}/capabilities`, { method: "GET" })
       expect(capability.status).toBe(200)
       const capabilities = capability.body as {
         capabilities?: { report?: { entitled?: boolean }; fidrecPack?: { entitled?: boolean } }

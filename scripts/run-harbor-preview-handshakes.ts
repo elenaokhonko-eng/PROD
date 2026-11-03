@@ -13,8 +13,10 @@ const result = spawnSync(
   [
     playwrightCli,
     "test",
-    "tests/e2e/harbor-preview-handshakes.spec.ts",
-    "--project=chromium-1440",
+    "--config=tests/e2e/playwright.preview.config.ts",
+    // A separator-free filter matches on every platform; a "/" path never matches Windows paths.
+    "harbor-preview-handshakes",
+    "--project=preview-chromium",
     "--workers=1",
   ],
   {

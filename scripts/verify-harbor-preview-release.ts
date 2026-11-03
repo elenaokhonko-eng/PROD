@@ -1,7 +1,7 @@
 import { appendFileSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
-import { request } from '@playwright/test'
+import { chromium, request } from '@playwright/test'
 
 const shaPattern = /^[0-9a-f]{40}$/i
 const defaultProductionHosts = ['guidebuoyaisg.onrender.com', 'guidebuoyai.sg', 'www.guidebuoyai.sg']
@@ -31,14 +31,23 @@ async function main() {
 
   await assertReleaseEndpointRejectsAnonymous(baseUrl.origin)
 
-  const api = await request.newContext({
-    baseURL: baseUrl.origin,
-    storageState: storageStatePath,
-    extraHTTPHeaders: { accept: 'application/json' },
-  })
+  // Clerk session tokens last about a minute; load the app in a browser first so Clerk refreshes the
+  // stored session before the request, otherwise any storage state older than that is rejected.
+  const browser = await chromium.launch()
 
   try {
-    const response = await api.get('/api/health/release', { maxRedirects: 0 })
+    const context = await browser.newContext({ baseURL: baseUrl.origin, storageState: storageStatePath })
+    const page = await context.newPage()
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
+    await page.waitForFunction(
+      () => Boolean((window as typeof window & { Clerk?: { session?: unknown } }).Clerk?.session),
+      undefined,
+      { timeout: 60_000 },
+    )
+    const response = await context.request.get('/api/health/release', {
+      maxRedirects: 0,
+      headers: { accept: 'application/json' },
+    })
     if (response.headers().location) throw new Error('Release identity endpoint attempted a redirect.')
     if (response.status() === 401 || response.status() === 403) {
       throw new Error('Release identity endpoint rejected the authenticated staging request.')
@@ -56,7 +65,7 @@ async function main() {
     exportValue('HARBOR_PREVIEW_CONFIRMED_SHA', commitSha)
     console.log('Verified authenticated immutable Render release identity.')
   } finally {
-    await api.dispose()
+    await browser.close()
   }
 }
 

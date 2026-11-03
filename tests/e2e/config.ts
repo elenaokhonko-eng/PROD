@@ -170,7 +170,8 @@ function matchForLane(lane: HarborLane) {
   if (lane === 'authenticated') {
     return ['authenticated/**/*.spec.ts', 'slice5.spec.ts', 'slice7.spec.ts']
   }
-  if (lane === 'preview') return ['preview/**/*.spec.ts']
+  // The five-service handshakes skip themselves unless pnpm test:e2e:preview-handshakes enables them.
+  if (lane === 'preview') return ['preview/**/*.spec.ts', 'harbor-preview-handshakes.spec.ts']
   if (lane === 'synthetic') return ['router/**/*.spec.ts']
   return ['public/**/*.spec.ts']
 }
