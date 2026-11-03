@@ -295,6 +295,23 @@ The preview and authenticated CI jobs sign in with saved Clerk Development sessi
 
 4. Re-run the failed workflow. A session made this way is a live sign-in for that identity until it expires, so never paste, attach, or commit the files.
 
+### Rebuild staging test data
+
+`scripts/seed-harbor-staging-fixtures.ts` is the standard way to rebuild the synthetic staging cases behind `HARBOR_STATE_CASES_JSON` and `HARBOR_RELEASE_FIXTURES_JSON`, after a staging reset or whenever the authenticated lane needs clean fixtures (several tests change their fixture cases, so reruns need a rebuild).
+
+- It runs only against `yqqkkftfddxuxmpxwbcj`, over `sslmode=verify-full` with `HARBOR_PREVIEW_DB_CA`, and only for the three CI identities named in `CLERK_RECONCILIATION_USER_ALLOWLIST_JSON`. It refuses `userGolden` and never reads or writes a case it did not create.
+- Case IDs are derived from fixture names, so each run deletes and recreates the same synthetic cases in one transaction. It also sets `userA`'s user-level plan to `self_serve_report` (needed for the free-draft and buy-report states).
+- Without `--apply` it is a dry run that rolls back.
+
+1. Set `HARBOR_PREVIEW_DATABASE_URL` (staging, `sslmode=verify-full`), `HARBOR_PREVIEW_DB_CA` and `CLERK_RECONCILIATION_USER_ALLOWLIST_JSON`.
+2. Run `pnpm exec tsx scripts/seed-harbor-staging-fixtures.ts`, then again with `--apply`. It writes `harbor-state-cases.json` and `harbor-release-fixtures.json` to the git-ignored `test-results/seed/`.
+3. Upload both without displaying them:
+
+   ```powershell
+   Get-Content -Raw test-results/seed/harbor-state-cases.json | gh secret set HARBOR_STATE_CASES_JSON --env harbor-preview
+   Get-Content -Raw test-results/seed/harbor-release-fixtures.json | gh secret set HARBOR_RELEASE_FIXTURES_JSON --env harbor-preview
+   ```
+
 ## Preview deployment order
 
 1. Freeze preview checkout creation and pause the worker. Record the full clean Git SHA, its parent, all six migration hashes above, and all local gate results.
