@@ -1,67 +1,65 @@
-# Authenticated lane: first live run, triage (2026-11-03)
+# Authenticated lane triage (from 2026-11-03)
 
-Run: `tests/e2e/playwright.authenticated.config.ts` against staging (`guidebuoy-staging-web.onrender.com`, release head
-`8420d8c`), fixtures from `scripts/seed-harbor-staging-fixtures.ts` (synthetic cases for user-a, user-b and
-deletion-user only). 40 tests × 4 browser projects = 160.
+Lane: `tests/e2e/playwright.authenticated.config.ts` against staging (`guidebuoy-staging-web.onrender.com`), fixtures from
+`scripts/seed-harbor-staging-fixtures.ts` (synthetic cases for user-a, user-b and deletion-user only). Each run: staging
+web and worker on the run's commit, fresh seed, version variables in sync.
 
-**Result:** 25 passed, 87 failed, 39 skipped by design (mutating tests run once, on `chromium-1440`), 9 did not run
-(serial suites stopped after an earlier failure).
+## Runs
 
-Nothing has been fixed yet. Each failure below is classified with one line of evidence and the patch it needs.
-Rerun after fixes: rebuild fixtures (runbook "Rebuild staging test data"), then run the lane.
+| Run | Commit | Tests | Passed | Failed | Skipped by design | Not run |
+|---|---|---|---|---|---|---|
+| 1 | `8420d8c` | 160 | 25 | 87 | 39 | 9 |
+| 2 | `bbce218` | 172 | 110 | 10 | 48 | 4 |
+| 3 | `ab1e25b` | 172 | 114 | 10 | 48 | 0 |
+| 4 | `99d6e4c` | 172 | 122 | 2 | 48 | 0 |
+| 5 | `83dc9a3` | 172 | 123 | 1 | 48 | 0 |
 
-## App defects (block G3b)
+"Skipped by design": tests that change data or call providers run once, on `chromium-1440`. Run 2 onwards includes the
+new Tier 2 access tests (3 tests × 4 projects).
 
-| # | Defect | Evidence | Tests affected | Patch |
+## Open
+
+| # | Test | Status | Question |
+|---|---|---|---|
+| Q2 | slice5 "upload uses evidence row -> process route -> case document" | Failing, needs a product decision | The upload, process route, case document and worker job all succeed (document `ready`, job `completed`). The test then waits for the per-file "Ready" badge, but as soon as one document is ready and intake is complete the state machine moves the case to "Preparing your free draft" and the upload panel (with the badge) is gone. The screen spec lists per-file "ready" among dashboard evidence states but doesn't say whether the user must see it before the case moves on. Either keep the evidence list (with statuses) visible after the first ready document (app change), or accept the move to draft-pending as the confirmation (test change). |
+
+Watch item: `use-auto-refire-extract` and `use-tier0-auto-fire` also call cookie-authenticated routes on page load and
+could hit the same expired-cookie race as D5. Not seen in any run.
+
+## Fixed
+
+### App defects
+
+| # | Defect | Fix | Commit | Regression test |
 |---|---|---|---|---|
-| D1 | Every case dashboard requests a column that doesn't exist | `hooks/state-machine/layer1/use-case-documents-realtime.ts:28` selects `case_documents.created_at`; PostgREST returns 400 `42703 column case_documents.created_at does not exist` (the table has `upload_date`). Seen on every seeded dashboard. | state families layer1Intake, layer1Gap, layer1Evidence, layer2Ready, layer2Failed, layer3Unavailable, layer3Tier2 (correct state text renders; they fail only on this console error) | Remove `created_at` from the select (order/compare by `upload_date`). Users: the document list query fails, so documents may not load or refresh on the dashboard. |
-| D2 | Tier 2 pack can't load for the case owner | `hooks/state-machine/layer3/use-tier2-pack.ts:29` sends the Supabase-template JWT as `Authorization: Bearer`; `app/api/fidrec/tier2/case-pack-json/route.ts` authenticates with Clerk (`getCurrentUser`), which rejects that header: 401 `Unauthorized` for a signed-in owner. Same pattern in `use-case-pack-export.ts`. | layer3Tier2 (401 console error); the Tier 2 panel on any escalation-pack case | Send no Authorization header to Clerk-authenticated routes (cookies), or make these routes accept the bearer like `job-status` does. Note the inconsistency: `create-checkout-session` and `job-status` require the bearer (cookie-only gets 401 "Missing bearer token"), while the Tier 2 routes reject it. Pick one convention. |
+| D1 | Every dashboard's document query selected `case_documents.created_at` (no such column): 400, document list never loaded | Select real columns, order by `upload_date` (newest first) | `e58e449` | `tests/database/client-columns.test.sql`, `tests/contracts/case-document-columns.test.ts`; repo-wide `scripts/check-supabase-columns.ts` in CI (896 references, all valid) |
+| D2 | Tier 2 pack/export: owners got 401 (routes rejected the Supabase bearer the app sends) | Accept the bearer only after Supabase verifies it (`current_app_user_id()`), or the cookie session | `bbce218` | `tier2-pack-access.spec.ts`: owner 200 (bearer and cookie), other user 403/404 with no pack, altered claim 401 |
+| D3 | Retired AI models: evidence processing (`gemini-2.5-flash`) and transcription (`gemini-2.5-pro`) returned 404 for the new keys; staging `OPENAI_MODEL=GPT-4.1-mini` is a 404 | Default to `gemini-3.8-flash`; transcription uses `GOOGLE_GENERATIVE_AI_MODEL`; lower-case `OPENAI_MODEL` | `ab1e25b` (+ Edge function `evidence_processed_v2` deployed to staging) | `tests/contracts/ai-models.test.ts`; upload processed to `ready` in 15 s after the fix |
+| D4 | Cross-user case update returned 400 with a database message | `maybeSingle()`, 404 without saying whether the case exists | `ab1e25b` | ownership-claims "cross-user zero-row write" |
+| D5 | Capabilities call could send an expired session cookie on load: intermittent 401 | Wait for Clerk, refresh before the first call, retry once after a forced refresh | `99d6e4c`, `83dc9a3` | state-family tests (console must be clean); not seen in run 5 |
 
-Checked and working: checkout with the app's own bearer header returns 200 and a Stripe test URL.
+### Test harness
 
-## Test harness defects (hide real results; fix first)
+| # | Defect | Fix | Commit |
+|---|---|---|---|
+| H1 | API calls reused a Clerk session cookie older than its ~60 s lifetime | `refreshClerkSession()` before context API calls | `bbce218` |
+| H2 | Token read before Clerk was ready | `waitForClerkSession()` | `bbce218` |
+| H3 | Stripe Checkout text read before render | Wait for the amount text | `bbce218` |
+| H4 | Upload test's 120 s processing wait exceeded the 60 s test limit | Per-test timeout | `ab1e25b` |
+| H5 | Handoff mock missed Next's `?_rsc=` request; init script re-planted the story after the app cleared it | Match by path; plant once | `ab1e25b`, `99d6e4c` |
 
-| # | Defect | Evidence | Tests affected | Patch |
-|---|---|---|---|---|
-| H1 | API calls reuse a Clerk session token older than about 60 s | `context.request.*` sends the stored `__session` cookie; staging returns 401 `Unauthorized`. A browser page refreshes the session, a request context doesn't (same fix already applied in `scripts/verify-harbor-preview-release.ts`). | ownership-claims:27 (and :40, :62 not run, serial), privacy:20, privacy:63, expired-collaborator:20 (got 401, expects 403/404), external-handshakes:8 (SMTP) | Before API calls, open a page in that context and wait for `window.Clerk.session` (a shared fixture helper), or call the API through `page.request` after that. |
-| H2 | Token read before Clerk is ready | `clerk?.session?.getToken(...)` returns null: ownership-claims:16 on webkit-mobile-390 (claim null), checkout-provider S$188 ("Clerk Supabase token must be available"). | 2 | Wait for `window.Clerk?.session` before `getToken`. |
-| H3 | Stripe Checkout text read before it renders | checkout-provider S$18: on `checkout.stripe.com`, `body.innerText()` is `""`. | 1 | Wait for the amount element or `toContainText` with a timeout instead of a one-off read. |
+### Out-of-date tests (expected behaviour from the current app, spec or schema)
 
-## Stale tests (app copy or contract changed; expected behaviour is clear)
-
-| # | Test | Expects | App now | Patch |
-|---|---|---|---|---|
-| S1 | state transitionBuyReport | "Buy the full report" | "Get your Bank Pack" (`components/state-machine/transition/buy-report-cta.tsx`) | Update `expectedStateText` |
-| S2 | state layer2Running | "Analysing your case" | "Checking your case information" (`layer2/decision-progress.tsx`) | Update `expectedStateText` |
-| S3 | state layer2Drafting | "Drafting your complaint report" | "Preparing your automated report" (`layer2/report-drafting.tsx`) | Update `expectedStateText` |
-| S4 | checkout-failures:8 | button `/buy.*report\|continue.*report/i` | "Get Bank Pack" | Update locator |
-| S5 | checkout-failures:26 | `/confirming your payment\|payment received/i` | "Confirming payment" (`transition/payment-success-landing.tsx`) | Update matcher |
-| S6 | preservation:67 | "Invalid or expired invitation" | "This invitation is invalid, expired, or unavailable to this account." (`app/(auth)/invite/[token]/page.tsx:59`) | Update text; URL assertion is still right |
-| S7 | preservation:78 | `/case was not found/i` | "Case not found. We couldn't find this case, or the signed-in account does not have access." Behaviour is correct (no data, no redirect). | Update matcher |
-| S8 | preservation:36 | a "Delete Account" button and confirmation | Settings shows "Data deletion … not currently available" by design (`app/(case)/app/settings/_components/settings-client.tsx:129-137`) | Assert the export flow and the disabled deletion state |
-| S9 | slice5:117 | `getByText('A few more details')` | Matches the card title and its description (strict-mode violation) | `{ exact: true }` |
-| S10 | slice5:59 | "Upload supporting evidence" on a fresh disposable case | Intake (6 answers, `lib/intake-completion.ts`) now comes first; a bare case shows "Tell us about your complaint" | Seed the six intake responses in the test's disposable case |
-
-Predicted but not reached (blocked by H1): privacy:83 expects deletion status `queued`; the RPC writes `pending` and the
-table CHECK has no `queued`. ownership-claims:40 expects 403/404 on a cross-user PUT; `app/api/cases/[caseId]/details/route.ts:53-59`
-may return 400 on zero rows. Both need checking after H1.
-
-## Needs a product decision
-
-| # | Test | Question |
+| # | Test | Change |
 |---|---|---|
-| Q1 | preservation:7 (anonymous narrative handoff) | The test stores the pending narrative and opens `/`, expecting a redirect to the new case. The app now consumes `gb_pending_narrative` on `/onboarding` (`app/(auth)/onboarding/page.tsx`) and `/` stays put. Is `/onboarding` the contract (update the test) or should a signed-in `/` with a pending narrative continue the handoff (app change)? |
+| S1–S3 | state families | Current headings: "Get your Bank Pack", "Checking your case information", "Preparing your automated report" |
+| S4–S5 | checkout-failures | "Get Bank Pack" button; "Confirming payment" |
+| S6–S7 | preservation | Current invitation and case-not-found messages |
+| S8 | preservation (settings) | Self-service deletion is deliberately disabled: assert the disabled control, its reason, and no call to the delete endpoint |
+| S9 | slice5 gap answer | Exact match (title text also starts the description) |
+| S10 | slice5 upload | Answer the six intake questions first, as the app requires |
+| S11 | privacy deletion request | Initial status is `pending` (schema CHECK has no `queued`); also assert nothing was deleted |
+| S12 | ownership-claims worker paths | Worker-only functions refuse non-worker callers with 403 "This function is worker-only" (as the preview handshake suite pins) |
+| Q1 | preservation handoff | Starts at `/onboarding`, the authenticated bootstrap in `docs/harbor-ui/route-and-cta-matrix.md` |
 
-## Seed data (agent's own; will be corrected in the seed script)
-
-| Fixture | Renders | Should render |
-|---|---|---|
-| layer1DraftPending | "Upload supporting evidence" | "Preparing your free draft" |
-| layer1FreeDraft | "Preparing your free draft" | "Your free triage draft" |
-
-## Passing
-
-authenticated-preflight (4/4), state "completed intake remains at evidence after refresh…" (4/4), slice5 "missing-questions
-fallback notice" (4/4), slice7 "keeps unapproved human support inactive" (4/4), ownership-claims "supabase_uuid claim"
-(3/4), and on chromium-1440: checkout-provider disabled/unknown keys, blocked second checkout (paid, partially refunded,
-refunded, disputed), concurrent reservation; evidence-validation (all 3 rejection cases).
+No test was deleted, skipped or quarantined.
