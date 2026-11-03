@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@clerk/nextjs'
 import { qk } from '@/hooks/state-machine/query-keys'
 import type { CaseCapabilityBillingResponse } from '@/lib/billing/case-capabilities'
 import type { CaseEntitlementPlan } from '@/lib/types/case'
@@ -17,11 +18,15 @@ export interface PaymentStatusResult {
 
 export function usePaymentStatus(caseId: string | null | undefined, options?: UsePaymentStatusOptions) {
   const enabled = Boolean(caseId) && (options?.enabled ?? true)
+  const { getToken } = useAuth()
 
   return useQuery({
     queryKey: caseId ? qk.entitlement(caseId) : ['entitlement', 'missing-case-id'],
     enabled,
     queryFn: async (): Promise<PaymentStatusResult> => {
+      // The route authenticates with Clerk's __session cookie, which expires after about a minute. Getting a token
+      // refreshes that cookie first, so a dashboard opened from an idle tab doesn't send an expired one (401).
+      await getToken()
       const response = await fetch(`/api/cases/${caseId}/capabilities`, {
         headers: { Accept: 'application/json' },
         cache: 'no-store',
