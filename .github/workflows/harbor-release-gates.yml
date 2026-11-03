@@ -112,6 +112,8 @@ jobs:
         run: supabase test db tests/database/security-baseline.test.sql
       - name: Browser-selected columns exist
         run: supabase test db tests/database/client-columns.test.sql
+      - name: App query columns exist in the migrated schema
+        run: pnpm exec tsx scripts/check-supabase-columns.ts
 
   playwright-public:
     name: Playwright public UI

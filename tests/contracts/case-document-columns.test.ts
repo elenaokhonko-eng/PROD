@@ -22,4 +22,5 @@ test('the dashboard document query selects and orders only real columns', () => 
   assert.ok(!selectedColumns.includes('created_at'))
   assert.match(hookSource, /\.select\(CASE_DOCUMENT_SELECT\)/)
   assert.doesNotMatch(hookSource, /\.order\('created_at'/)
+  assert.match(hookSource, /\.order\('upload_date', \{ ascending: false \}\)/, 'newest uploads first')
 })
