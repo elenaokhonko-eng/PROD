@@ -3,7 +3,7 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/ge
 import { z } from "zod"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
 
-const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-2.0-flash"
+const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "gemini-3.8-flash"
 
 function scrub<T>(obj: T): T {
   try {

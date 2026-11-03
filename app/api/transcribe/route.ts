@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai"
 
-const modelName = "gemini-2.5-pro"
+// Same model setting as the router; gemini-2.5-* returns 404 for API keys created after its retirement.
+const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL?.trim() || "gemini-3.8-flash"
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return Buffer.from(buffer).toString("base64")

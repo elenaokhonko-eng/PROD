@@ -7,7 +7,7 @@ import { getNextStepsForRuleEngine } from "@/lib/rules"
 import { logger } from "@/lib/logger"
 import type { TriageSignals } from "@/lib/rules"
 
-const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-2.0-flash"
+const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "gemini-3.8-flash"
 const log = logger.withContext({ module: "router-classify", model: modelName })
 
 const classifyRequestSchema = z.object({

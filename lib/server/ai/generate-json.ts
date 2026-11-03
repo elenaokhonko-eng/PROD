@@ -49,7 +49,8 @@ export function getOpenAiApiKey(): string {
 }
 
 export function getOpenAiModel(): string {
-  return process.env.OPENAI_MODEL?.trim() || "gpt-4.1-mini"
+  // OpenAI model IDs are lower-case and case-sensitive ("GPT-4.1-mini" is a 404).
+  return process.env.OPENAI_MODEL?.trim().toLowerCase() || "gpt-4.1-mini"
 }
 
 function extractResponseText(response: ResponseLike, schemaName: string): string {

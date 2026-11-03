@@ -249,8 +249,11 @@ function evidenceDefinitionsBlock() {
 `.trim();
 }
 
-/** Default model for document classification. Override with secret `EVIDENCE_GEMINI_MODEL` after deploy. */
-const DEFAULT_EVIDENCE_GEMINI_MODEL = Deno.env.get("EVIDENCE_GEMINI_MODEL") ?? "gemini-2.5-flash";
+/**
+ * Default model for document classification. Override with secret `EVIDENCE_GEMINI_MODEL` after deploy.
+ * gemini-2.5-* returns 404 for API keys created after its retirement for new users.
+ */
+const DEFAULT_EVIDENCE_GEMINI_MODEL = Deno.env.get("EVIDENCE_GEMINI_MODEL") ?? "gemini-3.8-flash";
 
 function isRetryableGeminiError(status: number, bodyText: string): boolean {
   if (status === 429 || status === 503) return true;
