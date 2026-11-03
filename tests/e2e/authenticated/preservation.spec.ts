@@ -6,7 +6,10 @@ const syntheticEvidence = { annotation: { type: 'evidence-class', description: '
 
 test('anonymous narrative is handed to the signed-in bootstrap exactly once', syntheticEvidence, async ({ page }) => {
   const handoffNarrative = fixtures.onboarding.anonymousNarrative
+  // Init scripts run on every page load; plant the story once so the check below sees what the app left behind.
   await page.addInitScript((narrative) => {
+    if (sessionStorage.getItem('harbor_test_narrative_planted')) return
+    sessionStorage.setItem('harbor_test_narrative_planted', '1')
     sessionStorage.setItem('gb_pending_narrative', JSON.stringify({ narrative }))
   }, handoffNarrative)
 

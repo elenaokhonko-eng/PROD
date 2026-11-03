@@ -70,7 +70,11 @@ test.describe.serial('Pattern C ownership and internal authorization', () => {
             headers,
             maxRedirects: 0,
           })
-          expect(response.status(), `${path}: ${await response.text()}`).toBe(401)
+          // The edge proxy refuses non-worker callers to worker-only functions before any authentication or
+          // service-role work (lib/server/edge-proxy.ts); the preview handshake suite pins the same response.
+          const body = await response.text()
+          expect(response.status(), `${path}: ${body}`).toBe(403)
+          expect(JSON.parse(body)).toEqual({ error: 'This function is worker-only' })
           expect(response.headers().location).toBeUndefined()
         }
       }
