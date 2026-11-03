@@ -55,7 +55,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     .update({ ...allowed, updated_at: new Date().toISOString() })
     .eq("id", caseId)
     .select()
-    .single()
+    .maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  // RLS hides cases the caller can't edit, so zero updated rows means not found (or not theirs); don't say which.
+  if (!data) return NextResponse.json({ error: "Case not found" }, { status: 404 })
   return NextResponse.json(data)
 }
