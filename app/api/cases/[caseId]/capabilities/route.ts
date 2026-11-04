@@ -5,6 +5,7 @@ import {
   type CaseEntitlementCapabilityRow,
   type CasePurchaseCapabilityRow,
 } from "@/lib/billing/case-capabilities"
+import { loadReportPurchaseReadiness, type ReportPurchaseReadiness } from "@/lib/billing/report-purchase-readiness"
 import { createUserClient } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
@@ -51,12 +52,20 @@ export async function GET(
     return NextResponse.json({ error: "Failed to load case capabilities" }, { status: 500 })
   }
 
+  let reportPurchase: ReportPurchaseReadiness
+  try {
+    reportPurchase = await loadReportPurchaseReadiness(supabase, caseId)
+  } catch {
+    return NextResponse.json({ error: "Failed to load case capabilities" }, { status: 500 })
+  }
+
   return NextResponse.json(
     buildCaseCapabilityBillingResponse({
       caseId,
       entitlement: entitlementResult.data as CaseEntitlementCapabilityRow | null,
       purchases: (purchasesResult.data ?? []) as CasePurchaseCapabilityRow[],
       canPurchase,
+      reportPurchase,
     }),
     { headers: { "Cache-Control": "no-store" } },
   )

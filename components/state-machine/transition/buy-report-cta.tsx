@@ -3,8 +3,8 @@
 /**
  * Transition node `T-BuyReportCTA` (SM Diagram 2).
  *
- * CTA card shown on the Tier-0 draft screen once `run_report_selfserve` is
- * eligible. Pure presentational — clicking the button calls `onClick()`,
+ * CTA card shown on the Tier-0 draft screen once the capabilities API reports `report.purchaseReady`.
+ * Pure presentational — clicking the button calls `onClick()`,
  * which the driver wires to `useCreateCheckoutSession` (Slice 4B).
  */
 

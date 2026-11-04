@@ -151,8 +151,9 @@ class Seeder {
     return id
   }
 
-  // Extract, valid validation and decision rows that make run_report_selfserve true.
-  async validLineage(caseId: string) {
+  // Extract and valid validation rows: what a free case has before its free draft. No decision, which in the
+  // real flow is created by the post-payment job.
+  async freeLineage(caseId: string) {
     const extractId = seedUuid(`${caseId}:extract`)
     const validationId = seedUuid(`${caseId}:validation`)
     await this.client.query(
@@ -167,7 +168,6 @@ class Seeder {
          'seed-v1', 'v1', true, $4, now() - interval '4 minutes')`,
       [validationId, caseId, extractId, { source: seedSource }],
     )
-    await this.decision(caseId, { extractId, validationId })
   }
 
   async decision(caseId: string, lineage: { extractId?: string; validationId?: string } = {}) {
@@ -309,12 +309,11 @@ async function main() {
     const seeder = new Seeder(client, ids)
     const { userA, userB, deletionUser } = ids
 
-    // userA's user-level plan lets eligibility report self_serve_report while a case has no case entitlement
-    // (layer1FreeDraft), and makes the self-serve report runnable once a case has a valid lineage (BuyReport).
+    // The CI identities keep the default free account entitlement, like any new user: the seeded states reach
+    // purchase through case data only. (An earlier seed gave userA a paid account plan, which hid D6.)
     await client.query(
-      `update user_entitlements set plan = 'self_serve_report', features = '{"allow_self_serve_report": true}'
-       where user_id = $1`,
-      [userA],
+      `update user_entitlements set plan = 'free', features = '{}' where user_id = any($1::uuid[])`,
+      [[userA, userB, deletionUser]],
     )
 
     const state = {} as Record<keyof StateCases, { caseId: string }>
@@ -332,11 +331,11 @@ async function main() {
     })
     await add('layer1FreeDraft', async (id) => {
       await seeder.document(id, 'statement', { processed: true, status: 'ready', uploadedMinutesAgo: 10 })
-      await seeder.validLineage(id)
+      await seeder.freeLineage(id)
       await seeder.tier0Narrative(id)
     })
     await add('transitionBuyReport', async (id) => {
-      await seeder.validLineage(id)
+      await seeder.freeLineage(id)
       await seeder.tier0Narrative(id)
       await seeder.caseEntitlement(id, 'free')
     })
@@ -424,7 +423,7 @@ async function main() {
     const paymentsFree = await seeder.createCase(c.paymentsFree, userA)
     const buyReportCase = async (name: string) => {
       const id = await seeder.createCase(name, userA)
-      await seeder.validLineage(id)
+      await seeder.freeLineage(id)
       await seeder.tier0Narrative(id)
       await seeder.caseEntitlement(id, 'free')
       return id
@@ -445,6 +444,9 @@ async function main() {
       ['disputed', c.blockedDisputed, 'disputed'],
     ] as const) {
       const caseId = await seeder.createCase(name, userA)
+      // Ready to buy, so a second checkout is refused by the existing purchase, not by readiness.
+      await seeder.freeLineage(caseId)
+      await seeder.tier0Narrative(caseId)
       blocked[key] = { caseId, purchaseId: await seeder.blockedPurchase(caseId, userA, status) }
     }
 

@@ -1044,6 +1044,8 @@ describe("typed case capability response", () => {
         paid_at: null,
         created_at: "2026-07-13T00:00:00.000Z",
       }],
+      // A checkout can only have started on a case that was ready to buy.
+      reportPurchase: { ready: true, blockedReason: null },
     })
 
     assert.equal(response.capabilities.report.checkoutInProgress, true)

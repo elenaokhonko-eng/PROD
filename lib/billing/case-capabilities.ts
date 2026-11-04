@@ -1,3 +1,4 @@
+import type { ReportPurchaseBlock, ReportPurchaseReadiness } from "@/lib/billing/report-purchase-readiness"
 import { PRODUCT_CATALOGUE } from "@/lib/payments/product-catalogue"
 
 export type CasePurchaseStatus =
@@ -36,6 +37,9 @@ export interface CaseCapabilityBillingResponse {
       canCheckout: boolean
       checkoutInProgress: boolean
       reconciliationRequired: boolean
+      // Free draft and validation are in place (see lib/billing/report-purchase-readiness.ts).
+      purchaseReady: boolean
+      purchaseBlockedReason: ReportPurchaseBlock | null
     }
     fidrecPack: {
       entitled: boolean
@@ -120,9 +124,12 @@ export function buildCaseCapabilityBillingResponse(input: {
   entitlement: CaseEntitlementCapabilityRow | null
   purchases: CasePurchaseCapabilityRow[]
   canPurchase?: boolean
+  // Omitted means unknown: the report can't be bought.
+  reportPurchase?: ReportPurchaseReadiness
   generatedAt?: string
 }): CaseCapabilityBillingResponse {
   const canPurchase = input.canPurchase ?? true
+  const reportPurchase = input.reportPurchase ?? { ready: false, blockedReason: null }
   const features = input.entitlement?.features ?? {}
   const reportEntitled =
     input.entitlement?.plan === "self_serve_report" ||
@@ -165,10 +172,13 @@ export function buildCaseCapabilityBillingResponse(input: {
         canCheckout:
           canPurchase &&
           PRODUCT_CATALOGUE.self_serve_report.checkoutEnabled &&
+          reportPurchase.ready &&
           !reportEntitled &&
           !reportPurchaseEstablished,
         checkoutInProgress: reportCheckoutInProgress,
         reconciliationRequired: reportPurchaseEstablished && !reportEntitled,
+        purchaseReady: reportPurchase.ready,
+        purchaseBlockedReason: reportPurchase.blockedReason,
       },
       fidrecPack: {
         entitled: fidrecEntitled,

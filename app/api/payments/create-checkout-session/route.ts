@@ -11,6 +11,7 @@ import {
   resolvePriceId,
   type CheckoutProductKey,
 } from "@/lib/payments/product-catalogue"
+import { loadReportPurchaseReadiness } from "@/lib/billing/report-purchase-readiness"
 
 export type ProductKey = CheckoutProductKey
 
@@ -101,6 +102,20 @@ export async function POST(request: NextRequest) {
     }
 
     const service = createServiceClient()
+
+    // The report needs the free draft and a non-blocking validation first; the buy button uses the same check.
+    if (productKey === "self_serve_report") {
+      let readiness
+      try {
+        readiness = await loadReportPurchaseReadiness(service, caseId)
+      } catch (error) {
+        console.error("[payments] Failed to check report purchase readiness", error)
+        return NextResponse.json({ error: "Failed to create purchase record" }, { status: 500 })
+      }
+      if (!readiness.ready) {
+        return NextResponse.json({ error: "Purchase is not eligible", reason: readiness.blockedReason }, { status: 409 })
+      }
+    }
 
     type CheckoutReservation = {
       case_purchase_id: string

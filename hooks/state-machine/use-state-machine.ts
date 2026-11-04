@@ -1,6 +1,6 @@
 'use client'
 
-import type { CaseEligibilityResponse } from '@/lib/types/eligibility'
+import type { ReportPurchaseReadiness } from '@/lib/billing/report-purchase-readiness'
 import type { CaseValidationRunRow, ValidationGapItemRow } from '@/lib/types/validation'
 import { deriveInGapPhase } from '@/lib/validation/gap-flow'
 import type { Tier0DraftBundle } from '@/lib/types/narratives'
@@ -29,7 +29,8 @@ export type StateMachineNode =
   | 'L3-Confirmed'
 
 export interface StateMachineInput {
-  eligibility: CaseEligibilityResponse | null
+  /** From the capabilities API; `null` while loading. Whether the free case may buy the S$18 report. */
+  reportPurchase: Pick<ReportPurchaseReadiness, 'ready'> | null
   validation: CaseValidationRunRow | null
   /** `undefined` = gap-items query still loading for the resolved validation run. */
   gapItems: ValidationGapItemRow[] | undefined
@@ -56,7 +57,7 @@ export interface StateMachineInput {
  */
 export function useStateMachine(input: StateMachineInput): StateMachineNode {
   const {
-    eligibility,
+    reportPurchase,
     validation,
     gapItems,
     narratives,
@@ -96,19 +97,11 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
 
   if (isCheckoutRedirecting) return 'T-CheckoutRedirect'
 
-  if (!eligibility) return 'T-EligibilityGate'
+  // "Can buy", not get_case_eligibility's run_report_selfserve, which is only true once the report is paid for.
+  if (!reportPurchase || !reportPurchase.ready) return 'T-EligibilityGate'
 
-  if (!eligibility.eligible_actions.run_report_selfserve) {
-    return 'T-EligibilityGate'
-  }
+  // The free draft with the buy button underneath; the button alone while no document is ready.
+  if (documents?.some((d) => d.processing_status === 'ready')) return 'S1-Tier0Draft'
 
-  if (eligibility.plan !== 'self_serve_report') {
-    return 'T-BuyReportCTA'
-  }
-
-  if (!documents?.some((d) => d.processing_status === 'ready')) {
-    return 'S1-Tier0DraftPending'
-  }
-
-  return 'S1-Tier0Draft'
+  return 'T-BuyReportCTA'
 }

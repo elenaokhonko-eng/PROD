@@ -129,8 +129,9 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
       ? GAP_QUESTIONS_FALLBACK_NOTICE
       : null
 
+  const reportPurchase = paymentStatusQuery.data?.capabilityBilling.capabilities.report
   const node = useStateMachine({
-    eligibility: eligibilityQuery.data ?? null,
+    reportPurchase: reportPurchase ? { ready: reportPurchase.purchaseReady } : null,
     validation: validationQuery.data ?? null,
     gapItems: validationQuery.gapItems,
     narratives: tier0DraftQuery.data ?? null,
@@ -408,6 +409,11 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
         ) : node === 'T-EligibilityGate' ? (
           <>
             <EligibilityGate
+              purchase={
+                reportPurchase
+                  ? { ready: reportPurchase.purchaseReady, blockedReason: reportPurchase.purchaseBlockedReason }
+                  : null
+              }
               eligibility={eligibilityQuery.data}
               onResult={handleEligibilityResult}
             />

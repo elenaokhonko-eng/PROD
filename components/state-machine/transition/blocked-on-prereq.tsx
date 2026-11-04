@@ -3,7 +3,7 @@
 /**
  * Transition node `T-BlockedOnPrereq` (SM Diagram 2).
  *
- * Nudge card rendered when `get_case_eligibility.eligible_actions.run_report_selfserve`
+ * Nudge card rendered when the capabilities API reports `report.purchaseReady`
  * is `false`. Copy is driven by `missing` (derived by the driver from the
  * `prerequisites` object). Clicking "Retry" asks the parent to re-fetch
  * eligibility (IS §6 is idempotent and cheap).

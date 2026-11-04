@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { useStateMachine, type StateMachineInput } from '../../hooks/state-machine/use-state-machine'
-import type { CaseEligibilityResponse } from '../../lib/types/eligibility'
 import type { Tier0DraftBundle } from '../../lib/types/narratives'
 
 const base: StateMachineInput = {
-  eligibility: null,
+  reportPurchase: null,
   validation: null,
   gapItems: [],
   narratives: null,
@@ -36,24 +35,19 @@ const tier0: Tier0DraftBundle = {
   other: [],
 }
 
-const eligible: CaseEligibilityResponse = {
-  case_id: 'c1',
-  user_id: 'u1',
-  plan: 'free',
-  features: {},
-  prerequisites: { has_extract: true, has_validation: true, has_decision: false, has_documents: true },
-  resolved_ids: {},
-  eligible_actions: { run_decision: true, run_report_selfserve: true, run_escalation_pack: false },
-}
+const purchasable = { ready: true }
+const readyDocument = [{ id: 'd1', processing_status: 'ready' as const }]
 
 const cases: Array<[string, Partial<StateMachineInput>, string]> = [
   ['Layer 1 intake', {}, 'S1-IntakeForm'],
   ['Layer 1 evidence', { isIntakeSubmitted: true }, 'S1-EvidenceUpload'],
   ['Layer 1 draft pending', { isIntakeSubmitted: true, documents: [{ id: 'd1', processing_status: 'ready' }] }, 'S1-Tier0DraftPending'],
   ['eligibility transition', { narratives: tier0 }, 'T-EligibilityGate'],
-  ['buy transition', { narratives: tier0, eligibility: eligible }, 'T-BuyReportCTA'],
-  ['checkout transition', { narratives: tier0, eligibility: eligible, isCheckoutRedirecting: true }, 'T-CheckoutRedirect'],
-  ['Layer 1 free draft', { narratives: tier0, eligibility: { ...eligible, plan: 'self_serve_report' }, documents: [{ id: 'd1', processing_status: 'ready' }] }, 'S1-Tier0Draft'],
+  ['blocked before purchase', { narratives: tier0, reportPurchase: { ready: false }, documents: readyDocument }, 'T-EligibilityGate'],
+  ['buy transition', { narratives: tier0, reportPurchase: purchasable }, 'T-BuyReportCTA'],
+  ['checkout transition', { narratives: tier0, reportPurchase: purchasable, isCheckoutRedirecting: true }, 'T-CheckoutRedirect'],
+  // A free case, no paid entitlement anywhere: the free draft with the S$18 buy button.
+  ['Layer 1 free draft', { narratives: tier0, reportPurchase: purchasable, documents: readyDocument }, 'S1-Tier0Draft'],
   ['Layer 2 decision', { entitlementPlan: 'self_serve_report' }, 'L2-DecisionRunning'],
   ['Layer 2 report drafting', { entitlementPlan: 'self_serve_report', decision: { id: 'run1' } as never }, 'L2-ReportDrafting'],
   ['Layer 2 failure', { entitlementPlan: 'self_serve_report', jobStatus: { status: 'failed' } }, 'L2-ReportFailed'],

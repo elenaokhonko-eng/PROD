@@ -138,7 +138,10 @@ describe('Harbor UI functionality contract', () => {
     assert.doesNotMatch(paymentStatusSource, /from\(['"]case_entitlements['"]\)/)
     assert.match(paymentStatusSource, /capabilityBilling\.capabilities/)
     assert.match(paymentStatusSource, /reconciliationRequired/)
-    assert.match(stateMachineSource, /eligible_actions\.run_report_selfserve/)
+    // The buy step follows the server's purchase readiness; run_report_selfserve is only true after payment.
+    assert.match(stateMachineSource, /reportPurchase\.ready/)
+    assert.doesNotMatch(stateMachineSource, /eligible_actions\.run_report_selfserve/)
+    assert.match(dashboardSource, /capabilities\.report[\s\S]*?purchaseReady/)
     assert.match(dashboardSource, /eligible_actions\.run_escalation_pack/)
     assert.match(dashboardSource, /reportCapability\?\.canCheckout/)
     assert.match(dashboardSource, /fidrecCapability\?\.canCheckout/)

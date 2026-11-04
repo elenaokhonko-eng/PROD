@@ -63,7 +63,17 @@ test.describe('Stripe preview-provider checkout contract', () => {
       const response = await createCheckout(page, token, fixture.caseId, 'self_serve_report')
       expect(response.status(), `${status}: ${await response.text()}`).toBe(409)
       expect(response.headers().location).toBeUndefined()
+      // Refused by the existing purchase (reservation or reconciliation), not by purchase readiness.
+      expect((await response.json()) as { reason?: string }).not.toHaveProperty('reason')
     }
+  })
+
+  test('a case without a free draft cannot buy the report', async ({ page }) => {
+    const token = await getSupabaseToken(page)
+    const response = await createCheckout(page, token, fixtures.payments.freeCaseId, 'self_serve_report')
+    expect(response.status(), await response.text()).toBe(409)
+    expect(await response.json()).toEqual({ error: 'Purchase is not eligible', reason: 'free_draft_missing' })
+    expect(response.headers().location).toBeUndefined()
   })
 
   test('concurrent checkout reservation creates at most one provider session', async ({ page }) => {

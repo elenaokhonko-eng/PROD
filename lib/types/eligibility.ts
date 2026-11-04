@@ -5,11 +5,12 @@
 
 import type { CaseEntitlementPlan } from '@/lib/types/case'
 
+// Keys as returned by get_case_eligibility (supabase/migrations/20260419140000_get_case_eligibility_self_serve.sql).
 export interface CaseEligibilityPrerequisites {
-  has_extract: boolean
-  has_validation: boolean
-  has_decision: boolean
-  has_documents: boolean
+  has_extract_run: boolean
+  has_validation_run: boolean
+  has_decision_run: boolean
+  has_processed_documents: boolean
   [extra: string]: boolean | undefined
 }
 

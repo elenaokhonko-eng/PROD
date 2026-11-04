@@ -16,6 +16,7 @@
  */
 
 import { useEffect } from 'react'
+import type { ReportPurchaseReadiness } from '@/lib/billing/report-purchase-readiness'
 import type { CaseEligibilityResponse } from '@/lib/types/eligibility'
 
 export type EligibilityGateResult =
@@ -23,36 +24,47 @@ export type EligibilityGateResult =
   | { eligible: false; blockedReason: string; missing: string[] }
 
 export interface EligibilityGateProps {
+  /** From the capabilities API (lib/billing/report-purchase-readiness.ts). */
+  purchase: ReportPurchaseReadiness | null | undefined
   eligibility: CaseEligibilityResponse | null | undefined
   onResult: (result: EligibilityGateResult) => void
 }
 
-export function EligibilityGate({ eligibility, onResult }: EligibilityGateProps) {
+export function EligibilityGate({ purchase, eligibility, onResult }: EligibilityGateProps) {
   useEffect(() => {
-    if (!eligibility) return
+    if (!purchase) return
 
-    if (eligibility.eligible_actions.run_report_selfserve) {
+    if (purchase.ready) {
       onResult({ eligible: true })
       return
     }
 
-    const missing = deriveMissing(eligibility)
+    const missing = deriveMissing(purchase, eligibility)
     onResult({
       eligible: false,
       blockedReason: describeBlocked(missing),
       missing,
     })
-  }, [eligibility, onResult])
+  }, [purchase, eligibility, onResult])
 
   return null
 }
 
-function deriveMissing(eligibility: CaseEligibilityResponse): string[] {
-  const { prerequisites } = eligibility
+export function deriveMissing(
+  purchase: ReportPurchaseReadiness,
+  eligibility: CaseEligibilityResponse | null | undefined,
+): string[] {
+  const prerequisites = eligibility?.prerequisites
   const missing: string[] = []
-  if (!prerequisites.has_extract) missing.push('extract')
-  if (!prerequisites.has_validation) missing.push('validation')
-  if (!prerequisites.has_documents) missing.push('documents')
+  if (prerequisites && !prerequisites.has_extract_run) missing.push('extract')
+  if (
+    (prerequisites && !prerequisites.has_validation_run) ||
+    purchase.blockedReason === 'validation_missing' ||
+    purchase.blockedReason === 'validation_blocking'
+  ) {
+    missing.push('validation')
+  }
+  if (prerequisites && !prerequisites.has_processed_documents) missing.push('documents')
   return missing
 }
 

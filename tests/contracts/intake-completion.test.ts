@@ -8,7 +8,7 @@ import {
 import { useStateMachine, type StateMachineInput } from '../../hooks/state-machine/use-state-machine'
 
 const base: StateMachineInput = {
-  eligibility: null,
+  reportPurchase: null,
   validation: null,
   gapItems: [],
   narratives: null,
