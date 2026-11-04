@@ -21,10 +21,30 @@ new Tier 2 access tests (3 tests × 4 projects).
 
 | # | Test | Status | Question |
 |---|---|---|---|
-| Q2 | slice5 "upload uses evidence row -> process route -> case document" | Failing, needs a product decision | The upload, process route, case document and worker job all succeed (document `ready`, job `completed`). The test then waits for the per-file "Ready" badge, but as soon as one document is ready and intake is complete the state machine moves the case to "Preparing your free draft" and the upload panel (with the badge) is gone. The screen spec lists per-file "ready" among dashboard evidence states but doesn't say whether the user must see it before the case moves on. Either keep the evidence list (with statuses) visible after the first ready document (app change), or accept the move to draft-pending as the confirmation (test change). |
+| Q2 | slice5 "upload uses evidence row -> process route -> case document" | Failing. Decision (2026-11-04): option (a), keep the evidence list with per-file statuses visible beside "Preparing your free draft", with an option to add files. Held until Elena's walkthrough section 4 confirms it | The upload, process route, case document and worker job all succeed (document `ready`, job `completed`). The test then waits for the per-file "Ready" badge, but as soon as one document is ready and intake is complete the state machine moves the case to "Preparing your free draft" and the upload panel (with the badge) is gone. The screen spec lists per-file "ready" among dashboard evidence states but doesn't say whether the user must see it before the case moves on. Either keep the evidence list (with statuses) visible after the first ready document (app change), or accept the move to draft-pending as the confirmation (test change). |
 
 Watch item: `use-auto-refire-extract` and `use-tier0-auto-fire` also call cookie-authenticated routes on page load and
 could hit the same expired-cookie race as D5. Not seen in any run.
+
+## Follow-ups from the run 5 review (2026-11-04)
+
+**AI model health check.** `lib/server/ai/model-health.ts` and Edge function `ai_model_health_v1` check every configured
+model at startup, hourly and on `/api/health/release` (503 `AI model unavailable: …`, `ai_model_unavailable` log line,
+email to `ADMIN_EMAIL`). Staging, all 10 models answered 200: app `gemini-3.8-flash`, `gpt-4.1-mini`,
+`text-embedding-3-small`; Edge `gemini-3.8-flash` (evidence), `gpt-4.1-mini` (extract, decision, self-serve report),
+`text-embedding-3-small` (decision, backfill), `gpt-4o-mini` (Tier 0). A forced retired ID returned 404 and failed the
+check. `tests/contracts/ai-models.test.ts` fails if an Edge function uses a model the check doesn't cover.
+
+**Column references the checker can't resolve** (now listed by `scripts/check-supabase-columns.ts`), checked by hand
+against the staging schema:
+
+| Reference | Why it isn't checked automatically | Columns | Result |
+|---|---|---|---|
+| `app/api/contact-requests/route.ts:59` embedded `latest_extract:case_extract_runs(extract_json, created_at)` | Embedded relation | `case_extract_runs.extract_json`, `created_at`; one foreign key `case_id → cases.id`, so the embed is unambiguous | Valid |
+| `app/api/contact-requests/route.ts:59` `.order('created_at', { referencedTable: 'case_extract_runs' })` | Ordering on the embedded table | `case_extract_runs.created_at` | Valid |
+| `app/api/router/session/handlers.ts:108`, `:122`, `:227` `.select(PUBLIC_SESSION_COLUMNS)` | Column list in a constant | 15 `router_sessions` columns, `id` … `status` | Valid |
+| `app/api/router/session/handlers.ts:169`, `:185` `.select(INTERNAL_SESSION_COLUMNS)` | Column list in a constant | The 15 above plus `converted_to_user_id` | Valid |
+| `hooks/state-machine/layer1/use-case-documents-realtime.ts:25` `.select(CASE_DOCUMENT_SELECT)` | Column list in a constant | 22 `case_documents` columns | Valid; also pinned by `tests/database/client-columns.test.sql` and `tests/contracts/case-document-columns.test.ts` |
 
 ## Fixed
 

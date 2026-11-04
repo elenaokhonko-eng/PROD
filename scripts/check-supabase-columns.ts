@@ -23,10 +23,15 @@ const columnMethods = new Set([
 ])
 
 export type ColumnUse = { file: string; line: number; table: string; column: string; via: string }
+export type UncheckedUse = { file: string; line: number; table: string; via: string }
 
-export function collectColumnUses(fileName: string, source: string): { uses: ColumnUse[]; skipped: number } {
+export function collectColumnUses(
+  fileName: string,
+  source: string,
+): { uses: ColumnUse[]; skipped: number; unchecked: UncheckedUse[] } {
   const sourceFile = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true)
   const uses: ColumnUse[] = []
+  const unchecked: UncheckedUse[] = []
   let skipped = 0
 
   const visit = (node: ts.Node) => {
@@ -42,23 +47,28 @@ export function collectColumnUses(fileName: string, source: string): { uses: Col
         if (method === 'select' && first && ts.isStringLiteralLike(first)) {
           const { columns, nested } = selectColumns(first.text)
           skipped += nested
+          if (nested) unchecked.push({ file: fileName, line, table, via: 'embedded select' })
           for (const column of columns) uses.push({ file: fileName, line, table, column, via: 'select' })
         } else if (columnMethods.has(method) && first && ts.isStringLiteralLike(first)) {
           if (hasForeignTableOption(call)) {
             skipped += 1
+            unchecked.push({ file: fileName, line, table, via: `${method} on a referenced table` })
             continue
           }
           const column = baseColumn(first.text)
           if (column) uses.push({ file: fileName, line, table, column, via: method })
         } else if (columnMethods.has(method) || method === 'select') {
-          if (first) skipped += 1
+          if (first) {
+            skipped += 1
+            unchecked.push({ file: fileName, line, table, via: `dynamic ${method}` })
+          }
         }
       }
     }
     ts.forEachChild(node, visit)
   }
   visit(sourceFile)
-  return { uses, skipped }
+  return { uses, skipped, unchecked }
 }
 
 // A `.from('literal')` call on a Supabase client (not storage.from, Array.from or Buffer.from).
@@ -124,20 +134,32 @@ function sourceFiles(dir: string): string[] {
   })
 }
 
+// Only the local CI database may be reached without TLS; a remote URL without a CA would send the password in clear.
+export function assertTlsForRemote(connectionString: string, ca: string | undefined) {
+  const host = new URL(connectionString).hostname
+  if (!['127.0.0.1', 'localhost', '::1', '[::1]'].includes(host) && !ca) {
+    throw new Error('COLUMN_CHECK_DB_CA is required for a remote database (verify-full TLS); refusing to connect.')
+  }
+}
+
 async function main() {
   const uses: ColumnUse[] = []
+  const unchecked: UncheckedUse[] = []
   let skipped = 0
   for (const dir of sourceDirs) {
     for (const path of sourceFiles(join(root, dir))) {
       const result = collectColumnUses(relative(root, path).replaceAll('\\', '/'), readFileSync(path, 'utf8'))
       uses.push(...result.uses)
       skipped += result.skipped
+      unchecked.push(...result.unchecked)
     }
   }
 
-  const ca = process.env.COLUMN_CHECK_DB_CA
+  const ca = process.env.COLUMN_CHECK_DB_CA?.trim()
+  const connectionString = process.env.COLUMN_CHECK_DATABASE_URL || localDatabaseUrl
+  assertTlsForRemote(connectionString, ca)
   const client = new pg.Client({
-    connectionString: process.env.COLUMN_CHECK_DATABASE_URL || localDatabaseUrl,
+    connectionString,
     ...(ca ? { ssl: { ca, rejectUnauthorized: true } } : {}),
   })
   await client.connect()
@@ -170,6 +192,8 @@ async function main() {
   })
   const unique = Array.from(new Set(problems))
   console.log(`Checked ${uses.length} column references; ${skipped} dynamic or embedded references not checked.`)
+  // Reviewed by hand in docs/release/authenticated-lane-triage-2026-11-03.md; a new entry here needs the same review.
+  for (const use of unchecked) console.log(`  not checked: ${use.file}:${use.line} ${use.table} (${use.via})`)
   if (unique.length) {
     console.error(`${unique.length} reference(s) to missing tables or columns:\n${unique.join('\n')}`)
     process.exit(1)

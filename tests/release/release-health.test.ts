@@ -61,6 +61,21 @@ test("release health fails closed for missing or malformed deployment identity",
   }
 })
 
+test("release health fails closed when a configured AI model is unavailable", () => {
+  const healthy = buildReleaseHealthResult({ authenticated: true, renderGitCommit: renderSha, modelFailures: "" })
+  assert.deepEqual(healthy.body, { commitSha: renderSha })
+  const result = buildReleaseHealthResult({
+    authenticated: true,
+    renderGitCommit: renderSha,
+    modelFailures: "edge gemini gemini-2.5-flash (evidence_processed_v2): HTTP 404",
+  })
+  assert.equal(result.status, 503)
+  assert.deepEqual(result.body, {
+    error: "AI model unavailable: edge gemini gemini-2.5-flash (evidence_processed_v2): HTTP 404",
+  })
+  assert.deepEqual(result.headers, { "Cache-Control": "no-store" })
+})
+
 test("preview verifier requires an exact minimal matching SHA response", () => {
   assert.equal(assertReleaseCommitSha({ commitSha: renderSha.toUpperCase() }, renderSha), renderSha)
   assert.throws(() => assertReleaseCommitSha({ commitSha: otherSha }, renderSha), /does not match/)

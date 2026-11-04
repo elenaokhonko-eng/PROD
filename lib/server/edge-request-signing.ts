@@ -11,9 +11,11 @@ export interface EdgeRequestContext {
   jobLockedAt?: string
 }
 
-export type AdminEdgeAudience = 'backfill_embeddings_v1' | 'url_catalogue'
+// ai_model_health_v1 checks the signature only: it reads no data, so it doesn't consume a database nonce.
+export type AdminEdgeAudience = 'ai_model_health_v1' | 'backfill_embeddings_v1' | 'url_catalogue'
 
 const ADMIN_EDGE_AUDIENCES = new Set<AdminEdgeAudience>([
+  'ai_model_health_v1',
   'backfill_embeddings_v1',
   'url_catalogue',
 ])

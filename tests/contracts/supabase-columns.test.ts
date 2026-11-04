@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { collectColumnUses, selectColumns } from '../../scripts/check-supabase-columns'
+import { assertTlsForRemote, collectColumnUses, selectColumns } from '../../scripts/check-supabase-columns'
 
 test('collects select, order and filter columns from a .from() chain', () => {
   const { uses } = collectColumnUses(
@@ -37,4 +37,14 @@ test('select parsing strips aliases, casts and JSON paths and skips embedded rel
     columns: ['id', 'user_id', 'amount', 'metadata'],
     nested: 1,
   })
+})
+
+test('refuses a remote database without a CA, so the password never travels without TLS', () => {
+  assert.doesNotThrow(() => assertTlsForRemote('postgresql://postgres:postgres@127.0.0.1:54322/postgres', undefined))
+  assert.throws(
+    () => assertTlsForRemote('postgresql://user:pass@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres', undefined),
+    /COLUMN_CHECK_DB_CA is required/,
+  )
+  assert.throws(() => assertTlsForRemote('postgresql://user:pass@db.example.test:5432/postgres', ''), /COLUMN_CHECK_DB_CA/)
+  assert.doesNotThrow(() => assertTlsForRemote('postgresql://user:pass@db.example.test:5432/postgres', 'PEM'))
 })

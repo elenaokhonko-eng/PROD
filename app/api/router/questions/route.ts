@@ -2,8 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai"
 import { z } from "zod"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
+import { getGeminiModel } from "@/lib/server/ai/models"
 
-const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "gemini-3.8-flash"
+const modelName = getGeminiModel()
 
 function scrub<T>(obj: T): T {
   try {

@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger"
 
 const log = logger.withContext({ module: "ai-generate-embedding" })
 
-const EMBEDDING_MODEL = "text-embedding-3-small"
+export const EMBEDDING_MODEL = "text-embedding-3-small"
 
 export function toVectorLiteral(values: number[]): string {
   return `[${values.join(",")}]`

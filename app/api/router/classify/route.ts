@@ -6,8 +6,9 @@ import { createServiceClient } from "@/lib/supabase/service"
 import { getNextStepsForRuleEngine } from "@/lib/rules"
 import { logger } from "@/lib/logger"
 import type { TriageSignals } from "@/lib/rules"
+import { getGeminiModel } from "@/lib/server/ai/models"
 
-const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "gemini-3.8-flash"
+const modelName = getGeminiModel()
 const log = logger.withContext({ module: "router-classify", model: modelName })
 
 const classifyRequestSchema = z.object({
