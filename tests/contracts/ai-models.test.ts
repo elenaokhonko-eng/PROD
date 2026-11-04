@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import test from 'node:test'
 import { getOpenAiModel } from '../../lib/server/ai/generate-json'
 import { isReachable } from '../../lib/server/ai/model-health'
-import { getGeminiModel } from '../../lib/server/ai/models'
+import { CHECKED_MODEL_IDS, getGeminiModel } from '../../lib/server/ai/models'
 
 // Google returns 404 for gemini-2.0-* and gemini-2.5-* on API keys created after their retirement for new users,
 // which silently broke evidence processing and transcription on the November 2026 staging keys.
@@ -65,6 +65,18 @@ test('the Edge model health check probes every model each Edge function uses, wi
       )
     }
   }
+})
+
+test('every default model ID, app and Edge, is in the verified list check-env-set enforces', () => {
+  const app = ['app', 'lib'].flatMap(sources).flatMap((path) => [...readFileSync(path, 'utf8').matchAll(modelLiteral)].map((m) => m[1]))
+  const edge = edgeModels().map((entry) => entry.fallback)
+  const verified = new Set<string>(CHECKED_MODEL_IDS)
+  assert.deepEqual([...new Set([...app, ...edge])].filter((model) => !verified.has(model)), [])
+})
+
+test('the Edge model health check reuses its result for 60 seconds', () => {
+  assert.match(healthFunction, /const RESULT_CACHE_MS = 60_000;/)
+  assert.match(healthFunction, /return jsonResponse\(\{ checks: await currentChecks\(\) \}\)/)
 })
 
 test('app model IDs come only from the settings the app model health check probes', () => {

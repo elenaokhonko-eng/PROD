@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { resolveCheckoutRedirectOrigin } from "../lib/payments/product-catalogue"
+import { CHECKED_MODEL_IDS, MODEL_SETTING_KEYS } from "../lib/server/ai/models"
 
 // Validates one environment's git-ignored env file against the release contract
 // in docs/release-operations.md. Reports variable names, key types, refs, and
@@ -245,6 +246,18 @@ export function checkEnvironmentSet(
     let host = ""
     try { host = new URL(get("NEXT_PUBLIC_APP_URL")).hostname } catch { /* reported above */ }
     add(host.endsWith(".onrender.com") ? "PASS" : "WARN", "staging origin is a Render hostname", "preview test lanes refuse non-onrender.com hosts")
+  }
+
+  // Model IDs are case-sensitive ("GPT-4.1-mini" is a 404) and providers retire them for new keys.
+  for (const key of MODEL_SETTING_KEYS) {
+    const value = get(key)
+    if (!value) continue
+    const listed = (CHECKED_MODEL_IDS as readonly string[]).includes(value)
+    add(
+      listed ? "PASS" : "FAIL",
+      `${key} is a lower-case model ID the health check has verified`,
+      listed ? undefined : value !== value.toLowerCase() ? "contains capital letters" : `not in CHECKED_MODEL_IDS (${CHECKED_MODEL_IDS.join(", ")})`,
+    )
   }
 
   // Supabase project binding.

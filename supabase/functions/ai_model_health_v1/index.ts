@@ -5,7 +5,8 @@
 // /api/health/release. Returns model IDs and HTTP statuses only.
 //
 // Auth: admin-signed HMAC envelope (EDGE_PROXY_HMAC_SECRET, 5-minute window). It reads and writes no data, so it
-// deliberately doesn't consume a database nonce; a replay can only repeat the probe.
+// deliberately doesn't consume a database nonce. A replay can only repeat the probe, and the result is reused for
+// 60 seconds (concurrent requests share one probe) so replays can't run up model calls.
 //
 // EDGE_MODELS must match the defaults in each function; tests/contracts/ai-models.test.ts checks that.
 import { HarborEdgeAuthError, verifyHarborEdgeRequest } from "../_shared/edge-auth.ts";
@@ -24,6 +25,11 @@ export const EDGE_MODELS: EdgeModel[] = [
 ];
 
 const PROBE_TIMEOUT_MS = 15_000;
+const RESULT_CACHE_MS = 60_000;
+
+type Check = { use: string; provider: Provider; model: string; status: number | null };
+let cached: { checks: Check[]; at: number } | null = null;
+let inFlight: Promise<Check[]> | null = null;
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -55,18 +61,34 @@ function probe(provider: Provider, apiKey: string, model: string) {
   });
 }
 
+function runChecks(): Promise<Check[]> {
+  return Promise.all(
+    EDGE_MODELS.map(async ({ use, provider, env, fallback, key }) => {
+      const model = (env ? Deno.env.get(env)?.trim() : "") || fallback;
+      const apiKey = Deno.env.get(key)?.trim() ?? "";
+      const status = apiKey ? await probe(provider, apiKey, model) : null;
+      return { use, provider, model, status };
+    }),
+  );
+}
+
+async function currentChecks(): Promise<Check[]> {
+  if (cached && Date.now() - cached.at < RESULT_CACHE_MS) return cached.checks;
+  inFlight ??= runChecks()
+    .then((checks) => {
+      cached = { checks, at: Date.now() };
+      return checks;
+    })
+    .finally(() => {
+      inFlight = null;
+    });
+  return inFlight;
+}
+
 Deno.serve(async (req) => {
   try {
     await verifyHarborEdgeRequest(req, "ai_model_health_v1");
-    const checks = await Promise.all(
-      EDGE_MODELS.map(async ({ use, provider, env, fallback, key }) => {
-        const model = (env ? Deno.env.get(env)?.trim() : "") || fallback;
-        const apiKey = Deno.env.get(key)?.trim() ?? "";
-        const status = apiKey ? await probe(provider, apiKey, model) : null;
-        return { use, provider, model, status };
-      }),
-    );
-    return jsonResponse({ checks });
+    return jsonResponse({ checks: await currentChecks() });
   } catch (error) {
     if (error instanceof HarborEdgeAuthError) return jsonResponse({ error: error.message }, error.status);
     return jsonResponse({ error: "Model health check failed" }, 500);

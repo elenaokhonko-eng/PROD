@@ -155,6 +155,32 @@ test("generated secrets must differ between environments", () => {
   assert.deepEqual(failures(compareEnvironmentSets(file(stagingValues()), file(production))), ["WORKER_SECRET differs between staging and production"])
 })
 
+test("model settings must be lower-case IDs the health check has verified", () => {
+  const values = {
+    ...productionValues(),
+    GOOGLE_GENERATIVE_AI_MODEL: "gemini-3.8-flash",
+    OPENAI_MODEL: "gpt-4.1-mini",
+    CASE_DECISION_MODEL: "gpt-4.1-mini",
+  }
+  assert.deepEqual(failures(checkEnvironmentSet("production", file(values), { productionRef })), [])
+
+  const findings = checkEnvironmentSet(
+    "production",
+    file({ ...values, OPENAI_MODEL: "GPT-4.1-mini", EVIDENCE_GEMINI_MODEL: "gemini-2.5-flash" }),
+    { productionRef },
+  )
+  const failed = findings.filter((finding) => finding.status === "FAIL")
+  assert.deepEqual(
+    failed.map((finding) => finding.check),
+    [
+      "OPENAI_MODEL is a lower-case model ID the health check has verified",
+      "EVIDENCE_GEMINI_MODEL is a lower-case model ID the health check has verified",
+    ],
+  )
+  assert.equal(failed[0].detail, "contains capital letters")
+  assert.match(failed[1].detail ?? "", /not in CHECKED_MODEL_IDS/)
+})
+
 test("render checklist reports readiness without values", () => {
   const blueprint = parseRenderBlueprint([
     "services:",
