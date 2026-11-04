@@ -1,7 +1,7 @@
 import { logger } from "@/lib/logger"
 import { ADMIN_EMAIL, EMAIL_FROM } from "@/lib/email-config"
 import { sendMail } from "@/lib/mail"
-import { signAdminEdgeRequest } from "@/lib/server/edge-request-signing"
+import { postAdminEdgeFunction } from "@/lib/server/edge-proxy"
 import { EMBEDDING_MODEL } from "@/lib/server/ai/generate-embedding"
 import { getOpenAiModel, sanitizeOpenAiApiKey } from "@/lib/server/ai/generate-json"
 import { getGeminiModel } from "@/lib/server/ai/models"
@@ -84,21 +84,9 @@ async function edgeChecks(): Promise<ModelCheck[]> {
   const failed = (status: number | null): ModelCheck[] => [
     { where: "edge", use: EDGE_MODEL_HEALTH_FUNCTION, provider: "openai", model: "(edge model check)", ok: false, status },
   ]
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!supabaseUrl || !anonKey) return failed(null)
   try {
-    const bodyText = JSON.stringify({ operation: "check" })
-    const response = await fetch(`${supabaseUrl}/functions/v1/${EDGE_MODEL_HEALTH_FUNCTION}`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        apikey: anonKey,
-        authorization: `Bearer ${anonKey}`,
-        ...signAdminEdgeRequest(EDGE_MODEL_HEALTH_FUNCTION, bodyText, "release-health"),
-      },
-      body: bodyText,
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS + 5_000),
+    const response = await postAdminEdgeFunction(EDGE_MODEL_HEALTH_FUNCTION, { operation: "check" }, "release-health", {
+      timeoutMs: PROBE_TIMEOUT_MS + 5_000,
     })
     const body = (await response.json().catch(() => null)) as { checks?: unknown } | null
     if (!Array.isArray(body?.checks)) return failed(response.status)

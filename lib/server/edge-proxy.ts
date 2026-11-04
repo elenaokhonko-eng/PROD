@@ -21,7 +21,9 @@ import {
   TIER0_FN,
 } from '@/lib/edge-functions'
 import {
+  signAdminEdgeRequest,
   signEdgeRequest,
+  type AdminEdgeAudience,
   type EdgeRequestContext,
 } from '@/lib/server/edge-request-signing'
 
@@ -294,4 +296,30 @@ export async function proxyEdgeFunction({
     })
     return NextResponse.json({ error: 'Edge invocation unavailable' }, { status: 503 })
   }
+}
+
+/**
+ * Server-only operational call to an admin-signed Edge Function (no user or case context).
+ */
+export async function postAdminEdgeFunction(
+  audience: AdminEdgeAudience,
+  body: Record<string, unknown>,
+  actorId: string,
+  { timeoutMs }: { timeoutMs: number },
+): Promise<Response> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !anonKey) throw new Error('Edge proxy is not configured (missing Supabase URL or anon key)')
+  const bodyText = JSON.stringify(body)
+  return fetch(`${supabaseUrl}/functions/v1/${audience}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+      ...signAdminEdgeRequest(audience, bodyText, actorId),
+    },
+    body: bodyText,
+    signal: AbortSignal.timeout(timeoutMs),
+  })
 }
