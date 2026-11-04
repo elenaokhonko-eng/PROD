@@ -83,8 +83,9 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const documentsQuery = useCaseDocumentsRealtime(caseId)
   const tier0DraftQuery = useTier0Draft(caseId)
   const paymentStatusQuery = usePaymentStatus(caseId)
-  const decisionQuery = useDecisionRunRealtime(caseId)
-  const reportQuery = useReportRealtime(caseId)
+  const isReportPaid = ['self_serve_report', 'escalation_pack'].includes(paymentStatusQuery.data?.plan ?? '')
+  const decisionQuery = useDecisionRunRealtime(caseId, { poll: isReportPaid })
+  const reportQuery = useReportRealtime(caseId, { poll: isReportPaid })
   const jobStatusQuery = useJobStatus(caseId)
 
   const submitIntake = useSubmitIntake()

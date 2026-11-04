@@ -81,7 +81,11 @@ export function useTier0AutoFire({ caseId, documents, enabled = true }: UseTier0
       if (!response.ok) throw new Error(json?.error ?? 'Failed to run tier0 generation')
     },
     onSuccess: async (_data, id) => {
-      await queryClient.invalidateQueries({ queryKey: qk.case.narratives(id) })
+      // The free draft makes the case ready to buy (report.purchaseReady in the capabilities response).
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: qk.case.narratives(id) }),
+        queryClient.invalidateQueries({ queryKey: qk.entitlement(id) }),
+      ])
     },
   })
 

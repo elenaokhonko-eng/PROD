@@ -10,6 +10,14 @@ export interface UseCaseDocumentsRealtimeOptions {
   enabled?: boolean
 }
 
+// Realtime is best-effort (the staging publication carried no tables, D7); poll while a document is still processing.
+export const DOCUMENT_POLL_MS = 5_000
+const TERMINAL_DOCUMENT_STATUSES = new Set(['ready', 'failed'])
+
+export function documentsStillProcessing(rows: Array<Pick<CaseDocumentRow, 'processing_status'>> | undefined): boolean {
+  return (rows ?? []).some((row) => !TERMINAL_DOCUMENT_STATUSES.has(row.processing_status ?? 'pending'))
+}
+
 export function useCaseDocumentsRealtime(
   caseId: string | null | undefined,
   options?: UseCaseDocumentsRealtimeOptions,
@@ -31,6 +39,7 @@ export function useCaseDocumentsRealtime(
       if (error) throw error
       return (data ?? []) as CaseDocumentRow[]
     },
+    refetchInterval: (query) => (documentsStillProcessing(query.state.data) ? DOCUMENT_POLL_MS : false),
   })
 
   useEffect(() => {

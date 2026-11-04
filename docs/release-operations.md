@@ -440,6 +440,48 @@ The worker refreshes `jobs.updated_at` every minute. Each Edge request has a two
 
 For each unresolved `storage_cleanup_queue` row, verify that no matching `evidence` metadata row exists, remove the exact object from the recorded bucket/path with an audited service-role operation, increment `attempts` and record `last_error` on failure, or set `resolved_at` and `updated_at` on success. Never bulk-delete by case prefix, and never mark a row resolved before Storage confirms deletion.
 
+### Manual refund (launch procedure)
+
+At launch a refund does not remove report access by itself: `record_case_purchase_refund_v1` marks the purchase
+refunded but leaves `case_entitlements` unchanged. Until refunds are automated (on-demand release,
+`docs/release/on-demand-stages-plan.md`), handle each refund by hand:
+
+1. Refund the payment in Stripe (Dashboard → Payments → the charge → Refund). Wait for the `charge.refunded` webhook
+   to show as delivered.
+2. Confirm the purchase is recorded as refunded and check what else the case holds. Stop and decide by hand if the case
+   also has a Tier 2 pack (`plan = 'escalation_pack'` or `allow_escalation_pack`); this procedure covers the S$18
+   report only.
+
+   ```sql
+   begin read only;
+   select cp.id, cp.product_code, cp.payment_status, cp.amount, cp.refunded_amount, ce.plan, ce.features
+   from public.case_purchases cp
+   left join public.case_entitlements ce on ce.case_id = cp.case_id
+   where cp.case_id = :'case_id';
+   rollback;
+   ```
+
+3. Revoke that case's report capability. The explicit `false` also overrides any account-level feature:
+
+   ```sql
+   begin;
+   update public.case_entitlements
+   set plan = 'free',
+       features = coalesce(features, '{}'::jsonb) || '{"allow_self_serve_report": false}'::jsonb,
+       source = 'manual_refund'
+   where case_id = :'case_id' and plan = 'self_serve_report'
+   returning case_id, plan, features;
+   -- Exactly one row. Otherwise: rollback; and investigate.
+   commit;
+   ```
+
+4. Record it: date, case ID, purchase ID, Stripe refund ID, who ran it. Case IDs and provider IDs only, no customer
+   details. Keep the record outside the repo, with the other operational evidence.
+
+After this the case is back on the free draft screen. A report job still running for the case stops as
+"no longer has report capability". The customer can't buy the report again for the same case: checkout treats a
+refunded purchase as established and asks for reconciliation, so a repurchase needs a new case.
+
 ## Rollback and forward-fix recovery
 
 1. Pause the worker and disable new checkout creation before changing data or code. Keep the Stripe webhook reachable so events remain durably recorded in the provider and can be redelivered.

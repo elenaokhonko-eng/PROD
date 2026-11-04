@@ -8,7 +8,11 @@ import type { ReportRow } from '@/lib/types/report'
 
 export interface UseReportRealtimeOptions {
   enabled?: boolean
+  /** Poll while the paid pipeline is still producing it; Realtime is best-effort (D7). */
+  poll?: boolean
 }
+
+const PIPELINE_POLL_MS = 10_000
 
 function compareCreatedAtDesc(a: ReportRow, b: ReportRow): number {
   const aTs = Date.parse(a.created_at)
@@ -38,6 +42,7 @@ export function useReportRealtime(caseId: string | null | undefined, options?: U
       if (error) throw error
       return (data ?? null) as ReportRow | null
     },
+    refetchInterval: (query) => (options?.poll && query.state.data?.status !== 'COMPLETED' ? PIPELINE_POLL_MS : false),
   })
 
   useEffect(() => {

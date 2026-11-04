@@ -56,6 +56,7 @@ against the staging schema:
 | D2 | Tier 2 pack/export: owners got 401 (routes rejected the Supabase bearer the app sends) | Accept the bearer only after Supabase verifies it (`current_app_user_id()`), or the cookie session | `bbce218` | `tier2-pack-access.spec.ts`: owner 200 (bearer and cookie), other user 403/404 with no pack, altered claim 401 |
 | D3 | Retired AI models: evidence processing (`gemini-2.5-flash`) and transcription (`gemini-2.5-pro`) returned 404 for the new keys; staging `OPENAI_MODEL=GPT-4.1-mini` is a 404 | Default to `gemini-3.8-flash`; transcription uses `GOOGLE_GENERATIVE_AI_MODEL`; lower-case `OPENAI_MODEL` | `ab1e25b` (+ Edge function `evidence_processed_v2` deployed to staging) | `tests/contracts/ai-models.test.ts`; upload processed to `ready` in 15 s after the fix |
 | D4 | Cross-user case update returned 400 with a database message | `maybeSingle()`, 404 without saying whether the case exists | `ab1e25b` | ownership-claims "cross-user zero-row write" |
+| D6 | A normal free user never got the S$18 buy button: the dashboard gated it on `get_case_eligibility.run_report_selfserve`, which is only true after payment; the blocked screen also read prerequisite keys the RPC doesn't return, so it always said a document was missing. Hidden by a seed shortcut that gave userA a paid account plan | One server-side purchase-readiness check (free draft and non-blocking validation) for the buy button and checkout; checkout refuses an unready case with 409 and a reason code; RPC key names fixed; seed shortcut removed, CI identities on the default free plan | `9c59ff3` | `tests/contracts/report-purchase-readiness.test.ts`; checkout-provider "a case without a free draft cannot buy the report"; `fresh-account-purchase.spec.ts` (new free account, onboarding to paid report in Stripe test mode) |
 | D5 | Capabilities call could send an expired session cookie on load: intermittent 401 | Wait for Clerk, refresh before the first call, retry once after a forced refresh | `99d6e4c`, `83dc9a3` | state-family tests (console must be clean); not seen in run 5 |
 
 ### Test harness
@@ -79,6 +80,8 @@ against the staging schema:
 | S9 | slice5 gap answer | Exact match (title text also starts the description) |
 | S10 | slice5 upload | Answer the six intake questions first, as the app requires |
 | S11 | privacy deletion request | Initial status is `pending` (schema CHECK has no `queued`); also assert nothing was deleted |
+| S13 | Harbor UI contract (`scripts/test-harbor-ui-contract.ts`) | Pinned the D6 gate (`eligible_actions.run_report_selfserve`); now requires the server-returned `report.purchaseReady` and fails if the paid-only flag returns |
+| S14 | Payment branching "pending checkout is resumable" | Fixture supplies purchase readiness, now a required fact; assertions unchanged |
 | S12 | ownership-claims worker paths | Worker-only functions refuse non-worker callers with 403 "This function is worker-only" (as the preview handshake suite pins) |
 | Q1 | preservation handoff | Starts at `/onboarding`, the authenticated bootstrap in `docs/harbor-ui/route-and-cta-matrix.md` |
 
