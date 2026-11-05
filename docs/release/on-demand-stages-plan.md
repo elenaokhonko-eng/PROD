@@ -3,6 +3,21 @@
 Status: **planned for the first release after go-live. Not implemented.** Estimate from the 2026-11-05 investigation
 of `release/harbor-pattern-c-2026-11` (after D6).
 
+## First post-launch item: instant updates (before the changes below)
+
+Go-live has no tables in the `supabase_realtime` publication (staging has none and no migration adds any), so the
+dashboard refreshes by polling (D7: every 5 s while documents process, every 10 s while a paid report runs). Launch
+ships with polling, the path the walkthrough and tests proved. First release after go-live:
+
+- Additive migration adding `case_documents`, `case_decision_runs` and `reports` to `supabase_realtime`, joining
+  the hashed release sequence as migration 38.
+- Subscriptions scoped by RLS to the signed-in user's cases; check that the Realtime JWT carries the same claims
+  the table policies use, and that no other user's rows arrive.
+- Polling stays as the fallback (on channel error or no event), so a broken subscription degrades to today's behaviour.
+- Tests: an authenticated test that sees a document reach `ready` without polling, and the existing fallback contract.
+
+About 4–6 hours including the release-procedure update.
+
 ## Goal
 
 Any stage can be bought directly, and buying the S$188 FIDReC Tier 2 pack directly also grants the S$18 bank pack
