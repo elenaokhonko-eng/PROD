@@ -176,3 +176,14 @@ test('a confirmed total that differs from the confirmed payments by more than S$
   const blocks = buildSnapshot(findings, 'free').blocks
   assert.deepEqual(blocks, [{ reason: 'total_differs_from_transactions', factKey: 'total_loss', total: 2400, sum: 3000 }])
 })
+
+test('the same payment from the story and an answer, matched by the statement, agrees (staging run, 5 Nov)', async () => {
+  const f = await findingFor('transactions', [
+    candidate('transactions', [txn('2026-10-03', 2400)], story),
+    candidate('transactions', [txn('2026-10-03', 2400)], answer('incident_summary')),
+    candidate('transactions', [txn('2026-10-03', 2400)], doc('statement')),
+  ])
+  assert.equal(f.findingType, 'agreed')
+  assert.equal(f.values.length, 1)
+  assert.equal(f.values[0].sources.length, 3)
+})

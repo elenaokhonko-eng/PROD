@@ -24,6 +24,9 @@ const log = logger.withContext({ module: "facts-reconcile" })
 const STORY_LIMIT = 20_000
 const DOCUMENT_LIMIT = 15_000
 const MODEL_CONCURRENCY = 4
+// The confirm screen waits on this run, so each model call is bounded: 30 s and one retry, about two minutes at worst.
+const MODEL_TIMEOUT_MS = 30_000
+const MODEL_RETRIES = 1
 const RUNNING_WAIT_MS = 90_000
 const SCANNED_MARKER = "_source_scanned"
 
@@ -201,7 +204,8 @@ async function waitForRunningRun(service: SupabaseClient, caseId: string) {
 export async function ensureReconciled(
   service: SupabaseClient,
   caseId: string,
-  extractJson: ExtractJson = (prompt, schemaName) => generateJson({ prompt, schemaName }),
+  extractJson: ExtractJson = (prompt, schemaName) =>
+    generateJson({ prompt, schemaName, timeoutMs: MODEL_TIMEOUT_MS, maxRetries: MODEL_RETRIES }),
 ): Promise<ReconcileResult> {
   await waitForRunningRun(service, caseId)
   const { sources, answerFacts, inputHash, storyRevision, documentsProcessing } = await loadSources(service, caseId)

@@ -228,20 +228,11 @@ function reconcileKey(key: FactKey, candidates: readonly FactCandidate[]): { fin
   return { findingType: "agreed", values: groups };
 }
 
-// Transactions get a checklist finding whenever the user's account and the documents do not match one to one.
-// A statement often lists payments the user does not dispute, so only the user can say which ones count.
+// Each source's list of payments is compared as a whole (one-to-one matching), so a statement that lists a payment
+// the user did not mention, or the reverse, becomes a conflict for the user to settle. The same payment named by
+// two of the user's own sources (story and an answer) is one value, not two.
 function reconcileTransactions(candidates: readonly FactCandidate[]): { findingType: FindingType; values: FindingValue[] } {
-  if (!candidates.length) return { findingType: "missing", values: [] };
-  const fromUser = candidates.filter((c) => c.sourceType !== "document");
-  const fromDocuments = candidates.filter((c) => c.sourceType === "document");
-  const userList = fromUser.flatMap((c) => c.value as Transaction[]);
-  const documentList = fromDocuments.flatMap((c) => c.value as Transaction[]);
-
-  const result = reconcileKey("transactions", candidates);
-  if (result.findingType !== "agreed" && result.findingType !== "unsupported") return result;
-  if (!fromUser.length || !fromDocuments.length) return result;
-  const match = matchTransactions(userList, documentList);
-  return match.unmatchedA.length || match.unmatchedB.length ? { ...result, findingType: "conflict" } : result;
+  return reconcileKey("transactions", candidates);
 }
 
 export async function reconcile(candidates: readonly FactCandidate[]): Promise<ReconciledFinding[]> {

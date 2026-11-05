@@ -7,6 +7,10 @@ const log = logger.withContext({ module: "ai-generate-json" })
 export type GenerateJsonInput = {
   prompt: string
   schemaName: string
+  /** Per-request limit; the client default is ten minutes. Interactive callers should set this. */
+  timeoutMs?: number
+  /** Client retries after a failed or timed-out request (client default 2). */
+  maxRetries?: number
 }
 
 type ResponseLike = {
@@ -80,9 +84,13 @@ function normalizeJsonText(rawText: string): string {
 
 export async function generateJson<T = unknown>(input: GenerateJsonInput): Promise<T> {
   const apiKey = getOpenAiApiKey()
-  const client = new OpenAI({ apiKey })
+  const { prompt, schemaName, timeoutMs, maxRetries } = input
+  const client = new OpenAI({
+    apiKey,
+    ...(timeoutMs ? { timeout: timeoutMs } : {}),
+    ...(maxRetries !== undefined ? { maxRetries } : {}),
+  })
   const model = getOpenAiModel()
-  const { prompt, schemaName } = input
 
   log.info("Calling OpenAI for JSON output", { schemaName, model })
 
