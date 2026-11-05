@@ -61,7 +61,7 @@ Consumed Edge request IDs remain replay-protected for 24 hours. Schedule a daily
 
 ### Release-candidate migrations
 
-These six files are preview-only release-candidate material. The explicit staging migration ledger determines which are still missing. Apply only the missing subset in this exact order and never apply any file to production during this pass.
+These seven files are preview-only release-candidate material. The explicit staging migration ledger determines which are still missing. Apply only the missing subset in this exact order and never apply any file to production during this pass.
 
 | Order | Migration | Final SHA-256 |
 | --- | --- | --- |
@@ -71,8 +71,9 @@ These six files are preview-only release-candidate material. The explicit stagin
 | 4 | `20260914120000_align_user_entitlements_pattern_c.sql` | `a631f459d5b86d5d696cbf5fb4615e4ff0f2bc7e832e7c3b385b7b5f133d6732` |
 | 5 | `20261102120000_secure_case_analysis_tables_and_anon_writes.sql` | `1e4129c40b29c1f0847d67c73088f02beff3e0a3ef734e54157fe21762b0fdc4` |
 | 6 | `20261102130000_advisor_warning_fixes.sql` | `26ba055624ac69dd5dc6a427d2e18223b63541b0f3dd8ec89b6de3a39425f33b` |
+| 7 | `20261106120000_fact_reconciliation_foundation.sql` | `7f94edd7d99ab6e3ec5da15e4af6e47ea54ef02825fe77391389fb93e6bff57b` |
 
-Verify all six hashes from the clean review SHA immediately before applying. `20260829` must finish before `20260830`; the latter supplies the nonce, durable evidence dispatch, lease-fencing, and settlement protocol required by the worker and privileged Edge Functions. Apply `20260909` next to add the fail-closed Clerk identity preflight and atomic provisioning RPC. Apply `20260914` next so `public.user_entitlements.user_id` uses the canonical `public.profiles.id` application UUID, one profile trigger provisions defaults, and entitlement RLS resolves the signed `supabase_uuid` claim. Apply `20261102120000` next: it enables RLS with case-scoped SELECT on the seven tier-2 case-analysis tables, runs `consultation_reviews_claimant` with caller rights, and removes every anon write privilege in `public`; `tests/database/security-baseline.test.sql` must pass and the security advisor must report no errors afterwards. Apply `20261102130000` last: it creates the service-role-only `fidrec_eligible` table read by `bright-function`, pins function `search_path`, closes Data API access to the analytics materialized views and to the legacy always-true or `auth.uid()` policies, and indexes every foreign key; afterwards the advisors may report only `extension_in_public` (vector), `rls_enabled_no_policy` and `unused_index`. Do not mark a migration applied manually, apply an already-ledgered migration again, or deploy code against a partial sequence.
+Verify all seven hashes from the clean review SHA immediately before applying. `20260829` must finish before `20260830`; the latter supplies the nonce, durable evidence dispatch, lease-fencing, and settlement protocol required by the worker and privileged Edge Functions. Apply `20260909` next to add the fail-closed Clerk identity preflight and atomic provisioning RPC. Apply `20260914` next so `public.user_entitlements.user_id` uses the canonical `public.profiles.id` application UUID, one profile trigger provisions defaults, and entitlement RLS resolves the signed `supabase_uuid` claim. Apply `20261102120000` next: it enables RLS with case-scoped SELECT on the seven tier-2 case-analysis tables, runs `consultation_reviews_claimant` with caller rights, and removes every anon write privilege in `public`; `tests/database/security-baseline.test.sql` must pass and the security advisor must report no errors afterwards. Apply `20261102130000` last: it creates the service-role-only `fidrec_eligible` table read by `bright-function`, pins function `search_path`, closes Data API access to the analytics materialized views and to the legacy always-true or `auth.uid()` policies, and indexes every foreign key; afterwards the advisors may report only `extension_in_public` (vector), `rls_enabled_no_policy` and `unused_index`. Apply `20261106120000` after it: the fact reconciliation tables (story and answer history with their triggers and backfill, reconcile runs, candidates, findings, immutable snapshots, confirmation audit), each with RLS, case-scoped SELECT for `authenticated` and service-role writes; `tests/database/fact-reconciliation.test.sql` covers it. Do not mark a migration applied manually, apply an already-ledgered migration again, or deploy code against a partial sequence.
 
 The first four migrations stop with actionable counts and sampled non-sensitive keys before their new historical-data constraints are created. The entitlement migration specifically stops with SQLSTATE `23503`, an orphan count, and up to ten unmatched UUIDs. A preflight failure is a release stop: compare the identified rows to provider records or existing job outputs, record the decision, and rerun the unchanged migration. Do not auto-delete, auto-cancel, synthesize `auth.users` rows, or guess which purchase, job, Clerk mapping, or profile is canonical. Record the preview project ref, database output, migration hashes, and deployed commit SHA. Local fixtures and migration parsing are not live Supabase SQL evidence.
 
@@ -173,7 +174,7 @@ Stop without applying or enabling traffic if the backup/restore marker is absent
 
 Keep checkout traffic frozen and the worker suspended for this entire procedure. Start from the clean reviewed SHA. Supply the staging database URL through the process environment, never in shell history, and never print it. Every remote command below uses `--db-url`; do not rely on, change, or infer a linked Supabase project.
 
-First, fail closed unless both the explicit operator confirmation and the database connection identity bind to the approved staging project ref. Then calculate and record all six hashes:
+First, fail closed unless both the explicit operator confirmation and the database connection identity bind to the approved staging project ref. Then calculate and record all seven hashes:
 
 ```powershell
 $approvedStagingRef = "yqqkkftfddxuxmpxwbcj"
@@ -222,6 +223,11 @@ $migrations = @(
     Version = "20261102130000"
     File = "20261102130000_advisor_warning_fixes.sql"
     Expected = "26ba055624ac69dd5dc6a427d2e18223b63541b0f3dd8ec89b6de3a39425f33b"
+  },
+  [pscustomobject]@{
+    Version = "20261106120000"
+    File = "20261106120000_fact_reconciliation_foundation.sql"
+    Expected = "7f94edd7d99ab6e3ec5da15e4af6e47ea54ef02825fe77391389fb93e6bff57b"
   }
 )
 
@@ -236,7 +242,7 @@ $recordedHashes = foreach ($migration in $migrations) {
 $recordedHashes | Format-Table -AutoSize
 ```
 
-Next, record the remote ledger using the explicit URL and identify which of the six versions are absent:
+Next, record the remote ledger using the explicit URL and identify which of the seven versions are absent:
 
 ```powershell
 supabase migration list --db-url $env:SUPABASE_STAGING_DB_URL
@@ -250,7 +256,7 @@ supabase db push --db-url $env:SUPABASE_STAGING_DB_URL --include-all --dry-run
 if ($LASTEXITCODE -ne 0) { throw "Staging migration dry run failed" }
 ```
 
-The dry-run plan must be a filename-ordered subset of exactly the six table entries above, must include every table entry absent from the recorded ledger, and must include no already-ledgered or unrelated migration. Stop on any discrepancy. If all six are already ledgered, do not run a write. Otherwise, apply the reviewed missing subset:
+The dry-run plan must be a filename-ordered subset of exactly the seven table entries above, must include every table entry absent from the recorded ledger, and must include no already-ledgered or unrelated migration. Stop on any discrepancy. If all seven are already ledgered, do not run a write. Otherwise, apply the reviewed missing subset:
 
 ```powershell
 supabase db push --db-url $env:SUPABASE_STAGING_DB_URL --include-all
@@ -260,7 +266,7 @@ supabase migration list --db-url $env:SUPABASE_STAGING_DB_URL
 if ($LASTEXITCODE -ne 0) { throw "Unable to verify the final staging migration ledger" }
 ```
 
-Record the final ledger and verify that all six versions appear exactly once in the documented order. Do not enable the Clerk webhook until `20260909120000` and `20260914120000` are present and the profile RPC, entitlement trigger, foreign key, RLS, and privileges have been verified. Keep the worker suspended after migration verification; worker enablement remains a later release gate.
+Record the final ledger and verify that all seven versions appear exactly once in the documented order. Do not enable the Clerk webhook until `20260909120000` and `20260914120000` are present and the profile RPC, entitlement trigger, foreign key, RLS, and privileges have been verified. Keep the worker suspended after migration verification; worker enablement remains a later release gate.
 
 ### Type-safety gate
 
@@ -326,10 +332,10 @@ $key | gh secret set HARBOR_CLERK_DEV_SECRET_KEY --env harbor-preview
 
 ## Preview deployment order
 
-1. Freeze preview checkout creation and pause the worker. Record the full clean Git SHA, its parent, all six migration hashes above, and all local gate results.
+1. Freeze preview checkout creation and pause the worker. Record the full clean Git SHA, its parent, all seven migration hashes above, and all local gate results.
 2. Use the staging-only procedure above to verify that the explicit database URL binds to the designated non-production project ref. Capture its migration ledger, row counts for affected payment/job tables, and a restorable database backup or provider point-in-time restore marker. Record the Storage bucket inventory separately; database backup does not back up object bytes.
 3. Run the embedded migration preflights against a restored preview clone when available. Otherwise apply with stop-on-error and a transaction-capable migration runner while traffic remains paused. Any reported duplicate pending/established purchase, Stripe identity, fulfilment identity, legacy payment identity, malformed reservation, duplicate evidence job, unsupported job type, invalid document binding, Clerk mapping conflict, or entitlement UUID without a matching profile blocks deployment until provider-backed reconciliation is complete.
-4. Follow the recorded ledger and reviewed dry-run plan to apply only missing files in this order: `20260829000000_release_security_and_fulfilment_hardening.sql`, `20260830000000_privileged_edge_and_evidence_jobs.sql`, `20260909120000_harden_clerk_profile_provisioning.sql`, `20260914120000_align_user_entitlements_pattern_c.sql`, `20261102120000_secure_case_analysis_tables_and_anon_writes.sql`, then `20261102130000_advisor_warning_fixes.sql`. Verify all six in the final ledger. Never reorder, squash, mark as applied, or run any migration on production.
+4. Follow the recorded ledger and reviewed dry-run plan to apply only missing files in this order: `20260829000000_release_security_and_fulfilment_hardening.sql`, `20260830000000_privileged_edge_and_evidence_jobs.sql`, `20260909120000_harden_clerk_profile_provisioning.sql`, `20260914120000_align_user_entitlements_pattern_c.sql`, `20261102120000_secure_case_analysis_tables_and_anon_writes.sql`, `20261102130000_advisor_warning_fixes.sql`, then `20261106120000_fact_reconciliation_foundation.sql`. Verify all seven in the final ledger. After `20261106120000`, confirm the seven fact tables have RLS on, `authenticated` holds SELECT only and `anon` nothing, and deploy `run_case_extract_v4` only after this migration (it reads `case_story_revisions`). Never reorder, squash, mark as applied, or run any migration on production.
 5. Verify the Clerk provisioning RPC and service-role-only privileges from `20260909120000`, then verify the canonical entitlement foreign key, profile trigger, existing-row preservation, RLS, and service-role access from `20260914120000` before enabling the signed Clerk webhook. Keep the worker suspended.
 6. Deploy every privileged Supabase Edge Function from the same SHA, including `ai_model_health_v1`, and set the matching `EDGE_PROXY_HMAC_SECRET`. Probe direct-anon, invalid-signature, stale-signature, replay, and valid signed paths before enabling the worker.
 7. Verify the Clerk `supabase` JWT template, allowed origins, sign-up/sign-in/session-expiry behavior, and user webhook in preview.
