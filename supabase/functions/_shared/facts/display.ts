@@ -203,3 +203,27 @@ export function factsYouConfirmed(
       return { factKey: key, label: FACT_LABELS[key], text };
     });
 }
+
+// Choices offered on the confirm screen for facts with a fixed set of values.
+export const FACT_ENUM_OPTIONS: Partial<Record<FactKey, Array<{ value: string; label: string }>>> = {
+  phishing_channel: Object.entries(CHANNEL_TEXT).map(([value, label]) => ({ value, label })),
+  credentials_or_otp_shared: Object.entries(CREDENTIALS_TEXT).map(([value, label]) => ({ value, label })),
+  scam_type: Object.entries(SCAM_TEXT).map(([value, label]) => ({ value, label })),
+  account_types: [
+    { value: "savings_or_current", label: "Savings or current account" },
+    { value: "credit_card", label: "Credit card" },
+    { value: "debit_card", label: "Debit card" },
+    { value: "ewallet", label: "E-wallet" },
+    { value: "investment", label: "Investment account" },
+    { value: "other", label: "Other" },
+  ],
+  impersonated_entity_type: [
+    { value: "bank_or_fi", label: "A bank or financial institution" },
+    { value: "government", label: "A government agency" },
+    { value: "other_business", label: "Another business" },
+    { value: "private_person", label: "A private person" },
+    { value: "unsure", label: "Not sure" },
+  ],
+};
+
+export const BANK_REPLY_OPTIONS = Object.entries(REPLY_TEXT).map(([value, label]) => ({ value, label }));

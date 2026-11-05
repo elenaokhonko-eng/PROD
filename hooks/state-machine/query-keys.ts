@@ -27,6 +27,7 @@ export const qk = {
     job: (caseId: string) => ['case', caseId, 'job'] as const,
     contactRequest: (caseId: string) => ['case', caseId, 'contact-request'] as const,
     tier2Pack: (caseId: string) => ['case', caseId, 'tier2-pack'] as const,
+    facts: (caseId: string, stage: string) => ['case', caseId, 'facts', stage] as const,
   },
   entitlement: (caseId: string) => ['entitlement', caseId] as const,
 } as const
