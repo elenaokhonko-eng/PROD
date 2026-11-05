@@ -142,7 +142,8 @@ async function completeFreeEvaluation(page: Page, caseId: string, narrative: str
   await answerFollowUpsUntil(page, confirmHeading, stepTimeoutMs)
   await confirmFactsInDashboard(page, caseId)
   await expect(page.getByText('Your free triage draft')).toBeVisible({ timeout: 180_000 })
-  await expect(page.getByText('Facts you confirmed')).toBeVisible()
+  // Exact: the server-written SRF section also says "based only on the facts you confirmed".
+  await expect(page.getByText('Facts you confirmed', { exact: true })).toBeVisible()
 }
 
 // Synthetic journey: told the bank by phone, no written complaint yet, no reply, police report made, no FIDReC.
