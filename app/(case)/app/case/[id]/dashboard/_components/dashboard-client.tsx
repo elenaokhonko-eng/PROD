@@ -33,6 +33,7 @@ import { qk } from '@/hooks/state-machine/query-keys'
 import { ConfirmAndEvaluate } from '@/components/state-machine/facts/confirm-and-evaluate'
 import { JourneyQuestions } from '@/components/state-machine/facts/journey-questions'
 import { NextSteps } from '@/components/state-machine/facts/next-steps'
+import { EvidenceUploadPanel } from '@/components/state-machine/layer1/evidence-upload-panel'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { useAutoRefireExtract } from '@/hooks/state-machine/layer1/use-auto-refire-extract'
 import { useCreateCheckoutSession, type ProductKey } from '@/hooks/state-machine/transition/use-create-checkout-session'
@@ -373,7 +374,20 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
         ) : node === 'S1-Journey' ? (
           <JourneyQuestions isSaving={journeySaving} errorMessage={journeyError} onSave={(answers) => void handleJourneySave(answers)} />
         ) : node === 'S1-Tier0DraftPending' ? (
-          <ConfirmAndEvaluate caseId={caseId} />
+          // Q2 option (a): the evidence list stays visible while the facts are confirmed.
+          <div className="space-y-8">
+            <ConfirmAndEvaluate
+              caseId={caseId}
+              readyDocumentsKey={(documentsQuery.data ?? []).filter((d) => d.processing_status === 'ready').map((d) => d.id).sort().join(',')}
+            />
+            <EvidenceUploadPanel
+              documents={documentsQuery.data ?? []}
+              isUploading={uploadEvidence.isPending}
+              activeBatchFileCount={uploadEvidence.isPending ? uploadEvidence.variables?.files.length ?? 0 : 0}
+              errorMessage={uploadEvidence.isError ? 'Review the selected file and try again. Your existing case evidence is unchanged.' : null}
+              onUpload={handleUpload}
+            />
+          </div>
         ) : showStageOneNextSteps ? (
           <Layer1Shell
             node="S1-Tier0Draft"

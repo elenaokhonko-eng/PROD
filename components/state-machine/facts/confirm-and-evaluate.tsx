@@ -5,7 +5,9 @@
  * generated from that snapshot; when it exists the dashboard moves on to the evaluation by itself.
  */
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { qk } from '@/hooks/state-machine/query-keys'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmFactsPanel } from '@/components/state-machine/facts/confirm-facts-panel'
@@ -13,9 +15,18 @@ import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { FactsRequestError } from '@/hooks/state-machine/facts/use-case-facts'
 import { useGenerateFreeEvaluation } from '@/hooks/state-machine/facts/use-generate-free-evaluation'
 
-export function ConfirmAndEvaluate({ caseId }: { caseId: string }) {
+export function ConfirmAndEvaluate({ caseId, readyDocumentsKey }: { caseId: string; readyDocumentsKey: string }) {
   const generate = useGenerateFreeEvaluation(caseId)
   const [snapshotId, setSnapshotId] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+  const lastDocumentsKey = useRef(readyDocumentsKey)
+
+  // A document added or finished while confirming changes the facts: check them again.
+  useEffect(() => {
+    if (lastDocumentsKey.current === readyDocumentsKey) return
+    lastDocumentsKey.current = readyDocumentsKey
+    void queryClient.invalidateQueries({ queryKey: qk.case.facts(caseId, 'free') })
+  }, [caseId, queryClient, readyDocumentsKey])
 
   if (generate.isPending) {
     return (

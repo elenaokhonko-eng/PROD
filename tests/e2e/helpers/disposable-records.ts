@@ -64,6 +64,18 @@ export async function createDisposableCase(
     is_anonymous: false,
   })
   if (error) throw new Error(`Unable to create disposable case: ${error.message}`)
+  // Stage 1 asks the journey questions first; disposable cases are past that step, like the seeded fixtures. The
+  // answer is deleted with the case.
+  const { error: journeyError } = await supabase.from('case_responses').insert({
+    case_id: caseId,
+    question_key: 'journey_reported_to_bank',
+    response_value: 'yes',
+    response_type: 'text',
+  })
+  if (journeyError) {
+    await supabase.from('cases').delete().eq('id', caseId)
+    throw new Error(`Unable to answer the disposable journey question: ${journeyError.message}`)
+  }
   return { caseId, ownerId: options.ownerId }
 }
 
