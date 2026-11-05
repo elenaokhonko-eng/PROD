@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 import { factsCaseAccess } from "@/lib/server/facts/case-access"
 import { loadFactsView, parseStage } from "@/lib/server/facts/facts-service"
-import { FactsUnavailableError } from "@/lib/server/facts/run-reconcile"
+import { FactsInProgressError, FactsUnavailableError } from "@/lib/server/facts/run-reconcile"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const dynamic = "force-dynamic"
@@ -21,6 +21,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
     const view = await loadFactsView(createServiceClient(), caseId, stage)
     return NextResponse.json(view, { headers: { "Cache-Control": "no-store" } })
   } catch (error) {
+    if (error instanceof FactsInProgressError) {
+      return NextResponse.json({ reason: "facts_in_progress" }, { status: 202, headers: { "Cache-Control": "no-store" } })
+    }
     if (error instanceof FactsUnavailableError) {
       return NextResponse.json({ error: "Facts are not available right now", reason: "facts_unavailable" }, { status: 503 })
     }

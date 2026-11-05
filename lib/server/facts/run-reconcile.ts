@@ -27,12 +27,13 @@ const MODEL_CONCURRENCY = 4
 // The confirm screen waits on this run, so each model call is bounded: 30 s and one retry, about two minutes at worst.
 const MODEL_TIMEOUT_MS = 30_000
 const MODEL_RETRIES = 1
-const RUNNING_WAIT_MS = 90_000
+const RUNNING_STALE_MS = 5 * 60_000
 const SCANNED_MARKER = "_source_scanned"
 
 export type ExtractJson = (prompt: string, schemaName: string) => Promise<unknown>
 
 export class FactsUnavailableError extends Error {}
+export class FactsInProgressError extends Error {}
 
 interface Source {
   sourceKey: string
@@ -184,19 +185,18 @@ async function inBatches<T, R>(items: T[], size: number, fn: (item: T) => Promis
   return results
 }
 
-async function waitForRunningRun(service: SupabaseClient, caseId: string) {
-  const deadline = Date.now() + RUNNING_WAIT_MS
-  while (Date.now() < deadline) {
-    const { data } = await service
-      .from("case_fact_reconcile_runs")
-      .select("id")
-      .eq("case_id", caseId)
-      .eq("status", "running")
-      .gte("created_at", new Date(Date.now() - RUNNING_WAIT_MS).toISOString())
-      .limit(1)
-    if (!data?.length) return
-    await new Promise((resolve) => setTimeout(resolve, 1_000))
-  }
+// Another request is already checking this case (for example the user left the page and came back). Callers answer
+// "still checking" instead of starting a second run; a run older than RUNNING_STALE_MS is treated as abandoned.
+async function assertNoRunningRun(service: SupabaseClient, caseId: string) {
+  const { data, error } = await service
+    .from("case_fact_reconcile_runs")
+    .select("id")
+    .eq("case_id", caseId)
+    .eq("status", "running")
+    .gte("created_at", new Date(Date.now() - RUNNING_STALE_MS).toISOString())
+    .limit(1)
+  if (error) throw new FactsUnavailableError("Failed to load reconcile runs")
+  if (data?.length) throw new FactsInProgressError("Facts are still being checked")
 }
 
 // Reconciles the case if its story, answers or documents changed since the last completed run, then returns the
@@ -207,7 +207,7 @@ export async function ensureReconciled(
   extractJson: ExtractJson = (prompt, schemaName) =>
     generateJson({ prompt, schemaName, timeoutMs: MODEL_TIMEOUT_MS, maxRetries: MODEL_RETRIES }),
 ): Promise<ReconcileResult> {
-  await waitForRunningRun(service, caseId)
+  await assertNoRunningRun(service, caseId)
   const { sources, answerFacts, inputHash, storyRevision, documentsProcessing } = await loadSources(service, caseId)
 
   const { data: lastRun, error: lastRunError } = await service

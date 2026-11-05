@@ -8,7 +8,7 @@ import assert from "node:assert/strict"
 import { createClient } from "@supabase/supabase-js"
 
 import { createSnapshot, loadCurrentSnapshot, ResolutionRejectedError, resolveFinding } from "@/lib/server/facts/facts-service"
-import { ensureReconciled } from "@/lib/server/facts/run-reconcile"
+import { ensureReconciled, FactsInProgressError } from "@/lib/server/facts/run-reconcile"
 
 const url = process.env.LOCAL_SUPABASE_URL ?? ""
 const serviceKey = process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY ?? ""
@@ -82,6 +82,12 @@ async function main() {
     assert.equal(police1.findingType, "conflict", "story yes vs journey no")
     assert.equal(police1.status, "open")
     assert.equal(run1.findings.find((f) => f.factKey === "institution_names")!.findingType, "agreed")
+
+    // A check already running for this case (the user left and came back): answer "still checking", start nothing.
+    const running = await check(await service.from("case_fact_reconcile_runs")
+      .insert({ case_id: caseId, input_hash: "in-progress", status: "running" }).select("id").single())
+    await assert.rejects(ensureReconciled(service, caseId, stubModel), (e: unknown) => e instanceof FactsInProgressError)
+    await check(await service.from("case_fact_reconcile_runs").delete().eq("id", (running as { id: string }).id))
 
     const again = await ensureReconciled(service, caseId, stubModel)
     assert.equal(again.runId, run1.runId, "nothing changed: same run")

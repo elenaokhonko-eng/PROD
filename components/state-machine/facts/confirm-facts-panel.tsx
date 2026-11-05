@@ -56,11 +56,11 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed }: ConfirmFactsPa
   const confirm = useConfirmFacts(caseId, stage)
   const [reviewing, setReviewing] = useState(false)
 
-  if (facts.isPending) {
+  if (facts.isPending || (facts.data && 'inProgress' in facts.data)) {
     return (
       <StateMachineLoading
-        title="Checking your facts"
-        description="We're comparing your story, your answers and your documents. This can take up to a minute."
+        title="Checking your story against your answers and documents"
+        description="This usually takes under a minute and can take up to two. You can leave this page and come back; we'll keep checking and your answers are saved."
       />
     )
   }
@@ -78,7 +78,7 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed }: ConfirmFactsPa
     )
   }
 
-  const view = facts.data
+  const view = facts.data as FactsView
   const stageName = STAGE_NAMES[stage]
   const agreed = view.findings.filter((f) => f.findingType === 'agreed')
   const groups: Array<{ type: Finding['findingType']; title: string }> = [

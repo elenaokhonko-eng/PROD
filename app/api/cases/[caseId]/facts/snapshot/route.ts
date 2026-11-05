@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 import { factsCaseAccess } from "@/lib/server/facts/case-access"
 import { createSnapshot, parseStage } from "@/lib/server/facts/facts-service"
-import { FactsUnavailableError } from "@/lib/server/facts/run-reconcile"
+import { FactsInProgressError, FactsUnavailableError } from "@/lib/server/facts/run-reconcile"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const dynamic = "force-dynamic"
@@ -27,6 +27,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
     }
     return NextResponse.json(outcome)
   } catch (error) {
+    if (error instanceof FactsInProgressError) {
+      return NextResponse.json({ error: "Your facts are still being checked", reason: "facts_in_progress" }, { status: 409 })
+    }
     if (error instanceof FactsUnavailableError) {
       return NextResponse.json({ error: "Facts are not available right now", reason: "facts_unavailable" }, { status: 503 })
     }
