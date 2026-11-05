@@ -33,7 +33,8 @@ export interface SnapshotFact {
 
 export type SnapshotBlock =
   | { reason: "open_finding"; factKey: FactKey; findingId: string }
-  | { reason: "total_differs_from_transactions"; factKey: "total_loss"; total: number; sum: number };
+  | { reason: "total_differs_from_transactions"; factKey: "total_loss"; total: number; sum: number }
+  | { reason: "inconsistent_facts"; factKey: FactKey; relatedFactKey: FactKey };
 
 export interface SnapshotResult {
   facts: Partial<Record<FactKey, SnapshotFact>>;
@@ -91,6 +92,16 @@ export function buildSnapshot(findings: readonly CurrentFinding[], stage: Stage)
         blocks.push({ reason: "total_differs_from_transactions", factKey: "total_loss", total: total.amount, sum });
       }
     }
+  }
+
+  // Dependency rule: a reply from the bank (kept as fact or as the user's own account) needs "reported to the bank:
+  // yes". Resolutions can still combine "No" with a reply, so the snapshot refuses that combination.
+  const reply = facts.bank_reply && facts.bank_reply.label !== "not_sure" && facts.bank_reply.label !== "not_known"
+    ? (facts.bank_reply.value as { status?: string } | null)
+    : null;
+  const reported = facts.reported_to_bank?.value as { value?: string } | null | undefined;
+  if (reply?.status && reply.status !== "none" && reported?.value !== "yes") {
+    blocks.push({ reason: "inconsistent_facts", factKey: "reported_to_bank", relatedFactKey: "bank_reply" });
   }
 
   return { facts, blocks };

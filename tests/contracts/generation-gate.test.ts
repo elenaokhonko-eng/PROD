@@ -47,3 +47,11 @@ test('the story is withheld from the model once the user has overruled it on the
   assert.match(fn, /if \(resolution\.kind === "value"\) return true;/)
   assert.match(fn, /resolution\.kind === "choice" && !fromStory\(values\[resolution\.index \?\? -1\]\)/)
 })
+
+test('the SRF assessment is server-only: the model gives no verdict and its text may not mention one (Elena, 5 Nov)', () => {
+  assert.doesNotMatch(fn, /"srf_signals": \{/, 'the model output schema has no SRF signals')
+  assert.match(fn, /text_content: srfAssessmentText\(assessSrf\(srfFactsFromSnapshot\(facts\)\)\)/)
+  assert.match(fn, /forbidden: \[\{ pattern: SRF_VERDICT/)
+  assert.match(fn, /secondPerson: true/)
+  assert.match(fn, /const outputText = \(r: Tier0LLMResult\) => \[r\.summary, r\.evidence_checklist\]/)
+})

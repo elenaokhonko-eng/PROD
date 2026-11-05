@@ -117,3 +117,32 @@ test('enum facts display as plain words, not codes', () => {
   })
   assert.deepEqual(section.map((s) => s.text), ['Savings or current account', 'A bank or financial institution'])
 })
+
+const replyFact = { value: { status: 'final_reply', date: null, outcome: 'rejected', qualifies: null, reference: null }, label: 'claimant_only' as const }
+
+test('a bank reply kept without a document must be attributed, and the fallback attributes it (Elena, 5 Nov)', () => {
+  const withReply: SnapshotFacts = { ...facts, bank_reply: replyFact }
+  const text = 'The bank later rejected your request for a refund.'
+  assert.equal(validateOutput({ t: text }, withReply)[0]?.check, 'unqualified')
+  const fixed = qualifyUnsupportedStatements(text, withReply)
+  assert.equal(fixed, 'You told us that the bank later rejected your request for a refund.')
+  assert.deepEqual(validateOutput({ t: fixed }, withReply), [])
+})
+
+test('the bank cannot have replied if it was never told: confirmed "no" plus a reply fails (Elena, 5 Nov)', () => {
+  const noBank: SnapshotFacts = { ...facts, reported_to_bank: { value: { value: 'no', date: null, reference: null, channel: null }, label: 'confirmed' } }
+  const failures = validateOutput({ t: "The bank's final reply was a rejection of your claim." }, noBank)
+  assert.ok(failures.some((f) => f.check === 'contradiction'))
+})
+
+test('text that says both "not told the bank" and "the bank replied" contradicts itself (staging run, 5 Nov)', () => {
+  const text = 'You did not report the incident to Synthetic Bank. The bank later rejected your request for a refund.'
+  assert.ok(validateOutput({ t: text }, {}).some((f) => f.check === 'contradiction'))
+})
+
+test('the free evaluation speaks to the person as "you", and may be barred from topics such as an SRF verdict', () => {
+  assert.equal(validateOutput({ t: 'The user discovered the scam on 4 Oct 2026.' }, facts, { secondPerson: true })[0]?.check, 'person')
+  assert.deepEqual(validateOutput({ t: 'The user discovered the scam on 4 Oct 2026.' }, facts), [], 'only when asked')
+  const forbidden = [{ pattern: /\bSRF\b|shared responsibility/i, detail: 'SRF verdict is written by the server' }]
+  assert.equal(validateOutput({ t: 'This is likely covered by the SRF.' }, facts, { forbidden })[0]?.check, 'forbidden')
+})

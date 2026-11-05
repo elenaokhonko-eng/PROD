@@ -6,6 +6,7 @@ import {
   verifyHarborEdgeRequest,
 } from "../_shared/edge-auth.ts";
 import {
+  assessSrf,
   describeFailures,
   type FactKey,
   factsYouConfirmed,
@@ -14,6 +15,8 @@ import {
   type Money,
   qualifyUnsupportedStatements,
   type SnapshotFacts,
+  srfAssessmentText,
+  srfFactsFromSnapshot,
   type Transaction,
   validateOutput,
 } from "../_shared/facts/index.ts";
@@ -25,6 +28,8 @@ const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction");
 const TIER0_MODEL = (Deno.env.get("TIER0_MODEL") ?? "gpt-4o-mini").trim().toLowerCase();
 // Dates the free evaluation may state that are not case facts (SRF effective dates).
 const TIER0_EXTRA_DATES = ["2024-12-16", "2025-06-16"];
+// The model may not give its own SRF, IMDA or telco verdict; the server writes that section from fixed rules.
+const SRF_VERDICT = /\bSRF\b|shared responsibility|\bIMDA\b|\btelcos?\b|mobile operator/i;
 
 type FidrecCheck = {
   institution_name_input: string | null;
@@ -185,21 +190,25 @@ Deno.serve(async (req) => {
       fidrec_check: fidrecCheck,
     };
 
-    const outputText = (r: Tier0LLMResult) => [r.summary, r.evidence_checklist, r.srf_signals?.reasoning];
+    // The model writes the summary and checklist only. The SRF section is the server's (rules/srf.ts), so any SRF
+    // or telco verdict from the model fails, as does "the user" instead of "you".
+    const checks = {
+      extraDates: TIER0_EXTRA_DATES,
+      secondPerson: true,
+      forbidden: [{ pattern: SRF_VERDICT, detail: "the SRF assessment is written by the server" }],
+    };
+    const outputText = (r: Tier0LLMResult) => [r.summary, r.evidence_checklist];
     let llm = await callOpenAITier0(input, null);
-    let failures = validateOutput(outputText(llm), facts, { extraDates: TIER0_EXTRA_DATES });
+    let failures = validateOutput(outputText(llm), facts, checks);
     if (failures.length) {
       llm = await callOpenAITier0(input, describeFailures(failures));
-      failures = validateOutput(outputText(llm), facts, { extraDates: TIER0_EXTRA_DATES });
+      failures = validateOutput(outputText(llm), facts, checks);
     }
     if (failures.length && failures.every((f) => f.check === "unqualified")) {
       // Only document-less or unsure facts stated as certain: qualify exactly those sentences, then check again.
       llm.summary = qualifyUnsupportedStatements(llm.summary ?? "", facts);
       llm.evidence_checklist = qualifyUnsupportedStatements(llm.evidence_checklist ?? "", facts);
-      if (llm.srf_signals && typeof llm.srf_signals.reasoning === "string") {
-        llm.srf_signals.reasoning = qualifyUnsupportedStatements(llm.srf_signals.reasoning, facts);
-      }
-      failures = validateOutput(outputText(llm), facts, { extraDates: TIER0_EXTRA_DATES });
+      failures = validateOutput(outputText(llm), facts, checks);
     }
     if (failures.length) {
       console.error(`Tier-0 output failed validation twice: ${failures.map((f) => f.check).join(", ")}`);
@@ -211,12 +220,6 @@ Deno.serve(async (req) => {
         error: "We couldn't produce a reliable evaluation",
         checks: failures.map((f) => ({ check: f.check, detail: f.detail.slice(0, 160) })),
       }, 422);
-    }
-
-    if (isValidSrfSignals(llm.srf_signals)) {
-      llm.srf_signals.missing_fields = normalizeMissingFields(llm.srf_signals.missing_fields, input);
-      llm.srf_signals.fidrec_subscription_possible = fidrecCheck.fidrec_subscription_possible;
-      llm.srf_signals.fidrec_match_note = buildFidrecMatchNote(fidrecCheck);
     }
 
     const lang = "en";
@@ -264,26 +267,21 @@ Deno.serve(async (req) => {
       fact_snapshot_id,
     });
 
-    let srfWritten = false;
-    if (isValidSrfSignals(llm.srf_signals)) {
-      const srfText = renderTier0SrfSignal(llm.srf_signals);
-      await upsertNarrative({
-        supabase,
-        case_id,
-        narrative_type: "tier0_srf_signal",
-        title: "SRF eligibility signal (Tier-0)",
-        text_content: srfText,
-        source_ref,
-        version: 1,
-        language: lang,
-        audience: "user",
-        intake_id,
-        fact_snapshot_id,
-      });
-      srfWritten = true;
-    } else if (llm.srf_signals !== undefined) {
-      console.warn("Tier-0: srf_signals missing or malformed; skipping SRF narrative");
-    }
+    // Server-only SRF assessment from the confirmed facts and the cited rules; the model never produces one.
+    await upsertNarrative({
+      supabase,
+      case_id,
+      narrative_type: "tier0_srf_signal",
+      title: "Shared Responsibility Framework: an early view",
+      text_content: srfAssessmentText(assessSrf(srfFactsFromSnapshot(facts))),
+      source_ref,
+      version: 1,
+      language: lang,
+      audience: "user",
+      intake_id,
+      fact_snapshot_id,
+    });
+    const srfWritten = true;
 
     return json(
       {
@@ -764,55 +762,31 @@ function renderTier0SrfSignal(signals: SrfSignals): string {
 }
 
 async function callOpenAITier0(input: unknown, previousFailures: string | null): Promise<Tier0LLMResult> {
-  const system = `You are generating a Tier-0 consumer dispute report: an early-stage, informational output for someone who may have experienced a scam or fraud. Help them structure what happened and give a preliminary, non-binding signal about whether the matter may relate to the Singapore Shared Responsibility Framework (SRF) or may warrant further review on an IMDA-related telco path. This is not a legal determination, not a final eligibility decision, and not compensation advice.
+  const system = `You are writing the free evaluation for someone who may have lost money to a scam: an early-stage, informational summary that helps them see what happened and what evidence helps. It is not a legal determination, not an eligibility decision and not compensation advice.
 
 GROUND RULES
-Use only facts explicitly present in the provided JSON. Do not infer, assume, invent facts, or introduce external knowledge (e.g. how scams usually work). If something is missing, write "not provided". Be neutral, factual, chronological, clear, and non-judgemental. Do not provide legal advice, do not determine liability, and do not state that the user is eligible or ineligible for compensation.
+Use only facts explicitly present in the provided JSON. Do not infer, assume, invent facts, or introduce external knowledge (e.g. how scams usually work). If something is missing, say it was not provided. Be neutral, factual, chronological, clear, calm and non-judgemental. Do not provide legal advice, do not determine liability, and do not say whether the person is eligible for compensation.
+Write to the person directly in the second person ("you", "your") throughout. Never write "the user", "the claimant" or "the customer".
+Do not assess or mention the Shared Responsibility Framework (SRF), IMDA or telco responsibility, and do not say whether any scheme applies: GuideBuoy adds that assessment separately from fixed rules.
 
 FIDREC_CHECK (optional object in input JSON)
-The fidrec_check block is a soft, reference-list signal only. Do not guess FIDReC subscription from institution name familiarity alone. A positive list match may suggest relevance of a consumer financial dispute pathway; a non-match is not a final exclusion. A null or inconclusive result means unknown. Do not state that the user is or is not entitled to FIDReC or any scheme.
+The fidrec_check block is a soft, reference-list signal only. Do not mention FIDReC eligibility.
 
 SUMMARY HARD RULES
-Do not add personal circumstances, location, family context, emotions, or surrounding scene details unless explicitly stated in the input. Do not add inferred context such as where the user was, what device they used, or what they were doing at the time, unless the input explicitly says so. If a fact is not explicitly in the input, do not include it.
-
-MISSING_FIELDS HARD RULES
-Do not list a field as missing if it appears anywhere in the input JSON, including: case fields, intake narrative_text, intake answers_json, primary_narrative, and timeline_raw. Specifically, do not list institution_name, claim_amount, claim_currency, incident_date, or incident_datetime as missing when they are present in input.case (non-null and non-empty where applicable). Do not list any field as missing unless it would materially help clarify the SRF signal.
+Do not add personal circumstances, location, family context, emotions, or surrounding scene details unless explicitly stated in the input. Do not add inferred context such as where the person was, what device they used, or what they were doing at the time, unless the input explicitly says so. If a fact is not explicitly in the input, do not include it.
 
 OUTPUT
 Return STRICT JSON only, with this exact structure (no extra keys):
 {
 "summary": "string",
-"evidence_checklist": "string",
-"srf_signals": {
-"overall_fit": "likely | possible | unlikely",
-"reasoning": "string",
-"bank_path_relevant": true,
-"telco_path_relevant": false,
-"imda_relevant": false,
-"missing_fields": ["string"]
-}
+"evidence_checklist": "string"
 }
 
 SUMMARY
-Produce a clear, chronological summary covering: how the incident or contact started; what the user did; transactions or losses; and what happened afterward (e.g. reporting, bank contact). Do not add interpretation or judgement. Use "not provided" where key elements are missing.
+Produce a clear, chronological summary covering: how the scam or contact started; what you did; the payments or losses; and what happened afterwards (e.g. reporting, contact with the bank). Do not add interpretation or judgement.
 
 EVIDENCE CHECKLIST
 Suggest useful supporting evidence based only on gaps implied by the input. Valid examples include: bank transaction records, screenshots of messages, call logs, police report, bank correspondence. Do not suggest evidence unrelated to the scenario; do not assume documents exist if not mentioned.
-
-SRF SIGNALS (srf_signals object)
-The soft signal is directional only and must follow these rules in one pass:
-
-overall_fit: Use "likely" when facts clearly align with unauthorised transaction or scam-type scenarios; "possible" when facts are incomplete, ambiguous, or only partially aligned; "unlikely" when facts do not suggest a scam or SRF-relevant scenario. If unsure, use "possible".
-
-bank_path_relevant: true only if the input includes facts such as unauthorised transactions, phishing or credential compromise, account access issues, suspicious transfers, or delayed or failed bank response. Otherwise false.
-
-telco_path_relevant: Assess only from user-visible facts in the input. true only with explicit evidence of spoofed SMS sender ID, a message under a legitimate organisation sender name (e.g. bank/government ID), communication inside an existing legitimate SMS thread, or clear impersonation via sender identity (not message content alone). false if communication was from a normal number, or the scam was via WhatsApp, Telegram, voice call, or ordinary SMS without identity masking, or there is no visible sender-identity manipulation, or the case rests on social engineering alone. Do not assume spoofing unless stated. Do not infer telco failure from the mere existence of a call or message. Do not use facts the user could not know (e.g. internal telco data, whether a number was on a scam list).
-
-imda_relevant: true only if telco_path_relevant is true; otherwise false. Be conservative.
-
-missing_fields: List only genuinely missing information the user could reasonably supply (e.g. whether an SMS showed a sender name, whether a message appeared in an existing thread, whether a transaction was authorised, whether and when the bank was contacted). Exclude telco-internal data, regulatory conclusions, and speculative items. Apply the MISSING_FIELDS HARD RULES above. When suggesting missing information, prefer concise user-actionable wording for items the consumer can provide, and plain language for gaps that mainly need the bank's explanation, investigation, or records (still output a single missing_fields string array as specified).
-
-reasoning: Explain the classifications using only input facts; if uncertain, say what is missing.
 
 CONFIRMED FACTS (these override everything else in the input)
 confirmed_facts holds the facts the user confirmed, each with a status. Use them as the facts of the case.

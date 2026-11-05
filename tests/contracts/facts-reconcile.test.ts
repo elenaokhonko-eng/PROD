@@ -187,3 +187,22 @@ test('the same payment from the story and an answer, matched by the statement, a
   assert.equal(f.values.length, 1)
   assert.equal(f.values[0].sources.length, 3)
 })
+
+test('dependency rule: a bank reply implies the bank was told, so "No" becomes a conflict (Elena, 5 Nov)', async () => {
+  const f = await findingFor('reported_to_bank', [
+    candidate('reported_to_bank', event('no'), answer('previous_contact')),
+    candidate('bank_reply', { status: 'final_reply', date: null, outcome: 'rejected', qualifies: null, reference: null }, story),
+  ])
+  assert.equal(f.findingType, 'conflict')
+  const implied = f.values.find((v) => (v.value as { value: string }).value === 'yes')!
+  assert.equal(implied.sources[0].sourceRef.impliedBy, 'bank_reply')
+})
+
+test('dependency rule: confirmed "No" with a kept bank reply cannot be frozen', () => {
+  const findings = [
+    ...freeAgreed.filter((f) => f.factKey !== 'reported_to_bank' && f.factKey !== 'bank_reply'),
+    stored('reported_to_bank', 'agreed', event('no')),
+    stored('bank_reply', 'unsupported', { status: 'final_reply', date: null, outcome: 'rejected', qualifies: null, reference: null }, 'acknowledged', { kind: 'acknowledged' }),
+  ]
+  assert.deepEqual(buildSnapshot(findings, 'free').blocks, [{ reason: 'inconsistent_facts', factKey: 'reported_to_bank', relatedFactKey: 'bank_reply' }])
+})

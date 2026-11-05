@@ -235,7 +235,25 @@ function reconcileTransactions(candidates: readonly FactCandidate[]): { findingT
   return reconcileKey("transactions", candidates);
 }
 
-export async function reconcile(candidates: readonly FactCandidate[]): Promise<ReconciledFinding[]> {
+// Dependency rules (Elena, 2026-11-05): a reply from the bank means the bank was told, and a final reply needs a
+// report or written complaint. Each reply candidate therefore implies "reported to the bank: yes" from the same
+// source, so a "No" elsewhere becomes an ordinary conflict for the user to settle.
+const REPLY_STATUSES: ReadonlySet<string> = new Set(["acknowledged", "interim", "final_reply"]);
+
+export function withImpliedCandidates(candidates: readonly FactCandidate[]): FactCandidate[] {
+  const implied: FactCandidate[] = candidates
+    .filter((c) => c.factKey === "bank_reply" && REPLY_STATUSES.has((c.value as BankReply).status))
+    .map((c) => ({
+      factKey: "reported_to_bank",
+      value: { value: "yes", date: null, reference: null, channel: null },
+      sourceType: c.sourceType,
+      sourceRef: { ...c.sourceRef, impliedBy: "bank_reply" },
+    }));
+  return [...candidates, ...implied];
+}
+
+export async function reconcile(input: readonly FactCandidate[]): Promise<ReconciledFinding[]> {
+  const candidates = withImpliedCandidates(input);
   const findings: ReconciledFinding[] = [];
   for (const key of RECONCILED_FACT_KEYS) {
     const forKey = candidates.filter((c) => c.factKey === key);

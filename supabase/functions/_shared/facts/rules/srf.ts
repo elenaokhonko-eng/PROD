@@ -182,3 +182,44 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
 
   return { portions, telco, remedies };
 }
+
+// Confirmed snapshot facts to SRF inputs. Facts marked "not sure" or "not known" give no input.
+export function srfFactsFromSnapshot(
+  facts: Partial<Record<string, { value: unknown; label: "confirmed" | "not_sure" | "claimant_only" | "not_known" }>>,
+): SrfFacts {
+  const value = <T>(key: string): T | null => {
+    const fact = facts[key];
+    return fact && (fact.label === "confirmed" || fact.label === "claimant_only") ? (fact.value as T) : null;
+  };
+  return {
+    scamTypes: value<ScamType[]>("scam_type"),
+    channel: value<PhishingChannel>("phishing_channel"),
+    credentials: value<CredentialsShared>("credentials_or_otp_shared"),
+    impersonated: value<ImpersonatedEntityType>("impersonated_entity_type"),
+    transactions: value<Transaction[]>("transactions"),
+  };
+}
+
+const ASSESSMENT_HEADINGS: Record<ScopeAssessment, string> = {
+  likely_in_scope: "Likely covered by the SRF",
+  likely_out_of_scope: "Likely not covered by the SRF",
+  unclear: "Not clear yet",
+};
+
+// The free evaluation's SRF section, written by the server (never by the model).
+export function srfAssessmentText(assessment: SrfAssessment): string {
+  const lines: string[] = [
+    "Shared Responsibility Framework (SRF): an early view",
+    "This is based only on the facts you confirmed. It is not a decision; your bank assesses whether the SRF applies.",
+  ];
+  for (const portion of assessment.portions) {
+    const amount = portion.total ? ` (${formatMoney(portion.total)})` : "";
+    const label = portion.kind === "card" ? "Card payments" : portion.kind === "unclassified" ? "Other payments" : "Bank transfers and e-wallet payments";
+    lines.push("", `${label}${amount}: ${ASSESSMENT_HEADINGS[portion.assessment]}`);
+    for (const reason of portion.reasons) lines.push(`- ${reason.text}`);
+  }
+  if (assessment.telco) lines.push("", assessment.telco.text);
+  if (assessment.remedies) lines.push("", assessment.remedies.text);
+  lines.push("", "Source: MAS/IMDA Guidelines on Shared Responsibility Framework (effective 16 Dec 2024).");
+  return lines.join("\n");
+}

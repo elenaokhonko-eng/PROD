@@ -11,7 +11,7 @@ import type { SnapshotFact } from "./snapshot.ts";
 export type SnapshotFacts = Partial<Record<FactKey, SnapshotFact>>;
 
 export interface OutputFailure {
-  check: "amount" | "date" | "institution" | "contradiction" | "unqualified";
+  check: "amount" | "date" | "institution" | "contradiction" | "unqualified" | "person" | "forbidden";
   detail: string;
 }
 
@@ -20,7 +20,13 @@ export interface ValidateOptions {
   extraAmounts?: number[];
   // Dates the stage may state that are not case facts (SRF dates, a computed deadline, today).
   extraDates?: string[];
+  // Text addressed to the claimant ("you"); "the user" or "the claimant" fails (free evaluation).
+  secondPerson?: boolean;
+  // Topics this output may not cover, e.g. an SRF verdict the server writes itself.
+  forbidden?: Array<{ pattern: RegExp; detail: string }>;
 }
+
+const THIRD_PERSON = /\bthe (?:user|claimant|complainant|customer|consumer|victim)\b/i;
 
 export function collectStrings(value: unknown, out: string[] = []): string[] {
   if (typeof value === "string") out.push(value);
@@ -94,13 +100,21 @@ const CONTRADICTIONS: Array<{ key: FactKey; whenValue: "yes" | "no"; contradicts
   { key: "reported_to_bank", whenValue: "yes", contradicts: (s) => BANK_DENIED.test(s) },
   // Only the person themselves contacting the bank counts; "I was told by the bank" is not a report to the bank.
   { key: "reported_to_bank", whenValue: "no", contradicts: (s) => BANK_CONTACT_CLAIMED.test(s) && !BANK_DENIED.test(s) },
+  // Dependency rule: the bank cannot have replied if it was never told.
+  { key: "reported_to_bank", whenValue: "no", contradicts: (s) => BANK_REPLY_ASSERTED.test(s) },
 ];
 
 const UNCERTAIN = /\b(not sure|unsure|unconfirmed|unclear|may have|might have|cannot confirm|can't confirm|does not recall|do not recall)\b/i;
 const ATTRIBUTED = /\b(according to|the claimant (states|says|reports)|i state|i do not have|no copy|not (yet )?provided|unable to provide|without a (copy|document)|you (say|said|told us|have told us|mentioned|state|stated)|based on what you told us)\b/i;
 // Only sentences that say the event happened need a qualifier; "provide a copy of your police report" asserts nothing.
 const BANK_AFFIRMED = /\b(?:reported|told|informed|contacted|notified)\b[^.]{0,40}\bbank\b/i;
-const ASSERTS: Array<[FactKey, RegExp]> = [["reported_to_police", POLICE_AFFIRMED], ["reported_to_bank", BANK_AFFIRMED]];
+// A reply from the bank stated as having happened ("the bank rejected my claim", "the final reply was ...").
+const BANK_REPLY_ASSERTED = /\b(?:bank|institution)\b[^.]{0,60}\b(?:rejected|refused|declined|turned down|replied|responded|offered)\b|\bfinal reply\b[^.]{0,40}\b(?:was|is|said|stated)\b/i;
+const ASSERTS: Array<[FactKey, RegExp]> = [
+  ["reported_to_police", POLICE_AFFIRMED],
+  ["reported_to_bank", BANK_AFFIRMED],
+  ["bank_reply", BANK_REPLY_ASSERTED],
+];
 
 export function validateOutput(output: unknown, facts: SnapshotFacts, options: ValidateOptions = {}): OutputFailure[] {
   const text = collectStrings(output).join("\n");
@@ -140,6 +154,20 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
         failures.push({ check: "unqualified", detail: `${key} has no document: ${sentence.slice(0, 160)}` });
       }
     }
+    if (options.secondPerson && THIRD_PERSON.test(sentence)) {
+      failures.push({ check: "person", detail: `write to the person as "you": ${sentence.slice(0, 160)}` });
+    }
+    for (const rule of options.forbidden ?? []) {
+      if (rule.pattern.test(sentence)) failures.push({ check: "forbidden", detail: `${rule.detail}: ${sentence.slice(0, 160)}` });
+    }
+  }
+
+  // Self-contradiction: the text says the bank was not told and also that the bank replied.
+  const all = sentences(text);
+  const denied = all.find((s) => BANK_DENIED.test(s));
+  const replied = all.find((s) => BANK_REPLY_ASSERTED.test(s) && !BANK_DENIED.test(s));
+  if (denied && replied) {
+    failures.push({ check: "contradiction", detail: `says the bank was not told but also that it replied: ${replied.slice(0, 160)}` });
   }
 
   return failures;
