@@ -29,6 +29,8 @@ export interface CaseCapabilityBillingResponse {
   generatedAt: string
   access: {
     canPurchase: boolean
+    paidStagesEnabled: boolean
+    paidStagesAvailableFrom: string | null
   }
   capabilities: {
     report: {
@@ -126,9 +128,12 @@ export function buildCaseCapabilityBillingResponse(input: {
   canPurchase?: boolean
   // Omitted means unknown: the report can't be bought.
   reportPurchase?: ReportPurchaseReadiness
+  // Stage 1 launches without payments (lib/billing/paid-stages.ts). Omitted means enabled (pure callers, tests).
+  paidStages?: { enabled: boolean; availableFrom: string | null }
   generatedAt?: string
 }): CaseCapabilityBillingResponse {
-  const canPurchase = input.canPurchase ?? true
+  const paidStages = input.paidStages ?? { enabled: true, availableFrom: null }
+  const canPurchase = (input.canPurchase ?? true) && paidStages.enabled
   const reportPurchase = input.reportPurchase ?? { ready: false, blockedReason: null }
   const features = input.entitlement?.features ?? {}
   const reportEntitled =
@@ -164,6 +169,8 @@ export function buildCaseCapabilityBillingResponse(input: {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
     access: {
       canPurchase,
+      paidStagesEnabled: paidStages.enabled,
+      paidStagesAvailableFrom: paidStages.availableFrom,
     },
     capabilities: {
       report: {

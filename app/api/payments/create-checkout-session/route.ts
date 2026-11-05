@@ -12,6 +12,7 @@ import {
   type CheckoutProductKey,
 } from "@/lib/payments/product-catalogue"
 import { loadReportPurchaseReadiness } from "@/lib/billing/report-purchase-readiness"
+import { paidStagesAvailableFrom, paidStagesEnabled } from "@/lib/billing/paid-stages"
 
 export type ProductKey = CheckoutProductKey
 
@@ -60,6 +61,13 @@ export async function POST(request: NextRequest) {
     const product = PRODUCT_CATALOGUE[productKey]
     if (!product.checkoutEnabled) {
       return NextResponse.json({ error: "Product is not currently available" }, { status: 409 })
+    }
+    // Stage 1 (free evaluation only): both paid products are refused until stage 2 is switched on.
+    if (!paidStagesEnabled()) {
+      return NextResponse.json(
+        { error: "Product is not available yet", reason: "product_not_available", availableFrom: paidStagesAvailableFrom() },
+        { status: 409 },
+      )
     }
 
     const authHeader = request.headers.get("authorization")

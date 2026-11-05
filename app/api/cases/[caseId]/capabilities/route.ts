@@ -6,6 +6,7 @@ import {
   type CasePurchaseCapabilityRow,
 } from "@/lib/billing/case-capabilities"
 import { loadReportPurchaseReadiness, type ReportPurchaseReadiness } from "@/lib/billing/report-purchase-readiness"
+import { paidStagesState } from "@/lib/billing/paid-stages"
 import { createUserClient } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
@@ -66,6 +67,7 @@ export async function GET(
       purchases: (purchasesResult.data ?? []) as CasePurchaseCapabilityRow[],
       canPurchase,
       reportPurchase,
+      paidStages: paidStagesState(),
     }),
     { headers: { "Cache-Control": "no-store" } },
   )
