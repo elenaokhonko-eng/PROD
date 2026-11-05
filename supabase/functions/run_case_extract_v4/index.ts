@@ -1146,13 +1146,20 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     }).limit(1);
     ensureOk(intakeRes.data, intakeRes.error, "Fetch latest case_intake");
     const intake = intakeRes.data?.[0] ?? null;
-    // Latest narrative (optional)
-    mark("05_narrative");
-    const narrativeRes = await supabase.from("case_narratives").select("*").eq("case_id", case_id).order("created_at", {
+    // The user's own words only: the latest story revision and the latest answer per question. GuideBuoy-generated
+    // rows in case_narratives (the free draft) are never fed back in (design F3).
+    mark("05_user_inputs");
+    const storyRes = await supabase.from("case_story_revisions").select("revision, story_text").eq("case_id", case_id).order("revision", {
       ascending: false
     }).limit(1);
-    if (narrativeRes.error) console.log("[WARN] narrative fetch", JSON.stringify(normalizePgError(narrativeRes.error)));
-    const narrative = narrativeRes.data?.[0] ?? null;
+    ensureOk(storyRes.data, storyRes.error, "Fetch latest story revision");
+    const story = storyRes.data?.[0] ?? null;
+    const answersRes = await supabase.from("case_responses").select("question_key, response_value").eq("case_id", case_id);
+    ensureOk(answersRes.data, answersRes.error, "Fetch case answers");
+    const answers = Object.fromEntries((answersRes.data ?? []).filter((a)=>a.response_value != null && String(a.response_value).trim() !== "").map((a)=>[
+        a.question_key,
+        a.response_value
+      ]));
     // Document readiness preflight (before OpenAI + before extract insert)
     mark("05b_doc_readiness");
     const readinessDocs = await fetchDocsForReadiness(supabase, case_id);
@@ -1268,7 +1275,8 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     const inputText = [
       `CASE: ${JSON.stringify(caseData)}`,
       `INTAKE: ${JSON.stringify(intake)}`,
-      `NARRATIVE: ${JSON.stringify(narrative)}`,
+      `STORY: ${JSON.stringify(story)}`,
+      `ANSWERS: ${JSON.stringify(answers)}`,
       `EVIDENCE_DIGEST: ${JSON.stringify(evidenceForPrompt)}`
     ].join("\n\n");
     mark("08_openai_start", {
