@@ -297,12 +297,22 @@ The preview and authenticated CI jobs sign in with saved Clerk Development sessi
 
 4. Re-run the failed workflow. A session made this way is a live sign-in for that identity until it expires, so never paste, attach, or commit the files.
 
+### Fresh-account purchase test
+
+`tests/e2e/authenticated/fresh-account-purchase.spec.ts` creates one new Clerk Development test user per run (`harbor.release.fresh.<timestamp>+clerk_test@example.com`), takes it from onboarding to a paid S$18 report in Stripe test mode, and deletes the Clerk user afterwards; its synthetic case and purchase rows stay as payment records. It needs the `harbor-preview` environment secret `HARBOR_CLERK_DEV_SECRET_KEY`, the staging Clerk **Development** key (`sk_test_`; the test refuses any other). Set it from `.env.staging.local` without printing it:
+
+```powershell
+$key = ((Get-Content .env.staging.local | Where-Object { $_ -like 'CLERK_SECRET_KEY=*' } | Select-Object -Last 1) -split '=', 2)[1].Trim('"')
+if (-not $key.StartsWith('sk_test_')) { throw 'Not the Clerk Development key' }
+$key | gh secret set HARBOR_CLERK_DEV_SECRET_KEY --env harbor-preview
+```
+
 ### Rebuild staging test data
 
 `scripts/seed-harbor-staging-fixtures.ts` is the standard way to rebuild the synthetic staging cases behind `HARBOR_STATE_CASES_JSON` and `HARBOR_RELEASE_FIXTURES_JSON`, after a staging reset or whenever the authenticated lane needs clean fixtures (several tests change their fixture cases, so reruns need a rebuild).
 
 - It runs only against `yqqkkftfddxuxmpxwbcj`, over `sslmode=verify-full` with `HARBOR_PREVIEW_DB_CA`, and only for the three CI identities named in `CLERK_RECONCILIATION_USER_ALLOWLIST_JSON`. It refuses `userGolden` and never reads or writes a case it did not create.
-- Case IDs are derived from fixture names, so each run deletes and recreates the same synthetic cases in one transaction. It also sets `userA`'s user-level plan to `self_serve_report` (needed for the free-draft and buy-report states).
+- Case IDs are derived from fixture names, so each run deletes and recreates the same synthetic cases in one transaction. It resets the three CI identities' user-level plan to the default free plan with no features, so the buy-report states come from each case's own free draft and validation, as for a real customer.
 - Without `--apply` it is a dry run that rolls back.
 
 1. Set `HARBOR_PREVIEW_DATABASE_URL` (staging, `sslmode=verify-full`), `HARBOR_PREVIEW_DB_CA` and `CLERK_RECONCILIATION_USER_ALLOWLIST_JSON`.

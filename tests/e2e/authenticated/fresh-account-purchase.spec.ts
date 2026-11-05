@@ -77,7 +77,11 @@ test.describe('fresh free account', () => {
         }, { timeout: 180_000, message: 'Stripe webhook records the paid purchase' })
         .toEqual([{ product_code: 'self_serve_report', payment_status: 'paid', amount: 18 }])
 
-      await expect(page.getByText('Your complaint report').first()).toBeVisible({ timeout: 15 * 60_000 })
+      // A generated report has its own title; every report shows these.
+      await expect(page.getByText('Executive summary', { exact: true })).toBeVisible({ timeout: 15 * 60_000 })
+      await expect(page.getByText('Generated automatically by GuideBuoy AI').first()).toBeVisible()
+      const { data: reports } = await supabase.from('reports').select('status').eq('case_id', caseId)
+      expect(reports).toEqual([{ status: 'COMPLETED' }])
     } finally {
       await deleteClerkUser(clerkUserId)
     }
@@ -115,7 +119,8 @@ async function answerFollowUpsUntil(page: Page, target: Locator, timeoutMs: numb
   let rounds = 0
   while (Date.now() < deadline) {
     if (await target.first().isVisible().catch(() => false)) return
-    const followUps = page.locator('form').filter({ has: page.getByText(/A few more details/) })
+    // The "A few more details" heading sits outside the form; the form is the one with "Save answers".
+    const followUps = page.locator('form').filter({ has: page.getByRole('button', { name: 'Save answers' }) })
     if (await followUps.isVisible().catch(() => false)) {
       expect(++rounds, 'follow-up rounds').toBeLessThanOrEqual(4)
       await answerFollowUps(followUps)
@@ -132,7 +137,9 @@ async function answerFollowUps(form: Locator) {
   for (const field of await form.locator('input:not([type="radio"]):not([type="hidden"])').all()) {
     if (await field.inputValue()) continue
     const type = await field.getAttribute('type')
-    await field.fill(type === 'date' ? '2026-10-03' : type === 'number' ? '2400' : 'Synthetic answer')
+    const label = await field.evaluate((input) => (input as HTMLInputElement).labels?.[0]?.textContent ?? '')
+    const numeric = type === 'number' || (await field.getAttribute('inputmode')) === 'decimal' || /amount|lost|how much/i.test(label)
+    await field.fill(type === 'date' ? '2026-10-03' : numeric ? '2400' : 'Synthetic answer')
   }
   await form.locator('button[type="submit"]').click()
   await form.page().waitForTimeout(5_000)
