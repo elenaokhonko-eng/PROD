@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, FileCheck2, LockKeyhole, Repeat2 } from 'lucide-react'
 import { NarrativeCapture } from '@/components/landing/narrative-capture'
+import { PackComparison } from '@/components/harbor/pack-comparison'
 import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = {
@@ -65,6 +66,15 @@ export default function HomePage() {
       <section className="gb-container -mt-1 py-10 sm:py-14">
         <div id="tell-your-story" className="mx-auto max-w-3xl scroll-mt-24">
           <NarrativeCapture />
+        </div>
+      </section>
+
+      <section className="gb-container py-10 sm:py-14" aria-labelledby="options-title">
+        <h2 id="options-title" className="text-center text-3xl font-semibold text-harbor-deep">
+          Three ways we can help
+        </h2>
+        <div className="mt-9">
+          <PackComparison headingLevel="h3" />
         </div>
       </section>
 

@@ -9,8 +9,10 @@ Use short, factual, non-blaming sentences. Do not name internal tiers, functions
 | Surface | Publishable copy |
 |---|---|
 | Free preparation | **Start organising for free.** Tell your story, add supporting material, and receive a draft when your case is ready. |
-| Self-serve report | **Full report — S$18.** Review the price and what is included before continuing to checkout. |
-| FIDReC case pack | **FIDReC case pack — S$188.** Available after a completed report, where offered. Review the scope before checkout. |
+| Free evaluation | **Free evaluation.** Understand where you stand and your options, free. |
+| Bank dispute pack | **Bank dispute pack — S$18.** Haven’t sent your bank a full written complaint yet, or not sure yours was complete? Prepare one with your evidence. |
+| FIDReC escalation pack | **FIDReC escalation pack — S$188.** Received your bank’s final reply and disagree? Prepare a complete, neutral case pack for FIDReC. (Separate from the bank dispute pack; neither requires the other.) |
+| Stage 2 packs during stage 1 | **Available from [date].** **Email me when it’s available.** The date comes from `PAID_STAGES_AVAILABLE_FROM`; shown only while `PAID_STAGES_ENABLED` is not `true`. |
 | S$8 / S$12 regeneration | Do not expose a purchasable offer yet. The frozen target is customer-level FI regeneration at S$8/month and FI/FIDReC regeneration at S$12/month; neither subscription may create a case-pack entitlement. Public exposure is blocked until the lifecycle policy, live Stripe configuration, eligibility enforcement, and tests are approved. |
 | Checkout pending | **Confirming your payment.** Your case remains available while we check the latest payment status. Do not pay again unless checkout tells you to. |
 | Cancellation | **Checkout was not completed.** Your case is unchanged. |
@@ -38,8 +40,9 @@ Only **verified** rows can be published as declarative claims. **Qualified copy*
 | Topic | Status | Approved wording or required action |
 |---|---|---|
 | Free preparation availability | verified | “Start organising for free.” |
-| Full report price | verified | “Full report — S$18.” |
-| FIDReC case-pack price | verified | “FIDReC case pack — S$188.” |
+| Bank dispute pack price | verified | “Bank dispute pack — S$18.” |
+| FIDReC escalation pack price | verified | “FIDReC escalation pack — S$188.” |
+| Paid packs available from a date (stage 1) | qualified copy | “Available from [date]” with “Email me when it’s available”. An exception to the rule against timing claims for unavailable services, approved by Elena on 2026-11-05 for the staged go-live; the date must be the configured stage 2 date. |
 | S$8 / S$12 regeneration | not publishable | The S$8/S$12 scope is frozen, but subscription checkout and public offer copy are blocked until lifecycle policy, live Stripe configuration, eligibility enforcement, and tests are approved. |
 | Product does not decide outcomes / not legal advice | verified | Use the reporting disclaimer above. |
 | Pre-sign-in story storage | qualified copy | “Your draft stays in this browser until you sign in.” It does not become a case until sign-in succeeds. |

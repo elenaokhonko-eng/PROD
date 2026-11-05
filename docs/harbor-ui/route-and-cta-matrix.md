@@ -37,8 +37,10 @@ Routes below are current application routes. Do not create browser-only business
 | Generate free draft / Refresh draft | Server-defined draft action | Returned readiness: ready document + no blocking gaps | Disabled with next missing requirement; no inferred readiness. |
 | Edit story / Add evidence | `/app/case/[id]/dashboard` task state | Case access | Retain report version; show update available after changes. |
 | View full report / Back to case | `/app/case/[id]/dashboard` report/case state | Returned report/case availability | Empty/error screen gives safe return. |
-| Get full report — S$18 | `/app/case/[id]/checkout` | Case access, API eligibility, catalogue availability | Blocked-prerequisite card or disabled price card with reason. |
-| Buy FIDReC case pack — S$188 | Checkout action from report/help surface | Completed report, API entitlement/catalogue availability | Disabled unless server offers it; no manual eligibility. |
+| Get full report — S$18 (bank dispute pack) | `/app/case/[id]/checkout` | Paid stages on (`PAID_STAGES_ENABLED`), case access, API eligibility, catalogue availability | Stage 1: not shown; the next-steps card shows “Available from [date]”. Checkout returns 409 `product_not_available`. |
+| Buy FIDReC escalation pack — S$188 | Checkout action from report/help surface | Paid stages on, API entitlement/catalogue availability | Stage 1: as above. Disabled unless server offers it; no manual eligibility. |
+| Email me when it’s available | `POST /api/waitlist` (service-role write, account email) | Signed in; paid stages off | Error keeps the button and shows a retry message. |
+| Confirm and continue to your free evaluation | `POST /api/cases/[id]/facts/snapshot`, then `POST /api/edge/tier0` | No open findings; answers consistent; no document processing | Disabled with what is left to answer; 409 `facts_unconfirmed` sends the user back to their facts. |
 | Regeneration subscription (S$8 / S$12) | No public checkout action until lifecycle support is released | Live server catalogue, eligibility enforcement, Stripe configuration, approved lifecycle policy, and tests | Blocked. Do not render an offer, status, upgrade, proration, or entitlement decision from browser state. |
 | Continue to payment | Server-created payment redirect | Selected valid server-provided price | Button loading; server error retains selection. |
 | Try checkout again | `/app/case/[id]/checkout` | Existing case access | Return to free draft alternative. |

@@ -23,7 +23,8 @@ const dashboard = readFileSync('app/(case)/app/case/[id]/dashboard/_components/d
 
 test('the dashboard runs the confirm step inline and shows next steps while paid stages are off', () => {
   assert.match(dashboard, /node === 'S1-Journey' \? \(\s*<JourneyQuestions/)
-  assert.match(dashboard, /node === 'S1-Tier0DraftPending' \? \(\s*<ConfirmAndEvaluate caseId=\{caseId\} \/>/)
+  // Q2 option (a): the evidence list stays visible beside the confirm step.
+  assert.match(dashboard, /node === 'S1-Tier0DraftPending' \? \([\s\S]{0,200}?<ConfirmAndEvaluate\s+caseId=\{caseId\}[\s\S]{0,300}?<EvidenceUploadPanel/)
   assert.match(dashboard, /const paidStagesOff = capabilityBilling\?\.access\.paidStagesEnabled === false/)
   assert.match(dashboard, /<NextSteps caseId=\{caseId\} priceLabels=\{priceLabels\} \/>/)
   const confirm = readFileSync('components/state-machine/facts/confirm-and-evaluate.tsx', 'utf8')

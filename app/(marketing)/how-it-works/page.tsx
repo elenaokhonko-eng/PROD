@@ -16,9 +16,9 @@ const steps = [
   { title: 'Tell Lumi what happened', description: 'Type or speak in plain language. Lumi transcribes voice and helps identify the kind of complaint without judging how you tell it.' },
   { title: 'Save your case and add proof', description: 'Create an account, then add screenshots, statements, messages, receipts or reference numbers. Even one document is enough to begin.' },
   { title: 'Answer focused questions', description: 'Lumi asks only for details that are missing. “I’m not sure” is always acceptable while documents process in the background.' },
-  { title: 'Receive your free draft', description: 'Review a story summary, evidence checklist and preliminary pathway signal together in your Report Hub.' },
-  { title: 'Choose your next step', description: 'Keep using the free draft or choose a paid full report for a bank complaint. The choice remains yours.' },
-  { title: 'Review available next steps', description: 'A completed report may show further case-preparation options when the server confirms they are available for your case.' },
+  { title: 'Confirm your facts, then receive your free evaluation', description: 'Check what Lumi found in your story, answers and documents, settle anything that differs, then review your free evaluation in your Report Hub.' },
+  { title: 'See your suggested next step', description: 'Based on the facts you confirmed, Lumi suggests a next step and explains why. The choice remains yours.' },
+  { title: 'Choose a separate pack if you need one', description: 'A bank dispute pack before your bank’s final reply, or a FIDReC escalation pack after it. Each is separate; neither requires the other.' },
 ] as const
 
 export default function HowItWorksPage() {
