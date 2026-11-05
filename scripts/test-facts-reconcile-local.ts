@@ -65,10 +65,15 @@ async function main() {
   await check(await service.from("case_documents").insert({
     id: documentId, case_id: caseId, filename: "synthetic-statement.pdf", original_filename: "synthetic-statement.pdf", processing_status: "ready",
   }))
+  // The document's own parsed text is the source; a pipeline summary in the extractions must not be used instead.
   await check(await service.from("case_document_extractions").insert({
-    case_id: caseId, document_id: documentId, extraction_type: "text", schema_version: "v1", extracted_json: {},
-    extracted_text: statement, model: "synthetic", prompt_version: "synthetic",
+    case_id: caseId, document_id: documentId, extraction_type: "doc_summary_v3", schema_version: "v1", extracted_json: {},
+    extracted_text: "A bank statement.", model: "synthetic", prompt_version: "synthetic",
   }))
+  const content = await check(await service.from("case_documents_content").insert({
+    document_id: documentId, model: "synthetic", prompt_version: "synthetic", pipeline_version: "synthetic", text_content: statement,
+  }).select("id").single())
+  await check(await service.from("case_documents").update({ content_latest_id: (content as { id: string }).id }).eq("id", documentId))
 
   try {
     const run1 = await ensureReconciled(service, caseId, stubModel)

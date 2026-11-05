@@ -71,13 +71,22 @@ async function loadSources(service: SupabaseClient, caseId: string) {
       .order("revision", { ascending: false }).limit(1).maybeSingle(),
     service.from("case_response_revisions").select("id, question_key, response_value, created_at").eq("case_id", caseId)
       .order("created_at", { ascending: true }),
-    service.from("case_documents").select("id, original_filename, processing_status").eq("case_id", caseId),
+    service.from("case_documents").select("id, original_filename, processing_status, content_latest_id").eq("case_id", caseId),
     service.from("case_document_extractions").select("id, document_id, extracted_text, created_at").eq("case_id", caseId)
       .order("created_at", { ascending: false }),
   ])
   if (story.error || responses.error || documents.error || extractions.error) {
     throw new FactsUnavailableError("Failed to load case sources")
   }
+
+  // The document's own parsed text. Extraction rows are a fallback only: some hold a pipeline-written summary and
+  // structured extractions have no text, so they lose the document's actual words.
+  const contentIds = (documents.data ?? []).map((d) => d.content_latest_id as string | null).filter((id): id is string => Boolean(id))
+  const contents = contentIds.length
+    ? await service.from("case_documents_content").select("id, text_content").in("id", contentIds)
+    : { data: [] as Array<{ id: string; text_content: string | null }>, error: null }
+  if (contents.error) throw new FactsUnavailableError("Failed to load document text")
+  const contentText = new Map((contents.data ?? []).map((c) => [c.id as string, (c.text_content as string | null) ?? ""]))
 
   const answers: AnswerRow[] = (responses.data ?? []).map((r) => ({
     questionKey: r.question_key as string,
@@ -108,14 +117,18 @@ async function loadSources(service: SupabaseClient, caseId: string) {
     })
   }
   for (const doc of readyDocuments) {
+    const contentId = doc.content_latest_id as string | null
+    const parsed = contentId ? contentText.get(contentId)?.trim() : null
     const extraction = latestExtraction.get(doc.id as string)
-    if (!extraction) continue
+    const text = parsed || extraction?.text
+    if (!text) continue
+    const sourceKey = parsed ? `document:content:${contentId}` : `document:${extraction!.id}`
     sources.push({
-      sourceKey: `document:${extraction.id}`,
+      sourceKey,
       sourceType: "document",
-      text: extraction.text.slice(0, DOCUMENT_LIMIT),
+      text: text.slice(0, DOCUMENT_LIMIT),
       sourceRef: {
-        sourceKey: `document:${extraction.id}`,
+        sourceKey,
         documentId: doc.id,
         documentName: doc.original_filename,
       },

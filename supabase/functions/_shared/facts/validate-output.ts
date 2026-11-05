@@ -83,7 +83,7 @@ const POLICE_DENIED = new RegExp(
   String.raw`(?:\b(?:not|never|yet to)|n't)\s+${FILLER}${POLICE_VERBS}|\bno police report\b|\bwithout (?:a |filing a )?police report\b`,
   "i",
 );
-const POLICE_AFFIRMED = /\b(?:reported|filed|lodged|made)\b[^.]{0,60}\bpolice\b|\bpolice report (?:no\.?|number|reference)/i;
+const POLICE_AFFIRMED = /\b(?:reported|filed|lodged|made)\b[^.]{0,60}\bpolice\b|\bpolice report\b[^.]{0,40}\b(?:was|were|has been|had been)\s+(?:filed|lodged|made)\b|\bpolice report (?:no\.?|number|reference)/i;
 const BANK_DENIED = new RegExp(String.raw`(?:\b(?:not|never|yet to)|n't)\s+${FILLER}${BANK_VERBS}`, "i");
 
 // Phrases that contradict each confirmed yes/no value.
@@ -94,7 +94,10 @@ const CONTRADICTIONS: Array<{ key: FactKey; whenValue: "yes" | "no"; contradicts
 ];
 
 const UNCERTAIN = /\b(not sure|unsure|unconfirmed|unclear|may have|might have|cannot confirm|can't confirm|does not recall|do not recall)\b/i;
-const ATTRIBUTED = /\b(according to|the claimant (states|says|reports)|i state|i do not have|no copy|not (yet )?provided|unable to provide|without a (copy|document))\b/i;
+const ATTRIBUTED = /\b(according to|the claimant (states|says|reports)|i state|i do not have|no copy|not (yet )?provided|unable to provide|without a (copy|document)|you (say|said|told us|have told us|mentioned|state|stated)|based on what you told us)\b/i;
+// Only sentences that say the event happened need a qualifier; "provide a copy of your police report" asserts nothing.
+const BANK_AFFIRMED = /\b(?:reported|told|informed|contacted|notified)\b[^.]{0,40}\bbank\b/i;
+const ASSERTS: Array<[FactKey, RegExp]> = [["reported_to_police", POLICE_AFFIRMED], ["reported_to_bank", BANK_AFFIRMED]];
 
 export function validateOutput(output: unknown, facts: SnapshotFacts, options: ValidateOptions = {}): OutputFailure[] {
   const text = collectStrings(output).join("\n");
@@ -124,9 +127,9 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
         failures.push({ check: "contradiction", detail: `${rule.key}: ${sentence.slice(0, 160)}` });
       }
     }
-    for (const [key, subject] of [["reported_to_police", /\bpolice\b/i], ["reported_to_bank", /\breport\w*\b[^.]{0,40}\bbank\b/i]] as const) {
+    for (const [key, asserts] of ASSERTS) {
       const fact = facts[key];
-      if (!fact || !subject.test(sentence)) continue;
+      if (!fact || !asserts.test(sentence)) continue;
       if (fact.label === "not_sure" && !UNCERTAIN.test(sentence)) {
         failures.push({ check: "unqualified", detail: `${key} is not confirmed: ${sentence.slice(0, 160)}` });
       }

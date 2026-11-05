@@ -81,3 +81,11 @@ test('"Facts you confirmed" is rendered from the snapshot with qualifiers', () =
   assert.equal(byKey.reported_to_police, 'Yes, 4 Oct 2026 (no supporting document provided)')
   assert.match(byKey.transactions, /S\$600 3 Oct 2026 \(card\)/)
 })
+
+test('mentioning a police report without saying one was filed needs no qualifier (staging run, 5 Nov)', () => {
+  const claimantOnly: SnapshotFacts = { ...facts, reported_to_police: { ...facts.reported_to_police!, label: 'claimant_only' } }
+  const checklist = { evidence: 'Useful evidence: a copy of your police report, screenshots of the SMS and your bank statement.' }
+  assert.deepEqual(validateOutput(checklist, claimantOnly), [])
+  assert.deepEqual(validateOutput({ t: 'You told us you reported it to the police on 4 Oct 2026.' }, claimantOnly), [])
+  assert.equal(validateOutput({ t: 'You reported it to the police on 4 Oct 2026.' }, claimantOnly)[0]?.check, 'unqualified')
+})
