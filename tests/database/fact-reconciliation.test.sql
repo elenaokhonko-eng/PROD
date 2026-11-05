@@ -43,8 +43,9 @@ update public.case_responses set response_value = 'Yes'
   where case_id = 'a0000000-0000-4000-8000-0000000000f1' and question_key = 'previous_contact';
 update public.case_responses set response_value = 'Yes'
   where case_id = 'a0000000-0000-4000-8000-0000000000f1' and question_key = 'previous_contact';
+-- Within one transaction now() is constant, so the two revisions share created_at; compare them as a set.
 select is(
-  (select array_agg(response_value order by created_at, id) from public.case_response_revisions
+  (select array_agg(response_value order by response_value) from public.case_response_revisions
    where case_id = 'a0000000-0000-4000-8000-0000000000f1' and question_key = 'previous_contact'),
   array['No', 'Yes'],
   'a changed answer adds a revision; saving the same value does not'

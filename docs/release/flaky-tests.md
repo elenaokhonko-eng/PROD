@@ -21,3 +21,12 @@ test is weakened to make it pass.
   whatever the onboarding request does server-side under CI's placeholder Clerk keys.
 - **Next step if it recurs:** read the trace for the coincident onboarding test and the web server log for that
   window. Until then this test stays as it is.
+
+## 2026-11-05: database, fact-reconciliation.test.sql test 4 (my test, fixed)
+
+- **Run:** Harbor release gates 42018054197, commit `f05243c`; it had passed on the three runs before.
+- **Cause:** the test ordered two answer revisions by `created_at, id`. Inside one test transaction `now()` is
+  constant, so both rows had the same `created_at` and the order fell to random UUIDs. In the product each answer
+  is saved in its own request, so revision times differ.
+- **Fix:** the assertion compares the two revisions as a set (exactly "No" and "Yes", so saving the same value
+  added nothing). Same check, no dependence on row order. Passed 5 of 5 runs locally after the fix.
