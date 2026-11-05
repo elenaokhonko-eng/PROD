@@ -86,7 +86,7 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed }: ConfirmFactsPa
     { type: 'unsupported', title: 'No supporting document' },
     { type: 'missing', title: 'Still needed' },
   ]
-  const canContinue = view.openCount === 0 && view.documentsProcessing === 0
+  const canContinue = view.openCount === 0 && view.documentsProcessing === 0 && view.consistencyIssues.length === 0
 
   async function handleConfirm() {
     const result = await confirm.mutateAsync()
@@ -133,6 +133,18 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed }: ConfirmFactsPa
         </CardContent>
       </Card>
 
+      {view.consistencyIssues.length > 0 && (
+        <Card role="alert">
+          <CardHeader>
+            <CardTitle>Two answers don’t fit together</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {view.consistencyIssues.map((issue) => <p key={issue}>{issue}</p>)}
+            <p className="text-muted-foreground">Use “Change” on the item below that isn’t right.</p>
+          </CardContent>
+        </Card>
+      )}
+
       {agreed.length > 0 && (
         <details className="rounded-lg border p-4">
           <summary className="cursor-pointer font-medium">Facts that agree ({agreed.length})</summary>
@@ -173,7 +185,9 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed }: ConfirmFactsPa
           {confirm.isPending ? 'Saving…' : `Confirm and continue to your ${stageName}`}
         </Button>
         {!canContinue && (
-          <p className="text-sm text-muted-foreground">You can continue once every item above is answered.</p>
+          <p className="text-sm text-muted-foreground">
+            {view.consistencyIssues.length ? 'You can continue once your answers fit together.' : 'You can continue once every item above is answered.'}
+          </p>
         )}
       </div>
     </div>

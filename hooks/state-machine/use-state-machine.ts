@@ -10,6 +10,7 @@ import type { CaseDecisionRunRow } from '@/lib/types/decision'
 import type { CaseDocumentRow } from '@/lib/types/documents'
 
 export type StateMachineNode =
+  | 'S1-Journey'
   | 'S1-IntakeForm'
   | 'S1-GapLoop'
   | 'S1-EvidenceUpload'
@@ -45,6 +46,8 @@ export interface StateMachineInput {
   hasSubmittedIntake?: boolean
   isContactSubmitting?: boolean
   isContactSubmitted?: boolean
+  /** Whether the journey questions were answered; `null` while loading or unknown (treated as answered). */
+  journeyAnswered?: boolean | null
 }
 
 /**
@@ -71,6 +74,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
     hasSubmittedIntake = false,
     isContactSubmitting = false,
     isContactSubmitted = false,
+    journeyAnswered = null,
   } = input
 
   if (isContactSubmitted) return 'L3-Confirmed'
@@ -88,6 +92,8 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   }
 
   if (!narratives?.tier0_summary && !narratives?.tier0_evidence_checklist && !narratives?.tier0_srf_signal) {
+    // Journey questions come first after sign-in (spec 4.1): where the user is with their bank.
+    if (journeyAnswered === false) return 'S1-Journey'
     if (deriveInGapPhase(validation, gapItems)) return 'S1-GapLoop'
     if (!isIntakeSubmitted && !hasSubmittedIntake) return 'S1-IntakeForm'
     const hasReadyDoc = documents?.some((d) => d.processing_status === 'ready') ?? false

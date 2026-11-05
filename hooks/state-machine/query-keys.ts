@@ -28,6 +28,8 @@ export const qk = {
     contactRequest: (caseId: string) => ['case', caseId, 'contact-request'] as const,
     tier2Pack: (caseId: string) => ['case', caseId, 'tier2-pack'] as const,
     facts: (caseId: string, stage: string) => ['case', caseId, 'facts', stage] as const,
+    journey: (caseId: string) => ['case', caseId, 'journey'] as const,
+    recommendation: (caseId: string) => ['case', caseId, 'recommendation'] as const,
   },
   entitlement: (caseId: string) => ['entitlement', caseId] as const,
 } as const

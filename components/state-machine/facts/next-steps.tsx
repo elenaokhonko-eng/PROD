@@ -1,0 +1,146 @@
+'use client'
+
+/**
+ * After the free evaluation: the recommended next step (design 6.1) and the two paid options. In stage 1 both paid
+ * options show "Available from [date]" with an "Email me when it's available" button instead of a buy button.
+ */
+
+import { useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { StateMachineLoading } from '@/components/state-machine/loading-state'
+import { useJoinWaitlist, useRecommendation } from '@/hooks/state-machine/facts/use-recommendation'
+import type { ProductState, StageProduct } from '@/lib/facts'
+
+const PRODUCT_TITLES: Record<StageProduct, string> = {
+  free_evaluation: 'Free evaluation',
+  bank_pack: 'Bank dispute pack',
+  fidrec_pack: 'FIDReC escalation pack',
+}
+
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return ''
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+}
+
+function ruleNote(state: ProductState | undefined): string | null {
+  if (!state) return null
+  if (state.state === 'available_from') {
+    return state.date
+      ? `For your case, FIDReC can take this from ${formatDate(state.date)}, four weeks after your written complaint.`
+      : 'For your case, FIDReC can take this four weeks after you send your bank a written complaint.'
+  }
+  if (state.state === 'not_offered') {
+    if (state.reason === 'final_reply_received') return 'Not needed for your case: your bank has already sent its final reply.'
+    if (state.reason === 'fidrec_window_expired') return 'The six-month window to go to FIDReC after the final reply has passed.'
+    if (state.reason === 'complaint_not_raised') return 'For your case, this comes after you have complained to your bank.'
+  }
+  return null
+}
+
+export function NextSteps({ caseId, priceLabels }: { caseId: string; priceLabels: { report: string; tier2: string } }) {
+  const recommendation = useRecommendation(caseId)
+  const join = useJoinWaitlist()
+  const [joined, setJoined] = useState<Record<string, string>>({})
+
+  if (recommendation.isPending) return <StateMachineLoading size="inline" title="Preparing your next steps" />
+  if (recommendation.isError) {
+    return (
+      <Card role="alert">
+        <CardHeader>
+          <CardTitle>Your next steps</CardTitle>
+          <CardDescription>We couldn’t load your next steps just now. Please refresh the page.</CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  const { recommendation: rec, paidStages } = recommendation.data
+  const stateOf = (product: StageProduct) => rec.products.find((p) => p.product === product)
+  const cards: Array<{ product: 'bank_pack' | 'fidrec_pack'; price: string; description: string }> = [
+    {
+      product: 'bank_pack',
+      price: priceLabels.report,
+      description: 'A full written complaint to your bank, with your evidence and the bank’s duties set out clearly.',
+    },
+    {
+      product: 'fidrec_pack',
+      price: priceLabels.tier2,
+      description: 'A complete, neutral case pack for FIDReC, with the facts and arguments on both sides.',
+    },
+  ]
+
+  return (
+    <section aria-labelledby="next-steps" className="space-y-4">
+      <h2 id="next-steps" className="text-xl font-semibold">Your next steps</h2>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {rec.recommended && rec.recommended !== 'free_evaluation'
+              ? `We suggest: ${PRODUCT_TITLES[rec.recommended]}${rec.optional ? ' (optional)' : ''}`
+              : 'What we suggest'}
+          </CardTitle>
+          <CardDescription>This is a suggestion based on the facts you confirmed. You can choose differently.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          {rec.reasons.map((reason) => <p key={reason}>{reason}</p>)}
+          {rec.guidance.length > 0 && (
+            <ul className="list-disc space-y-1 pl-5">
+              {rec.guidance.map((g) => <li key={g}>{g}</li>)}
+            </ul>
+          )}
+          {rec.deadline && (
+            <p className={rec.deadline.soon ? 'font-semibold text-destructive' : 'font-medium'}>
+              File with FIDReC by {formatDate(rec.deadline.date)} (six months after your bank’s final reply)
+              {rec.deadline.soon ? `: only ${rec.deadline.daysLeft} days left.` : '.'}
+            </p>
+          )}
+          {rec.notes.map((note) => <p key={note} className="text-muted-foreground">{note}</p>)}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {cards.map((card) => {
+          const note = ruleNote(stateOf(card.product))
+          const done = joined[card.product]
+          return (
+            <Card key={card.product}>
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle>{PRODUCT_TITLES[card.product]} · {card.price}</CardTitle>
+                  {!paidStages.enabled && <Badge variant="secondary">Available from {formatDate(paidStages.availableFrom)}</Badge>}
+                </div>
+                <CardDescription>{card.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {note && <p className="text-muted-foreground">{note}</p>}
+                {!paidStages.enabled && (
+                  done ? (
+                    <p role="status">Thank you. We’ll email {done} when it’s available.</p>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        disabled={join.isPending}
+                        onClick={() =>
+                          join.mutate(card.product, { onSuccess: (r) => setJoined((prev) => ({ ...prev, [r.product]: r.email })) })
+                        }
+                      >
+                        Email me when it’s available
+                      </Button>
+                      {join.isError && join.variables === card.product && (
+                        <p role="alert" className="text-destructive">We couldn’t save that. Please try again.</p>
+                      )}
+                    </>
+                  )
+                )}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+    </section>
+  )
+}

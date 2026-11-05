@@ -27,6 +27,13 @@ import { useSubmitIntake } from '@/hooks/state-machine/layer1/use-submit-intake'
 import { useUploadEvidence } from '@/hooks/state-machine/layer1/use-upload-evidence'
 import { useCaseDocumentsRealtime } from '@/hooks/state-machine/layer1/use-case-documents-realtime'
 import { useTier0Draft } from '@/hooks/state-machine/layer1/use-tier0-draft'
+import { useQueryClient } from '@tanstack/react-query'
+import { useJourneyAnswered } from '@/hooks/state-machine/facts/use-journey-answered'
+import { qk } from '@/hooks/state-machine/query-keys'
+import { ConfirmAndEvaluate } from '@/components/state-machine/facts/confirm-and-evaluate'
+import { JourneyQuestions } from '@/components/state-machine/facts/journey-questions'
+import { NextSteps } from '@/components/state-machine/facts/next-steps'
+import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { useAutoRefireExtract } from '@/hooks/state-machine/layer1/use-auto-refire-extract'
 import { useCreateCheckoutSession, type ProductKey } from '@/hooks/state-machine/transition/use-create-checkout-session'
 import { usePaymentStatus } from '@/hooks/state-machine/transition/use-payment-status'
@@ -79,6 +86,10 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const eligibilityQuery = useCaseEligibility(caseId)
   const validationQuery = useValidationRun(caseId)
   const intakeCompletionQuery = useIntakeCompletion(caseId)
+  const journeyQuery = useJourneyAnswered(caseId)
+  const queryClient = useQueryClient()
+  const [journeySaving, setJourneySaving] = useState(false)
+  const [journeyError, setJourneyError] = useState<string | null>(null)
   const documentsQuery = useCaseDocumentsRealtime(caseId)
   const tier0DraftQuery = useTier0Draft(caseId)
   const paymentStatusQuery = usePaymentStatus(caseId)
@@ -135,6 +146,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     isCheckoutRedirecting: checkoutRedirecting,
     isIntakeSubmitted: submitIntake.isPending,
     hasSubmittedIntake,
+    // A failed lookup must not block the case, so an error counts as answered.
+    journeyAnswered: journeyQuery.isError ? true : journeyQuery.data ?? null,
   })
 
   const isPaymentReturn = useMemo(
@@ -158,6 +171,9 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   }, [searchParams])
   const isPaymentCancelled = cancelledProduct !== null
   const capabilityBilling = paymentStatusQuery.data?.capabilityBilling
+  const paidStagesOff = capabilityBilling?.access.paidStagesEnabled === false
+  const showStageOneNextSteps =
+    paidStagesOff && (node === 'S1-Tier0Draft' || node === 'T-BuyReportCTA' || node === 'T-EligibilityGate')
   const reportCapability = capabilityBilling?.capabilities.report
   const fidrecCapability = capabilityBilling?.capabilities.fidrecPack
   const returnedProductIsEntitled =
@@ -214,6 +230,19 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     await saveResponses(answers as Record<string, ValidationAnswerValue>)
     setIntakeCompleted(true)
     await submitIntake.mutateAsync({ caseId, runExtract: false })
+  }
+
+  async function handleJourneySave(answers: Record<string, string>) {
+    setJourneySaving(true)
+    setJourneyError(null)
+    try {
+      await saveResponses(answers)
+      await queryClient.invalidateQueries({ queryKey: qk.case.journey(caseId) })
+    } catch (error) {
+      setJourneyError(error instanceof Error ? error.message : 'Could not save your answers')
+    } finally {
+      setJourneySaving(false)
+    }
   }
 
   async function handleGapSave(answers: Record<string, ValidationAnswerValue>) {
@@ -330,10 +359,32 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
                 : undefined
             }
           />
+        ) : node === 'S1-IntakeForm' && journeyQuery.isPending ? (
+          <StateMachineLoading title="Loading your case" />
+        ) : node === 'S1-Journey' ? (
+          <JourneyQuestions isSaving={journeySaving} errorMessage={journeyError} onSave={(answers) => void handleJourneySave(answers)} />
+        ) : node === 'S1-Tier0DraftPending' ? (
+          <ConfirmAndEvaluate caseId={caseId} />
+        ) : showStageOneNextSteps ? (
+          <Layer1Shell
+            node="S1-Tier0Draft"
+            draft={{
+              narratives: tier0DraftQuery.data ?? {
+                tier0_summary: null,
+                tier0_evidence_checklist: null,
+                tier0_srf_signal: null,
+                other: [],
+              },
+              footerSlot: (
+                <div className="pt-4">
+                  <NextSteps caseId={caseId} priceLabels={priceLabels} />
+                </div>
+              ),
+            }}
+          />
         ) : node === 'S1-IntakeForm' ||
           node === 'S1-GapLoop' ||
-          node === 'S1-EvidenceUpload' ||
-          node === 'S1-Tier0DraftPending' ? (
+          node === 'S1-EvidenceUpload' ? (
           <Layer1Shell
             node={node}
             confirmFactsHref={`/app/case/${caseId}/facts?stage=free`}

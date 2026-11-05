@@ -44,6 +44,20 @@ export interface FactsView {
     values: Array<{ display: string; value: unknown; sources: Array<{ sourceType: string; label: string; quotes: string[] }> }>
   }>
   latestSnapshot: { id: string; createdAt: string; unchanged: boolean } | null
+  // Answers that cannot all be true together; the facts cannot be confirmed until one is changed.
+  consistencyIssues: string[]
+}
+
+function consistencyMessages(blocks: readonly SnapshotBlock[]): string[] {
+  return blocks.flatMap((block) => {
+    if (block.reason === "inconsistent_facts") {
+      return ["You told us you haven’t contacted your bank, but also that your bank has replied. Please change one of these answers."]
+    }
+    if (block.reason === "total_differs_from_transactions") {
+      return [`The amount you lost (S$${block.total.toLocaleString("en-SG")}) doesn’t match the payments you confirmed (S$${block.sum.toLocaleString("en-SG")} in total). Please check one of them.`]
+    }
+    return []
+  })
 }
 
 async function snapshotHash(facts: unknown): Promise<string> {
@@ -104,6 +118,7 @@ export async function loadFactsView(
       })),
     })),
     latestSnapshot: latest ? { id: latest.id, createdAt: latest.created_at, unchanged } : null,
+    consistencyIssues: consistencyMessages(snapshot.blocks),
   }
 }
 
