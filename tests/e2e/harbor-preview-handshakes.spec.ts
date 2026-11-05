@@ -11,6 +11,7 @@ import {
   requireUuid,
   type DisposableCleanupScope,
 } from "./helpers/disposable-records"
+import { PAID_STAGES_DEFERRED, paidStagesEnabled } from "./helpers/paid-stages"
 
 const enabled = process.env.HARBOR_PREVIEW_HANDSHAKES === "1"
 const authStatePath = resolve(
@@ -344,6 +345,8 @@ test.describe("Harbor preview integration handshakes", () => {
   })
 
   test("fulfils Tier 1 before Tier 2 and processes each signed webhook once", async ({ page, request }) => {
+    // Needs a real checkout; stage 1's 409 refusal is covered by checkout-provider.spec.ts.
+    test.skip(!paidStagesEnabled, PAID_STAGES_DEFERRED)
     const { token, profileId } = await authenticatedIdentity(page)
     const disposable = await createDisposableCase(serviceClient, {
       ownerId: profileId,
