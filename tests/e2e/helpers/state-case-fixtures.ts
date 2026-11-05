@@ -1,12 +1,16 @@
 export type StateFixture = { caseId: string }
 
+import { paidStagesEnabled } from './paid-stages'
+
 export const expectedStateText = {
+  layer1Journey: 'Where are you with your bank?',
   layer1Intake: 'Tell us about your complaint',
   layer1Gap: 'A few more details',
   layer1Evidence: 'Upload supporting evidence',
   layer1DraftPending: 'Next: confirm your facts',
   layer1FreeDraft: 'Your free triage draft',
-  transitionBuyReport: 'Get your Bank Pack',
+  // Stage 1 (paid stages off): the evaluation is followed by the next steps instead of a buy button.
+  transitionBuyReport: paidStagesEnabled ? 'Get your Bank Pack' : 'Your next steps',
   layer2Running: 'Checking your case information',
   layer2Drafting: 'Preparing your automated report',
   layer2Ready: 'Your complaint report',

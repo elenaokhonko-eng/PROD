@@ -57,7 +57,7 @@ export function NextSteps({ caseId, priceLabels }: { caseId: string; priceLabels
   }
 
   const { recommendation: rec, paidStages } = recommendation.data
-  const stateOf = (product: StageProduct) => rec.products.find((p) => p.product === product)
+  const stateOf = (product: StageProduct) => rec?.products.find((p) => p.product === product)
   const cards: Array<{ product: 'bank_pack' | 'fidrec_pack'; price: string; description: string }> = [
     {
       product: 'bank_pack',
@@ -75,6 +75,7 @@ export function NextSteps({ caseId, priceLabels }: { caseId: string; priceLabels
     <section aria-labelledby="next-steps" className="space-y-4">
       <h2 id="next-steps" className="text-xl font-semibold">Your next steps</h2>
 
+      {rec && (
       <Card>
         <CardHeader>
           <CardTitle>
@@ -100,6 +101,7 @@ export function NextSteps({ caseId, priceLabels }: { caseId: string; priceLabels
           {rec.notes.map((note) => <p key={note} className="text-muted-foreground">{note}</p>)}
         </CardContent>
       </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         {cards.map((card) => {

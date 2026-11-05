@@ -13,7 +13,8 @@ import { isFIDReCSubscriber } from "@/lib/fidrec-subscribers"
 import { FactsUnavailableError } from "./run-reconcile"
 
 export interface RecommendationView {
-  recommendation: Recommendation
+  // Null when the case has no confirmed free snapshot (cases evaluated before fact checking existed).
+  recommendation: Recommendation | null
   paidStages: PaidStagesState
 }
 
@@ -25,7 +26,7 @@ function singaporeToday(now = new Date()): string {
 
 // The recommendation after the free evaluation (design 6.1), from the latest confirmed "free" snapshot. Facts the
 // user kept without a document count; facts marked "not sure" or "not known" do not.
-export async function loadRecommendation(service: SupabaseClient, caseId: string): Promise<RecommendationView | null> {
+export async function loadRecommendation(service: SupabaseClient, caseId: string): Promise<RecommendationView> {
   const { data, error } = await service
     .from("case_fact_snapshots")
     .select("facts")
@@ -35,7 +36,7 @@ export async function loadRecommendation(service: SupabaseClient, caseId: string
     .limit(1)
     .maybeSingle()
   if (error) throw new FactsUnavailableError("Failed to load snapshot")
-  if (!data) return null
+  if (!data) return { recommendation: null, paidStages: paidStagesState() }
 
   const facts = data.facts as Record<string, Labelled | undefined>
   const value = <T>(key: string): T | null => {

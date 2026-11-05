@@ -41,6 +41,7 @@ export function seedUuid(name: string) {
 }
 
 const stateCaseNames = {
+  layer1Journey: 'state-layer1-journey',
   layer1Intake: 'state-layer1-intake',
   layer1Gap: 'state-layer1-gap',
   layer1Evidence: 'state-layer1-evidence',
@@ -118,7 +119,8 @@ class Seeder {
     await this.client.query('delete from cases where id = $1', [caseId])
   }
 
-  async createCase(name: string, ownerId: string) {
+  // Every case answers the journey questions (stage 1 asks them first) unless a fixture tests that step itself.
+  async createCase(name: string, ownerId: string, options: { journey?: boolean } = {}) {
     const caseId = seedUuid(name)
     await this.resetCase(caseId)
     await this.client.query(
@@ -127,6 +129,12 @@ class Seeder {
        values ($1, $2, $2, $2, 'phishing_scam', 'draft', 'DRAFT', $3, $3, 'SGD', 'SG', false)`,
       [caseId, ownerId, `Synthetic release fixture: ${name}.`],
     )
+    if (options.journey !== false) {
+      await this.client.query(
+        `insert into case_responses (case_id, question_key, response_value, response_type) values ($1, 'journey_reported_to_bank', 'yes', 'text')`,
+        [caseId],
+      )
+    }
     return caseId
   }
 
@@ -317,11 +325,12 @@ async function main() {
     )
 
     const state = {} as Record<keyof StateCases, { caseId: string }>
-    const add = async (family: keyof StateCases, build: (caseId: string) => Promise<void>) => {
-      const caseId = await seeder.createCase(stateCaseNames[family], userA)
+    const add = async (family: keyof StateCases, build: (caseId: string) => Promise<void>, options: { journey?: boolean } = {}) => {
+      const caseId = await seeder.createCase(stateCaseNames[family], userA, options)
       await build(caseId)
       state[family] = { caseId }
     }
+    await add('layer1Journey', async () => {}, { journey: false })
     await add('layer1Intake', async () => {})
     await add('layer1Gap', (id) => seeder.gap(id, true))
     await add('layer1Evidence', (id) => seeder.intakeResponses(id))

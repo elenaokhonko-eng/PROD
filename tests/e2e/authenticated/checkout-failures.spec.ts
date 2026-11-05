@@ -1,6 +1,10 @@
 import { expect, test } from '../fixtures/harbor-test'
+import { PAID_STAGES_DEFERRED, paidStagesEnabled } from '../helpers/paid-stages'
 import { readReleaseFixtures } from '../../release/release-fixtures'
 import { PRODUCT_CATALOGUE } from '../../../lib/payments/product-catalogue'
+
+// Both tests start from the buy button, which stage 1 does not show.
+test.skip(!paidStagesEnabled, PAID_STAGES_DEFERRED)
 
 const fixtures = readReleaseFixtures()
 const syntheticEvidence = { annotation: { type: 'evidence-class', description: 'synthetic-provider' } }

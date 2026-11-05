@@ -1,11 +1,12 @@
 import type { Locator, Page } from '@playwright/test'
 import { expect, test } from '../fixtures/harbor-test'
 import { createServiceClientFromEnvironment } from '../helpers/disposable-records'
+import { PAID_STAGES_DEFERRED, paidStagesEnabled } from '../helpers/paid-stages'
 
-// D6 regression: a brand-new account on the default free plan goes from its story to a paid S$18 report the way a
-// customer does: onboarding creates the case, the intake form, any follow-up questions, an evidence upload, confirming
-// the facts, the free evaluation with the buy button, Stripe test-mode Checkout, then the report. Nothing is seeded
-// for this account.
+// A brand-new account on the default free plan goes through the product the way a customer does: onboarding creates
+// the case, the journey questions, the intake form, any follow-up questions, an evidence upload, confirming the facts
+// in the dashboard and the free evaluation. Stage 1 (paid stages off) then shows the next steps; with paid stages on,
+// the D6 regression continues to Stripe test-mode Checkout and the report. Nothing is seeded for these accounts.
 // Synthetic content only. The Clerk test user is deleted afterwards; its purchase rows stay as payment records.
 
 const clerkSecretKey = process.env.HARBOR_CLERK_DEV_SECRET_KEY?.trim() ?? ''
@@ -18,54 +19,52 @@ test.describe('fresh free account', () => {
     test.skip(testInfo.project.name !== 'chromium-1440', 'Creates a Clerk user and a Stripe test payment once per release SHA.')
   })
 
-  test('a brand-new free account can buy the S$18 report end to end', async ({ page }) => {
-    expect(clerkSecretKey.startsWith('sk_test_'), 'HARBOR_CLERK_DEV_SECRET_KEY must be the Clerk Development key').toBe(true)
+  test('a brand-new free account completes the free evaluation and sees the next steps (stage 1)', async ({ page }) => {
+    test.skip(paidStagesEnabled, 'Stage 1 only: with paid stages on, the purchase test below covers this path.')
     test.setTimeout(30 * 60_000)
     const supabase = createServiceClientFromEnvironment()
-    const email = `harbor.release.fresh.${Date.now()}+clerk_test@example.com`
-    const clerkUserId = await createClerkUser(email)
+    const { clerkUserId, caseId, email } = await startFreshCase(page, supabase, smsPhishingNarrative)
 
     try {
-      // Provisioned by the staging Clerk webhook, with the default free account entitlement.
-      let profileId: string | null = null
-      await expect
-        .poll(async () => {
-          const { data } = await supabase.from('profiles').select('id').eq('clerk_id', clerkUserId).maybeSingle()
-          profileId = (data as { id?: string } | null)?.id ?? null
-          return profileId
-        }, { timeout: 120_000, message: 'webhook provisions the new profile' })
-        .not.toBeNull()
-      const { data: accountEntitlement } = await supabase
-        .from('user_entitlements')
-        .select('plan, features')
-        .eq('user_id', profileId)
-        .single()
-      expect(accountEntitlement).toEqual({ plan: 'free', features: {} })
+      await completeFreeEvaluation(page, caseId)
+      // The SRF section is written by the server from fixed rules, never by the model.
+      await expect(page.getByText('Shared Responsibility Framework: an early view')).toBeVisible()
 
-      await signIn(page, clerkUserId)
+      await expect(page.getByRole('heading', { name: 'Your next steps' })).toBeVisible({ timeout: 60_000 })
+      await expect(page.getByText(/^Available from /).first()).toBeVisible()
+      await expect(page.getByRole('button', { name: /Get Bank Pack/i })).toHaveCount(0)
+      await page.getByRole('button', { name: 'Email me when it’s available' }).first().click()
+      await expect(page.getByText(/^Thank you\. We’ll email /)).toBeVisible()
 
-      // The marketing page leaves the story in session storage; /onboarding turns it into the case.
-      await page.evaluate((narrative) => sessionStorage.setItem('gb_pending_narrative', JSON.stringify({ narrative })), syntheticNarrative)
-      await page.goto('/onboarding')
-      await page.waitForURL(/\/app\/case\/[0-9a-f-]{36}\/dashboard$/, { timeout: 120_000 })
-      const caseId = new URL(page.url()).pathname.split('/')[3]
-
-      await fillIntake(page)
-      await reachEvidenceUpload(page)
-      await page.locator('input[type="file"]').setInputFiles({
-        name: 'synthetic-bank-statement.pdf',
-        mimeType: 'application/pdf',
-        buffer: syntheticStatementPdf(),
+      // Checkout refuses both products until stage 2.
+      const token = await page.evaluate(async () => {
+        const clerk = (globalThis as unknown as { Clerk?: { session?: { getToken(o: { template: string }): Promise<string | null> } } }).Clerk
+        return clerk?.session?.getToken({ template: 'supabase' }) ?? null
       })
+      for (const productKey of ['self_serve_report', 'fidrec_tier2_pack']) {
+        const response = await page.request.post('/api/payments/create-checkout-session', {
+          data: { caseId, productKey },
+          headers: { authorization: `Bearer ${token}` },
+          maxRedirects: 0,
+        })
+        expect(response.status(), productKey).toBe(409)
+        expect(((await response.json()) as { reason?: string }).reason).toBe('product_not_available')
+      }
+    } finally {
+      await supabase.from('waitlist').delete().eq('email', email.toLowerCase())
+      await deleteClerkUser(clerkUserId)
+    }
+  })
 
-      // Nothing is generated until the facts are confirmed (C3).
-      const confirmFacts = page.getByRole('link', { name: 'Confirm your facts' })
-      await answerFollowUpsUntil(page, confirmFacts, stepTimeoutMs)
-      await confirmFactsAndGenerate(page, caseId)
+  test('a brand-new free account can buy the S$18 report end to end', async ({ page }) => {
+    test.skip(!paidStagesEnabled, PAID_STAGES_DEFERRED)
+    test.setTimeout(30 * 60_000)
+    const supabase = createServiceClientFromEnvironment()
+    const { clerkUserId, caseId, email } = await startFreshCase(page, supabase, syntheticNarrative)
 
+    try {
+      await completeFreeEvaluation(page, caseId)
       const buy = page.getByRole('button', { name: /Get Bank Pack/i })
-      await expect(page.getByText('Your free triage draft')).toBeVisible({ timeout: 180_000 })
-      await expect(page.getByText('Facts you confirmed')).toBeVisible()
       await expect(buy).toBeEnabled()
 
       await buy.click()
@@ -93,6 +92,74 @@ test.describe('fresh free account', () => {
     }
   })
 })
+
+type ServiceClient = ReturnType<typeof createServiceClientFromEnvironment>
+
+// Creates the Clerk test user, waits for its free profile, signs in and turns the story into a case.
+async function startFreshCase(page: Page, supabase: ServiceClient, narrative: string) {
+  expect(clerkSecretKey.startsWith('sk_test_'), 'HARBOR_CLERK_DEV_SECRET_KEY must be the Clerk Development key').toBe(true)
+  const email = `harbor.release.fresh.${Date.now()}+clerk_test@example.com`
+  const clerkUserId = await createClerkUser(email)
+
+  // Provisioned by the staging Clerk webhook, with the default free account entitlement.
+  let profileId: string | null = null
+  await expect
+    .poll(async () => {
+      const { data } = await supabase.from('profiles').select('id').eq('clerk_id', clerkUserId).maybeSingle()
+      profileId = (data as { id?: string } | null)?.id ?? null
+      return profileId
+    }, { timeout: 120_000, message: 'webhook provisions the new profile' })
+    .not.toBeNull()
+  const { data: accountEntitlement } = await supabase
+    .from('user_entitlements')
+    .select('plan, features')
+    .eq('user_id', profileId)
+    .single()
+  expect(accountEntitlement).toEqual({ plan: 'free', features: {} })
+
+  await signIn(page, clerkUserId)
+
+  // The marketing page leaves the story in session storage; /onboarding turns it into the case.
+  await page.evaluate((story) => sessionStorage.setItem('gb_pending_narrative', JSON.stringify({ narrative: story })), narrative)
+  await page.goto('/onboarding')
+  await page.waitForURL(/\/app\/case\/[0-9a-f-]{36}\/dashboard$/, { timeout: 120_000 })
+  return { clerkUserId, email, caseId: new URL(page.url()).pathname.split('/')[3] }
+}
+
+// Journey questions, intake, follow-ups and evidence, then the confirm step in the dashboard and the free evaluation.
+async function completeFreeEvaluation(page: Page, caseId: string) {
+  await answerJourney(page)
+  await fillIntake(page)
+  await reachEvidenceUpload(page)
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'synthetic-bank-statement.pdf',
+    mimeType: 'application/pdf',
+    buffer: syntheticStatementPdf(),
+  })
+
+  // Nothing is generated until the facts are confirmed (C3).
+  const confirmHeading = page.getByRole('heading', { name: 'Next: confirm your facts' })
+  await answerFollowUpsUntil(page, confirmHeading, stepTimeoutMs)
+  await confirmFactsInDashboard(page, caseId)
+  await expect(page.getByText('Your free triage draft')).toBeVisible({ timeout: 180_000 })
+  await expect(page.getByText('Facts you confirmed')).toBeVisible()
+}
+
+// Synthetic journey: told the bank by phone, no written complaint yet, no reply, police report made, no FIDReC.
+async function answerJourney(page: Page) {
+  await expect(page.getByText('Where are you with your bank?')).toBeVisible({ timeout: 120_000 })
+  await page.locator('#journey-bank-yes').check()
+  await page.locator('#journey-complaint-no').check()
+  await page.locator('#journey-reply-none').check()
+  await page.locator('#journey-police-yes').check()
+  await page.locator('#journey-fidrec-no').check()
+  await page.getByRole('button', { name: 'Continue' }).click()
+}
+
+// SMS phishing, the stage 1 demo recipe: the story says the bank was called, the intake answer says it was not.
+const smsPhishingNarrative =
+  'On 3 October 2026 I got an SMS from Synthetic Bank and entered my login and OTP on the website. S$2,400 was ' +
+  'transferred out. I called Synthetic Bank on 3 October and filed a police report on 4 October.'
 
 const syntheticNarrative =
   'On 3 October 2026 I received a call from someone claiming to be from Synthetic Bank fraud team. They told me my ' +
@@ -151,11 +218,9 @@ async function answerFollowUps(form: Locator) {
   await form.page().waitForTimeout(5_000)
 }
 
-// Answers every open item on the confirm screen: the first value for a conflict, "Keep it" for a claim without a
-// document, "Not known" for a missing fact. Then confirms and generates the free evaluation.
-async function confirmFactsAndGenerate(page: Page, caseId: string) {
-  await page.getByRole('link', { name: 'Confirm your facts' }).click()
-  await page.waitForURL(new RegExp(`/app/case/${caseId}/facts\\?stage=free`))
+// Answers every open item on the confirm screen in the dashboard: the first value for a conflict, "Keep it" for a
+// claim without a document, "Not known" for a missing fact. Confirming then generates the free evaluation.
+async function confirmFactsInDashboard(page: Page, caseId: string) {
   await expect(page.getByText(/left to check|Everything is confirmed/)).toBeVisible({ timeout: 180_000 })
 
   for (let round = 0; round < 20; round++) {
@@ -163,14 +228,12 @@ async function confirmFactsAndGenerate(page: Page, caseId: string) {
     if (!(await open.count())) break
     const notKnown = open.getByRole('radio', { name: 'Not known' })
     await ((await notKnown.count()) ? notKnown : open.getByRole('radio').first()).check()
-    const saved = page.waitForResponse((r) => r.url().includes(`/api/cases/${caseId}/facts?stage=free`) && r.request().method() === 'GET')
+    const saved = page.waitForResponse((r) => r.url().includes(`/api/cases/${caseId}/facts?stage=free`) && r.request().method() === 'GET', { timeout: 120_000 })
     await open.getByRole('button', { name: 'Save answer' }).click()
     await saved
   }
   await expect(page.getByText('Everything is confirmed.')).toBeVisible()
   await page.getByRole('button', { name: 'Confirm and continue to your free evaluation' }).click()
-  await page.getByRole('button', { name: 'Get my free evaluation' }).click()
-  await page.waitForURL(new RegExp(`/app/case/${caseId}/dashboard$`), { timeout: 180_000 })
 }
 
 async function payWithTestCard(page: Page, email: string) {

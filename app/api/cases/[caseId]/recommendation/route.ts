@@ -15,7 +15,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
 
   try {
     const view = await loadRecommendation(createServiceClient(), caseId)
-    if (!view) return NextResponse.json({ error: "Confirm your facts first", reason: "facts_unconfirmed" }, { status: 409 })
     return NextResponse.json(view, { headers: { "Cache-Control": "no-store" } })
   } catch (error) {
     if (error instanceof FactsUnavailableError) {

@@ -171,6 +171,15 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   }, [searchParams])
   const isPaymentCancelled = cancelledProduct !== null
   const capabilityBilling = paymentStatusQuery.data?.capabilityBilling
+  // App-level ready signal for tests and monitoring: the queries that decide the state have settled. The dashboard
+  // keeps polling while work runs, so "network idle" is not a reliable signal.
+  const stateReady =
+    !eligibilityQuery.isPending &&
+    !journeyQuery.isPending &&
+    !intakeCompletionQuery.isPending &&
+    !documentsQuery.isPending &&
+    !tier0DraftQuery.isPending &&
+    !paymentStatusQuery.isPending
   const paidStagesOff = capabilityBilling?.access.paidStagesEnabled === false
   const showStageOneNextSteps =
     paidStagesOff && (node === 'S1-Tier0Draft' || node === 'T-BuyReportCTA' || node === 'T-EligibilityGate')
@@ -343,7 +352,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto max-w-5xl px-4 py-8">
+      <main className="container mx-auto max-w-5xl px-4 py-8" data-harbor-node={node} data-harbor-ready={stateReady ? 'true' : 'false'}>
         {eligibilityQuery.isError ? (
           <StateMachineErrorCard kind="internal" context="Case eligibility could not be loaded." />
         ) : isPaymentCancelled ? (

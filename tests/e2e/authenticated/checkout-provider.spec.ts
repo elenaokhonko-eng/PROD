@@ -2,12 +2,34 @@ import type { APIResponse, Page } from '@playwright/test'
 import { expect, test } from '../fixtures/harbor-test'
 import { readReleaseFixtures } from '../../release/release-fixtures'
 import { waitForClerkSession } from '../helpers/clerk-session'
+import { PAID_STAGES_DEFERRED, paidStagesEnabled } from '../helpers/paid-stages'
 
 const fixtures = readReleaseFixtures()
+
+test.describe('stage 1: paid stages off', () => {
+  test.beforeEach(async ({}, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium-1440', 'Mutating provider checks run once per release SHA.')
+    test.skip(paidStagesEnabled, 'Only while paid stages are off.')
+  })
+
+  test('checkout refuses both paid products with product_not_available and no provider redirect', async ({ page }) => {
+    const token = await getSupabaseToken(page)
+    for (const [productKey, caseId] of [
+      ['self_serve_report', fixtures.payments.selfServeCheckoutCaseId],
+      ['fidrec_tier2_pack', fixtures.payments.tier2CheckoutCaseId],
+    ] as const) {
+      const response = await createCheckout(page, token, caseId, productKey)
+      expect(response.status(), `${productKey}: ${await response.text()}`).toBe(409)
+      expect(((await response.json()) as { reason?: string }).reason).toBe('product_not_available')
+      expect(response.headers().location).toBeUndefined()
+    }
+  })
+})
 
 test.describe('Stripe preview-provider checkout contract', () => {
   test.beforeEach(async ({}, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium-1440', 'Mutating provider checks run once per release SHA.')
+    test.skip(!paidStagesEnabled, PAID_STAGES_DEFERRED)
   })
 
   for (const purchase of [
