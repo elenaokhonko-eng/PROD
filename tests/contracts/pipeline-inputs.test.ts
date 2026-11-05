@@ -29,3 +29,11 @@ test('the fact runner reads user-authored sources only', () => {
   }
   assert.ok(reads.has('case_story_revisions') && reads.has('case_response_revisions') && reads.has('case_document_extractions'))
 })
+
+test('the privacy export includes every fact reconciliation table', () => {
+  const exportRoute = readFileSync('app/api/privacy/export/route.ts', 'utf8')
+  const migration = readFileSync('supabase/migrations/20261106120000_fact_reconciliation_foundation.sql', 'utf8')
+  const tables = [...migration.matchAll(/CREATE TABLE public\.([a-z_]+)/g)].map((m) => m[1])
+  assert.equal(tables.length, 7)
+  for (const table of tables) assert.match(exportRoute, new RegExp(`"${table}"`), table)
+})
