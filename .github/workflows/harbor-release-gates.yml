@@ -108,6 +108,8 @@ jobs:
         run: supabase db lint --local --level error
       - name: Two-user Pattern C RLS
         run: supabase test db tests/database/pattern-c-rls.test.sql
+      - name: Fact reconciliation tables (history, RLS, immutability)
+        run: supabase test db tests/database/fact-reconciliation.test.sql
       - name: Security baseline (RLS, anon writes, views, buckets)
         run: supabase test db tests/database/security-baseline.test.sql
       - name: Browser-selected columns exist

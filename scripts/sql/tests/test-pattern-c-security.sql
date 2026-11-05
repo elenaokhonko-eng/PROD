@@ -122,7 +122,14 @@ BEGIN
       'reports',
       'case_entitlements',
       'user_entitlements',
-      'privacy_deletion_requests'
+      'privacy_deletion_requests',
+      'case_story_revisions',
+      'case_response_revisions',
+      'case_fact_reconcile_runs',
+      'case_fact_candidates',
+      'case_fact_findings',
+      'case_fact_snapshots',
+      'case_fact_confirmation_events'
     ]) AS expected(table_name)
     LEFT JOIN pg_class c
       ON c.oid = to_regclass(format('public.%I', expected.table_name))
@@ -156,7 +163,14 @@ BEGIN
         'reports',
         'case_entitlements',
         'user_entitlements',
-        'privacy_deletion_requests'
+        'privacy_deletion_requests',
+        'case_story_revisions',
+        'case_response_revisions',
+        'case_fact_reconcile_runs',
+        'case_fact_candidates',
+        'case_fact_findings',
+        'case_fact_snapshots',
+        'case_fact_confirmation_events'
       ])
       AND (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) ~* 'auth\.uid\(|auth\.users'
   ) THEN
@@ -206,6 +220,13 @@ BEGIN
       'referrals',
       'router_sessions',
       'privacy_deletion_requests',
+      'case_story_revisions',
+      'case_response_revisions',
+      'case_fact_reconcile_runs',
+      'case_fact_candidates',
+      'case_fact_findings',
+      'case_fact_snapshots',
+      'case_fact_confirmation_events',
       'complaints',
       'v_case_validation_gap_items',
       'v_latest_validation',
