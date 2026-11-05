@@ -2,6 +2,7 @@
 // compared per fact key and turned into findings. The model never takes part here; it only extracted the candidates.
 
 import {
+  ANSWER_ONLY_FACT_KEYS,
   type BankReply,
   type FactKey,
   type FactValues,
@@ -249,6 +250,13 @@ export async function reconcile(candidates: readonly FactCandidate[]): Promise<R
     const forKey = candidates.filter((c) => c.factKey === key);
     const { findingType, values } = key === "transactions" ? reconcileTransactions(forKey) : reconcileKey(key, forKey);
     findings.push({ factKey: key, findingType, values, valuesHash: await valuesHash(values) });
+  }
+  // Answer-only facts are not compared at launch (design 2.2a): the latest answer wins, otherwise the first source.
+  for (const key of ANSWER_ONLY_FACT_KEYS) {
+    const forKey = candidates.filter((c) => c.factKey === key);
+    const chosen = forKey.find((c) => c.sourceType === "answer") ?? forKey[0];
+    const values: FindingValue[] = chosen ? [{ value: chosen.value, sources: [{ sourceType: chosen.sourceType, sourceRef: chosen.sourceRef }] }] : [];
+    findings.push({ factKey: key, findingType: chosen ? "agreed" : "missing", values, valuesHash: await valuesHash(values) });
   }
   return findings;
 }
