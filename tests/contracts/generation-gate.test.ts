@@ -41,3 +41,9 @@ test('nothing starts the free evaluation automatically any more', () => {
   assert.doesNotMatch(dashboard, /useTier0AutoFire/)
   assert.match(dashboard, /confirmFactsHref=\{`\/app\/case\/\$\{caseId\}\/facts\?stage=free`\}/)
 })
+
+test('the story is withheld from the model once the user has overruled it on the confirm screen (staging run, 5 Nov)', () => {
+  assert.match(fn, /primary_narrative: storyOverruled \? null : storyRow\?\.story_text \?\? null/)
+  assert.match(fn, /if \(resolution\.kind === "value"\) return true;/)
+  assert.match(fn, /resolution\.kind === "choice" && !fromStory\(values\[resolution\.index \?\? -1\]\)/)
+})

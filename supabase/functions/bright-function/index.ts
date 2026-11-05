@@ -131,6 +131,26 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (storyErr) return new Response(`Story Error: ${storyErr.message}`, { status: 500 });
 
+    // If the user settled a conflict against their story (chose a value the story does not support, or typed their
+    // own), the model is not shown the story: it copies the story's version even when told not to. The evaluation is
+    // then written from the confirmed facts alone.
+    const { data: conflicts, error: conflictsErr } = await supabase
+      .from("case_fact_findings")
+      .select("values, resolution")
+      .eq("case_id", case_id)
+      .eq("finding_type", "conflict")
+      .is("invalidated_at", null);
+    if (conflictsErr) return new Response(`Findings Error: ${conflictsErr.message}`, { status: 500 });
+    type StoredValue = { sources?: Array<{ sourceType?: string }> };
+    const fromStory = (v: StoredValue | undefined) => Boolean(v?.sources?.some((s) => s.sourceType === "story"));
+    const storyOverruled = (conflicts ?? []).some((f) => {
+      const values = (f.values ?? []) as StoredValue[];
+      const resolution = f.resolution as { kind?: string; index?: number } | null;
+      if (!resolution || !values.some(fromStory)) return false;
+      if (resolution.kind === "value") return true;
+      return resolution.kind === "choice" && !fromStory(values[resolution.index ?? -1]);
+    });
+
     const institutions = (facts.institution_names?.value as Institution[] | null) ?? [];
     const loss = (facts.total_loss?.value as Money | null) ?? null;
     const transactions = (facts.transactions?.value as Transaction[] | null) ?? [];
@@ -161,7 +181,7 @@ Deno.serve(async (req) => {
       facts_not_confirmed: Object.entries(facts)
         .filter(([, fact]) => fact!.label === "not_sure" || fact!.label === "not_known")
         .map(([key]) => key),
-      primary_narrative: storyRow?.story_text ?? null,
+      primary_narrative: storyOverruled ? null : storyRow?.story_text ?? null,
       fidrec_check: fidrecCheck,
     };
 
@@ -803,6 +823,7 @@ facts_without_document lists the facts the user has no document for. Every sente
 start with "You told us that". facts_not_confirmed lists facts that are not confirmed: say so and give no value.
 Never state a date, amount, institution or yes/no fact that differs from confirmed_facts. primary_narrative is the
 user's own story: use it only for the order of events and context, never for a fact that confirmed_facts covers.
+If primary_narrative is null, the user corrected their story; write only from confirmed_facts.
 Write neutrally: do not overstate or understate.${previousFailures ? `
 
 YOUR PREVIOUS ANSWER WAS REJECTED because it contradicted the confirmed facts:
