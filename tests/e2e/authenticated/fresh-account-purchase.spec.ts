@@ -225,9 +225,16 @@ async function answerFollowUps(form: Locator) {
 // Answers every open item on the confirm screen in the dashboard: the first value for a conflict, "Keep it" for a
 // claim without a document, "Not known" for a missing fact. Confirming then generates the free evaluation.
 async function confirmFactsInDashboard(page: Page, caseId: string) {
-  await expect(page.getByText(/left to check|Everything is confirmed/)).toBeVisible({ timeout: 180_000 })
+  // A document that finishes being read re-runs the check (Q2) and the cards are replaced by "Checking your story…"
+  // until it ends; answer only once the panel has settled, as a person would. 6 minutes covers the slowest check
+  // seen on staging (310 s).
+  const settled = async () => {
+    await expect(page.getByText(/still being\s+read/)).toHaveCount(0, { timeout: 360_000 })
+    await expect(page.getByText(/left to check|Everything is confirmed/)).toBeVisible({ timeout: 360_000 })
+  }
 
   for (let round = 0; round < 20; round++) {
+    await settled()
     const open = page.locator('[data-finding]').filter({ has: page.getByText('To check', { exact: true }) }).first()
     if (!(await open.count())) break
     const notKnown = open.getByRole('radio', { name: 'Not known' })
@@ -236,6 +243,7 @@ async function confirmFactsInDashboard(page: Page, caseId: string) {
     await open.getByRole('button', { name: 'Save answer' }).click()
     await saved
   }
+  await settled()
   await expect(page.getByText('Everything is confirmed.')).toBeVisible()
   await page.getByRole('button', { name: 'Confirm and continue to your free evaluation' }).click()
 }

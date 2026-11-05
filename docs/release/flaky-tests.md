@@ -47,3 +47,33 @@ test is weakened to make it pass.
 - **Pattern to watch:** this is the second different state-fixture test to fail at 768 px in two runs (see
   layer1Evidence above). If either recurs, decrypt the signed-in trace before doing anything else; do not rerun
   as a fix.
+
+## 2026-11-05: the two 768-px state-fixture failures above, root cause found and fixed
+
+- **Root cause:** the state tests opened the dashboard with `waitUntil: 'networkidle'`. Since D7 the dashboard
+  polls its case queries every 5 to 10 seconds, so "no requests for 500 ms" happens only by chance between polls.
+  Which viewport lost the race varied with timing; CI runs one worker, so it was not browser concurrency. The
+  "Failed to fetch" errors fit the same cause: a poll still in flight when the test moved on and closed the page.
+  Locally the tests passed 65 of 65 at 768 px, where responses are faster.
+- **Fix (D12):** the dashboard sets `data-harbor-ready="true"` on `<main>` once the queries that decide its state
+  have settled, and the tests wait for that signal instead of network idle. No timeout was lengthened and nothing
+  retries. Both tests have passed at every viewport in the four runs since (42053205624 to 42065053458).
+
+## 2026-11-06: signed-in, fresh free path "confirm facts" step (chromium-1440), my test, fixed
+
+- **Run:** 42065053458, commit `6977ff8`; it passed end to end on the run before (42059997693).
+- **Cause:** the uploaded statement finished being read while the test was answering the confirm screen. By design
+  (Q2) that re-runs the fact check, and the cards are replaced by "Checking your story…" until it ends; the test
+  waited 30 s for a radio that was not on the page.
+- **Fix:** before each answer and before confirming, the test waits until no document is still being read and
+  the panel shows its "left to check" or "Everything is confirmed" summary, which is what a person waits for. The
+  6-minute limit is from the slowest fact check measured on staging (310 s), not a guess.
+
+## 2026-11-06: signed-in, "file exceeds the configured storage limit is rejected before persistence", under watch
+
+- **Run:** 42065053458, commit `6977ff8`; first failure; it passed on every earlier run tonight.
+- **What failed:** the 50 MB upload (52,429,269 bytes) did not get a response within the 30 s request timeout.
+- **Likely cause, not yet proven:** the body is just under the route's multipart cap (51 MiB), so the server reads
+  the whole upload before rejecting the file by size; the time is the upload from the GitHub runner to Render. The
+  route and the test are unchanged tonight. Not retried and no timeout changed. If it recurs, the fix to consider
+  is rejecting a declared file size above 50 MB before reading the body, not a longer timeout.
