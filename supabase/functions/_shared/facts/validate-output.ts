@@ -84,6 +84,7 @@ const POLICE_DENIED = new RegExp(
   "i",
 );
 const POLICE_AFFIRMED = /\b(?:reported|filed|lodged|made)\b[^.]{0,60}\bpolice\b|\bpolice report\b[^.]{0,40}\b(?:was|were|has been|had been)\s+(?:filed|lodged|made)\b|\bpolice report (?:no\.?|number|reference)/i;
+const BANK_CONTACT_CLAIMED = /\b(?:I|you|we)\s+(?:(?!was\b|were\b|been\b|being\b)\w+\s+){0,2}?(?:reported|told|informed|contacted|notified|called)\b(?!\s+by\b)[^.]{0,40}\bbank\b/i;
 const BANK_DENIED = new RegExp(String.raw`(?:\b(?:not|never|yet to)|n't)\s+${FILLER}${BANK_VERBS}`, "i");
 
 // Phrases that contradict each confirmed yes/no value.
@@ -91,6 +92,8 @@ const CONTRADICTIONS: Array<{ key: FactKey; whenValue: "yes" | "no"; contradicts
   { key: "reported_to_police", whenValue: "yes", contradicts: (s) => POLICE_DENIED.test(s) },
   { key: "reported_to_police", whenValue: "no", contradicts: (s) => POLICE_AFFIRMED.test(s) && !POLICE_DENIED.test(s) },
   { key: "reported_to_bank", whenValue: "yes", contradicts: (s) => BANK_DENIED.test(s) },
+  // Only the person themselves contacting the bank counts; "I was told by the bank" is not a report to the bank.
+  { key: "reported_to_bank", whenValue: "no", contradicts: (s) => BANK_CONTACT_CLAIMED.test(s) && !BANK_DENIED.test(s) },
 ];
 
 const UNCERTAIN = /\b(not sure|unsure|unconfirmed|unclear|may have|might have|cannot confirm|can't confirm|does not recall|do not recall)\b/i;
@@ -144,4 +147,23 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
 
 export function describeFailures(failures: readonly OutputFailure[]): string {
   return failures.map((f) => `- ${f.check}: ${f.detail}`).join("\n");
+}
+
+// Fallback when the model keeps stating a fact the user marked "not sure", or kept without a document, as certain:
+// the server prefixes exactly those sentences ("You told us that ...", "It is not confirmed that ..."). Only the
+// "unqualified" check is repaired this way; any other failure still refuses the output.
+export function qualifyUnsupportedStatements(text: string, facts: SnapshotFacts): string {
+  let out = text;
+  for (const sentence of sentences(text)) {
+    for (const [key, asserts] of ASSERTS) {
+      const fact = facts[key];
+      if (!fact || !asserts.test(sentence) || ATTRIBUTED.test(sentence) || UNCERTAIN.test(sentence)) continue;
+      if (fact.label !== "claimant_only" && fact.label !== "not_sure") continue;
+      const prefix = fact.label === "claimant_only" ? "You told us that " : "It is not confirmed that ";
+      const rest = /^[A-Z][a-z]/.test(sentence) && !/^I\b/.test(sentence) ? sentence[0].toLowerCase() + sentence.slice(1) : sentence;
+      out = out.replace(sentence, prefix + rest);
+      break;
+    }
+  }
+  return out;
 }

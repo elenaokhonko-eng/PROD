@@ -30,3 +30,11 @@ test is weakened to make it pass.
   is saved in its own request, so revision times differ.
 - **Fix:** the assertion compares the two revisions as a set (exactly "No" and "Yes", so saving the same value
   added nothing). Same check, no dependence on row order. Passed 5 of 5 runs locally after the fix.
+
+## 2026-11-05: signed-in, "layer1Evidence fixture renders its contract state" (chromium-768), under watch
+
+- **Run:** Harbor release gates 42023839032, commit `c23acf0`; first occurrence.
+- **What failed:** the page check found 15 browser errors, all "Failed to fetch", on the seeded evidence-step case.
+  The state itself rendered. The other viewports passed in the same run.
+- **Cause: not yet known.** The signed-in lane's artifacts are encrypted, so no trace was read. Watching the
+  next runs; if it recurs, decrypt the trace and find which request failed.

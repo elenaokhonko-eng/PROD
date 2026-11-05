@@ -77,7 +77,7 @@ export function formatFactValue(key: FactKey, value: unknown): string {
     case "institution_names":
       return (value as Institution[]).map((i) => i.name).join(", ");
     case "account_types":
-      return (value as string[]).map((v) => v.replace(/_/g, " ")).join(", ");
+      return (value as string[]).map((v) => FACT_ENUM_OPTIONS.account_types?.find((o) => o.value === v)?.label ?? v.replace(/_/g, " ")).join(", ");
     case "scam_type":
       return (value as ScamType[]).map((v) => SCAM_TEXT[v] ?? v).join(", ");
     case "phishing_channel":
@@ -103,8 +103,10 @@ export function formatFactValue(key: FactKey, value: unknown): string {
     }
     case "date_discovered":
       return formatDate(value as string) ?? String(value);
-    default:
-      return String(value).replace(/_/g, " ");
+    default: {
+      const option = FACT_ENUM_OPTIONS[key]?.find((o) => o.value === value);
+      return option?.label ?? String(value).replace(/_/g, " ");
+    }
   }
 }
 

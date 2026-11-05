@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { factsYouConfirmed, type SnapshotFacts, validateOutput } from '../../lib/facts'
+import { factsYouConfirmed, qualifyUnsupportedStatements, type SnapshotFacts, validateOutput } from '../../lib/facts'
 
 // Synthetic confirmed facts for one case.
 const sgd = (amount: number) => ({ amount, currency: 'SGD', amountSgd: amount })
@@ -88,4 +88,32 @@ test('mentioning a police report without saying one was filed needs no qualifier
   assert.deepEqual(validateOutput(checklist, claimantOnly), [])
   assert.deepEqual(validateOutput({ t: 'You told us you reported it to the police on 4 Oct 2026.' }, claimantOnly), [])
   assert.equal(validateOutput({ t: 'You reported it to the police on 4 Oct 2026.' }, claimantOnly)[0]?.check, 'unqualified')
+})
+
+test('the fallback qualifies only document-less or unsure statements, and they then pass (staging run, 5 Nov)', () => {
+  const claimantOnly: SnapshotFacts = { ...facts, reported_to_police: { ...facts.reported_to_police!, label: 'claimant_only' } }
+  const text = 'On 4 Oct 2026, the user discovered it was a scam and reported the incident to the police. S$3,000 was lost.'
+  assert.equal(validateOutput({ t: text }, claimantOnly)[0]?.check, 'unqualified')
+  const fixed = qualifyUnsupportedStatements(text, claimantOnly)
+  assert.equal(fixed, 'You told us that on 4 Oct 2026, the user discovered it was a scam and reported the incident to the police. S$3,000 was lost.')
+  assert.deepEqual(validateOutput({ t: fixed }, claimantOnly), [])
+
+  const notSure: SnapshotFacts = { ...facts, reported_to_police: { value: null, label: 'not_sure' } }
+  assert.match(qualifyUnsupportedStatements('I filed a police report.', notSure), /^It is not confirmed that I filed a police report\.$/)
+  assert.equal(qualifyUnsupportedStatements(text, facts), text, 'confirmed facts are left alone')
+})
+
+test('bank confirmed "no": saying you contacted the bank fails; being told by the bank does not (staging run, 5 Nov)', () => {
+  const noBank: SnapshotFacts = { ...facts, reported_to_bank: { value: { value: 'no', date: null, reference: null, channel: null }, label: 'confirmed' } }
+  assert.equal(validateOutput({ t: 'You also contacted the bank, but they rejected your request.' }, noBank)[0]?.check, 'contradiction')
+  assert.deepEqual(validateOutput({ t: 'The caller said he was from the bank and I was told by the bank to move my money.' }, noBank), [])
+  assert.deepEqual(validateOutput({ t: 'You have not contacted the bank yet.' }, noBank), [])
+})
+
+test('enum facts display as plain words, not codes', () => {
+  const section = factsYouConfirmed({
+    impersonated_entity_type: { value: 'bank_or_fi', label: 'confirmed' },
+    account_types: { value: ['savings_or_current'], label: 'confirmed' },
+  })
+  assert.deepEqual(section.map((s) => s.text), ['Savings or current account', 'A bank or financial institution'])
 })

@@ -12,6 +12,7 @@ import {
   formatFactValue,
   type Institution,
   type Money,
+  qualifyUnsupportedStatements,
   type SnapshotFacts,
   type Transaction,
   validateOutput,
@@ -153,6 +154,13 @@ Deno.serve(async (req) => {
           },
         ]),
       ),
+      // Spelled out per fact: the model does not reliably apply the status rule to facts it also reads in the story.
+      facts_without_document: Object.entries(facts)
+        .filter(([, fact]) => fact!.label === "claimant_only")
+        .map(([key, fact]) => `${key}: ${formatFactValue(key as FactKey, fact!.value)}`),
+      facts_not_confirmed: Object.entries(facts)
+        .filter(([, fact]) => fact!.label === "not_sure" || fact!.label === "not_known")
+        .map(([key]) => key),
       primary_narrative: storyRow?.story_text ?? null,
       fidrec_check: fidrecCheck,
     };
@@ -164,9 +172,25 @@ Deno.serve(async (req) => {
       llm = await callOpenAITier0(input, describeFailures(failures));
       failures = validateOutput(outputText(llm), facts, { extraDates: TIER0_EXTRA_DATES });
     }
+    if (failures.length && failures.every((f) => f.check === "unqualified")) {
+      // Only document-less or unsure facts stated as certain: qualify exactly those sentences, then check again.
+      llm.summary = qualifyUnsupportedStatements(llm.summary ?? "", facts);
+      llm.evidence_checklist = qualifyUnsupportedStatements(llm.evidence_checklist ?? "", facts);
+      if (llm.srf_signals && typeof llm.srf_signals.reasoning === "string") {
+        llm.srf_signals.reasoning = qualifyUnsupportedStatements(llm.srf_signals.reasoning, facts);
+      }
+      failures = validateOutput(outputText(llm), facts, { extraDates: TIER0_EXTRA_DATES });
+    }
     if (failures.length) {
       console.error(`Tier-0 output failed validation twice: ${failures.map((f) => f.check).join(", ")}`);
-      return json({ ok: false, reason: "output_validation_failed", error: "We couldn't produce a reliable evaluation" }, 422);
+      // The failed checks go back to the case owner's own session only (the page does not display them), so the
+      // refusal can be diagnosed without reading function logs.
+      return json({
+        ok: false,
+        reason: "output_validation_failed",
+        error: "We couldn't produce a reliable evaluation",
+        checks: failures.map((f) => ({ check: f.check, detail: f.detail.slice(0, 160) })),
+      }, 422);
     }
 
     if (isValidSrfSignals(llm.srf_signals)) {
@@ -775,6 +799,8 @@ confirmed_facts holds the facts the user confirmed, each with a status. Use them
 - status "confirmed": state as fact.
 - status "claimant_only": the user has no document for it; attribute it ("according to you", "you say").
 - status "not_sure" or "not_known": say it is not confirmed; never state a value for it.
+facts_without_document lists the facts the user has no document for. Every sentence that mentions one of them must
+start with "You told us that". facts_not_confirmed lists facts that are not confirmed: say so and give no value.
 Never state a date, amount, institution or yes/no fact that differs from confirmed_facts. primary_narrative is the
 user's own story: use it only for the order of events and context, never for a fact that confirmed_facts covers.
 Write neutrally: do not overstate or understate.${previousFailures ? `

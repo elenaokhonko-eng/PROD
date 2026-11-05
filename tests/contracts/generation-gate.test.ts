@@ -21,7 +21,9 @@ test('the free-evaluation Edge Function requires the latest free snapshot and va
   assert.match(fn, /if \(!fact_snapshot_id\) return json\(\{ ok: false, reason: "facts_unconfirmed"/)
   assert.match(fn, /\.from\("case_fact_snapshots"\)[\s\S]*?\.eq\("stage", "free"\)[\s\S]*?snapshot\.id !== fact_snapshot_id/)
   assert.match(fn, /validateOutput\(outputText\(llm\), facts/)
-  assert.match(fn, /reason: "output_validation_failed"[^\n]*422/)
+  assert.match(fn, /reason: "output_validation_failed",[\s\S]{0,300}?\}, 422\)/)
+  // The only repair is qualifying document-less or unsure statements; every other failure still refuses.
+  assert.match(fn, /if \(failures\.length && failures\.every\(\(f\) => f\.check === "unqualified"\)\)/)
   assert.ok(fn.indexOf('validateOutput(') < fn.indexOf('await upsertNarrative('), 'nothing is written before the output passes')
 })
 
