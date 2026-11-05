@@ -5,3 +5,4 @@ export * from "./reconcile.ts";
 export * from "./snapshot.ts";
 export * from "./answers.ts";
 export * from "./extraction.ts";
+export * from "./display.ts";

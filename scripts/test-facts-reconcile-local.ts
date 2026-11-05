@@ -1,11 +1,13 @@
 // Runs the fact reconcile runner against a local Supabase (CI database job) with a stand-in for the model.
 // Checks: candidates per source, a conflict between story and journey answer, no model call when nothing
-// changed, cached sources on a partial change, a resolution carried over, and a reopened finding.
+// changed, cached sources on a partial change, a resolution carried over, a reopened finding, resolution
+// validation, snapshots refused with open findings, and stale snapshots refused for generation.
 // Synthetic data only; refuses any host other than localhost.
 
 import assert from "node:assert/strict"
 import { createClient } from "@supabase/supabase-js"
 
+import { createSnapshot, loadCurrentSnapshot, ResolutionRejectedError, resolveFinding } from "@/lib/server/facts/facts-service"
 import { ensureReconciled } from "@/lib/server/facts/run-reconcile"
 
 const url = process.env.LOCAL_SUPABASE_URL ?? ""
@@ -80,9 +82,36 @@ async function main() {
     assert.equal(again.runId, run1.runId, "nothing changed: same run")
     assert.equal(modelCalls, 2, "nothing changed: no model call")
 
-    await check(await service.from("case_fact_findings")
-      .update({ status: "resolved", resolution: { kind: "choice", index: 0 }, resolved_at: new Date().toISOString() })
-      .eq("id", police1.id))
+    const blocked = await createSnapshot(service, caseId, "free", profileId, stubModel)
+    assert.equal(blocked.ok, false)
+    assert.equal(!blocked.ok && blocked.reason, "facts_unconfirmed", "open conflict and missing facts block the snapshot")
+
+    await assert.rejects(
+      resolveFinding(service, caseId, police1.id, { kind: "choice", index: 5 }, profileId),
+      (e: unknown) => e instanceof ResolutionRejectedError && e.reason === "invalid_choice",
+    )
+    await assert.rejects(
+      resolveFinding(service, caseId, police1.id, { kind: "acknowledged" }, profileId),
+      (e: unknown) => e instanceof ResolutionRejectedError && e.reason === "resolution_not_allowed",
+    )
+    const missing = (key: string) => run1.findings.find((f) => f.factKey === key)!
+    await assert.rejects(
+      resolveFinding(service, caseId, missing("reported_to_bank").id, { kind: "value", value: { value: "maybe" } }, profileId),
+      (e: unknown) => e instanceof ResolutionRejectedError && e.reason === "invalid_value",
+    )
+    await resolveFinding(service, caseId, police1.id, { kind: "choice", index: 0 }, profileId)
+    await resolveFinding(service, caseId, missing("scam_type").id, { kind: "value", value: ["digital_phishing"] }, profileId)
+    await resolveFinding(service, caseId, missing("reported_to_bank").id, { kind: "value", value: { value: "yes", date: "2026-10-04" } }, profileId)
+    await resolveFinding(service, caseId, missing("bank_reply").id, { kind: "value", value: { status: "none" } }, profileId)
+
+    const snap1 = await createSnapshot(service, caseId, "free", profileId, stubModel)
+    assert.ok(snap1.ok && !snap1.unchanged, "snapshot created once everything is confirmed")
+    const snapAgain = await createSnapshot(service, caseId, "free", profileId, stubModel)
+    assert.ok(snapAgain.ok && snapAgain.unchanged && snapAgain.snapshotId === (snap1.ok && snap1.snapshotId), "unchanged facts reuse the snapshot")
+    const current = await loadCurrentSnapshot(service, caseId, "free", snap1.ok ? snap1.snapshotId : "", stubModel)
+    assert.ok(current, "the latest snapshot is valid for generation")
+    assert.equal((current!.facts.reported_to_police as { label: string }).label, "confirmed")
+    assert.equal(modelCalls, 2, "resolving and freezing facts calls no model")
 
     await check(await service.from("case_responses").insert(
       { case_id: caseId, question_key: "journey_fidrec_filed", response_value: "no", response_type: "text" },
@@ -91,16 +120,24 @@ async function main() {
     assert.notEqual(run2.runId, run1.runId)
     assert.equal(modelCalls, 2, "unchanged story and document are not re-extracted")
     assert.equal(run2.findings.find((f) => f.factKey === "reported_to_police")!.status, "resolved", "resolution carried over")
+    assert.equal(await loadCurrentSnapshot(service, caseId, "free", snap1.ok ? snap1.snapshotId : "", stubModel), null, "new facts make the old snapshot stale")
+    const snap2 = await createSnapshot(service, caseId, "free", profileId, stubModel)
+    assert.ok(snap2.ok && !snap2.unchanged)
 
     await check(await service.from("cases").update({ primary_narrative: storyV2 }).eq("id", caseId))
     const run3 = await ensureReconciled(service, caseId, stubModel)
     assert.equal(modelCalls, 3, "only the edited story is extracted again")
     assert.equal(run3.findings.find((f) => f.factKey === "reported_to_police")!.status, "open", "changed values reopen the finding")
-    const events = await check(await service.from("case_fact_confirmation_events").select("event").eq("case_id", caseId))
-    assert.deepEqual((events as Array<{ event: string }>).map((e) => e.event), ["reopened"])
+    assert.equal(await loadCurrentSnapshot(service, caseId, "free", snap2.ok ? snap2.snapshotId : "", stubModel), null, "a reopened finding blocks generation")
+    const reblocked = await createSnapshot(service, caseId, "free", profileId, stubModel)
+    assert.equal(reblocked.ok, false)
+    const events = await check(await service.from("case_fact_confirmation_events").select("event").eq("case_id", caseId).order("created_at"))
+    const names = (events as Array<{ event: string }>).map((e) => e.event)
+    assert.equal(names.filter((e) => e === "snapshot_created").length, 2)
+    assert.equal(names.at(-1), "reopened")
 
-    const current = await check(await service.from("case_fact_findings").select("run_id").eq("case_id", caseId).is("invalidated_at", null))
-    assert.ok((current as Array<{ run_id: string }>).every((r) => r.run_id === run3.runId), "only the latest run's findings are current")
+    const currentRows = await check(await service.from("case_fact_findings").select("run_id").eq("case_id", caseId).is("invalidated_at", null))
+    assert.ok((currentRows as Array<{ run_id: string }>).every((r) => r.run_id === run3.runId), "only the latest run's findings are current")
     console.log("Fact reconcile runner (local) passed")
   } finally {
     await service.from("cases").delete().eq("id", caseId)
