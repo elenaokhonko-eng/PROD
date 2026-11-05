@@ -57,7 +57,16 @@ export const requiredKeys = [
   "GEMINI_API_KEY",
 ] as const
 
+const STRIPE_KEYS: ReadonlySet<string> = new Set([
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD",
+  "STRIPE_PRICE_ID_FIDREC_TIER2_PACK_SGD",
+])
+
 export const optionalKeys = [
+  "PAID_STAGES_ENABLED",
+  "PAID_STAGES_AVAILABLE_FROM",
   "STRIPE_PRICE_ID_HUMAN_CONSULT_30M_SGD",
   "GOOGLE_GENERATIVE_AI_MODEL",
   "OPENAI_MODEL",
@@ -206,10 +215,16 @@ export function checkEnvironmentSet(
   if (file.malformedLines.length) add("FAIL", "parseable lines", `malformed line numbers: ${file.malformedLines.join(", ")}`)
 
   const deferred = deferredKeys[environment]
-  const pending = requiredKeys.filter((key) => !get(key) && key in deferred)
-  const missing = requiredKeys.filter((key) => !get(key) && !(key in deferred))
+  // Stage 1 (free evaluation only): with PAID_STAGES_ENABLED not "true", payments are off and Stripe is not needed.
+  const paidStages = get("PAID_STAGES_ENABLED").toLowerCase() === "true"
+  const requiredNow = requiredKeys.filter((key) => paidStages || !STRIPE_KEYS.has(key))
+  const pending = requiredNow.filter((key) => !get(key) && key in deferred)
+  const missing = requiredNow.filter((key) => !get(key) && !(key in deferred))
   add(missing.length ? "FAIL" : "PASS", "required variables present", missing.length ? `blank or absent: ${missing.join(", ")}` : undefined)
   for (const key of pending) add("PENDING", `${key} set later`, deferred[key])
+  if (!paidStages) add("PASS", "paid stages off (stage 1)", "Stripe settings are not required while PAID_STAGES_ENABLED is not true")
+  const availableFrom = get("PAID_STAGES_AVAILABLE_FROM")
+  if (availableFrom && !/^\d{4}-\d{2}-\d{2}$/.test(availableFrom)) add("FAIL", "PAID_STAGES_AVAILABLE_FROM is a date", "use YYYY-MM-DD")
   const placeholders = Object.keys(env).filter((key) => get(key) && isPlaceholder(get(key)))
   if (placeholders.length) add("FAIL", "no placeholder values", placeholders.join(", "))
   const known = new Set<string>([...requiredKeys, ...optionalKeys])
@@ -310,7 +325,10 @@ export function checkEnvironmentSet(
   // Stripe mode.
   const stripeMode = isStaging ? "test" : "live"
   const stripeKey = get("STRIPE_SECRET_KEY")
-  add(new RegExp(`^(sk|rk)_${stripeMode}_`).test(stripeKey) ? "PASS" : "FAIL", `Stripe secret key is ${stripeMode} mode`, `type ${keyType(stripeKey)}`)
+  // Stage 1 may omit Stripe entirely; a key that is present is still checked for its mode.
+  if (paidStages || stripeKey) {
+    add(new RegExp(`^(sk|rk)_${stripeMode}_`).test(stripeKey) ? "PASS" : "FAIL", `Stripe secret key is ${stripeMode} mode`, `type ${keyType(stripeKey)}`)
+  }
   if (get("STRIPE_WEBHOOK_SECRET")) {
     add(get("STRIPE_WEBHOOK_SECRET").startsWith("whsec_") ? "PASS" : "FAIL", "STRIPE_WEBHOOK_SECRET is a whsec_ secret")
   }
@@ -370,6 +388,9 @@ export function compareEnvironmentSets(staging: EnvFile, production: EnvFile): F
 }
 
 export async function verifyStripePrices(environment: EnvironmentName, file: EnvFile): Promise<Finding[]> {
+  if (file.values.PAID_STAGES_ENABLED?.trim().toLowerCase() !== "true") {
+    return [{ status: "PASS", check: "Stripe price lookup", detail: "skipped: paid stages are off (stage 1)" }]
+  }
   const secret = file.values.STRIPE_SECRET_KEY?.trim()
   if (!secret) return [{ status: "FAIL", check: "Stripe price lookup", detail: "STRIPE_SECRET_KEY is blank" }]
   const findings: Finding[] = []
