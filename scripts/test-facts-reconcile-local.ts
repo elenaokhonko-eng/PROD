@@ -82,6 +82,11 @@ async function main() {
     assert.equal(again.runId, run1.runId, "nothing changed: same run")
     assert.equal(modelCalls, 2, "nothing changed: no model call")
 
+    assert.equal(
+      await loadCurrentSnapshot(service, caseId, "free", "e0000000-0000-4000-8000-0000000000aa", stubModel),
+      null,
+      "with open findings there is no snapshot to generate from",
+    )
     const blocked = await createSnapshot(service, caseId, "free", profileId, stubModel)
     assert.equal(blocked.ok, false)
     assert.equal(!blocked.ok && blocked.reason, "facts_unconfirmed", "open conflict and missing facts block the snapshot")

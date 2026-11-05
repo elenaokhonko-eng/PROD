@@ -24,7 +24,7 @@ test('decision and report poll on a paid case until they exist', () => {
   assert.match(dashboard, /useReportRealtime\(caseId, \{ poll: isReportPaid \}\)/)
 })
 
-test('the buy button refreshes when the free draft or a new validation appears', () => {
-  assert.match(readFileSync('hooks/state-machine/layer1/use-tier0-auto-fire.ts', 'utf8'), /invalidateQueries\(\{ queryKey: qk\.entitlement\(id\) \}\)/)
+test('the buy button refreshes when the free evaluation or a new validation appears', () => {
+  assert.match(readFileSync('hooks/state-machine/facts/use-generate-free-evaluation.ts', 'utf8'), /invalidateQueries\(\{ queryKey: qk\.entitlement\(caseId\) \}\)/)
   assert.match(readFileSync('hooks/state-machine/layer1/use-auto-refire-extract.ts', 'utf8'), /invalidateQueries\(\{ queryKey: qk\.entitlement\(id\) \}\)/)
 })

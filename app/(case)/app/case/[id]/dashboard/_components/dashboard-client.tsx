@@ -28,7 +28,6 @@ import { useUploadEvidence } from '@/hooks/state-machine/layer1/use-upload-evide
 import { useCaseDocumentsRealtime } from '@/hooks/state-machine/layer1/use-case-documents-realtime'
 import { useTier0Draft } from '@/hooks/state-machine/layer1/use-tier0-draft'
 import { useAutoRefireExtract } from '@/hooks/state-machine/layer1/use-auto-refire-extract'
-import { useTier0AutoFire } from '@/hooks/state-machine/layer1/use-tier0-auto-fire'
 import { useCreateCheckoutSession, type ProductKey } from '@/hooks/state-machine/transition/use-create-checkout-session'
 import { usePaymentStatus } from '@/hooks/state-machine/transition/use-payment-status'
 import { useDecisionRunRealtime } from '@/hooks/state-machine/layer2/use-decision-run-realtime'
@@ -101,14 +100,6 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     caseId,
     documents: documentsQuery.data,
     hasNarrative: hasSubmittedIntake,
-  })
-  useTier0AutoFire({
-    caseId,
-    documents: documentsQuery.data?.map((d) => ({
-      id: d.id,
-      processing_status: d.processing_status,
-      updated_at: d.updated_at ?? null,
-    })),
   })
 
   const gapQuestions = validationQuery.questions
@@ -345,6 +336,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
           node === 'S1-Tier0DraftPending' ? (
           <Layer1Shell
             node={node}
+            confirmFactsHref={`/app/case/${caseId}/facts?stage=free`}
             intake={{
               isSubmitting: submitIntake.isPending,
               submitError: submitIntake.error?.message ?? null,

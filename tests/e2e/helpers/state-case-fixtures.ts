@@ -4,7 +4,7 @@ export const expectedStateText = {
   layer1Intake: 'Tell us about your complaint',
   layer1Gap: 'A few more details',
   layer1Evidence: 'Upload supporting evidence',
-  layer1DraftPending: 'Preparing your free draft',
+  layer1DraftPending: 'Next: confirm your facts',
   layer1FreeDraft: 'Your free triage draft',
   transitionBuyReport: 'Get your Bank Pack',
   layer2Running: 'Checking your case information',

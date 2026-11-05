@@ -135,6 +135,7 @@ async function verifyWorkerJob(body: Record<string, unknown>): Promise<WorkerAut
 function buildForwardBody(
   fnName: string,
   context: EdgeRequestContext,
+  body: Record<string, unknown> = {},
 ): Record<string, unknown> {
   const workerBinding =
     context.actorKind === 'worker'
@@ -156,7 +157,14 @@ function buildForwardBody(
       ...workerBinding,
     }
   }
-  if (fnName === TIER0_FN || fnName === DECISION_FN) {
+  if (fnName === TIER0_FN) {
+    // The confirmed fact snapshot the free evaluation is generated from (checked by the tier0 route).
+    const snapshotId = typeof body.fact_snapshot_id === 'string' && UUID_PATTERN.test(body.fact_snapshot_id)
+      ? body.fact_snapshot_id
+      : null
+    return { case_id: context.caseId, ...(snapshotId ? { fact_snapshot_id: snapshotId } : {}), ...workerBinding }
+  }
+  if (fnName === DECISION_FN) {
     return { case_id: context.caseId, ...workerBinding }
   }
   if (fnName === REPORT_FN) {
@@ -266,7 +274,7 @@ export async function proxyEdgeFunction({
   let forwardBody: Record<string, unknown>
   let signedHeaders: Record<string, string>
   try {
-    forwardBody = buildForwardBody(fnName, context)
+    forwardBody = buildForwardBody(fnName, context, body)
     const bodyText = JSON.stringify(forwardBody)
     signedHeaders = signEdgeRequest(fnName, bodyText, context)
     const edgeRes = await fetch(`${supabaseUrl}/functions/v1/${fnName}`, {

@@ -7,12 +7,13 @@
  *   S1-IntakeForm            → IntakeForm only (no upload)
  *   S1-GapLoop               → GapQuestionPanel only (no upload)
  *   S1-EvidenceUpload        → EvidenceUploadPanel (dedicated upload step)
- *   S1-Tier0DraftPending     → StateMachineLoading (full)
+ *   S1-Tier0DraftPending     → "Confirm your facts" card (the free evaluation is generated after confirming)
  *   S1-Tier0Draft            → Tier0DraftView
  *   (error at any node)      → StateMachineErrorCard
  */
 
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 import {
   StateMachineErrorCard,
   type StateMachineErrorKind,
@@ -80,9 +81,12 @@ export interface Layer1ShellProps {
     onRefresh?: () => void
     footerSlot?: ReactNode
   }
+
+  /** Where the user confirms their facts before the free evaluation is generated (S1-Tier0DraftPending). */
+  confirmFactsHref?: string
 }
 
-export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft }: Layer1ShellProps) {
+export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft, confirmFactsHref }: Layer1ShellProps) {
   if (error) {
     return (
       <StateMachineErrorCard
@@ -191,12 +195,22 @@ export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft }: L
       )
 
     case 'S1-Tier0DraftPending':
+      if (!confirmFactsHref) return <MissingPropsFallback prop="confirmFactsHref" />
       return (
-        <StateMachineLoading
-          size="full"
-          title="Preparing your free draft"
-          description="GuideBuoy is organising your story and ready evidence. The latest status will appear here."
-        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Next: confirm your facts</CardTitle>
+            <CardDescription>
+              Before we prepare your free evaluation, check what we found in your story, your answers and your
+              documents. It takes a few minutes.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href={confirmFactsHref}>Confirm your facts</Link>
+            </Button>
+          </CardContent>
+        </Card>
       )
 
     case 'S1-Tier0Draft':

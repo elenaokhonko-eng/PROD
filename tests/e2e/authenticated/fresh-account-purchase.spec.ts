@@ -3,8 +3,9 @@ import { expect, test } from '../fixtures/harbor-test'
 import { createServiceClientFromEnvironment } from '../helpers/disposable-records'
 
 // D6 regression: a brand-new account on the default free plan goes from its story to a paid S$18 report the way a
-// customer does: onboarding creates the case, the intake form, any follow-up questions, an evidence upload, the free
-// draft with the buy button, Stripe test-mode Checkout, then the report. Nothing is seeded for this account.
+// customer does: onboarding creates the case, the intake form, any follow-up questions, an evidence upload, confirming
+// the facts, the free evaluation with the buy button, Stripe test-mode Checkout, then the report. Nothing is seeded
+// for this account.
 // Synthetic content only. The Clerk test user is deleted afterwards; its purchase rows stay as payment records.
 
 const clerkSecretKey = process.env.HARBOR_CLERK_DEV_SECRET_KEY?.trim() ?? ''
@@ -57,9 +58,14 @@ test.describe('fresh free account', () => {
         buffer: syntheticStatementPdf(),
       })
 
+      // Nothing is generated until the facts are confirmed (C3).
+      const confirmFacts = page.getByRole('link', { name: 'Confirm your facts' })
+      await answerFollowUpsUntil(page, confirmFacts, stepTimeoutMs)
+      await confirmFactsAndGenerate(page, caseId)
+
       const buy = page.getByRole('button', { name: /Get Bank Pack/i })
-      await answerFollowUpsUntil(page, buy, stepTimeoutMs)
-      await expect(page.getByText('Your free triage draft')).toBeVisible()
+      await expect(page.getByText('Your free triage draft')).toBeVisible({ timeout: 180_000 })
+      await expect(page.getByText('Facts you confirmed')).toBeVisible()
       await expect(buy).toBeEnabled()
 
       await buy.click()
@@ -143,6 +149,28 @@ async function answerFollowUps(form: Locator) {
   }
   await form.locator('button[type="submit"]').click()
   await form.page().waitForTimeout(5_000)
+}
+
+// Answers every open item on the confirm screen: the first value for a conflict, "Keep it" for a claim without a
+// document, "Not known" for a missing fact. Then confirms and generates the free evaluation.
+async function confirmFactsAndGenerate(page: Page, caseId: string) {
+  await page.getByRole('link', { name: 'Confirm your facts' }).click()
+  await page.waitForURL(new RegExp(`/app/case/${caseId}/facts\\?stage=free`))
+  await expect(page.getByText(/left to check|Everything is confirmed/)).toBeVisible({ timeout: 180_000 })
+
+  for (let round = 0; round < 20; round++) {
+    const open = page.locator('form').filter({ has: page.getByText('To check', { exact: true }) }).first()
+    if (!(await open.count())) break
+    const notKnown = open.getByRole('radio', { name: 'Not known' })
+    await ((await notKnown.count()) ? notKnown : open.getByRole('radio').first()).check()
+    const saved = page.waitForResponse((r) => r.url().includes(`/api/cases/${caseId}/facts?stage=free`) && r.request().method() === 'GET')
+    await open.getByRole('button', { name: 'Save answer' }).click()
+    await saved
+  }
+  await expect(page.getByText('Everything is confirmed.')).toBeVisible()
+  await page.getByRole('button', { name: 'Confirm and continue to your free evaluation' }).click()
+  await page.getByRole('button', { name: 'Get my free evaluation' }).click()
+  await page.waitForURL(new RegExp(`/app/case/${caseId}/dashboard$`), { timeout: 180_000 })
 }
 
 async function payWithTestCard(page: Page, email: string) {
