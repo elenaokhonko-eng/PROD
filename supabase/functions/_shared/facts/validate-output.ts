@@ -109,8 +109,11 @@ const ATTRIBUTED = /\b(according to|the claimant (states|says|reports)|i state|i
 // Only sentences that say the event happened need a qualifier; "provide a copy of your police report" asserts nothing.
 const BANK_AFFIRMED = /\b(?:reported|told|informed|contacted|notified)\b[^.]{0,40}\bbank\b/i;
 // A reply from the bank stated as having happened ("the bank rejected my claim", "the final reply was ...").
-const BANK_REPLY_ASSERTED = /\b(?:bank|institution)\b[^.]{0,60}\b(?:rejected|refused|declined|turned down|replied|responded|offered)\b|\bfinal reply\b[^.]{0,40}\b(?:was|is|said|stated)\b/i;
-const ASSERTS: Array<[FactKey, RegExp]> = [
+const BANK_REPLY_PATTERN = /\b(?:bank|institution)\b[^.]{0,60}\b(?:rejected|refused|declined|turned down|replied|responded|offered)\b|\bfinal reply\b[^.]{0,40}\b(?:was|is|said|stated)\b/i;
+// "You have not received any reply", "no amount has been offered": a denied reply is not a reply (staging, 5 Nov).
+const REPLY_NEGATED = /(?:\b(?:no|not|never|yet to|without)\b|n't)[^.]{0,40}\b(?:reply|replies|replied|response|responded|offer|offered|decision)\b/i;
+const BANK_REPLY_ASSERTED = { test: (s: string) => BANK_REPLY_PATTERN.test(s) && !REPLY_NEGATED.test(s) };
+const ASSERTS: Array<[FactKey, { test(sentence: string): boolean }]> = [
   ["reported_to_police", POLICE_AFFIRMED],
   ["reported_to_bank", BANK_AFFIRMED],
   ["bank_reply", BANK_REPLY_ASSERTED],

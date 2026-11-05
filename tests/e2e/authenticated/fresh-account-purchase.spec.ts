@@ -26,7 +26,7 @@ test.describe('fresh free account', () => {
     const { clerkUserId, caseId, email } = await startFreshCase(page, supabase, smsPhishingNarrative)
 
     try {
-      await completeFreeEvaluation(page, caseId)
+      await completeFreeEvaluation(page, caseId, smsPhishingNarrative)
       // The SRF section is written by the server from fixed rules, never by the model.
       await expect(page.getByText('Shared Responsibility Framework: an early view')).toBeVisible()
 
@@ -63,7 +63,7 @@ test.describe('fresh free account', () => {
     const { clerkUserId, caseId, email } = await startFreshCase(page, supabase, syntheticNarrative)
 
     try {
-      await completeFreeEvaluation(page, caseId)
+      await completeFreeEvaluation(page, caseId, syntheticNarrative)
       const buy = page.getByRole('button', { name: /Get Bank Pack/i })
       await expect(buy).toBeEnabled()
 
@@ -127,9 +127,9 @@ async function startFreshCase(page: Page, supabase: ServiceClient, narrative: st
 }
 
 // Journey questions, intake, follow-ups and evidence, then the confirm step in the dashboard and the free evaluation.
-async function completeFreeEvaluation(page: Page, caseId: string) {
+async function completeFreeEvaluation(page: Page, caseId: string, narrative: string) {
   await answerJourney(page)
-  await fillIntake(page)
+  await fillIntake(page, narrative)
   await reachEvidenceUpload(page)
   await page.locator('input[type="file"]').setInputFiles({
     name: 'synthetic-bank-statement.pdf',
@@ -175,9 +175,12 @@ const intakeAnswers: Record<string, string> = {
   desired_outcome: 'A full refund of S$2,400 and a written explanation.',
 }
 
-async function fillIntake(page: Page) {
+// "What happened" repeats the story told at onboarding, so the only deliberate conflict is "previous contact: No".
+async function fillIntake(page: Page, narrative: string) {
   await expect(page.getByText('Tell us about your complaint')).toBeVisible({ timeout: 120_000 })
-  for (const [key, value] of Object.entries(intakeAnswers)) await page.locator(`#intake-${key}`).fill(value)
+  for (const [key, value] of Object.entries({ ...intakeAnswers, incident_summary: narrative })) {
+    await page.locator(`#intake-${key}`).fill(value)
+  }
   await page.locator('#intake-previous_contact-No').check()
   await page.getByRole('button', { name: 'Continue' }).click()
 }
@@ -224,7 +227,7 @@ async function confirmFactsInDashboard(page: Page, caseId: string) {
   await expect(page.getByText(/left to check|Everything is confirmed/)).toBeVisible({ timeout: 180_000 })
 
   for (let round = 0; round < 20; round++) {
-    const open = page.locator('form').filter({ has: page.getByText('To check', { exact: true }) }).first()
+    const open = page.locator('[data-finding]').filter({ has: page.getByText('To check', { exact: true }) }).first()
     if (!(await open.count())) break
     const notKnown = open.getByRole('radio', { name: 'Not known' })
     await ((await notKnown.count()) ? notKnown : open.getByRole('radio').first()).check()

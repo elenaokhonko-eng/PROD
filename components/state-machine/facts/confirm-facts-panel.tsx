@@ -6,7 +6,7 @@
  * item is resolved; the server enforces the same rule when the facts are frozen.
  */
 
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -268,8 +268,7 @@ function FindingCard({
             { id: 'not_known', label: 'Not known' },
           ]
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function submit() {
     const trimmedNote = note.trim() || undefined
     if (choice.startsWith('choice:')) onResolve({ kind: 'choice', index: Number(choice.slice(7)), note: trimmedNote })
     else if (choice === 'value') onResolve({ kind: 'value', value, note: trimmedNote })
@@ -280,7 +279,8 @@ function FindingCard({
   const legendId = `finding-${finding.id}`
   return (
     <Card>
-      <form onSubmit={submit}>
+      {/* No <form>: Radix controls inside one render unlabelled hidden inputs; the button saves directly. */}
+      <div data-finding={finding.id}>
         <fieldset className="space-y-4 p-6">
           <legend className="flex w-full flex-wrap items-center justify-between gap-2">
             <span id={legendId} className="text-base font-semibold">{finding.label}</span>
@@ -331,13 +331,13 @@ function FindingCard({
                 <Textarea id={`${finding.id}-note`} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} rows={2} />
               </div>
               {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" disabled={!choice || saving || (choice === 'value' && value === null)}>
+              <Button type="button" onClick={submit} disabled={!choice || saving || (choice === 'value' && value === null)}>
                 {saving ? 'Saving…' : 'Save answer'}
               </Button>
             </>
           )}
         </fieldset>
-      </form>
+      </div>
     </Card>
   )
 }

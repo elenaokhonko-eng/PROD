@@ -146,3 +146,10 @@ test('the free evaluation speaks to the person as "you", and may be barred from 
   const forbidden = [{ pattern: /\bSRF\b|shared responsibility/i, detail: 'SRF verdict is written by the server' }]
   assert.equal(validateOutput({ t: 'This is likely covered by the SRF.' }, facts, { forbidden })[0]?.check, 'forbidden')
 })
+
+test('a denied reply is not a reply: "not received any reply ... no amount offered" passes (staging run, 5 Nov)', () => {
+  const noBank: SnapshotFacts = { ...facts, reported_to_bank: { value: { value: 'no', date: null, reference: null, channel: null }, label: 'confirmed' } }
+  const text = 'As of now, you have not received any reply from Synthetic Bank regarding this matter, and no amount has been recovered or offered to you.'
+  assert.deepEqual(validateOutput({ t: text }, noBank), [])
+  assert.ok(validateOutput({ t: 'Synthetic Bank later rejected your claim.' }, noBank).some((f) => f.check === 'contradiction'))
+})

@@ -5,7 +5,7 @@
  * before the intake form. The answers are saved as `journey_*` case responses and take part in fact checking.
  */
 
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -89,8 +89,7 @@ export function JourneyQuestions({ isSaving = false, errorMessage, onSave }: Jou
 
   const required = [JOURNEY_KEYS.reportedToBank, JOURNEY_KEYS.writtenComplaint, JOURNEY_KEYS.bankReplyStatus, JOURNEY_KEYS.policeReport, JOURNEY_KEYS.fidrecFiled]
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function submit() {
     if (required.some((key) => !a[key])) {
       setMissing(true)
       return
@@ -110,7 +109,8 @@ export function JourneyQuestions({ isSaving = false, errorMessage, onSave }: Jou
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={submit} className="space-y-6">
+        {/* No <form>: Radix controls inside one render unlabelled hidden inputs; Continue saves directly. */}
+        <div className="space-y-6">
           <Radios id="journey-bank" legend="1. Have you told your bank or payment provider?" choices={YES_NO} value={a[JOURNEY_KEYS.reportedToBank] ?? ''} onChange={set(JOURNEY_KEYS.reportedToBank)} />
           {a[JOURNEY_KEYS.reportedToBank] === 'yes' && (
             <div className="grid gap-3 sm:grid-cols-3">
@@ -174,8 +174,8 @@ export function JourneyQuestions({ isSaving = false, errorMessage, onSave }: Jou
               {missing ? 'Please answer questions 1 to 5. "Not sure" is fine where it is offered.' : errorMessage}
             </p>
           )}
-          <Button type="submit" disabled={isSaving}>{isSaving ? 'Saving…' : 'Continue'}</Button>
-        </form>
+          <Button type="button" onClick={submit} disabled={isSaving}>{isSaving ? 'Saving…' : 'Continue'}</Button>
+        </div>
       </CardContent>
     </Card>
   )
