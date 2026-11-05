@@ -6,3 +6,4 @@ export * from "./snapshot.ts";
 export * from "./answers.ts";
 export * from "./extraction.ts";
 export * from "./display.ts";
+export * from "./validate-output.ts";

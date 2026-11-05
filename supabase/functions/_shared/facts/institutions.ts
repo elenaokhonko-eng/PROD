@@ -12,7 +12,7 @@ interface Alias {
 
 // Order matters: e-wallet names that contain a bank name (DBS PayLah!) come before the bank.
 const ALIASES: Alias[] = [
-  { pattern: /\bpay\s?lah\b/i, name: "DBS PayLah!", type: "payment_service_provider" },
+  { pattern: /\b(?:dbs\s+)?pay\s?lah\b!?/i, name: "DBS PayLah!", type: "payment_service_provider" },
   { pattern: /\bgrab\s?pay\b/i, name: "GrabPay", type: "payment_service_provider" },
   { pattern: /\bshopee\s?pay\b/i, name: "ShopeePay", type: "payment_service_provider" },
   { pattern: /\byou\s?trip\b/i, name: "YouTrip", type: "payment_service_provider" },
@@ -53,6 +53,21 @@ export function institutionsIn(text: unknown): Institution[] {
   for (const part of text.split(/\s*(?:,|\/|&|\band\b|;|\+)\s*/i)) {
     const institution = normaliseInstitution(part);
     if (institution) found.set(institution.name.toLowerCase(), institution);
+  }
+  return [...found.values()];
+}
+
+// Every known institution named anywhere in a text. A span matched by an earlier alias is not matched again, so
+// "DBS PayLah!" counts as the e-wallet, not also as the bank.
+export function institutionsMentioned(text: string): Institution[] {
+  let remaining = text;
+  const found = new Map<string, Institution>();
+  for (const alias of ALIASES) {
+    const global = new RegExp(alias.pattern.source, alias.pattern.flags.includes("g") ? alias.pattern.flags : alias.pattern.flags + "g");
+    if (global.test(remaining)) {
+      found.set(alias.name, { name: alias.name, type: alias.type });
+      remaining = remaining.replace(new RegExp(alias.pattern.source, global.flags), " ");
+    }
   }
   return [...found.values()];
 }

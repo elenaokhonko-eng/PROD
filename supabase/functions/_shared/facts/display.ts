@@ -184,3 +184,22 @@ export function validateFactValue(key: FactKey, input: unknown): unknown | null 
       return null;
   }
 }
+
+// The "Facts you confirmed" section every stage report includes (design 4.3). Rendered by the server from the
+// snapshot, never by the model, so it always matches what the user confirmed.
+export function factsYouConfirmed(
+  facts: Partial<Record<FactKey, { value: unknown; label: "confirmed" | "not_sure" | "claimant_only" | "not_known" }>>,
+): Array<{ factKey: FactKey; label: string; text: string }> {
+  const order = Object.keys(FACT_LABELS) as FactKey[];
+  return order
+    .filter((key) => facts[key])
+    .map((key) => {
+      const fact = facts[key]!;
+      const text =
+        fact.label === "not_sure" ? "Not sure"
+          : fact.label === "not_known" ? "Not known"
+          : fact.label === "claimant_only" ? `${formatFactValue(key, fact.value)} (no supporting document provided)`
+          : formatFactValue(key, fact.value);
+      return { factKey: key, label: FACT_LABELS[key], text };
+    });
+}
