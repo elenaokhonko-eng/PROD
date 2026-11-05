@@ -38,3 +38,12 @@ test is weakened to make it pass.
   The state itself rendered. The other viewports passed in the same run.
 - **Cause: not yet known.** The signed-in lane's artifacts are encrypted, so no trace was read. Watching the
   next runs; if it recurs, decrypt the trace and find which request failed.
+
+## 2026-11-05: signed-in, "layer2Ready fixture renders its contract state" (chromium-768), under watch
+
+- **Run:** Harbor release gates 42034171587, commit `2e7c7c5`; first occurrence.
+- **What failed:** `page.goto(..., { waitUntil: 'networkidle' })` timed out after 30 s on the seeded report-ready
+  case. The other viewports passed in the same run.
+- **Pattern to watch:** this is the second different state-fixture test to fail at 768 px in two runs (see
+  layer1Evidence above). If either recurs, decrypt the signed-in trace before doing anything else; do not rerun
+  as a fix.
