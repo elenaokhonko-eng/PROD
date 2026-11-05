@@ -7,3 +7,6 @@ export * from "./answers.ts";
 export * from "./extraction.ts";
 export * from "./display.ts";
 export * from "./validate-output.ts";
+export * from "./recommend.ts";
+export * from "./rules/fidrec.ts";
+export * from "./rules/srf.ts";
