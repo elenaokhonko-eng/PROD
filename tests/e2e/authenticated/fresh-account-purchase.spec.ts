@@ -29,7 +29,7 @@ test.describe('fresh free account', () => {
       await completeFreeEvaluation(page, caseId, smsPhishingNarrative)
       // The SRF section is written by the server from fixed rules, never by the model.
       await expect(page.getByText('How the rules may apply', { exact: true })).toBeVisible()
-      await expect(page.getByText(/^SRF: the Shared Responsibility Framework/m).first()).toBeVisible()
+      await expect(page.getByText(/^- SRF: the Shared Responsibility Framework/m).first()).toBeVisible()
 
       await expect(page.getByRole('heading', { name: 'Your next steps' })).toBeVisible({ timeout: 60_000 })
       await expect(page.getByText('Available shortly', { exact: true }).first()).toBeVisible()
