@@ -105,7 +105,8 @@ test('pricing and marketplace preserve disabled-service Harbor contract copy', a
   await expect(page.getByRole('heading', { level: 1, name: 'Free to start. Paid only when you choose more.' })).toBeVisible()
   await expect(page.getByText(/^S\$18$/)).toBeVisible()
   await expect(page.getByText(/^S\$188$/)).toBeVisible()
-  await expect(page.getByText('Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.')).toBeVisible()
+  // Finding D2: offered on each of the three cards.
+  await expect(page.getByText('Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.')).toHaveCount(3)
 
   await page.goto('/marketplace', { waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('heading', { level: 1, name: 'Help categories being considered.' })).toBeVisible()
