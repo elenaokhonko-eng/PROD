@@ -1,26 +1,29 @@
 'use client'
 
 /**
- * Confirm your facts (design section 7). Shown before every stage is generated: conflicts first, then claims with
- * no supporting document, then missing facts, with agreed facts collapsed. Generation stays disabled until every
- * item is resolved; the server enforces the same rule when the facts are frozen.
+ * Confirm your facts (design section 7; stage 1 demo review, findings A1-A9). Shown before every stage is
+ * generated. One card per fact: the values found are boxes, and choosing a box is the answer. Below the boxes there
+ * are always two more options, "Something else" and "I'm not sure". Facts that can have several values (accounts,
+ * amounts, institutions, payments) let the user tick several boxes. Generation stays disabled until every card is
+ * answered; the server enforces the same rule when the facts are frozen.
  */
 
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import {
+  ACCOUNT_CATEGORIES,
   BANK_REPLY_OPTIONS,
   FACT_ENUM_OPTIONS,
   type FactKey,
   formatFactValue,
+  MULTI_SELECT_FACT_KEYS,
   type Stage,
 } from '@/lib/facts'
 import {
@@ -40,17 +43,20 @@ const STAGE_NAMES: Record<Stage, string> = {
   fidrec: 'FIDReC escalation pack',
 }
 
-const MONEY_KEYS: FactKey[] = ['total_loss', 'amount_recovered_or_offered']
 const EVENT_KEYS: FactKey[] = ['reported_to_bank', 'reported_to_police', 'written_complaint_sent', 'fidrec_filed']
-const MULTI_KEYS: FactKey[] = ['scam_type', 'account_types']
+const ACCOUNT_LABELS = new Map((FACT_ENUM_OPTIONS.account_types ?? []).map((o) => [o.value, o.label]))
+// Fixed lists where "Something else" is a valid answer (stored as "other").
+const OTHER_ALLOWED: FactKey[] = ['scam_type', 'phishing_channel', 'account_types']
 
 export interface ConfirmFactsPanelProps {
   caseId: string
   stage: Stage
   onConfirmed: (snapshotId: string) => void
+  // The dashboard shows its own heading for this step (finding A9).
+  showIntro?: boolean
 }
 
-export function ConfirmFactsPanel({ caseId, stage, onConfirmed }: ConfirmFactsPanelProps) {
+export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true }: ConfirmFactsPanelProps) {
   const facts = useCaseFacts(caseId, stage)
   const resolve = useResolveFinding(caseId, stage)
   const confirm = useConfirmFacts(caseId, stage)
@@ -81,6 +87,7 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed }: ConfirmFactsPa
   const view = facts.data as FactsView
   const stageName = STAGE_NAMES[stage]
   const agreed = view.findings.filter((f) => f.findingType === 'agreed')
+  const toCheck = view.findings.filter((f) => f.findingType !== 'agreed')
   const groups: Array<{ type: Finding['findingType']; title: string }> = [
     { type: 'conflict', title: 'Different answers' },
     { type: 'unsupported', title: 'No supporting document' },
@@ -110,28 +117,46 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed }: ConfirmFactsPa
     )
   }
 
+  const checked = toCheck.length - view.openCount
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Confirm your facts</CardTitle>
-          <CardDescription>
-            Before we prepare your {stageName}, please check what we found in your story, your answers and your
-            documents. Your report will use only the facts you confirm.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p aria-live="polite" className="text-sm font-medium">
-            {view.openCount === 0 ? 'Everything is confirmed.' : `${view.openCount} ${view.openCount === 1 ? 'item' : 'items'} left to check.`}
+      {showIntro && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Confirm your facts</CardTitle>
+            <CardDescription>
+              Before we prepare your {stageName}, please check what we found in your story, your answers and your
+              documents. Your report will use only the facts you confirm.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      {/* Finding A8: the count stays in view while the user works down the cards (top on small screens, right-hand
+          pill on wide ones). One element, so the count is never shown twice. */}
+      <div data-facts-progress className="sticky top-[4.5rem] z-30 rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur lg:ml-auto lg:w-80">
+        <p aria-live="polite" className="text-sm font-medium">
+          {view.openCount === 0 ? 'Everything is confirmed.' : `${view.openCount} ${view.openCount === 1 ? 'fact' : 'facts'} left to check.`}
+        </p>
+        {toCheck.length > 0 && (
+          <div
+            role="progressbar"
+            aria-label="Facts checked"
+            aria-valuemin={0}
+            aria-valuemax={toCheck.length}
+            aria-valuenow={checked}
+            className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
+          >
+            <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${(checked / toCheck.length) * 100}%` }} />
+          </div>
+        )}
+        {view.documentsProcessing > 0 && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            {view.documentsProcessing} {view.documentsProcessing === 1 ? 'document is' : 'documents are'} still being
+            read. Check back in a minute; we’ll include {view.documentsProcessing === 1 ? 'it' : 'them'} here.
           </p>
-          {view.documentsProcessing > 0 && (
-            <p className="mt-2 text-sm text-muted-foreground">
-              {view.documentsProcessing} {view.documentsProcessing === 1 ? 'document is' : 'documents are'} still being
-              read. Check back in a minute; we’ll include {view.documentsProcessing === 1 ? 'it' : 'them'} here.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        )}
+      </div>
 
       {view.consistencyIssues.length > 0 && (
         <Card role="alert">
@@ -140,7 +165,7 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed }: ConfirmFactsPa
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {view.consistencyIssues.map((issue) => <p key={issue}>{issue}</p>)}
-            <p className="text-muted-foreground">Use “Change” on the item below that isn’t right.</p>
+            <p className="text-muted-foreground">Use “Change” on the fact below that isn’t right.</p>
           </CardContent>
         </Card>
       )}
@@ -186,7 +211,7 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed }: ConfirmFactsPa
         </Button>
         {!canContinue && (
           <p className="text-sm text-muted-foreground">
-            {view.consistencyIssues.length ? 'You can continue once your answers fit together.' : 'You can continue once every item above is answered.'}
+            {view.consistencyIssues.length ? 'You can continue once your answers fit together.' : 'You can continue once every fact above is answered.'}
           </p>
         )}
       </div>
@@ -197,18 +222,22 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed }: ConfirmFactsPa
 function errorText(error: unknown): string {
   if (error instanceof FactsRequestError) {
     if (error.reason === 'invalid_value') return 'That value could not be read. Please check it and try again.'
-    if (error.reason === 'finding_outdated') return 'Your facts changed while you were answering. Please review this item again.'
-    if (error.reason === 'facts_unconfirmed') return 'Some items still need an answer.'
+    if (error.reason === 'mixed_currencies') return 'Those amounts are in different currencies. Please choose amounts in one currency, or enter the total.'
+    if (error.reason === 'finding_outdated') return 'Your facts changed while you were answering. Please review this fact again.'
+    if (error.reason === 'facts_unconfirmed') return 'Some facts still need an answer.'
     if (error.reason === 'documents_processing') return 'A document is still being read. Please try again in a minute.'
   }
   return 'Something went wrong. Please try again.'
 }
 
-const INTRO: Record<Finding['findingType'], string> = {
-  conflict: 'We found two different answers. Please tell us which is correct.',
-  unsupported: "We couldn't find a document that shows this. You can upload one from your case page, or keep it as your own account.",
-  missing: 'We need this for your report.',
-  agreed: '',
+function intro(finding: Finding, stageName: string, multi: boolean): string {
+  if (finding.findingType === 'missing') return `We need this for your ${stageName}. Choose the right answer, or tell us if you're not sure.`
+  if (finding.findingType === 'unsupported') {
+    return "We couldn't find a document that shows this. Choose it to keep it as your own account, or upload a document from your case page."
+  }
+  return multi
+    ? 'We found different answers. Choose every one that is correct.'
+    : 'We found different answers. Choose the one that is correct.'
 }
 
 function resolvedText(finding: Finding): string | null {
@@ -217,6 +246,8 @@ function resolvedText(finding: Finding): string | null {
   switch (r.kind) {
     case 'choice':
       return finding.values[r.index]?.display ?? null
+    case 'choices':
+      return r.indices.map((i) => finding.values[i]?.display).filter(Boolean).join('; ')
     case 'value':
       return formatFactValue(finding.factKey, r.value)
     case 'not_sure':
@@ -228,6 +259,32 @@ function resolvedText(finding: Finding): string | null {
     default:
       return null
   }
+}
+
+interface Box {
+  id: string
+  label: string
+  sources: Array<{ label: string; quote: string | null }>
+}
+
+// The boxes for one fact. A fact with a fixed list of values (scam type, first contact, accounts, credentials)
+// always shows the whole list, marking where each value was found; any other fact shows the values found.
+function boxesFor(finding: Finding): { boxes: Box[]; fixedList: boolean } {
+  const options = FACT_ENUM_OPTIONS[finding.factKey]
+  const sourcesOf = (v: Finding['values'][number]) => v.sources.map((s) => ({ label: s.label, quote: s.quotes[0] ?? null }))
+  if (options) {
+    return {
+      fixedList: true,
+      boxes: options.map((o) => ({
+        id: o.value,
+        label: o.label,
+        sources: finding.values
+          .filter((v) => (Array.isArray(v.value) ? (v.value as unknown[]).includes(o.value) : v.value === o.value))
+          .flatMap(sourcesOf),
+      })),
+    }
+  }
+  return { fixedList: false, boxes: finding.values.map((v, i) => ({ id: String(i), label: v.display, sources: sourcesOf(v) })) }
 }
 
 function FindingCard({
@@ -243,103 +300,162 @@ function FindingCard({
   error: string | null
   onResolve: (resolution: ResolutionInput) => void
 }) {
-  const [choice, setChoice] = useState<string>('')
+  const multi = MULTI_SELECT_FACT_KEYS.has(finding.factKey)
+  const { boxes, fixedList } = boxesFor(finding)
+  // Accounts affected: the categories the sources support start ticked (finding A3).
+  const initial = fixedList && multi ? boxes.filter((b) => b.sources.length).map((b) => b.id) : []
+  const [picked, setPicked] = useState<string[]>(initial)
+  const [other, setOther] = useState(false)
+  const [unsure, setUnsure] = useState(false)
   const [value, setValue] = useState<unknown>(null)
   const [note, setNote] = useState('')
   const [editing, setEditing] = useState(finding.status === 'open')
   const hasEditor = finding.factKey !== 'transactions'
   const answered = resolvedText(finding)
+  const name = `finding-${finding.id}`
 
-  const options: Array<{ id: string; label: string }> =
-    finding.findingType === 'conflict'
-      ? [
-          ...finding.values.map((v, i) => ({ id: `choice:${i}`, label: v.display })),
-          ...(hasEditor ? [{ id: 'value', label: 'Something else: enter the correct value' }] : []),
-          { id: 'not_sure', label: "I'm not sure" },
-        ]
-      : finding.findingType === 'unsupported'
-        ? [
-            { id: 'acknowledged', label: "Keep it: I don't have a document for this" },
-            ...(hasEditor ? [{ id: 'value', label: 'Correct it' }] : []),
-            { id: 'not_sure', label: "I'm not sure" },
-          ]
-        : [
-            ...(hasEditor ? [{ id: 'value', label: 'Enter it' }] : []),
-            { id: 'not_known', label: 'Not known' },
-          ]
+  function toggle(id: string) {
+    setUnsure(false)
+    if (multi) setPicked((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]))
+    else {
+      setPicked([id])
+      setOther(false)
+    }
+  }
+  function chooseOther() {
+    setUnsure(false)
+    if (multi) setOther((o) => !o)
+    else {
+      setPicked([])
+      setOther(true)
+    }
+  }
+  function chooseUnsure() {
+    setPicked([])
+    setOther(false)
+    setUnsure(true)
+  }
+
+  const ready = unsure || (other ? value !== null : picked.length > 0)
 
   function submit() {
     const trimmedNote = note.trim() || undefined
-    if (choice.startsWith('choice:')) onResolve({ kind: 'choice', index: Number(choice.slice(7)), note: trimmedNote })
-    else if (choice === 'value') onResolve({ kind: 'value', value, note: trimmedNote })
-    else if (choice === 'not_sure' || choice === 'not_known' || choice === 'acknowledged') onResolve({ kind: choice, note: trimmedNote })
+    if (unsure) onResolve({ kind: finding.findingType === 'missing' ? 'not_known' : 'not_sure', note: trimmedNote })
+    else if (fixedList) {
+      const chosen = other ? [...picked, 'other'] : picked
+      onResolve({ kind: 'value', value: multi ? chosen : chosen[0], note: trimmedNote })
+    } else if (other) {
+      // "Something else" adds to the ticked values on a multi-select fact; on a single-select fact it replaces them.
+      const ticked = picked.map((id) => finding.values[Number(id)]?.value)
+      onResolve({ kind: 'value', value: multi ? combineForEdit(finding.factKey, ticked, value) : value, note: trimmedNote })
+    } else if (finding.findingType === 'unsupported') onResolve({ kind: 'acknowledged', note: trimmedNote })
+    else if (multi) onResolve({ kind: 'choices', indices: picked.map(Number), note: trimmedNote })
+    else onResolve({ kind: 'choice', index: Number(picked[0]), note: trimmedNote })
     setEditing(false)
   }
 
-  const legendId = `finding-${finding.id}`
+  if (!editing && answered) {
+    return (
+      <Card>
+        <div data-finding={finding.id} className="flex flex-wrap items-center gap-3 p-4 text-sm">
+          <span aria-hidden className="text-primary">✓</span>
+          <span className="font-medium">{finding.label}:</span>
+          <span className="min-w-0 flex-1">{answered}</span>
+          <Badge variant="secondary">Answered</Badge>
+          <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>Change</Button>
+        </div>
+      </Card>
+    )
+  }
+
+  const inputType = multi ? 'checkbox' : 'radio'
   return (
     <Card>
-      {/* No <form>: Radix controls inside one render unlabelled hidden inputs; the button saves directly. */}
+      {/* No <form>: the button saves directly. Native inputs inside labels keep every choice named and keyboard-usable. */}
       <div data-finding={finding.id}>
         <fieldset className="space-y-4 p-6">
           <legend className="flex w-full flex-wrap items-center justify-between gap-2">
-            <span id={legendId} className="text-base font-semibold">{finding.label}</span>
+            <span className="text-base font-semibold">{finding.label}</span>
             <Badge variant={finding.status === 'open' ? 'destructive' : 'secondary'}>
               {finding.status === 'open' ? 'To check' : 'Answered'}
             </Badge>
           </legend>
-          <p className="text-sm text-muted-foreground">
-            {finding.findingType === 'missing' ? `We need this for your ${stageName}.` : INTRO[finding.findingType]}
-          </p>
+          <p className="text-sm text-muted-foreground">{intro(finding, stageName, multi)}</p>
 
-          {finding.values.length > 0 && (
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {finding.values.map((v, i) => (
-                <li key={i} className="rounded-md border p-3 text-sm">
-                  <p className="font-medium">{v.display}</p>
-                  <ul className="mt-1 space-y-1 text-muted-foreground">
-                    {v.sources.map((s, j) => (
-                      <li key={j}>
-                        {s.label}
-                        {s.quotes[0] ? `: "${s.quotes[0]}"` : ''}
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {boxes.map((box) => {
+              const selected = picked.includes(box.id)
+              return (
+                <label
+                  key={box.id}
+                  className={`relative flex cursor-pointer flex-col gap-1 rounded-md border p-3 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring ${selected ? 'border-primary bg-primary/10' : 'hover:border-primary/60'}`}
+                >
+                  <input
+                    type={inputType}
+                    name={name}
+                    className="sr-only"
+                    checked={selected}
+                    onChange={() => toggle(box.id)}
+                  />
+                  <span className="flex items-start justify-between gap-2 font-medium">
+                    {box.label}
+                    {selected && <span aria-hidden className="text-primary">✓</span>}
+                  </span>
+                  {box.sources.length > 0 && (
+                    <ul className="space-y-1 text-muted-foreground">
+                      {box.sources.map((s, j) => (
+                        <li key={j}>{s.label}{s.quote ? `: "${s.quote}"` : ''}</li>
+                      ))}
+                    </ul>
+                  )}
+                </label>
+              )
+            })}
+          </div>
 
-          {!editing && answered ? (
-            <div className="flex flex-wrap items-center gap-3 text-sm">
-              <span>Your answer: <strong>{answered}</strong></span>
-              <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>Change</Button>
-            </div>
-          ) : (
-            <>
-              <RadioGroup value={choice} onValueChange={setChoice} aria-label={`Your answer for ${finding.label}`}>
-                {options.map((o) => (
-                  <div key={o.id} className="flex items-center gap-2">
-                    <RadioGroupItem value={o.id} id={`${finding.id}-${o.id}`} />
-                    <Label htmlFor={`${finding.id}-${o.id}`}>{o.label}</Label>
-                  </div>
-                ))}
-              </RadioGroup>
-              {choice === 'value' && <FactValueEditor factKey={finding.factKey} idPrefix={finding.id} onChange={setValue} />}
-              <div className="space-y-1">
-                <Label htmlFor={`${finding.id}-note`}>Note (optional)</Label>
-                <Textarea id={`${finding.id}-note`} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} rows={2} />
-              </div>
-              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-              <Button type="button" onClick={submit} disabled={!choice || saving || (choice === 'value' && value === null)}>
-                {saving ? 'Saving…' : 'Save answer'}
-              </Button>
-            </>
-          )}
+          <div className="space-y-2 text-sm">
+            {(fixedList ? OTHER_ALLOWED.includes(finding.factKey) : hasEditor) && (
+              <label className="flex cursor-pointer items-center gap-2">
+                <input type={multi ? 'checkbox' : 'radio'} name={multi ? `${name}-other` : name} checked={other} onChange={chooseOther} className="accent-primary" />
+                {fixedList ? 'Something else (please explain in the note)' : 'Something else: enter the correct value'}
+              </label>
+            )}
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="radio" name={`${name}-unsure`} checked={unsure} onChange={chooseUnsure} className="accent-primary" />
+              I’m not sure
+            </label>
+          </div>
+          {other && !fixedList && <FactValueEditor factKey={finding.factKey} idPrefix={finding.id} onChange={setValue} />}
+
+          <div className="space-y-1">
+            <Label htmlFor={`${finding.id}-note`}>Note (optional)</Label>
+            <Textarea id={`${finding.id}-note`} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} rows={2} />
+          </div>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          <Button type="button" onClick={submit} disabled={!ready || saving}>
+            {saving ? 'Saving…' : 'Save answer'}
+          </Button>
         </fieldset>
       </div>
     </Card>
   )
+}
+
+// "Something else" on a multi-select fact keeps the ticked values and adds the one typed in.
+function combineForEdit(factKey: FactKey, ticked: unknown[], typed: unknown): unknown {
+  if (factKey === 'institution_names') {
+    return [...ticked.flatMap((v) => (v as Array<{ name: string }>).map((i) => i.name)), typed]
+  }
+  if (factKey === 'total_loss') {
+    const rows = ticked.flatMap((v) => {
+      const loss = v as { amount: number; account?: string | null; portions?: Array<{ account: string | null; amount: { amount: number } }> }
+      return loss.portions?.length
+        ? loss.portions.map((p) => ({ amount: p.amount.amount, account: p.account }))
+        : [{ amount: loss.amount, account: loss.account ?? null }]
+    })
+    return [...rows, typed]
+  }
+  return typed
 }
 
 function FactValueEditor({ factKey, idPrefix, onChange }: { factKey: FactKey; idPrefix: string; onChange: (value: unknown) => void }) {
@@ -350,7 +466,30 @@ function FactValueEditor({ factKey, idPrefix, onChange }: { factKey: FactKey; id
     onChange(build(next))
   }
 
-  if (MONEY_KEYS.includes(factKey)) {
+  if (factKey === 'total_loss') {
+    const build = (s: Record<string, unknown>) => (s.amount ? { amount: s.amount, account: s.account || null } : null)
+    return (
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1">
+          <Label htmlFor={`${idPrefix}-amount`}>Amount in S$</Label>
+          <Input id={`${idPrefix}-amount`} inputMode="decimal" onChange={(e) => update({ amount: e.target.value.trim() }, build)} />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor={`${idPrefix}-account`}>Taken from (optional)</Label>
+          <select
+            id={`${idPrefix}-account`}
+            className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+            onChange={(e) => update({ account: e.target.value }, build)}
+            defaultValue=""
+          >
+            <option value="">Not sure</option>
+            {ACCOUNT_CATEGORIES.map((a) => <option key={a} value={a}>{ACCOUNT_LABELS.get(a) ?? a}</option>)}
+          </select>
+        </div>
+      </div>
+    )
+  }
+  if (factKey === 'amount_recovered_or_offered') {
     return (
       <div className="space-y-1">
         <Label htmlFor={`${idPrefix}-amount`}>Amount in S$</Label>
@@ -366,6 +505,14 @@ function FactValueEditor({ factKey, idPrefix, onChange }: { factKey: FactKey; id
       </div>
     )
   }
+  if (factKey === 'bank_case_reference' || factKey === 'police_report_number') {
+    return (
+      <div className="space-y-1">
+        <Label htmlFor={`${idPrefix}-reference`}>{factKey === 'bank_case_reference' ? 'Case reference' : 'Report number'}</Label>
+        <Input id={`${idPrefix}-reference`} onChange={(e) => onChange(e.target.value.trim() || null)} />
+      </div>
+    )
+  }
   if (factKey === 'date_discovered') {
     return (
       <div className="space-y-1">
@@ -375,7 +522,7 @@ function FactValueEditor({ factKey, idPrefix, onChange }: { factKey: FactKey; id
     )
   }
   if (EVENT_KEYS.includes(factKey)) {
-    const build = (s: Record<string, unknown>) => (s.value ? { value: s.value, date: s.date || null, reference: s.reference || null } : null)
+    const build = (s: Record<string, unknown>) => (s.value ? { value: s.value, date: s.date || null } : null)
     return (
       <div className="space-y-3">
         <RadioGroup onValueChange={(v) => update({ value: v }, build)} aria-label="Yes or no">
@@ -387,15 +534,9 @@ function FactValueEditor({ factKey, idPrefix, onChange }: { factKey: FactKey; id
           ))}
         </RadioGroup>
         {state.value === 'yes' && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor={`${idPrefix}-event-date`}>Date (optional)</Label>
-              <Input id={`${idPrefix}-event-date`} type="date" onChange={(e) => update({ date: e.target.value }, build)} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor={`${idPrefix}-event-ref`}>Reference (optional)</Label>
-              <Input id={`${idPrefix}-event-ref`} onChange={(e) => update({ reference: e.target.value.trim() }, build)} />
-            </div>
+          <div className="space-y-1 sm:w-1/2">
+            <Label htmlFor={`${idPrefix}-event-date`}>Date (optional)</Label>
+            <Input id={`${idPrefix}-event-date`} type="date" onChange={(e) => update({ date: e.target.value }, build)} />
           </div>
         )}
       </div>
@@ -432,39 +573,6 @@ function FactValueEditor({ factKey, idPrefix, onChange }: { factKey: FactKey; id
           </RadioGroup>
         )}
       </div>
-    )
-  }
-  const options = FACT_ENUM_OPTIONS[factKey]
-  if (options && MULTI_KEYS.includes(factKey)) {
-    const selected = (state.values as string[] | undefined) ?? []
-    return (
-      <div className="space-y-2" role="group" aria-label="Choose all that apply">
-        {options.map((o) => (
-          <div key={o.value} className="flex items-center gap-2">
-            <Checkbox
-              id={`${idPrefix}-multi-${o.value}`}
-              checked={selected.includes(o.value)}
-              onCheckedChange={(checked) => {
-                const next = checked ? [...selected, o.value] : selected.filter((v) => v !== o.value)
-                update({ values: next }, (s) => ((s.values as string[]).length ? s.values : null))
-              }}
-            />
-            <Label htmlFor={`${idPrefix}-multi-${o.value}`}>{o.label}</Label>
-          </div>
-        ))}
-      </div>
-    )
-  }
-  if (options) {
-    return (
-      <RadioGroup onValueChange={(v) => onChange(v)} aria-label="Choose one">
-        {options.map((o) => (
-          <div key={o.value} className="flex items-center gap-2">
-            <RadioGroupItem value={o.value} id={`${idPrefix}-one-${o.value}`} />
-            <Label htmlFor={`${idPrefix}-one-${o.value}`}>{o.label}</Label>
-          </div>
-        ))}
-      </RadioGroup>
     )
   }
   return null

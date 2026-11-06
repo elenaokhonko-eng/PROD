@@ -38,10 +38,14 @@ const ALIASES: Alias[] = [
 // The four mobile network operators covered by the SRF telco duties (R fn 2). MVNOs are not.
 export const SRF_MOBILE_NETWORK_OPERATORS = ["Singtel", "StarHub", "M1", "SIMBA"] as const;
 
+// Not banks or payment providers: the police, regulators, dispute bodies and government services. A name with no
+// letters (a reference number typed into the wrong box) is not an institution either (finding A2).
+const NOT_A_PROVIDER = /\bpolice\b|\bspf\b|\bscamshield\b|\bministry\b|\bimda\b|monetary authority|\bmas\b|\bfidrec\b|\bcourts?\b|\bsingpass\b|\bgov(?:ernment)?\b/i;
+
 export function normaliseInstitution(input: unknown): Institution | null {
   if (typeof input !== "string") return null;
   const text = input.trim().replace(/\s+/g, " ");
-  if (!text) return null;
+  if (!text || !/[a-z]/i.test(text) || text.length > 80 || NOT_A_PROVIDER.test(text)) return null;
   const alias = ALIASES.find((a) => a.pattern.test(text));
   return alias ? { name: alias.name, type: alias.type } : { name: text, type: "other" };
 }

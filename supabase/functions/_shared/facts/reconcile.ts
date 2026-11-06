@@ -11,6 +11,7 @@ import {
   RECONCILED_FACT_KEYS,
   type ReportedEvent,
   type SourceType,
+  type TotalLoss,
   type Transaction,
 } from "./keys.ts";
 import { daysBetween } from "./normalise.ts";
@@ -53,13 +54,19 @@ function sameDate(a: string | null, b: string | null): boolean {
   return Math.abs(daysBetween(a, b)) <= DATE_TOLERANCE_DAYS;
 }
 
-function sameText(a: string | null, b: string | null): boolean {
-  if (!a || !b) return true;
-  return a.trim().toLowerCase() === b.trim().toLowerCase();
+// References are compared as their own facts (bank_case_reference, police_report_number), so a missing or different
+// reference never turns "Yes" into a conflict (finding A2).
+function sameEvent(a: ReportedEvent, b: ReportedEvent): boolean {
+  return a.value === b.value && sameDate(a.date, b.date);
 }
 
-function sameEvent(a: ReportedEvent, b: ReportedEvent): boolean {
-  return a.value === b.value && sameDate(a.date, b.date) && sameText(a.reference, b.reference);
+function sameReference(a: string, b: string): boolean {
+  const key = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return key(a) === key(b);
+}
+
+function sameLoss(a: TotalLoss, b: TotalLoss): boolean {
+  return sameMoney(a, b) && (!a.account || !b.account || a.account === b.account);
 }
 
 function sameBankReply(a: BankReply, b: BankReply): boolean {
@@ -125,8 +132,12 @@ function equivalent(key: FactKey, a: unknown, b: unknown): boolean {
       return isSubset(sa, sb) || isSubset(sb, sa);
     }
     case "total_loss":
+      return sameLoss(a as TotalLoss, b as TotalLoss);
     case "amount_recovered_or_offered":
       return sameMoney(a as Money, b as Money);
+    case "bank_case_reference":
+    case "police_report_number":
+      return sameReference(a as string, b as string);
     case "reported_to_bank":
     case "reported_to_police":
     case "written_complaint_sent":
@@ -151,6 +162,10 @@ function merge(key: FactKey, a: unknown, b: unknown): unknown {
     return [...byName.values()];
   }
   if (key === "account_types" || key === "scam_type") return [...new Set([...(a as string[]), ...(b as string[])])];
+  if (key === "total_loss") {
+    const x = a as TotalLoss;
+    return { ...x, account: x.account ?? (b as TotalLoss).account ?? null };
+  }
   if (key === "reported_to_bank" || key === "reported_to_police" || key === "written_complaint_sent" || key === "fidrec_filed") {
     const x = a as ReportedEvent;
     const y = b as ReportedEvent;
@@ -240,6 +255,13 @@ function reconcileTransactions(candidates: readonly FactCandidate[]): { findingT
 // source, so a "No" elsewhere becomes an ordinary conflict for the user to settle.
 const REPLY_STATUSES: ReadonlySet<string> = new Set(["acknowledged", "interim", "final_reply"]);
 
+// A reference given with "told the bank" or "police report" becomes a candidate for its own fact, from the same
+// source (finding A2).
+const REFERENCE_FACTS: ReadonlyArray<[FactKey, FactKey]> = [
+  ["reported_to_bank", "bank_case_reference"],
+  ["reported_to_police", "police_report_number"],
+];
+
 export function withImpliedCandidates(candidates: readonly FactCandidate[]): FactCandidate[] {
   const implied: FactCandidate[] = candidates
     .filter((c) => c.factKey === "bank_reply" && REPLY_STATUSES.has((c.value as BankReply).status))
@@ -249,11 +271,42 @@ export function withImpliedCandidates(candidates: readonly FactCandidate[]): Fac
       sourceType: c.sourceType,
       sourceRef: { ...c.sourceRef, impliedBy: "bank_reply" },
     }));
-  return [...candidates, ...implied];
+  const references: FactCandidate[] = [];
+  for (const [eventKey, referenceKey] of REFERENCE_FACTS) {
+    for (const c of candidates.filter((c) => c.factKey === eventKey)) {
+      const event = c.value as ReportedEvent;
+      if (event.value === "yes" && event.reference?.trim()) {
+        references.push({ factKey: referenceKey, value: event.reference.trim(), sourceType: c.sourceType, sourceRef: { ...c.sourceRef, impliedBy: eventKey } } as FactCandidate);
+      }
+    }
+  }
+  return [...candidates, ...implied, ...references];
+}
+
+// A document value the extraction marked as context (wrong kind of document for the fact, or low confidence) is
+// kept for the record but never compared (finding A7).
+export function isContext(candidate: FactCandidate): boolean {
+  return candidate.sourceRef.context === true;
+}
+
+// The value of a multi-select answer: several chosen value boxes combined into one (finding A1).
+export function combineChoices(key: FactKey, values: readonly unknown[]): unknown {
+  if (!values.length) return null;
+  if (key === "transactions") return values.flatMap((v) => v as Transaction[]);
+  if (key === "total_loss") {
+    const portions = values.flatMap((v) => {
+      const loss = v as TotalLoss;
+      return loss.portions?.length ? loss.portions : [{ account: loss.account ?? null, amount: { amount: loss.amount, currency: loss.currency, amountSgd: loss.amountSgd } }];
+    });
+    const currency = portions[0].amount.currency;
+    const amount = Math.round(portions.reduce((s, p) => s + p.amount.amount, 0) * 100) / 100;
+    return { amount, currency, amountSgd: currency === "SGD" ? amount : null, account: null, portions };
+  }
+  return values.slice(1).reduce((acc, v) => merge(key, acc, v), values[0]);
 }
 
 export async function reconcile(input: readonly FactCandidate[]): Promise<ReconciledFinding[]> {
-  const candidates = withImpliedCandidates(input);
+  const candidates = withImpliedCandidates(input.filter((c) => !isContext(c)));
   const findings: ReconciledFinding[] = [];
   for (const key of RECONCILED_FACT_KEYS) {
     const forKey = candidates.filter((c) => c.factKey === key);

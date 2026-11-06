@@ -115,7 +115,7 @@ test('enum facts display as plain words, not codes', () => {
     impersonated_entity_type: { value: 'bank_or_fi', label: 'confirmed' },
     account_types: { value: ['savings_or_current'], label: 'confirmed' },
   })
-  assert.deepEqual(section.map((s) => s.text), ['Savings or current account', 'A bank or financial institution'])
+  assert.deepEqual(section.map((s) => s.text), ['Bank account', 'A bank or financial institution'])
 })
 
 const replyFact = { value: { status: 'final_reply', date: null, outcome: 'rejected', qualifies: null, reference: null }, label: 'claimant_only' as const }

@@ -1,49 +1,72 @@
 // Plain-English display of fact values (confirm screen, "Facts you confirmed") and validation of values the user
 // types in on the confirm screen. Display text is built from the value only, so it never adds facts.
 
-import type {
-  BankReply,
-  CredentialsShared,
-  FactKey,
-  Institution,
-  Money,
-  PhishingChannel,
-  ReportedEvent,
-  ScamType,
-  Transaction,
+import {
+  ACCOUNT_CATEGORIES,
+  type AccountType,
+  type BankReply,
+  CREDENTIALS_OPTIONS,
+  type CredentialsShared,
+  type FactKey,
+  type Institution,
+  type Money,
+  PHISHING_CHANNEL_OPTIONS,
+  type PhishingChannel,
+  type ReportedEvent,
+  SCAM_TYPE_OPTIONS,
+  type ScamType,
+  type TotalLoss,
+  type Transaction,
 } from "./keys.ts";
 import { FACT_LABELS } from "./keys.ts";
 import { normaliseInstitution } from "./institutions.ts";
 import { normaliseDate, normaliseMoney, normaliseYesNo } from "./normalise.ts";
 
 const CHANNEL_TEXT: Record<PhishingChannel, string> = {
+  phone_call: "Phone call",
   sms: "SMS",
-  email: "Email",
   messaging_app: "WhatsApp or another messaging app",
+  email: "Email",
+  dating_app: "Dating app",
   social_media: "Social media",
   website_or_ad: "A website or online advert",
-  phone_call: "Phone call",
+  in_person: "In person",
   other: "Other",
 };
 
 const CREDENTIALS_TEXT: Record<CredentialsShared, string> = {
-  entered_on_fake_site_or_app: "Entered on a fake website or app",
-  given_directly: "Given directly to the scammer",
-  installed_app_or_malware: "Installed an app the scammer asked for",
-  not_shared: "Not shared",
+  entered_on_fake_site_or_app: "Yes: entered on a fake website or app",
+  given_directly: "Yes: told to someone over the phone",
+  given_in_message: "Yes: sent in a message",
+  installed_app_or_malware: "Yes: installed an app the scammer asked for",
+  not_shared: "No: never shared",
   unsure: "Not sure",
 };
 
 const SCAM_TEXT: Record<ScamType, string> = {
-  digital_phishing: "Phishing by message, email or website",
-  malware: "Malware or a remote-access app",
-  non_digital_phishing: "Phishing by phone call or in person",
-  impersonation: "Impersonation",
+  phishing_sms_or_message: "Phishing by SMS or messaging app",
+  phishing_email: "Phishing by email",
+  phishing_call: "Phishing by phone call",
+  fake_website_or_ad: "Fake website or advert",
+  romance: "Dating or romance scam",
   investment: "Investment scam",
   job: "Job scam",
-  romance: "Romance scam",
+  government_impersonation: "Someone pretending to be a government official",
   ecommerce: "Online shopping scam",
+  malware: "Malware or a remote-access app",
   other: "Other",
+  digital_phishing: "Phishing by message, email or website",
+  non_digital_phishing: "Phishing by phone call or in person",
+  impersonation: "Impersonation",
+};
+
+const ACCOUNT_TEXT: Record<AccountType, string> = {
+  savings_or_current: "Bank account",
+  debit_card: "Debit card",
+  credit_card: "Credit card",
+  ewallet: "E-wallet or e-money account with a payment service provider",
+  investment: "Investment account",
+  other: "Something else",
 };
 
 const REPLY_TEXT: Record<BankReply["status"], string> = {
@@ -65,10 +88,18 @@ export function formatMoney(money: Money): string {
   return money.currency === "SGD" ? `S$${amount}` : `${money.currency} ${amount}`;
 }
 
-function formatEvent(event: ReportedEvent): string {
+// The bank and police references are their own facts (finding A2), so only the FIDReC reference is shown here.
+function formatEvent(event: ReportedEvent, withReference: boolean): string {
   const base = event.value === "yes" ? "Yes" : event.value === "no" ? "No" : "Not sure";
-  const parts = [base, formatDate(event.date), event.reference ? `reference ${event.reference}` : null].filter(Boolean);
+  const parts = [base, formatDate(event.date), withReference && event.reference ? `reference ${event.reference}` : null].filter(Boolean);
   return parts.join(", ");
+}
+
+function formatLoss(loss: TotalLoss): string {
+  if (loss.portions && loss.portions.length > 1) {
+    return `${formatMoney(loss)} in total: ${loss.portions.map((p) => `${p.account ? `${ACCOUNT_TEXT[p.account]} ` : ""}${formatMoney(p.amount)}`).join(", ")}`;
+  }
+  return loss.account ? `${ACCOUNT_TEXT[loss.account]}: ${formatMoney(loss)}` : formatMoney(loss);
 }
 
 export function formatFactValue(key: FactKey, value: unknown): string {
@@ -77,7 +108,7 @@ export function formatFactValue(key: FactKey, value: unknown): string {
     case "institution_names":
       return (value as Institution[]).map((i) => i.name).join(", ");
     case "account_types":
-      return (value as string[]).map((v) => FACT_ENUM_OPTIONS.account_types?.find((o) => o.value === v)?.label ?? v.replace(/_/g, " ")).join(", ");
+      return (value as AccountType[]).map((v) => ACCOUNT_TEXT[v] ?? String(v).replace(/_/g, " ")).join(", ");
     case "scam_type":
       return (value as ScamType[]).map((v) => SCAM_TEXT[v] ?? v).join(", ");
     case "phishing_channel":
@@ -90,13 +121,18 @@ export function formatFactValue(key: FactKey, value: unknown): string {
           .filter(Boolean).join(" "))
         .join("; ");
     case "total_loss":
+      return formatLoss(value as TotalLoss);
     case "amount_recovered_or_offered":
       return formatMoney(value as Money);
     case "reported_to_bank":
     case "reported_to_police":
     case "written_complaint_sent":
+      return formatEvent(value as ReportedEvent, false);
     case "fidrec_filed":
-      return formatEvent(value as ReportedEvent);
+      return formatEvent(value as ReportedEvent, true);
+    case "bank_case_reference":
+    case "police_report_number":
+      return String(value);
     case "bank_reply": {
       const reply = value as BankReply;
       return [REPLY_TEXT[reply.status], formatDate(reply.date), reply.outcome?.replace(/_/g, " ")].filter(Boolean).join(", ");
@@ -123,9 +159,31 @@ export function validateFactValue(key: FactKey, input: unknown): unknown | null 
       const list = names.map((n) => normaliseInstitution(typeof n === "string" ? n : (n as { name?: unknown })?.name)).filter(Boolean) as Institution[];
       return list.length ? list : null;
     }
-    case "total_loss":
+    case "total_loss": {
+      // One or more amounts, each optionally with its account; the total is their sum.
+      const rows = Array.isArray(input) ? input : [input];
+      const portions = [];
+      for (const row of rows) {
+        const r = (row && typeof row === "object" ? row : { amount: row }) as Record<string, unknown>;
+        const amount = normaliseMoney(typeof r.amount === "number" || typeof r.amount === "string" ? r.amount : null);
+        if (!amount || amount.amount <= 0) return null;
+        const account = (ACCOUNT_CATEGORIES as readonly string[]).includes(r.account as string) || r.account === "other" ? (r.account as AccountType) : null;
+        portions.push({ account, amount });
+      }
+      if (!portions.length || portions.some((p) => p.amount.currency !== portions[0].amount.currency)) return null;
+      const amount = Math.round(portions.reduce((s, p) => s + p.amount.amount, 0) * 100) / 100;
+      const currency = portions[0].amount.currency;
+      return portions.length === 1
+        ? { ...portions[0].amount, account: portions[0].account }
+        : { amount, currency, amountSgd: currency === "SGD" ? amount : null, account: null, portions };
+    }
     case "amount_recovered_or_offered":
       return normaliseMoney(typeof input === "number" || typeof input === "string" ? input : (record.amount as string | number | undefined) ?? null);
+    case "bank_case_reference":
+    case "police_report_number": {
+      const text = typeof input === "string" ? input.trim() : "";
+      return text && text.length <= 80 ? text : null;
+    }
     case "reported_to_bank":
     case "reported_to_police":
     case "written_complaint_sent":
@@ -169,14 +227,16 @@ export function validateFactValue(key: FactKey, input: unknown): unknown | null 
       return list.length ? list : null;
     }
     case "phishing_channel":
-      return ["sms", "email", "messaging_app", "social_media", "website_or_ad", "phone_call", "other"].includes(input as string) ? input : null;
+      return (PHISHING_CHANNEL_OPTIONS as readonly string[]).includes(input as string) ? input : null;
     case "credentials_or_otp_shared":
-      return ["entered_on_fake_site_or_app", "given_directly", "installed_app_or_malware", "not_shared", "unsure"].includes(input as string) ? input : null;
-    case "scam_type":
+      return (CREDENTIALS_OPTIONS as readonly string[]).includes(input as string) ? input : null;
+    case "scam_type": {
+      // Single-select (finding A5): the scam type decides which rules apply, so exactly one.
+      const list = Array.isArray(input) ? input : [input];
+      return list.length === 1 && (SCAM_TYPE_OPTIONS as readonly string[]).includes(list[0] as string) ? [list[0]] : null;
+    }
     case "account_types": {
-      const allowed = key === "scam_type"
-        ? ["digital_phishing", "malware", "non_digital_phishing", "impersonation", "investment", "job", "romance", "ecommerce", "other"]
-        : ["savings_or_current", "credit_card", "debit_card", "ewallet", "investment", "other"];
+      const allowed = [...ACCOUNT_CATEGORIES, "other"];
       const list = (Array.isArray(input) ? input : [input]).filter((v) => allowed.includes(v as string));
       return list.length ? [...new Set(list)] : null;
     }
@@ -206,19 +266,13 @@ export function factsYouConfirmed(
     });
 }
 
-// Choices offered on the confirm screen for facts with a fixed set of values.
+// Choices offered on the confirm screen for facts with a fixed set of values: the full list is always shown, as
+// boxes (findings A3, A5, A6). "Other" is not offered separately; "Something else" covers it.
 export const FACT_ENUM_OPTIONS: Partial<Record<FactKey, Array<{ value: string; label: string }>>> = {
-  phishing_channel: Object.entries(CHANNEL_TEXT).map(([value, label]) => ({ value, label })),
-  credentials_or_otp_shared: Object.entries(CREDENTIALS_TEXT).map(([value, label]) => ({ value, label })),
-  scam_type: Object.entries(SCAM_TEXT).map(([value, label]) => ({ value, label })),
-  account_types: [
-    { value: "savings_or_current", label: "Savings or current account" },
-    { value: "credit_card", label: "Credit card" },
-    { value: "debit_card", label: "Debit card" },
-    { value: "ewallet", label: "E-wallet" },
-    { value: "investment", label: "Investment account" },
-    { value: "other", label: "Other" },
-  ],
+  phishing_channel: PHISHING_CHANNEL_OPTIONS.filter((v) => v !== "other").map((value) => ({ value, label: CHANNEL_TEXT[value] })),
+  credentials_or_otp_shared: CREDENTIALS_OPTIONS.map((value) => ({ value, label: CREDENTIALS_TEXT[value] })),
+  scam_type: SCAM_TYPE_OPTIONS.filter((v) => v !== "other").map((value) => ({ value, label: SCAM_TEXT[value] })),
+  account_types: ACCOUNT_CATEGORIES.map((value) => ({ value, label: ACCOUNT_TEXT[value] })),
   impersonated_entity_type: [
     { value: "bank_or_fi", label: "A bank or financial institution" },
     { value: "government", label: "A government agency" },

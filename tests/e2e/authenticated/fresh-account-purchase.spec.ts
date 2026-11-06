@@ -138,7 +138,7 @@ async function completeFreeEvaluation(page: Page, caseId: string, narrative: str
   })
 
   // Nothing is generated until the facts are confirmed (C3).
-  const confirmHeading = page.getByRole('heading', { name: 'Next: confirm your facts' })
+  const confirmHeading = page.getByRole('heading', { name: 'Confirm your facts', exact: true })
   await answerFollowUpsUntil(page, confirmHeading, stepTimeoutMs)
   await confirmFactsInDashboard(page, caseId)
   await expect(page.getByText('Your free triage draft')).toBeVisible({ timeout: 180_000 })
@@ -223,7 +223,8 @@ async function answerFollowUps(form: Locator) {
 }
 
 // Answers every open item on the confirm screen in the dashboard: the first value for a conflict, "Keep it" for a
-// claim without a document, "Not known" for a missing fact. Confirming then generates the free evaluation.
+// claim without a document, "I'm not sure" for a missing fact (findings A1-A8: each fact is one card, the values are
+// boxes and choosing a box is the answer). Confirming then generates the free evaluation.
 async function confirmFactsInDashboard(page: Page, caseId: string) {
   // A document that finishes being read re-runs the check (Q2) and the cards are replaced by "Checking your story…"
   // until it ends; answer only once the panel has settled, as a person would. 6 minutes covers the slowest check
@@ -237,8 +238,15 @@ async function confirmFactsInDashboard(page: Page, caseId: string) {
     await settled()
     const open = page.locator('[data-finding]').filter({ has: page.getByText('To check', { exact: true }) }).first()
     if (!(await open.count())) break
-    const notKnown = open.getByRole('radio', { name: 'Not known' })
-    await ((await notKnown.count()) ? notKnown : open.getByRole('radio').first()).check()
+    const boxes = open.locator('label:has(input.sr-only)')
+    if (/We need this for your/.test(await open.innerText())) {
+      await open.getByText('I’m not sure', { exact: true }).click()
+    } else {
+      // The recipe's one deliberate conflict is "told the bank": the story and journey say yes.
+      const yes = boxes.filter({ hasText: /^Yes/ })
+      if (await yes.count()) await yes.first().click()
+      else if (!(await open.locator('input.sr-only:checked').count())) await boxes.first().click()
+    }
     const saved = page.waitForResponse((r) => r.url().includes(`/api/cases/${caseId}/facts?stage=free`) && r.request().method() === 'GET', { timeout: 120_000 })
     await open.getByRole('button', { name: 'Save answer' }).click()
     await saved

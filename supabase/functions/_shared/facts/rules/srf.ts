@@ -5,14 +5,16 @@
 // R = MAS/IMDA Response to Consultation (24 Oct 2024); CP = Consultation Paper (25 Oct 2023);
 // E = MAS E-Payments User Protection Guidelines (from 16 Dec 2024).
 
-import type {
-  CredentialsShared,
-  ImpersonatedEntityType,
-  Instrument,
-  Money,
-  PhishingChannel,
-  ScamType,
-  Transaction,
+import {
+  type CredentialsShared,
+  type ImpersonatedEntityType,
+  type Instrument,
+  isDigitalPhishing,
+  isNonDigitalPhishing,
+  type Money,
+  type PhishingChannel,
+  type ScamType,
+  type Transaction,
 } from "../keys.ts";
 import { formatMoney } from "../display.ts";
 
@@ -81,10 +83,10 @@ function assessSrfPortion(facts: SrfFacts, transactions: Transaction[]): Omit<Po
   if (types.includes("malware") || facts.credentials === "installed_app_or_malware") {
     out.push({ ...R.malware, text: "Scams that use malware or a remote-access app are outside the SRF." });
   }
-  if (types.includes("non_digital_phishing") || facts.channel === "phone_call") {
+  if (types.some(isNonDigitalPhishing) || facts.channel === "phone_call" || facts.channel === "in_person") {
     out.push({ ...R.nonDigital, text: "Phishing by phone call or in person is outside the SRF." });
   }
-  if (facts.credentials === "given_directly") {
+  if (facts.credentials === "given_directly" || facts.credentials === "given_in_message") {
     out.push({ ...R.givenDirectly, text: "The SRF covers details entered on a fake website or app; details given directly to a scammer are outside it." });
   }
   if (types.some((t) => AUTHORISED_TYPES.includes(t))) {
@@ -99,7 +101,7 @@ function assessSrfPortion(facts: SrfFacts, transactions: Transaction[]): Omit<Po
   }
   if (out.length) return { assessment: "likely_out_of_scope", reasons: out };
 
-  if (!types.includes("digital_phishing") && !types.includes("impersonation")) {
+  if (!types.some(isDigitalPhishing) && !types.includes("impersonation") && !types.includes("government_impersonation")) {
     unclear.push({ ...R.scope, text: "We could not confirm that this was a phishing scam through a digital message." });
   }
   if (!facts.channel || !DIGITAL_CHANNELS.includes(facts.channel)) {

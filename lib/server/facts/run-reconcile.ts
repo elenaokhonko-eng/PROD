@@ -212,7 +212,7 @@ export async function ensureReconciled(
 
   const { data: lastRun, error: lastRunError } = await service
     .from("case_fact_reconcile_runs")
-    .select("id, input_hash")
+    .select("id, input_hash, prompt_version")
     .eq("case_id", caseId)
     .eq("status", "completed")
     .order("created_at", { ascending: false })
@@ -220,7 +220,10 @@ export async function ensureReconciled(
     .maybeSingle()
   if (lastRunError) throw new FactsUnavailableError("Failed to load reconcile runs")
 
-  if (lastRun && lastRun.input_hash === inputHash) {
+  // A run from an earlier extraction prompt is neither reused nor its candidates: the prompt decides what a document
+  // may contradict (finding A7), so old candidates would skip the relevance filter.
+  const sameExtraction = lastRun?.prompt_version === FACT_EXTRACTION_PROMPT_VERSION
+  if (lastRun && sameExtraction && lastRun.input_hash === inputHash) {
     const rows = await loadCurrentFindings(service, caseId, lastRun.id as string)
     return { runId: lastRun.id as string, findings: rows.map(toCurrent), documentsProcessing }
   }
@@ -236,7 +239,7 @@ export async function ensureReconciled(
 
   try {
     const reusable = new Map<string, FactCandidate[]>()
-    if (lastRun) {
+    if (lastRun && sameExtraction) {
       const { data: previous, error } = await service
         .from("case_fact_candidates")
         .select("fact_key, value, source_type, source_ref")

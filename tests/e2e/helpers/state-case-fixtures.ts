@@ -7,7 +7,7 @@ export const expectedStateText = {
   layer1Intake: 'Tell us about your complaint',
   layer1Gap: 'A few more details',
   layer1Evidence: 'Upload supporting evidence',
-  layer1DraftPending: 'Next: confirm your facts',
+  layer1DraftPending: 'GuideBuoy can only point you to the right resolution path',
   layer1FreeDraft: 'Your free triage draft',
   // Stage 1 (paid stages off): the evaluation is followed by the next steps instead of a buy button.
   transitionBuyReport: paidStagesEnabled ? 'Get your Bank Pack' : 'Your next steps',

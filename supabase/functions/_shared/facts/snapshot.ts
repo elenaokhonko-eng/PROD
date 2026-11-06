@@ -2,13 +2,14 @@
 // finding the stage depends on is open; the server enforces this before any report is generated.
 
 import { type FactKey, type Money, requiredFactsFor, type ScamType, type Stage, type Transaction } from "./keys.ts";
-import type { FindingType, FindingValue } from "./reconcile.ts";
+import { combineChoices, type FindingType, type FindingValue } from "./reconcile.ts";
 
 export type FindingStatus = "open" | "resolved" | "not_sure" | "acknowledged";
 
 export type Resolution =
   | { kind: "agreed" }
   | { kind: "choice"; index: number; note?: string }
+  | { kind: "choices"; indices: number[]; note?: string }
   | { kind: "value"; value: unknown; note?: string }
   | { kind: "not_sure"; note?: string }
   | { kind: "not_known"; note?: string }
@@ -49,6 +50,8 @@ function effective(finding: CurrentFinding): SnapshotFact | null {
   switch (resolution.kind) {
     case "choice":
       return { value: finding.values[resolution.index]?.value ?? null, label: "confirmed" };
+    case "choices":
+      return { value: combineChoices(finding.factKey, resolution.indices.map((i) => finding.values[i]?.value).filter((v) => v != null)), label: "confirmed" };
     case "value":
       return { value: resolution.value, label: "confirmed" };
     case "not_sure":

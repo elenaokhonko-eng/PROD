@@ -6,6 +6,7 @@ import {
   type FactKey,
   factLabel,
   formatFactValue,
+  MULTI_SELECT_FACT_KEYS,
   openCount,
   relevantFindings,
   type Resolution,
@@ -124,6 +125,7 @@ export async function loadFactsView(
 
 export type ResolutionInput =
   | { kind: "choice"; index: number; note?: string }
+  | { kind: "choices"; indices: number[]; note?: string }
   | { kind: "value"; value: unknown; note?: string }
   | { kind: "not_sure"; note?: string }
   | { kind: "not_known"; note?: string }
@@ -137,7 +139,7 @@ export class ResolutionRejectedError extends Error {
 
 // Which resolutions each finding type accepts (design 3.3 / 7).
 const ALLOWED: Record<CurrentFinding["findingType"], ReadonlyArray<ResolutionInput["kind"]>> = {
-  conflict: ["choice", "value", "not_sure"],
+  conflict: ["choice", "choices", "value", "not_sure"],
   unsupported: ["acknowledged", "value", "not_sure"],
   missing: ["value", "not_known"],
   agreed: [],
@@ -171,6 +173,22 @@ export async function resolveFinding(
       const count = Array.isArray(row.values) ? row.values.length : 0
       if (!Number.isInteger(input.index) || input.index < 0 || input.index >= count) throw new ResolutionRejectedError("invalid_choice")
       resolution = { kind: "choice", index: input.index, note }
+      status = "resolved"
+      break
+    }
+    case "choices": {
+      // Several value boxes, only for facts that can have several values (finding A1).
+      if (!MULTI_SELECT_FACT_KEYS.has(row.fact_key as FactKey)) throw new ResolutionRejectedError("single_select_fact")
+      const values = Array.isArray(row.values) ? (row.values as Array<{ value: unknown }>) : []
+      const indices = Array.isArray(input.indices) ? input.indices : []
+      const valid = indices.length > 0 && new Set(indices).size === indices.length &&
+        indices.every((i) => Number.isInteger(i) && i >= 0 && i < values.length)
+      if (!valid) throw new ResolutionRejectedError("invalid_choice")
+      if (row.fact_key === "total_loss") {
+        const currencies = new Set(indices.map((i) => (values[i].value as { currency?: string }).currency))
+        if (currencies.size > 1) throw new ResolutionRejectedError("mixed_currencies")
+      }
+      resolution = { kind: "choices", indices: [...indices].sort((a, b) => a - b), note }
       status = "resolved"
       break
     }

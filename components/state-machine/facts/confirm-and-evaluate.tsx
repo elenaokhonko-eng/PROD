@@ -64,15 +64,18 @@ export function ConfirmAndEvaluate({ caseId, readyDocumentsKey }: { caseId: stri
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Next: confirm your facts</h1>
-        <p className="text-muted-foreground">
-          We’ll prepare your free evaluation from the facts you confirm here.
+      {/* Finding A9: this is the main step, not a neutral card. */}
+      <section className="space-y-2 rounded-xl border-2 border-primary bg-primary/5 p-5">
+        <h1 className="text-2xl font-semibold">Confirm your facts</h1>
+        <p>
+          GuideBuoy can only point you to the right resolution path, and give you correct guidance, if the facts are
+          consistent. Please check each one; it takes a few minutes.
         </p>
-      </div>
+      </section>
       <ConfirmFactsPanel
         caseId={caseId}
         stage="free"
+        showIntro={false}
         onConfirmed={(id) => {
           setSnapshotId(id)
           generate.mutate(id)

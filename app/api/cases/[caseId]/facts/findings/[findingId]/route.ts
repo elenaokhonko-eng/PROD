@@ -7,7 +7,7 @@ import { createServiceClient } from "@/lib/supabase/service"
 
 export const dynamic = "force-dynamic"
 
-const KINDS = new Set(["choice", "value", "not_sure", "not_known", "acknowledged"])
+const KINDS = new Set(["choice", "choices", "value", "not_sure", "not_known", "acknowledged"])
 
 // The owner resolves one finding: choose a value, enter the correct value, "not sure", "not known", or keep an
 // unsupported claim. Every resolution is audited.
