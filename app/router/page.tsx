@@ -91,8 +91,8 @@ export default function RouterPage() {
         <div className="gb-container max-w-3xl">
           <div className="mb-8 text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Complaint path</p>
-            <h1 className="mt-3 text-4xl font-semibold text-harbor-deep sm:text-5xl">Tell Lumi what happened.</h1>
-            <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-muted-foreground">Share the situation in your own words. Lumi will organise the information and help identify a possible next route.</p>
+            <h1 className="mt-3 text-4xl font-semibold text-harbor-deep sm:text-5xl">Tell GuideBuoy what happened.</h1>
+            <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-muted-foreground">Share the situation in your own words. GuideBuoy will organise the information and help identify a possible next route.</p>
           </div>
 
           {sessionError && <div role="alert" className="mb-4 rounded-xl border border-destructive/40 bg-harbor-error-tint p-4">{sessionError}</div>}

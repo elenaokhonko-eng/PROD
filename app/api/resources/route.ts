@@ -7,7 +7,7 @@ export function GET() {
     {
       error: {
         code: 'resources_unavailable',
-        message: 'The verified resource directory is not currently available.',
+        message: 'Our verified resources directory is under development.',
       },
     },
     {

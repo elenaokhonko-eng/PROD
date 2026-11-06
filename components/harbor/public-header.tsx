@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { Menu } from 'lucide-react'
 import { useState } from 'react'
 import { marketingNavLinks } from '@/lib/navigation'
@@ -20,6 +21,9 @@ import { cn } from '@/lib/utils'
 export function PublicHeader() {
   const pathname = usePathname()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  // Signed-in people who come back to the public pages get "My cases" instead of "Sign in" (finding E2).
+  const { isSignedIn } = useAuth()
+  const account = isSignedIn ? { href: '/app', label: 'My cases' } : { href: '/sign-in', label: 'Sign in' }
 
   const linkClass = (href: string) =>
     cn(
@@ -57,7 +61,7 @@ export function PublicHeader() {
         <div className="ml-auto flex items-center gap-1 lg:ml-2">
           <ModeSwitcher />
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-            <Link href="/sign-in">Sign in</Link>
+            <Link href={account.href}>{account.label}</Link>
           </Button>
           <Button asChild size="sm" className="hidden sm:inline-flex">
             <Link href="/#tell-your-story">Start free</Link>
@@ -93,7 +97,7 @@ export function PublicHeader() {
                     <Link href="/#tell-your-story">Start organising — free</Link>
                   </Button>
                   <Button asChild variant="outline" className="w-full" onClick={() => setDrawerOpen(false)}>
-                    <Link href="/sign-in">Sign in</Link>
+                    <Link href={account.href}>{account.label}</Link>
                   </Button>
                 </div>
               </div>

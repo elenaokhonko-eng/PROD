@@ -16,7 +16,7 @@ export default function PricingPage() {
     <MarketingPage
       eyebrow="Clear, one-off prices"
       title="Free to start. Paid only when you choose more."
-      intro="Review the price and included scope before continuing. No pack guarantees an outcome; each one helps organise case information."
+      intro="Each option builds a more detailed record: the free evaluation organises and assesses your case, the bank pack turns it into a formal complaint, and the FIDReC pack is a complete case pack for FIDReC’s process. No pack guarantees an outcome."
     >
       <MarketingSection>
         <PackComparison />
@@ -28,9 +28,8 @@ export default function PricingPage() {
               <ul className="mt-3 list-disc space-y-2 pl-5 leading-7 text-muted-foreground">
                 <li>GuideBuoy is not a law firm and does not provide legal advice.</li>
                 <li>Banks, FIDReC and authorities make their own decisions.</li>
-                <li>You&apos;ll continue to our payment provider to complete checkout.</li>
-                <li>Availability and the final amount are confirmed before you enter checkout.</li>
-                <li>Generated automatically by GuideBuoy AI. It has not been reviewed by a person.</li>
+                <li>When the paid packs are available, you&apos;ll pay through our payment provider&apos;s secure checkout. The price and contents are shown before you pay.</li>
+                <li>Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).</li>
               </ul>
             </div>
           </div>

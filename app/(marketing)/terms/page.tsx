@@ -20,14 +20,14 @@ export default function TermsPage() {
       <section className="space-y-3">
         <h2 className="text-xl font-medium">No legal advice</h2>
         <p>
-          The service does not provide legal, financial, medical, or other professional advice. Free drafts, self-serve reports and escalation packs are automated outputs. Generated automatically by GuideBuoy AI. It has not been reviewed by a person. Users remain responsible for checking information before relying on or submitting it.
+          The service does not provide legal, financial, medical, or other professional advice. Free drafts, self-serve reports and escalation packs are automated outputs. Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min). Users remain responsible for checking information before relying on or submitting it.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-medium">Service availability and external resources</h2>
         <p>
-          Features may be unavailable or eligibility-gated. Human consultation and Singpass sign-in are not currently available. References to public agencies or community services do not imply affiliation, endorsement, or a warm hand-off unless expressly stated.
+          Features may be unavailable or eligibility-gated. Human consultation is available by arrangement (S$99 for 30 minutes; email info@guidebuoyai.sg to book). Singpass sign-in is not currently available. References to public agencies or community services do not imply affiliation, endorsement, or a warm hand-off unless expressly stated.
         </p>
       </section>
 

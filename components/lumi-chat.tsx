@@ -26,12 +26,12 @@ export function LumiChat() {
     <>
       <button
         type="button"
-        aria-label="Open Lumi support"
-        title={open ? "Close Lumi" : "Open Lumi"}
+        aria-label="Open GuideBuoy support"
+        title={open ? "Close GuideBuoy" : "Open GuideBuoy"}
         onClick={() => setOpen((prev) => !prev)}
         className="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-border bg-card text-primary shadow-ambient transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <Image src="/assets/lumi-buoy.jpg" alt="Lumi" width={40} height={40} className="gb-illo h-10 w-10 object-cover" />
+        <Image src="/assets/lumi-buoy.jpg" alt="GuideBuoy’s avatar" width={40} height={40} className="gb-illo h-10 w-10 object-cover" />
       </button>
 
       {open && (
@@ -41,14 +41,14 @@ export function LumiChat() {
               <div className="relative h-12 w-12 overflow-hidden rounded-full border border-border/70 flex-shrink-0">
                 <Image
                   src="/assets/lumi-buoy.jpg"
-                  alt="Lumi avatar"
+                  alt="GuideBuoy’s avatar"
                   fill
                   className="object-cover"
                   sizes="48px"
                 />
               </div>
               <div>
-                <CardTitle className="text-base">Lumi is listening</CardTitle>
+                <CardTitle className="text-base">GuideBuoy is listening</CardTitle>
                 <p className="text-xs text-muted-foreground">A calm space to offload how you feel.</p>
               </div>
             </div>
@@ -57,7 +57,7 @@ export function LumiChat() {
               size="icon"
               onClick={() => setOpen(false)}
               className="rounded-full h-8 w-8 text-muted-foreground hover:text-foreground"
-              aria-label="Close Lumi"
+              aria-label="Close GuideBuoy"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -75,7 +75,7 @@ export function LumiChat() {
                 className="min-h-[60px]"
               />
               <Button type="submit" className="w-full rounded-full">
-                Share with Lumi
+                Share with GuideBuoy
               </Button>
             </form>
 
@@ -91,7 +91,7 @@ export function LumiChat() {
                 </ul>
                 {responses.length > 0 && (
                   <div className="mt-2 space-y-1">
-                    <p className="text-foreground font-medium">Lumi:</p>
+                    <p className="text-foreground font-medium">GuideBuoy:</p>
                     <ul className="space-y-1 text-xs">
                       {responses.map((msg, idx) => (
                         <li key={`${msg}-${idx}`} className="rounded-lg bg-primary/10 p-2 text-foreground">

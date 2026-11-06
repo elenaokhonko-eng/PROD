@@ -41,7 +41,7 @@ function wrapParagraph(text: string, font: { widthOfTextAtSize: (text: string, s
   return lines
 }
 
-class PdfBuilder {
+export class PdfBuilder {
   private doc = PDFDocument.create()
   private fontPromise: Promise<PDFFont> | null = null
   private boldFontPromise: Promise<PDFFont> | null = null

@@ -8,14 +8,14 @@ export const expectedStateText = {
   layer1Gap: 'A few more details',
   layer1Evidence: 'Upload supporting evidence',
   layer1DraftPending: 'GuideBuoy can only point you to the right resolution path',
-  layer1FreeDraft: 'Your free triage draft',
+  layer1FreeDraft: /^Your free evaluation$/,
   // Stage 1 (paid stages off): the evaluation is followed by the next steps instead of a buy button.
   transitionBuyReport: paidStagesEnabled ? 'Get your Bank Pack' : 'Your next steps',
   layer2Running: 'Checking your case information',
   layer2Drafting: 'Preparing your automated report',
   layer2Ready: 'Your complaint report',
   layer2Failed: 'We hit a snag generating your report',
-  layer3Unavailable: 'Human consultation is not currently available.',
+  layer3Unavailable: 'Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.',
   layer3Tier2: /FIDReC Tier 2 pack/i,
 } as const
 

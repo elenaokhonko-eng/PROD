@@ -5,7 +5,7 @@ export type PublicRoute = {
 }
 
 export const marketingRoutes: PublicRoute[] = [
-  { path: '/', landmark: /Tell it once\./ },
+  { path: '/', landmark: /Tell us once\./ },
   { path: '/about', landmark: /The burden should sit on the system/ },
   { path: '/faq', landmark: 'Honest answers for a stressful moment.' },
   { path: '/privacy', landmark: 'Privacy Policy' },
@@ -20,8 +20,8 @@ export const marketingRoutes: PublicRoute[] = [
 ]
 
 export const routerStaticRoutes: PublicRoute[] = [
-  { path: '/router', landmark: 'Tell Lumi what happened.' },
+  { path: '/router', landmark: 'Tell GuideBuoy what happened.' },
   { path: '/router/path-a2', landmark: 'Review current official guidance' },
   { path: '/router/path-e', landmark: 'Review official reporting options' },
-  { path: '/router/tracker', expectedPath: '/router', landmark: 'Tell Lumi what happened.' },
+  { path: '/router/tracker', expectedPath: '/router', landmark: 'Tell GuideBuoy what happened.' },
 ]

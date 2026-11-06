@@ -85,16 +85,9 @@ export function ResourceDirectory() {
 
   if (state.status === 'error') {
     return (
-      <section className="rounded-card border border-dashed bg-card p-6 text-center" role="alert">
+      <section className="rounded-card border border-dashed bg-card p-6 text-center" role="status">
         <AlertTriangle className="mx-auto size-7 text-muted-foreground" aria-hidden="true" />
-        <h2 className="mt-3 text-xl font-semibold">Official resources are not currently available</h2>
-        <p className="mx-auto mt-2 max-w-xl text-muted-foreground">
-          The verified provider-backed directory could not be loaded. No resource information is being substituted
-          locally.
-        </p>
-        <Button type="button" variant="outline" className="mt-4" onClick={() => setRequestVersion((value) => value + 1)}>
-          Try again
-        </Button>
+        <h2 className="mt-3 text-xl font-semibold">Our verified resources directory is under development.</h2>
       </section>
     )
   }

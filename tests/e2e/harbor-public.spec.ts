@@ -28,7 +28,7 @@ test.describe("Harbor public shell", () => {
     })
 
     await page.goto("/")
-    await expect(page.getByRole("heading", { name: /Tell it once/i })).toBeVisible()
+    await expect(page.getByRole("heading", { name: /Tell us once/i })).toBeVisible()
     await expect(page.getByRole("navigation", { name: "Primary navigation" })).toContainText("Pricing")
     await expect(page.getByRole("navigation", { name: "Primary navigation" })).not.toContainText("Analytics")
     await expect(page.getByText("SGD 18 FI Pack", { exact: true })).toBeVisible()
@@ -125,7 +125,7 @@ test.describe("Harbor public shell", () => {
   test("keeps the public shell usable at 390px", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto("/")
-    await expect(page.getByRole("heading", { name: /Tell it once/i })).toBeVisible()
+    await expect(page.getByRole("heading", { name: /Tell us once/i })).toBeVisible()
     const bodyOverflows = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)
     expect(bodyOverflows).toBe(false)
   })

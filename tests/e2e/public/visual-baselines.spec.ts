@@ -80,7 +80,7 @@ for (const path of routes) {
 
 async function settleRoute(page: Page, path: (typeof routes)[number]) {
   if (path === '/resources') {
-    await expect(page.getByRole('heading', { level: 2, name: 'Official resources are not currently available' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Our verified resources directory is under development.' })).toBeVisible()
     return
   }
 

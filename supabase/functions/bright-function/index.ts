@@ -8,12 +8,15 @@ import {
 import {
   assessSrf,
   describeFailures,
+  type EvidenceFinding,
+  evidenceListsText,
   type FactKey,
   factsYouConfirmed,
   formatFactValue,
   type Institution,
   type Money,
   qualifyUnsupportedStatements,
+  reportItNowText,
   type SnapshotFacts,
   srfAssessmentText,
   srfFactsFromSnapshot,
@@ -139,13 +142,13 @@ Deno.serve(async (req) => {
     // If the user settled a conflict against their story (chose a value the story does not support, or typed their
     // own), the model is not shown the story: it copies the story's version even when told not to. The evaluation is
     // then written from the confirmed facts alone.
-    const { data: conflicts, error: conflictsErr } = await supabase
+    const { data: findings, error: findingsErr } = await supabase
       .from("case_fact_findings")
-      .select("values, resolution")
+      .select("fact_key, finding_type, values, resolution")
       .eq("case_id", case_id)
-      .eq("finding_type", "conflict")
       .is("invalidated_at", null);
-    if (conflictsErr) return new Response(`Findings Error: ${conflictsErr.message}`, { status: 500 });
+    if (findingsErr) return new Response(`Findings Error: ${findingsErr.message}`, { status: 500 });
+    const conflicts = (findings ?? []).filter((f) => f.finding_type === "conflict");
     type StoredValue = { sources?: Array<{ sourceType?: string }> };
     const fromStory = (v: StoredValue | undefined) => Boolean(v?.sources?.some((s) => s.sourceType === "story"));
     const storyOverruled = (conflicts ?? []).some((f) => {
@@ -197,7 +200,8 @@ Deno.serve(async (req) => {
       secondPerson: true,
       forbidden: [{ pattern: SRF_VERDICT, detail: "the SRF assessment is written by the server" }],
     };
-    const outputText = (r: Tier0LLMResult) => [r.summary, r.evidence_checklist];
+    // The evidence checklist shown is the server's (C2), so only the model's summary is checked and kept.
+    const outputText = (r: Tier0LLMResult) => [r.summary];
     let llm = await callOpenAITier0(input, null);
     let failures = validateOutput(outputText(llm), facts, checks);
     if (failures.length) {
@@ -207,7 +211,6 @@ Deno.serve(async (req) => {
     if (failures.length && failures.every((f) => f.check === "unqualified")) {
       // Only document-less or unsure facts stated as certain: qualify exactly those sentences, then check again.
       llm.summary = qualifyUnsupportedStatements(llm.summary ?? "", facts);
-      llm.evidence_checklist = qualifyUnsupportedStatements(llm.evidence_checklist ?? "", facts);
       failures = validateOutput(outputText(llm), facts, checks);
     }
     if (failures.length) {
@@ -229,7 +232,7 @@ Deno.serve(async (req) => {
       supabase,
       case_id,
       narrative_type: "tier0_summary",
-      title: "Incident summary (Tier-0)",
+      title: "Free evaluation summary",
       text_content: sanitizeSummary(llm.summary ?? ""),
       source_ref,
       version: 1,
@@ -243,8 +246,13 @@ Deno.serve(async (req) => {
       supabase,
       case_id,
       narrative_type: "tier0_evidence_checklist",
-      title: "Evidence checklist (Tier-0)",
-      text_content: llm.evidence_checklist ?? "",
+      title: "Evidence checklist",
+      // Two lists from the confirmed facts and their documents (C2), not the model's suggestions.
+      text_content: evidenceListsText(facts, (findings ?? []).map((f) => ({
+        factKey: f.fact_key as FactKey,
+        values: (f.values ?? []) as EvidenceFinding["values"],
+        resolution: f.resolution as EvidenceFinding["resolution"],
+      }))),
       source_ref,
       version: 1,
       language: lang,
@@ -272,7 +280,7 @@ Deno.serve(async (req) => {
       supabase,
       case_id,
       narrative_type: "tier0_srf_signal",
-      title: "Shared Responsibility Framework: an early view",
+      title: "How the rules may apply",
       text_content: srfAssessmentText(assessSrf(srfFactsFromSnapshot(facts))),
       source_ref,
       version: 1,
@@ -282,6 +290,26 @@ Deno.serve(async (req) => {
       fact_snapshot_id,
     });
     const srfWritten = true;
+
+    // "Report it now" (C4) while the bank or the police have not been told; removed once both have.
+    const reportNow = reportItNowText(facts);
+    if (reportNow) {
+      await upsertNarrative({
+        supabase,
+        case_id,
+        narrative_type: "tier0_report_now",
+        title: "Report it now",
+        text_content: reportNow,
+        source_ref,
+        version: 1,
+        language: lang,
+        audience: "user",
+        intake_id,
+        fact_snapshot_id,
+      });
+    } else {
+      await supabase.from("case_narratives").delete().eq("case_id", case_id).eq("narrative_type", "tier0_report_now");
+    }
 
     return json(
       {

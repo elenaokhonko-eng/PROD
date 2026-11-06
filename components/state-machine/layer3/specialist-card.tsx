@@ -22,7 +22,7 @@ export function SpecialistCard(_props: SpecialistCardProps) {
         </div>
         <div className="flex-1">
           <CardTitle>Human consultation</CardTitle>
-          <CardDescription>Human consultation is not currently available.</CardDescription>
+          <CardDescription>Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.</CardDescription>
         </div>
       </CardHeader>
       <CardContent>

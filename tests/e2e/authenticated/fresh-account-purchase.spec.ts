@@ -28,10 +28,11 @@ test.describe('fresh free account', () => {
     try {
       await completeFreeEvaluation(page, caseId, smsPhishingNarrative)
       // The SRF section is written by the server from fixed rules, never by the model.
-      await expect(page.getByText('Shared Responsibility Framework: an early view')).toBeVisible()
+      await expect(page.getByText('How the rules may apply', { exact: true })).toBeVisible()
+      await expect(page.getByText(/^SRF: the Shared Responsibility Framework/m).first()).toBeVisible()
 
       await expect(page.getByRole('heading', { name: 'Your next steps' })).toBeVisible({ timeout: 60_000 })
-      await expect(page.getByText(/^Available from /).first()).toBeVisible()
+      await expect(page.getByText('Available shortly', { exact: true }).first()).toBeVisible()
       await expect(page.getByRole('button', { name: /Get Bank Pack/i })).toHaveCount(0)
       await page.getByRole('button', { name: 'Email me when it’s available' }).first().click()
       await expect(page.getByText(/^Thank you\. We’ll email /)).toBeVisible()
@@ -141,7 +142,7 @@ async function completeFreeEvaluation(page: Page, caseId: string, narrative: str
   const confirmHeading = page.getByRole('heading', { name: 'Confirm your facts', exact: true })
   await answerFollowUpsUntil(page, confirmHeading, stepTimeoutMs)
   await confirmFactsInDashboard(page, caseId)
-  await expect(page.getByText('Your free triage draft')).toBeVisible({ timeout: 180_000 })
+  await expect(page.getByRole('heading', { name: 'Your free evaluation', exact: true })).toBeVisible({ timeout: 180_000 })
   // Exact: the server-written SRF section also says "based only on the facts you confirmed".
   await expect(page.getByText('Facts you confirmed', { exact: true })).toBeVisible()
 }

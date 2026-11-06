@@ -131,11 +131,10 @@ export default function SettingsClient({ initialUser, initialProfile }: Settings
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                A deletion request must create a reviewable request and receipt before any data is changed. That reviewed workflow is not currently available.
+                You can ask us to delete your data at any time. Deletion requests are currently handled manually and
+                confirmed by email; an automated process is coming. Email{' '}
+                <a className="font-medium text-foreground underline" href="mailto:info@guidebuoyai.sg">info@guidebuoyai.sg</a>.
               </p>
-              <Button type="button" variant="outline" className="w-full" disabled>
-                Request data deletion
-              </Button>
             </CardContent>
           </Card>
         </div>

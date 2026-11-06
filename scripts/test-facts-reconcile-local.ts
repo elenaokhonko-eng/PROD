@@ -116,7 +116,7 @@ async function main() {
       (e: unknown) => e instanceof ResolutionRejectedError && e.reason === "invalid_value",
     )
     await resolveFinding(service, caseId, police1.id, { kind: "choice", index: 0 }, profileId)
-    await resolveFinding(service, caseId, missing("scam_type").id, { kind: "value", value: ["digital_phishing"] }, profileId)
+    await resolveFinding(service, caseId, missing("scam_type").id, { kind: "value", value: ["phishing_sms_or_message"] }, profileId)
     await resolveFinding(service, caseId, missing("reported_to_bank").id, { kind: "value", value: { value: "yes", date: "2026-10-04" } }, profileId)
     await resolveFinding(service, caseId, missing("bank_reply").id, { kind: "value", value: { status: "none" } }, profileId)
 

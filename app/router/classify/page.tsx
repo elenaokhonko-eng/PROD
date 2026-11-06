@@ -143,7 +143,7 @@ export default function ClassifyPage() {
                   <Loader2 className="mx-auto size-11 animate-spin text-primary" aria-hidden="true" />
                 )}
                 <h1 id="classification-title" className="mt-4 text-2xl font-semibold text-harbor-deep sm:text-3xl">
-                  {phase === 'complete' ? 'Your next questions are ready' : 'Lumi is organising what you shared'}
+                  {phase === 'complete' ? 'Your next questions are ready' : 'GuideBuoy is organising what you shared'}
                 </h1>
                 <p className="mx-auto mt-3 max-w-lg leading-7 text-muted-foreground">
                   {phase === 'slow'

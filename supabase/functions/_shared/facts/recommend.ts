@@ -134,7 +134,7 @@ export function recommend(facts: RecommendFacts, options: RecommendOptions): Rec
       break;
   }
   if (!bankAvailable && (pos === "not_told" || pos === "told_no_complaint" || pos === "complaint_recent")) {
-    guidance.push("Our free evaluation sets out how to report to your bank and the police, step by step.");
+    guidance.push("If you haven't yet, report it to your bank's 24-hour fraud hotline, the police and ScamShield (helpline 1799).");
   }
 
   const deadline = fidrec.available && fidrec.route === "final_reply"

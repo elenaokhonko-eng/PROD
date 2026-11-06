@@ -62,10 +62,11 @@ test('settings export and deletion request preserve their request and response c
   await page.getByRole('button', { name: 'Export My Data' }).click()
   await expect((await download).suggestedFilename()).toMatch(/^guidebuoy-data-export-.*\.json$/)
 
-  // Self-service deletion is switched off until the reviewed request-and-receipt workflow exists: the control is
-  // shown disabled with the reason, and nothing reaches the delete endpoint.
-  await expect(page.getByText('That reviewed workflow is not currently available.')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Request data deletion' })).toBeDisabled()
+  // Deletion is a manual request by email until the reviewed workflow exists (finding D5): no self-service control,
+  // and nothing reaches the delete endpoint.
+  await expect(page.getByText(/Deletion requests are currently handled manually and confirmed by email/)).toBeVisible()
+  await expect(page.getByRole('link', { name: 'info@guidebuoyai.sg' })).toHaveAttribute('href', 'mailto:info@guidebuoyai.sg')
+  await expect(page.getByRole('button', { name: 'Request data deletion' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /delete account/i })).toHaveCount(0)
   expect(deleteRequests).toBe(0)
 })

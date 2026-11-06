@@ -70,7 +70,7 @@ export const HARBOR_VISUAL_FIXTURES = [
   { id: 'G3-collaborator-active', family: 'G', title: 'Collaborator invitation states', summary: 'Invite, pending and accepted states come from canonical case access data.', tone: 'neutral' },
   { id: 'G4-collaborator-recovery', family: 'G', title: 'Collaborator access recovery', summary: 'Expired, invalid, revoked and denied access never expose another user’s case.', tone: 'error' },
 
-  { id: 'H1-chooser', family: 'H', title: 'Post-report help chooser', summary: 'Human consultation is not currently available. Planned help stays inactive.', tone: 'inactive' },
+  { id: 'H1-chooser', family: 'H', title: 'Post-report help chooser', summary: 'Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book. Planned help stays inactive.', tone: 'inactive' },
   { id: 'H2-form', family: 'H', title: 'Supported contact form', summary: 'Editable contact fields are separated from read-only server case context.', tone: 'neutral' },
   { id: 'H3-submitting', family: 'H', title: 'Contact request submitting', summary: 'Duplicate submission remains locked while the canonical request is pending.', tone: 'progress' },
   { id: 'H4-confirmation', family: 'H', title: 'Contact request receipt', summary: 'A durable response may say “Request received.” without a response-time promise.', tone: 'success' },

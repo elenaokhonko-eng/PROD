@@ -25,7 +25,7 @@ export const metadata: Metadata = {
       "Organise your story, supporting material and next-step information in one complaint workspace.",
     url: "https://guidebuoyai.sg",
     siteName: "GuideBuoy AI",
-    images: [{ url: "/assets/harbor/lumi-buoy.jpg", alt: "Lumi, the GuideBuoy buoy guide" }],
+    images: [{ url: "/assets/harbor/lumi-buoy.jpg", alt: "GuideBuoy’s avatar" }],
   },
   twitter: {
     card: "summary_large_image",

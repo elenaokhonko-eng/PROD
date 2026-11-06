@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = {
   title: "Singapore's Complaint Helper",
-  description: 'Tell your story once. Lumi helps organise the facts, evidence and next steps for a complaint.',
+  description: 'Tell your story once. GuideBuoy helps organise the facts, evidence and next steps for a complaint.',
   alternates: { canonical: '/' },
 }
 
@@ -26,7 +26,7 @@ const reasons = [
   {
     icon: LockKeyhole,
     title: 'You stay in control.',
-    text: 'Review the information Lumi organises and decide whether you want to continue at each step.',
+    text: 'Review the information GuideBuoy organises and decide whether you want to continue at each step.',
   },
 ] as const
 
@@ -38,10 +38,10 @@ export default function HomePage() {
           <div className="min-w-0">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">GuideBuoy AI</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight text-harbor-deep sm:text-5xl lg:text-6xl">
-              Tell it once. We&apos;ll help you carry it from here.
+              Tell us once. We&apos;ll help you carry it from here.
             </h1>
             <p className="mt-6 text-lg leading-8 text-muted-foreground">
-              If you&apos;ve been scammed or you&apos;re stuck in a dispute with a bank, telco or platform — you&apos;re in the right place, and it&apos;s not your fault. Take your time. Lumi helps turn what happened into one clear, organised record.
+              If you&apos;ve been scammed, or you&apos;re stuck in a dispute with your bank, your e-wallet or payment app, or your mobile operator, you&apos;re in the right place, and we&apos;re here to help. GuideBuoy helps turn what happened into one clear, organised record.
             </p>
             <p className="mt-4 text-sm font-medium">Not legal advice — a calm, structured way to get your facts in order.</p>
             <Button asChild variant="link" className="mt-4 h-auto min-h-11 whitespace-normal px-0 text-left">
@@ -50,10 +50,10 @@ export default function HomePage() {
               </Link>
             </Button>
           </div>
-          <div className="gb-illo mx-auto max-w-sm">
+          <div className="gb-illo gb-avatar mx-auto max-w-sm">
             <Image
               src="/assets/harbor/lumi-buoy.jpg"
-              alt="Lumi, the GuideBuoy buoy guide"
+              alt="GuideBuoy’s avatar"
               width={640}
               height={640}
               priority

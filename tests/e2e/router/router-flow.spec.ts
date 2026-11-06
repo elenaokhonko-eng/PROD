@@ -13,12 +13,12 @@ test('typed story is preserved locally and hands off to sign-up onboarding', asy
   const api = await installRouterApi(page)
   await page.goto('/router', { waitUntil: 'domcontentloaded' })
 
-  await expect(page.getByRole('heading', { level: 1, name: 'Tell Lumi what happened.' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Tell GuideBuoy what happened.' })).toBeVisible()
   await expectNoHorizontalOverflow(page)
   await expectNamedInteractiveControls(page)
   await expect.poll(() => api.createdSessions).toBe(1)
 
-  const capture = page.getByRole('region', { name: 'Tell Lumi what happened — in your own words.' })
+  const capture = page.getByRole('region', { name: 'Tell GuideBuoy what happened — in your own words.' })
   const story = capture.getByRole('textbox', { name: 'Your story' })
   await story.fill(narrative)
   await expect.poll(async () => story.inputValue()).toBe(narrative)
@@ -56,7 +56,7 @@ test('voice story is transcribed and follows the same auth handoff', async ({ pa
   await page.goto('/router', { waitUntil: 'domcontentloaded' })
   await expect.poll(() => api.createdSessions).toBe(1)
 
-  const capture = page.getByRole('region', { name: 'Tell Lumi what happened — in your own words.' })
+  const capture = page.getByRole('region', { name: 'Tell GuideBuoy what happened — in your own words.' })
   const voiceToggle = capture.getByRole('button', { name: 'Record my story' })
   await voiceToggle.click()
   await expect(voiceToggle).toHaveAttribute('aria-pressed', 'true')

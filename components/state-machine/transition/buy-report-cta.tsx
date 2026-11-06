@@ -52,7 +52,7 @@ export function BuyReportCTA({
           <li>Requested resolution drafted for you</li>
         </ul>
         <p className="rounded-lg border bg-background/70 p-3 text-sm text-muted-foreground" role="note">
-          Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+          Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
         </p>
 
         {unavailableReason ? (

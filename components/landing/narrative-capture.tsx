@@ -169,7 +169,7 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
 
   const submitNarrative = async () => {
     if (!narrative.trim()) {
-      setError('Tell Lumi a little about what happened before continuing.')
+      setError('Tell GuideBuoy a little about what happened before continuing.')
       return
     }
     if (!isOnline) {
@@ -197,7 +197,7 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
   return (
     <section className="gb-card p-5 sm:p-7" aria-labelledby="capture-title" aria-busy={isProcessing || isTranscribing}>
       <h2 id="capture-title" className="text-2xl font-semibold text-harbor-deep">
-        Tell Lumi what happened — in your own words.
+        Tell GuideBuoy what happened — in your own words.
       </h2>
       <p className="mt-2 leading-6 text-muted-foreground">There is no wrong way to begin. You can edit your words before continuing.</p>
 
@@ -264,13 +264,10 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
           value={narrative}
           onChange={(event) => setNarrative(event.target.value)}
           rows={8}
-          aria-describedby="story-help story-privacy"
+          aria-describedby="story-include story-privacy"
           placeholder="For example: In March, I received a call that looked like it was from my bank…"
           className="min-h-48 resize-y bg-card text-base leading-7"
         />
-        <p id="story-help" className="mt-2 text-sm text-muted-foreground">
-          Helpful details include what happened, when it happened, amounts, contacts and reference numbers.
-        </p>
         <p id="story-privacy" className="mt-3 rounded-lg bg-harbor-sage-tint px-3 py-2 text-sm leading-6">
           An unfinished story is retained in this browser so you can return to it. Voice is sent for transcription when you stop recording.
         </p>
@@ -282,13 +279,17 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
         </div>
       )}
 
-      <details className="mt-4 rounded-xl border bg-card p-4">
+      {/* Finding B2: one instruction, open by default. The list follows what the bank and FIDReC packs need. */}
+      <details open className="mt-4 rounded-xl border bg-card p-4">
         <summary className="min-h-11 cursor-pointer font-medium">What should I include?</summary>
-        <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
-          <li>What happened and when</li>
-          <li>Amounts involved</li>
-          <li>Who you already contacted</li>
-          <li>Any reference numbers</li>
+        <ul id="story-include" className="list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
+          <li>What happened, step by step, with dates and times</li>
+          <li>How the scammer first contacted you, and who they pretended to be</li>
+          <li>Whether you entered or shared any login, password, one-time code or token, and how</li>
+          <li>How much was taken, and from which accounts or cards (bank account, debit card, credit card, e-wallet)</li>
+          <li>Who you have already contacted (your bank or payment provider, the police, ScamShield) and when</li>
+          <li>Any report or reference numbers from the bank or the police</li>
+          <li>What the bank has said since, and whether you have a written reply</li>
         </ul>
       </details>
 

@@ -2,7 +2,8 @@
 
 /**
  * After the free evaluation: the recommended next step (design 6.1) and the two paid options. In stage 1 both paid
- * options show "Available from [date]" with an "Email me when it's available" button instead of a buy button.
+ * options show "Available shortly" (finding D1: no dates) with an "Email me when it's available" button instead of
+ * a buy button.
  */
 
 import { useState } from 'react'
@@ -19,6 +20,9 @@ const PRODUCT_TITLES: Record<StageProduct, string> = {
   fidrec_pack: 'FIDReC escalation pack',
 }
 
+// Each card says what the report does and who it is for (finding C6), and offers a human review (D2).
+const CONSULTATION = 'Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.'
+
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return ''
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
@@ -28,8 +32,8 @@ function ruleNote(state: ProductState | undefined): string | null {
   if (!state) return null
   if (state.state === 'available_from') {
     return state.date
-      ? `For your case, FIDReC can take this from ${formatDate(state.date)}, four weeks after your written complaint.`
-      : 'For your case, FIDReC can take this four weeks after you send your bank a written complaint.'
+      ? `For your case, you can go to FIDReC from ${formatDate(state.date)}, four weeks after your written complaint, if your bank hasn't resolved it. You don't have to wait for a final reply.`
+      : 'For your case, you can go to FIDReC four weeks after you send your bank a written complaint, if it hasn’t resolved it. You don’t have to wait for a final reply.'
   }
   if (state.state === 'not_offered') {
     if (state.reason === 'final_reply_received') return 'Not needed for your case: your bank has already sent its final reply.'
@@ -58,16 +62,20 @@ export function NextSteps({ caseId, priceLabels }: { caseId: string; priceLabels
 
   const { recommendation: rec, paidStages } = recommendation.data
   const stateOf = (product: StageProduct) => rec?.products.find((p) => p.product === product)
-  const cards: Array<{ product: 'bank_pack' | 'fidrec_pack'; price: string; description: string }> = [
+  const cards: Array<{ product: 'bank_pack' | 'fidrec_pack'; price: string; description: string; detail: string }> = [
     {
       product: 'bank_pack',
       price: priceLabels.report,
-      description: 'A full written complaint to your bank, with your evidence and the bank’s duties set out clearly.',
+      description:
+        'Haven’t sent your bank a full written complaint yet, or not sure yours was complete? We’ll prepare one with you, with the evidence the bank expects and the regulatory framework in mind.',
+      detail: 'A concise, formal complaint with the key facts and your evidence.',
     },
     {
       product: 'fidrec_pack',
       price: priceLabels.tier2,
-      description: 'A complete, neutral case pack for FIDReC, with the facts and arguments on both sides.',
+      description:
+        'FIDReC is Singapore’s independent dispute resolution centre for consumers and financial institutions. It costs nothing to start; a S$250 case fee applies only if your case goes to adjudication. You can go to FIDReC within 6 months of your bank’s final reply, or 4 weeks after you sent a written complaint if the bank hasn’t resolved it. You don’t have to wait for a final reply.',
+      detail: 'A comprehensive case pack with every material fact and the arguments on both sides, ready for FIDReC’s process.',
     },
   ]
 
@@ -112,12 +120,14 @@ export function NextSteps({ caseId, priceLabels }: { caseId: string; priceLabels
               <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <CardTitle>{PRODUCT_TITLES[card.product]} · {card.price}</CardTitle>
-                  {!paidStages.enabled && <Badge variant="secondary">Available from {formatDate(paidStages.availableFrom)}</Badge>}
+                  {!paidStages.enabled && <Badge variant="secondary">Available shortly</Badge>}
                 </div>
                 <CardDescription>{card.description}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
+                <p>{card.detail}</p>
                 {note && <p className="text-muted-foreground">{note}</p>}
+                <p className="text-muted-foreground">{CONSULTATION}</p>
                 {!paidStages.enabled && (
                   done ? (
                     <p role="status">Thank you. We’ll email {done} when it’s available.</p>

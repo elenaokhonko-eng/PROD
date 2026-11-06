@@ -26,11 +26,11 @@ export default function NomineeUpgradeModal({
           </span>
           <DialogTitle>Human representation is not available</DialogTitle>
           <DialogDescription className="leading-6">
-            GuideBuoy does not currently offer a nominee, representative, consultation or submission service. Available automated products and their current prices are shown on the pricing page before checkout.
+            GuideBuoy does not currently offer a nominee, representative or submission service. Available automated products and their current prices are shown on the pricing page before checkout.
           </DialogDescription>
         </DialogHeader>
         <p className="rounded-xl border bg-muted/40 p-4 text-sm text-muted-foreground" role="note">
-          Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+          Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
         </p>
         <DialogFooter className="gap-2 sm:gap-0">
           <Button type="button" variant="outline" onClick={onClose}>Close</Button>

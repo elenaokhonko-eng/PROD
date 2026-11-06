@@ -20,7 +20,8 @@ export function CaseShell({ children }: { children: ReactNode }) {
       </a>
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div className="gb-container flex min-h-16 items-center gap-2">
-          <Link href="/app" className="flex min-h-11 items-center gap-2 rounded-full pr-2 font-semibold">
+          {/* The logo goes to the public home page without signing out (finding E2); "My cases" is beside it. */}
+          <Link href="/" className="flex min-h-11 items-center gap-2 rounded-full pr-2 font-semibold">
             <Image
               src="/assets/harbor/lumi-buoy.jpg"
               alt=""

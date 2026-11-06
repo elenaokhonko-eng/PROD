@@ -166,7 +166,7 @@ describe('Harbor UI functionality contract', () => {
       'window.location.assign(checkout.url)',
     ])
     assert.doesNotMatch(dashboardSource, /human_consult_30m|useSubmitContactRequest|ContactRequest/)
-    assert.match(dashboardSource, /Human consultation is not currently available\./)
+    assert.match(dashboardSource, /Human consultation: S\$99 for 30 minutes\. Email info@guidebuoyai\.sg to book\./)
     assert.match(paymentLandingSource, /checking the server-recorded payment and access status/)
     assert.match(dashboardSource, /searchParams\.get\('checkout'\) !== 'cancel'/)
     assert.match(dashboardSource, /<PaymentCancelled/)
@@ -200,7 +200,7 @@ describe('Harbor UI functionality contract', () => {
   })
 
   it('discloses automated output on every material tier surface', () => {
-    const disclosure = 'Generated automatically by GuideBuoy AI. It has not been reviewed by a person.'
+    const disclosure = 'Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).'
     for (const path of [
       'components/state-machine/layer1/tier0-draft-view.tsx',
       'components/state-machine/transition/buy-report-cta.tsx',
@@ -214,8 +214,9 @@ describe('Harbor UI functionality contract', () => {
   })
 
   it('keeps deletion, referral, consultation, Singpass, and handoffs inactive', () => {
-    assert.match(settingsSource, /Request data deletion/)
-    assert.match(settingsSource, /reviewable request and receipt/)
+    // Deletion is a manual request by email (finding D5); there is still no self-service deletion call.
+    assert.match(settingsSource, /Deletion requests are currently handled manually/)
+    assert.match(settingsSource, /href="mailto:info@guidebuoyai\.sg"/)
     assert.doesNotMatch(settingsSource, /\/api\/privacy\/delete-request|\/api\/referral\/generate/)
 
     for (const path of [

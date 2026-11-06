@@ -21,7 +21,7 @@ export function ConsultCta(_props: ConsultCtaProps) {
         <div className="flex-1">
           <CardTitle>Human consultation</CardTitle>
           <CardDescription>
-            Human consultation is separate from automated GuideBuoy outputs and is not currently available.
+            Human consultation is separate from automated GuideBuoy outputs: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.
           </CardDescription>
         </div>
       </CardHeader>

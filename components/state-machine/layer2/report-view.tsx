@@ -54,7 +54,7 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
       </div>
 
       <p className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground" role="note">
-        Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+        Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
       </p>
 
       {json.executive_summary ? (

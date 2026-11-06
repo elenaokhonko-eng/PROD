@@ -80,7 +80,7 @@ export function Tier2PackView({
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="rounded-lg border bg-background/70 p-3 text-sm text-muted-foreground" role="note">
-            Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+            Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
           </p>
           {errorMessage ? (
             <p className="text-sm text-destructive" role="alert">

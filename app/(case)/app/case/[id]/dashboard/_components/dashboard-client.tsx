@@ -342,7 +342,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
       <section className="rounded-xl border border-dashed bg-muted/30 p-5" aria-labelledby="consultation-status">
         <h2 id="consultation-status" className="font-semibold">Human consultation</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Human consultation is not currently available.
+          Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.
         </p>
         <button type="button" className="mt-4 min-h-11 rounded-full border px-4 text-sm font-semibold" disabled>
           Consultation unavailable

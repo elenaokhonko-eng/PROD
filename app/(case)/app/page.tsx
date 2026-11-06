@@ -54,8 +54,12 @@ export default async function CasesPage() {
                     <ArrowRight className="size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" />
                   </span>
                   <span className="mt-5 text-xl font-semibold text-foreground">
-                    {caseItem.institution_name?.trim() || 'Saved complaint'}
+                    {/* Named by workflow (finding E4); stage 1 has one workflow. */}
+                    Scam and fraud case
                   </span>
+                  {caseItem.institution_name?.trim() ? (
+                    <span className="mt-1 text-sm font-medium text-foreground">{caseItem.institution_name.trim()}</span>
+                  ) : null}
                   <span className="mt-2 text-sm text-muted-foreground">
                     {updatedLabel ? `Updated ${updatedLabel}` : 'Open case workspace'}
                   </span>

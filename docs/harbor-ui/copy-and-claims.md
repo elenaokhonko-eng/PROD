@@ -19,8 +19,8 @@ Use short, factual, non-blaming sentences. Do not name internal tiers, functions
 | Reporting disclaimer | **GuideBuoy helps organise information. It does not decide your case or provide legal advice.** |
 | Singpass option | **Singpass sign-in is not currently available.** The disabled option does not authenticate the user. |
 | Data deletion | **Request data deletion.** Explain that a request is reviewed and that lawful security, accounting, and legal-retention exceptions may apply. After the canonical API creates a durable request, show **Request received**, its server reference, and returned status; do not fabricate any of them. |
-| Automated outputs | **Generated automatically by GuideBuoy AI. It has not been reviewed by a person.** Show this on every material output and checkout surface. |
-| Human consultation | **Human consultation is not currently available.** It is a separate optional product and must remain inactive until its operational, cancellation, refund, and record-retention gate is approved. |
+| Automated outputs | **Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).** Show this on every material output and checkout surface. |
+| Human consultation | **Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.** It is a separate optional product and must remain inactive until its operational, cancellation, refund, and record-retention gate is approved. |
 | Help directory | **Planned—not currently available through GuideBuoy.** Inactive cards may name the category only; they cannot launch a handover. |
 
 **Prohibited in approved UI:** retired price points, recurring-billing assertions, price guarantees, refund promises, unapproved price comparisons, certification/endorsement language, and any readiness/timing claim for unavailable services.
@@ -52,7 +52,7 @@ Only **verified** rows can be published as declarative claims. **Qualified copy*
 | Encrypted data storage | not publishable | A scoped statement needs evidence of covered database/storage, backups, exports, transit controls, processors, and legal/access exceptions. Do not claim absolute confidentiality or security. |
 | MAS guidance | not publishable | Applicable MAS guidance is a frozen requirement; public wording needs legal/compliance approval. `PDPA ✦ MAS` can only be a reviewed non-certification informational heading. |
 | Data deletion | qualified copy | “Request data deletion.” The production flow must create a durable request and receipt and show “Request received,” its server reference, returned status, identity/review steps, and lawful-retention exceptions. Email-only submission cannot support those statements. |
-| Automated outputs / human consultation | qualified copy | “Generated automatically by GuideBuoy AI. It has not been reviewed by a person.” “Human consultation is not currently available.” Do not imply credentials, availability, advice outcome, or fulfilment timing. |
+| Automated outputs / human consultation | qualified copy | “Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).” “Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.” Do not imply credentials, availability, advice outcome, or fulfilment timing. |
 | Help-resource directory / warm handovers | qualified copy | “Planned—not currently available through GuideBuoy.” List categories only as inactive placeholders; do not imply a live referral, partnership, endorsement, or handover. |
 | Partner, regulator, authority, or platform relationship | not publishable | Do not display logos or state affiliation, support, acceptance, or reuse by FIDReC, MAS, IMDA, SPF, ScamShield, banks, or partners. |
 | Refund, cancellation, or charge protection | not publishable | Do not promise refunds, free retries, or payment protection. |
@@ -69,5 +69,5 @@ Only **verified** rows can be published as declarative claims. **Qualified copy*
 | Identity-provider readiness | “Singpass sign-in is not currently available.” |
 | Automatic complete deletion | “Request data deletion.” The durable request/receipt API—not the browser—supplies “Request received,” reference, and status. |
 | Compliance/certification badge | Omit until legal/compliance approves a scoped public statement; never imply certification or endorsement. |
-| Human-review, specialist follow-up, or response commitment | “Generated automatically by GuideBuoy AI. It has not been reviewed by a person.” “Human consultation is not currently available.” |
+| Human-review, specialist follow-up, or response commitment | “Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).” “Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.” |
 | Refund, guarantee, or charge-protection promise | Omit. |

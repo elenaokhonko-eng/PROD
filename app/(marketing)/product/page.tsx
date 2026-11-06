@@ -18,7 +18,7 @@ const steps = [
   { title: 'Add evidence', description: 'Upload available documents through the guided evidence area.' },
   { title: 'Fill the gaps', description: 'Answer focused questions generated from the information available in your case.' },
   { title: 'Review the free draft', description: 'Check the organised story, evidence status and next-step information.' },
-  { title: 'Choose whether to upgrade', description: 'If the server confirms eligibility, you can choose a one-off full report.' },
+  { title: 'Choose whether to upgrade', description: 'If GuideBuoy confirms you’re eligible, you can choose a one-off full report.' },
 ] as const
 
 export default function ProductPage() {
@@ -67,9 +67,9 @@ export default function ProductPage() {
             <LockKeyhole className="size-6 text-harbor-warning" aria-hidden="true" />
             <h2 id="boundary-title" className="mt-3 text-xl font-semibold">Free and paid boundary</h2>
             <p className="mt-3 leading-7">Start, save a case, add evidence, answer questions and review the available free draft without paying.</p>
-            <p className="mt-3 leading-7"><strong>Full report — {fullReportPrice}.</strong> It is offered only when the server confirms that the case is eligible.</p>
+            <p className="mt-3 leading-7"><strong>Full report — {fullReportPrice}.</strong> It is offered only when GuideBuoy confirms that your case is eligible.</p>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+              Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
             </p>
           </aside>
         </div>

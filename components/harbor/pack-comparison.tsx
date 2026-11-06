@@ -5,12 +5,13 @@ import { paidStagesState } from '@/lib/billing/paid-stages'
 import { Button } from '@/components/ui/button'
 
 // Three separate options (spec section 6), not a sequence: the free evaluation, the bank dispute pack before a
-// final reply, and the FIDReC escalation pack after one. In stage 1 the paid packs show "Available from [date]".
+// final reply, and the FIDReC escalation pack after one. In stage 1 the paid packs show "Available shortly" (D1: no
+// dates). Each card says what it does (C6) and offers a human review (D2).
 const packs = [
   {
     name: 'Free evaluation',
     price: 'S$0',
-    description: 'Understand where you stand and your options, free.',
+    description: 'Organise your facts and get an assessment of where you stand and your options, free.',
     features: ['No payment required', 'You confirm every fact before anything is written'],
     paid: false,
   },
@@ -18,26 +19,22 @@ const packs = [
     name: 'Bank dispute pack',
     price: `S$${PRODUCT_CATALOGUE.self_serve_report.amountSgd}`,
     description:
-      'Haven’t sent your bank a full written complaint yet, or not sure yours was complete? Prepare one with your evidence.',
-    features: ['For before your bank’s final reply', 'A separate option: start here or skip it'],
+      'Haven’t sent your bank a full written complaint yet, or not sure yours was complete? We’ll prepare one with you, with the evidence the bank expects and the regulatory framework in mind.',
+    features: ['A concise, formal complaint with the key facts and your evidence', 'For before your bank’s final reply; a separate option'],
     paid: true,
   },
   {
     name: 'FIDReC escalation pack',
     price: `S$${PRODUCT_CATALOGUE.fidrec_tier2_pack.amountSgd}`,
     description:
-      'Received your bank’s final reply and disagree? Prepare a complete, neutral case pack for FIDReC.',
+      'FIDReC is Singapore’s independent dispute resolution centre for consumers and financial institutions; it costs nothing to start. Go within 6 months of your bank’s final reply, or 4 weeks after a written complaint the bank hasn’t resolved.',
     features: [
-      'After your bank’s final reply, or four weeks after your written complaint',
+      'A comprehensive case pack with every material fact and the arguments on both sides, ready for FIDReC’s process',
       'A separate option: no bank pack needed first',
     ],
     paid: true,
   },
 ] as const
-
-function formatDate(iso: string): string {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
-}
 
 export function PackComparison({ headingLevel = 'h2' }: { headingLevel?: 'h2' | 'h3' }) {
   const paidStages = paidStagesState()
@@ -51,7 +48,7 @@ export function PackComparison({ headingLevel = 'h2' }: { headingLevel?: 'h2' | 
           </Heading>
           <p className="mt-3 text-3xl font-semibold">{pack.price}</p>
           {pack.paid && !paidStages.enabled && (
-            <p className="mt-2 text-sm font-semibold text-harbor-blue">Available from {formatDate(paidStages.availableFrom)}</p>
+            <p className="mt-2 text-sm font-semibold text-harbor-blue">Available shortly</p>
           )}
           <p className="mt-3 min-h-14 leading-6 text-muted-foreground">{pack.description}</p>
           <ul className="mt-6 flex-1 space-y-3">
@@ -63,13 +60,11 @@ export function PackComparison({ headingLevel = 'h2' }: { headingLevel?: 'h2' | 
             ))}
           </ul>
           <p className="mt-6 text-sm leading-6 text-muted-foreground">
-            Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+            Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
           </p>
-          {pack.name === 'FIDReC escalation pack' && (
-            <p className="mt-3 rounded-control bg-harbor-surface-subtle p-3 text-sm font-medium">
-              Human consultation is not currently available.
-            </p>
-          )}
+          <p className="mt-3 rounded-control bg-harbor-surface-subtle p-3 text-sm font-medium">
+            Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.
+          </p>
           <Button asChild variant={index === 0 ? 'default' : 'outline'} className="mt-7 w-full">
             <Link href="/#tell-your-story">
               {index === 0 ? 'Start free — no card required' : 'Start with the free evaluation'}

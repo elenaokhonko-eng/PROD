@@ -95,11 +95,12 @@ test('full refund -> no further step', () => {
   assert.equal(r.recommended, null)
 })
 
-test('emergency switch off: bank pack unavailable, free evaluation gives the reporting steps', () => {
+test('emergency switch off: bank pack unavailable, the reporting steps are given without promising a section that may not exist (C4)', () => {
   const r = run({ reportedToBank: no }, false)
   assert.equal(r.recommended, null)
   assert.deepEqual(state(r, 'bank_pack'), { product: 'bank_pack', state: 'unavailable' })
-  assert.match(r.guidance.join(' '), /free evaluation sets out how to report/)
+  assert.match(r.guidance.join(' '), /report it to your bank's 24-hour fraud hotline, the police and ScamShield \(helpline 1799\)/)
+  assert.doesNotMatch(r.guidance.join(' '), /sets out how to report/)
 })
 
 test('loss above S$150,000 mentions the FIDReC award cap; unknown members get a soft note', () => {

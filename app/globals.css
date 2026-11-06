@@ -260,6 +260,35 @@
   display: none !important;
 }
 
+/* The home-page avatar stays in quiet mode (finding E3), still and without the float. */
+[data-sensory="quiet"] .gb-illo.gb-avatar {
+  display: block !important;
+}
+[data-sensory="quiet"] .gb-avatar img.gb-decorative {
+  display: block !important;
+  animation: none !important;
+}
+
+@keyframes gb-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.gb-avatar img {
+  animation: gb-float 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-avatar img {
+    animation: none;
+  }
+}
+
 [data-sensory="quiet"] *,
 [data-sensory="quiet"] *::before,
 [data-sensory="quiet"] *::after {

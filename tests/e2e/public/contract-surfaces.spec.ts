@@ -29,8 +29,8 @@ test('faq exposes stateful explorer and keeps contact workflow disabled', async 
   await singpassQuestion.click()
   await expect(page.getByText(/Singpass sign-in is not currently available\./)).toBeVisible()
 
-  await expect(page.getByText('The contact form is not currently available. Please check back later for the verified request flow.')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Contact form is not currently available.' })).toBeDisabled()
+  // Finding D5: no form; contact is by email.
+  await expect(page.getByRole('link', { name: 'info@guidebuoyai.sg' }).first()).toHaveAttribute('href', 'mailto:info@guidebuoyai.sg')
 
   const enabledContactActions = await page
     .locator('button:not([disabled]), [role="button"]:not([aria-disabled="true"])')
@@ -42,7 +42,9 @@ test('faq exposes stateful explorer and keeps contact workflow disabled', async 
   errors.assertNoHydrationErrors()
 })
 
-test('resources page enforces unavailable + retry behavior when API is down', async ({ page }) => {
+// Finding D5: while the directory is unavailable the page says it is under development, offers no retry and shows
+// no substitute resources.
+test('resources page says the directory is under development when the API is down', async ({ page }) => {
   let requestCount = 0
   await page.route('**/api/resources**', (route) => {
     requestCount += 1
@@ -55,11 +57,10 @@ test('resources page enforces unavailable + retry behavior when API is down', as
 
   await page.goto('/resources', { waitUntil: 'domcontentloaded' })
 
-  await expect(page.getByRole('heading', { name: 'Official resources are not currently available' })).toBeVisible()
-  await expect(page.getByText('The verified provider-backed directory could not be loaded. No resource information is being substituted locally.')).toBeVisible()
-
-  await page.getByRole('button', { name: 'Try again' }).click()
-  await expect.poll(() => requestCount >= 2).toBe(true)
+  await expect(page.getByRole('heading', { name: 'Our verified resources directory is under development.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Visit official website' })).toHaveCount(0)
+  expect(requestCount).toBe(1)
 })
 
 test('resources page renders loading and ready/filter states when API responds', async ({ page }) => {
@@ -104,7 +105,7 @@ test('pricing and marketplace preserve disabled-service Harbor contract copy', a
   await expect(page.getByRole('heading', { level: 1, name: 'Free to start. Paid only when you choose more.' })).toBeVisible()
   await expect(page.getByText(/^S\$18$/)).toBeVisible()
   await expect(page.getByText(/^S\$188$/)).toBeVisible()
-  await expect(page.getByText('Human consultation is not currently available.')).toBeVisible()
+  await expect(page.getByText('Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.')).toBeVisible()
 
   await page.goto('/marketplace', { waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('heading', { level: 1, name: 'Help categories being considered.' })).toBeVisible()

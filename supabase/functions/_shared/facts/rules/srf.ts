@@ -11,9 +11,11 @@ import {
   type Instrument,
   isDigitalPhishing,
   isNonDigitalPhishing,
+  type LossPortion,
   type Money,
   type PhishingChannel,
   type ScamType,
+  type TotalLoss,
   type Transaction,
 } from "../keys.ts";
 import { formatMoney } from "../display.ts";
@@ -47,6 +49,28 @@ export interface SrfFacts {
   credentials: CredentialsShared | null;
   impersonated: ImpersonatedEntityType | null;
   transactions: Transaction[] | null;
+  // Amounts lost by account or card (finding A4), used when no individual payments were confirmed.
+  losses?: LossPortion[] | null;
+}
+
+const ACCOUNT_INSTRUMENT: Record<string, Instrument> = {
+  savings_or_current: "account_transfer",
+  ewallet: "ewallet",
+  debit_card: "sg_card",
+  credit_card: "sg_card",
+};
+
+// Without confirmed payments, each amount lost stands in for one, in the account or card it left from.
+function paymentsOf(facts: SrfFacts): Transaction[] {
+  if (facts.transactions?.length) return facts.transactions;
+  return (facts.losses ?? []).map((p) => ({
+    date: null,
+    amount: p.amount,
+    channel: null,
+    payee: null,
+    last4: null,
+    instrument: p.account ? ACCOUNT_INSTRUMENT[p.account] ?? null : null,
+  }));
 }
 
 const R = {
@@ -129,7 +153,7 @@ function assessSrfPortion(facts: SrfFacts, transactions: Transaction[]): Omit<Po
 }
 
 export function assessSrf(facts: SrfFacts): SrfAssessment {
-  const transactions = facts.transactions ?? [];
+  const transactions = paymentsOf(facts);
   const groups: Record<PortionAssessment["kind"], Transaction[]> = { srf: [], card: [], unclassified: [] };
   for (const t of transactions) {
     const instrument: Instrument | null = t.instrument;
@@ -150,7 +174,7 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
       assessment: "likely_out_of_scope",
       reasons: [{
         ...R.card,
-        text: `${total ? `${formatMoney(total)} on your card` : "Your card payments"}: the SRF does not cover credit, charge or debit cards issued in Singapore. These are handled under the E-Payments User Protection Guidelines and the card issuers' code of practice instead.`,
+        text: `${total ? `${formatMoney(total)} on your card` : "Your card payments"}: the SRF does not cover credit, charge or debit cards issued in Singapore. Unauthorised card transactions are assessed under the MAS E-Payments User Protection Guidelines (EUPG), and your card issuer can also raise a dispute (a chargeback) through the card scheme. Ask your card issuer about both, in writing.`,
       }],
     });
   }
@@ -174,13 +198,21 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
     telco = { ...R.telcoOtt, text: "Messages through WhatsApp or similar apps are not SMS, so the mobile operator's SRF duties do not apply." };
   }
 
+  // Losses outside the SRF (C3): payments made knowingly have no liability framework; unauthorised ones fall under
+  // the EUPG.
   const anyNotInScope = portions.some((p) => p.assessment !== "likely_in_scope");
-  const remedies = anyNotInScope
-    ? {
-        ...R.remedies,
-        text: "Outside the SRF you still have options: your bank's own complaint process, the E-Payments User Protection Guidelines, and FIDReC.",
-      }
-    : null;
+  const authorised = (facts.scamTypes ?? []).some((t) => AUTHORISED_TYPES.includes(t));
+  const remedies = !anyNotInScope
+    ? null
+    : authorised
+      ? {
+          ...R.remedies,
+          text: "Payments you made knowingly, for example in an investment, job, romance or shopping scam, are not covered by a liability framework. You can still complain to your bank in writing, and FIDReC can consider whether your bank handled your case properly.",
+        }
+      : {
+          ...R.remedies,
+          text: "For losses outside the SRF that you did not authorise, the MAS E-Payments User Protection Guidelines (EUPG) set out how such losses are shared between you and your bank or card issuer. Your bank assesses this; you can complain in writing and, if you disagree with the outcome, go to FIDReC.",
+        };
 
   return { portions, telco, remedies };
 }
@@ -199,6 +231,11 @@ export function srfFactsFromSnapshot(
     credentials: value<CredentialsShared>("credentials_or_otp_shared"),
     impersonated: value<ImpersonatedEntityType>("impersonated_entity_type"),
     transactions: value<Transaction[]>("transactions"),
+    losses: (() => {
+      const loss = value<TotalLoss>("total_loss");
+      if (!loss) return null;
+      return loss.portions?.length ? loss.portions : [{ account: loss.account ?? null, amount: { amount: loss.amount, currency: loss.currency, amountSgd: loss.amountSgd } }];
+    })(),
   };
 }
 
@@ -208,20 +245,38 @@ const ASSESSMENT_HEADINGS: Record<ScopeAssessment, string> = {
   unclear: "Not clear yet",
 };
 
-// The free evaluation's SRF section, written by the server (never by the model).
+// One plain sentence for each body or framework named, on first use (finding C3).
+const GLOSSARY: Array<[RegExp, string]> = [
+  [/\bSRF\b/, "SRF: the Shared Responsibility Framework, under which banks and mobile operators may share losses from certain phishing scams."],
+  [/\bEUPG\b/, "EUPG: the E-Payments User Protection Guidelines, MAS's rules on who bears losses from unauthorised electronic payments."],
+  [/\bMAS\b/, "MAS: the Monetary Authority of Singapore, the central bank and financial regulator."],
+  [/\bIMDA\b/, "IMDA: the Infocomm Media Development Authority, which regulates mobile operators."],
+  [/\bFIDReC\b/, "FIDReC: the Financial Industry Disputes Resolution Centre, which resolves disputes between consumers and financial institutions."],
+  [/\bScamShield\b/, "ScamShield: the national anti-scam helpline (1799), app and website."],
+  [/\bABS\b/, "ABS: the Association of Banks in Singapore, the banks' industry association."],
+];
+
+// The free evaluation's "How the rules may apply" section, written by the server (never by the model): each part of
+// the loss under the framework that applies to it (finding C3).
 export function srfAssessmentText(assessment: SrfAssessment): string {
   const lines: string[] = [
-    "Shared Responsibility Framework (SRF): an early view",
-    "This is based only on the facts you confirmed. It is not a decision; your bank assesses whether the SRF applies.",
+    "This is based only on the facts you confirmed. It is not a decision; your bank assesses which rules apply.",
   ];
   for (const portion of assessment.portions) {
     const amount = portion.total ? ` (${formatMoney(portion.total)})` : "";
-    const label = portion.kind === "card" ? "Card payments" : portion.kind === "unclassified" ? "Other payments" : "Bank transfers and e-wallet payments";
-    lines.push("", `${label}${amount}: ${ASSESSMENT_HEADINGS[portion.assessment]}`);
+    const label = portion.kind === "card" ? "Card payments" : portion.kind === "unclassified" ? "Other payments" : "Bank account and e-wallet payments";
+    const heading = portion.kind === "card" ? "Card rules apply, not the SRF" : ASSESSMENT_HEADINGS[portion.assessment];
+    lines.push("", `${label}${amount}: ${heading}`);
     for (const reason of portion.reasons) lines.push(`- ${reason.text}`);
   }
   if (assessment.telco) lines.push("", assessment.telco.text);
   if (assessment.remedies) lines.push("", assessment.remedies.text);
-  lines.push("", "Source: MAS/IMDA Guidelines on Shared Responsibility Framework (effective 16 Dec 2024).");
-  return lines.join("\n");
+  const body = lines.join("\n");
+  const terms = GLOSSARY.filter(([pattern]) => pattern.test(body)).map(([, text]) => `- ${text}`);
+  return [
+    body,
+    "",
+    "Sources: MAS/IMDA Guidelines on Shared Responsibility Framework (effective 16 Dec 2024); MAS E-Payments User Protection Guidelines.",
+    ...(terms.length ? ["", "Terms used:", ...terms] : []),
+  ].join("\n");
 }

@@ -86,7 +86,7 @@ export function HarborVisualFixture({ fixture }: { fixture: HarborVisualFixture 
 
               {fixture.automated && (
                 <div className="rounded-control border border-harbor-info/35 bg-harbor-teal-tint p-4 text-sm leading-6">
-                  Generated automatically by GuideBuoy AI. It has not been reviewed by a person.
+                  Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
                 </div>
               )}
 
