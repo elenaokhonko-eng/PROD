@@ -200,10 +200,12 @@ test.describe('Gap answers by type (demo 7 Nov)', () => {
       const saved = ((await response.json()) as { saved?: string[] }).saved ?? []
       cleanup.caseResponseIds = saved
 
+      // The disposable case also starts with a journey answer; only the row this save wrote is checked.
+      expect(saved).toHaveLength(1)
       const { data: rows, error } = await supabase
         .from('case_responses')
         .select('response_value, response_type')
-        .eq('case_id', disposable.caseId)
+        .in('id', saved)
       expect(error).toBeNull()
       expect(rows).toEqual([{ response_value: '9600', response_type: 'number' }])
       await expect(page.getByText("We couldn't save your answers.")).toHaveCount(0)
