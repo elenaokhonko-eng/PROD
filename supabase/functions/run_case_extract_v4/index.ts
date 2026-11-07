@@ -6,6 +6,7 @@ import {
   HarborEdgeAuthError,
   verifyHarborEdgeRequest,
 } from "../_shared/edge-auth.ts";
+import { applyGapAnswers } from "../_shared/gap-answers.ts";
 /**
  * v2.1.3 changes (institution first-report + type-aware preference):
  * - Institution keyword set now prioritises FIRST REPORT phrases (receive/report/submitted/reference no)
@@ -1292,7 +1293,7 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     mark("08_openai_ok");
     // Post-process + enforce server facts + insert extract_run
     mark("09_postprocess");
-    const ej = applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseData);
+    const ej = applyGapAnswers(applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseData), answers);
     // Required list (for case_extract_runs.missing_fields)
     const missing_fields = [];
     const requiredFields = [

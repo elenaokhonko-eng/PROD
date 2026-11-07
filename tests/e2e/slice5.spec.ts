@@ -173,6 +173,46 @@ test.describe('Slice 5 browser QA', () => {
   })
 })
 
+test.describe('Gap answers by type (demo 7 Nov)', () => {
+  test('a money answer is saved and the case moves on', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium-1440', 'Mutating provider checks run once per release SHA.')
+    const supabase = createServiceClientFromEnvironment()
+    const disposable = await createDisposableGapCase(supabase, {
+      ownerId: fixtures.users.userA.supabaseUuid,
+      summary: 'Disposable money gap-answer case',
+      answerType: 'money',
+    })
+    const cleanup: DisposableCleanupScope = { ...disposable }
+
+    try {
+      await page.goto(`/app/case/${disposable.caseId}/dashboard`)
+      await expect(page.getByText('A few more details', { exact: true })).toBeVisible()
+      await page.locator('form input[type="number"]').first().fill('9600')
+
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/cases/${disposable.caseId}/responses`) &&
+          response.request().method() === 'PUT',
+      )
+      await page.getByRole('button', { name: 'Save answers' }).click()
+      const response = await responsePromise
+      expect(response.ok(), await response.text()).toBeTruthy()
+      const saved = ((await response.json()) as { saved?: string[] }).saved ?? []
+      cleanup.caseResponseIds = saved
+
+      const { data: rows, error } = await supabase
+        .from('case_responses')
+        .select('response_value, response_type')
+        .eq('case_id', disposable.caseId)
+      expect(error).toBeNull()
+      expect(rows).toEqual([{ response_value: '9600', response_type: 'number' }])
+      await expect(page.getByText("We couldn't save your answers.")).toHaveCount(0)
+    } finally {
+      await cleanupDisposableRecords(supabase, cleanup)
+    }
+  })
+})
+
 async function answerFirstVisibleGapQuestion(page: Page) {
   const textInput = page
     .locator('form input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]):not([type="file"])')

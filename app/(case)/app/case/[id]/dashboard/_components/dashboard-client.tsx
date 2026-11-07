@@ -67,6 +67,8 @@ type DashboardClientProps = {
   }
 }
 
+const GAP_SAVE_ERROR = "We couldn't save your answers. Please try again; if it keeps happening, email info@guidebuoyai.sg."
+
 export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabels }: DashboardClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -100,6 +102,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const jobStatusQuery = useJobStatus(caseId)
 
   const submitIntake = useSubmitIntake()
+  const [gapSaveError, setGapSaveError] = useState<string | null>(null)
+  const [isSavingGap, setIsSavingGap] = useState(false)
   const uploadEvidence = useUploadEvidence()
   const createCheckout = useCreateCheckoutSession()
   const tier2PackQuery = useTier2Pack(caseId, {
@@ -255,10 +259,19 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     }
   }
 
+  // A failed save is shown on the form; before, the rejection was dropped and "Save answers" did nothing.
   async function handleGapSave(answers: Record<string, ValidationAnswerValue>) {
-    await saveResponses(answers, gapResponseTypes)
-    setIntakeCompleted(true)
-    await submitIntake.mutateAsync({ caseId, runExtract: true })
+    setGapSaveError(null)
+    setIsSavingGap(true)
+    try {
+      await saveResponses(answers, gapResponseTypes)
+      setIntakeCompleted(true)
+      await submitIntake.mutateAsync({ caseId, runExtract: true })
+    } catch {
+      setGapSaveError(GAP_SAVE_ERROR)
+    } finally {
+      setIsSavingGap(false)
+    }
   }
 
   function handleUpload(files: File[]) {
@@ -424,8 +437,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
                 void validationQuery.gapItemsQuery.refetch()
                 void validationQuery.refetch()
               },
-              isSavingAnswers: submitIntake.isPending,
-              answersError: validationErrorMessage ?? submitIntake.error?.message ?? null,
+              isSavingAnswers: isSavingGap || submitIntake.isPending,
+              answersError: validationErrorMessage ?? gapSaveError ?? null,
               onSaveAnswers: handleGapSave,
             }}
             evidence={{

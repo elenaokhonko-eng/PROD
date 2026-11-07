@@ -101,6 +101,8 @@ export async function createDisposableGapCase(
     summary: string
     questionKey?: string
     includeQuestion?: boolean
+    /** "money" asks for the amount lost, as the real validation does (demo 7 Nov). */
+    answerType?: 'text' | 'money'
   },
 ): Promise<DisposableValidationCase> {
   const fixture = await createDisposableCase(supabase, {
@@ -130,12 +132,14 @@ export async function createDisposableGapCase(
   }
   fixture.extractRunIds = [extractRunId]
 
+  const answerType = options.answerType ?? 'text'
+  const questionText = answerType === 'money' ? 'How much money did you lose in total?' : 'What date did the disputed transaction happen?'
   const question = {
     question_key: fieldKey,
     field_key: fieldKey,
-    question_text: 'What date did the disputed transaction happen?',
-    response_type: 'text',
-    expected_answer_type: 'text',
+    question_text: questionText,
+    response_type: answerType,
+    expected_answer_type: answerType,
   }
   const { error: validationError } = await supabase.from('case_validation_runs').insert({
     id: validationRunId,
@@ -169,12 +173,12 @@ export async function createDisposableGapCase(
       case_id: fixture.caseId,
       extract_run_id: extractRunId,
       field_key: fieldKey,
-      field_label: 'Transaction date',
+      field_label: answerType === 'money' ? 'Loss amount' : 'Transaction date',
       gap_type: 'missing_required_field',
       severity: 'required',
-      question_text: 'What date did the disputed transaction happen?',
-      help_text: 'Use an approximate date if the exact date is unavailable.',
-      expected_answer_type: 'text',
+      question_text: questionText,
+      help_text: answerType === 'money' ? null : 'Use an approximate date if the exact date is unavailable.',
+      expected_answer_type: answerType,
       answer_options: [],
       source: 'harbor_release_disposable_fixture',
       sort_order: 0,

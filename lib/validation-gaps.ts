@@ -162,11 +162,35 @@ export function serializeValidationAnswer(value: ValidationAnswerValue): string 
   return value
 }
 
-export function getValidationResponseTypes(questions: ValidationQuestion[]): Record<string, string> {
+// The only values `case_responses.response_type` accepts (constraint case_responses_response_type_check). A
+// question's answer type ("money", "single_choice", ...) is stored as the nearest of these; nothing reads it back.
+export const STORED_RESPONSE_TYPES = ['text', 'boolean', 'number', 'date', 'file'] as const
+export type StoredResponseType = (typeof STORED_RESPONSE_TYPES)[number]
+
+export function storedResponseType(value: unknown): StoredResponseType {
+  const raw = cleanString(value)
+  if (raw && (STORED_RESPONSE_TYPES as readonly string[]).includes(raw)) return raw as StoredResponseType
+  switch (normalizeValidationAnswerType(value)) {
+    case 'money':
+    case 'number':
+      return 'number'
+    case 'boolean':
+      return 'boolean'
+    case 'date':
+    case 'datetime':
+      return 'date'
+    case 'file_upload':
+      return 'file'
+    default:
+      return 'text'
+  }
+}
+
+export function getValidationResponseTypes(questions: ValidationQuestion[]): Record<string, StoredResponseType> {
   return Object.fromEntries(
     questions.map((question) => [
       question.key,
-      normalizeValidationAnswerType(question.field_type),
+      storedResponseType(question.field_type),
     ]),
   )
 }
