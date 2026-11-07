@@ -74,7 +74,7 @@ export function NextSteps({ caseId, priceLabels }: { caseId: string; priceLabels
       product: 'fidrec_pack',
       price: priceLabels.tier2,
       description:
-        'FIDReC is Singapore’s independent dispute resolution centre for consumers and financial institutions. It costs nothing to start; a S$250 case fee applies only if your case goes to adjudication. You can go to FIDReC within 6 months of your bank’s final reply, or 4 weeks after you sent a written complaint if the bank hasn’t resolved it. You don’t have to wait for a final reply.',
+        'FIDReC is Singapore’s independent dispute resolution centre for consumers and financial institutions. It costs nothing to start; if your case goes to adjudication, FIDReC charges individuals a S$50 case fee. You can go to FIDReC within 6 months of your bank’s final reply, or 4 weeks after you sent a written complaint if the bank hasn’t resolved it. You don’t have to wait for a final reply.',
       detail: 'A comprehensive case pack with every material fact and the arguments on both sides, ready for FIDReC’s process.',
     },
   ]

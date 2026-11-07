@@ -86,3 +86,8 @@ test('The unfinished story is described as kept in the browser tab, matching ses
   assert.match(readFileSync('docs/legal/privacy-policy.md', 'utf8'), /it is deleted when you close the tab\./)
   assert.deepEqual(offenders(/(stays on|restored from|retained in) this (device|browser so)/), [])
 })
+
+test('C6 / E12: the FIDReC fee for an individual is S$50 at adjudication (ToR Annex 1 6.6), never S$250', () => {
+  assert.match(readFileSync('components/state-machine/facts/next-steps.tsx', 'utf8'), /if your case goes to adjudication, FIDReC charges individuals a S\$50 case fee\./)
+  assert.deepEqual(offenders(/S\$250/), [])
+})

@@ -295,7 +295,7 @@ This replaces the spec's §4.2 table, following the Terms of Reference as Elena 
 | **Qualifying final reply**, within 6 months | **FIDReC pack**, with the deadline | Free evaluation | Bank pack not offered after a final reply (spec §5). Warning at 30 days or fewer remaining. |
 | Qualifying final reply, **more than 6 months ago** | Explain that the window has passed (Rule 5(vi)) and suggest getting advice | Free evaluation | |
 | Final reply received but **not qualifying, or not sure** | **FIDReC pack** if 4 weeks have passed since the written complaint; otherwise as the "less than 4 weeks" row | Free evaluation | "FIDReC decides whether a letter counts as a final reply (Rule 13(2))" |
-| Already filed with FIDReC | **FIDReC pack** (case management / adjudication) | Free evaluation | Mentions the S$250 adjudication fee (Annex 1 6.4–6.6) |
+| Already filed with FIDReC | **FIDReC pack** (case management / adjudication) | Free evaluation | Mentions the S$50 adjudication fee for individuals (Annex 1 6.6) |
 | Full refund or resolved | No further step needed | Free evaluation | Settled complaints are excluded (Rule 5(ix)) |
 
 **Also shown on the recommendation screen:**
@@ -390,7 +390,7 @@ Encoded in `lib/facts/rules/fidrec.ts` with the clause citations below. The Term
 | F6 | Award cap S$150,000 per claim. Above that, adjudication only if the claim is limited or the institution agrees. | Free evaluation and recommendation note when `total_loss` > S$150,000 | Rule 29(1); Rule 21(2) |
 | F7 | Excluded: complaints settled privately, decided by a court, or already decided by FIDReC without new material information | "Resolved" row; the FIDReC pack is not offered when `fidrec_filed` shows a decided case | Rule 5(viii)–(x) |
 | F8 | Eligible complainants: individual consumers, sole proprietors, small businesses and charities with a customer relationship | No block. This is wider than the SRF (individuals only, §8.2 S7). | Rule 6 |
-| F9 | Case fee: S$250 payable by the complainant if the dispute goes to adjudication. S$200 may be refunded to either party. | Mentioned in the FIDReC pack's next-steps guidance | Annex 1, 6.4–6.6 |
+| F9 | Case fee (Annex 1 6.6, "Other Claims"): S$50 payable by an individual complainant if the dispute goes to adjudication; S$250 for a charity or small business. The S$250 fee and S$200 refund in 6.4–6.5 apply only to motor accident claims under the FIDReC-NIMA Scheme. | Mentioned in the FIDReC pack's next-steps guidance | Annex 1, 6.4–6.6 |
 | F10 | Excluded: "cases under investigation by any law enforcement agency … referred to the police for investigation" | **Not used as a barrier and no wording** (Elena, 5 Nov). FIDReC handles many scam claims in practice; Elena is confirming its practice directly. | Rule 5(iv) |
 
 **Secondary source**, consistent with F2 and F3: MoneySense, "Resolving a dispute with a financial institution".
