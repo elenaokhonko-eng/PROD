@@ -94,3 +94,14 @@ test is weakened to make it pass.
 
 - **Run:** 42370131271, commit `c1984ae`; failed on the first attempt and passed on the re-run, as before (teardown
   timeout). Still under watch.
+
+## 2026-11-07: public, resources "loading and ready/filter states" and "/ renders without … client errors" (chromium-1440), cause found
+
+- **Run:** 42382284016, commit `daa7d7e`; both in the chromium-1440 project; the public lane took 8.3 min (usual 3–5).
+- **Evidence (trace):** the CI-local production server (`127.0.0.1:3000`) took 24–39 s per JavaScript chunk and 13 of 20
+  chunks never completed, so the page never hydrated and never requested `/api/resources`; it stayed on the
+  server-rendered "Loading official resources…". No console or page errors. The home-page failure in the same
+  project was a context teardown timeout from the same stall.
+- **Conclusion:** runner/server slowness, not application behaviour; the same test failed on earlier runs only on
+  this project. Failed jobs re-run; no timeout raised and no assertion relaxed. If it recurs, the fix to consider is
+  fewer parallel workers for the public lane against the single local server, not longer timeouts.
