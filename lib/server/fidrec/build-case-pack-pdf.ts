@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, StandardFonts, type PDFFont } from "pdf-lib"
+import { AUTOMATED_OUTPUT_NOTICE } from "@/lib/legal/automated-output-notice"
 import type { FidrecSubmissionPack } from "@/lib/types/fidrec-case-pack"
 
 const MARGIN = 50
@@ -124,6 +125,7 @@ export async function buildCasePackPdf(pack: FidrecSubmissionPack): Promise<Uint
     `Generated: ${pack.generated_at ? new Date(pack.generated_at).toLocaleString() : "n/a"}`,
   )
   await builder.addParagraph(`Version: ${pack.pack_version}`)
+  await builder.addParagraph(AUTOMATED_OUTPUT_NOTICE)
 
   await builder.addSubHeading("Executive Summary")
   await builder.addParagraph(pack.executive_summary.narrative || "No executive summary available.")

@@ -47,3 +47,21 @@ test('D3: the automated-output notice carries the consultation offer wherever it
   const old = /Generated automatically by GuideBuoy AI\. It has not been reviewed by a person\./
   assert.deepEqual(offenders(old), [])
 })
+
+test('D3 / Terms 2.2: every output, on screen and in every download, shows the automated-output notice', () => {
+  const notice = 'Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).'
+  assert.equal(readFileSync('lib/legal/automated-output-notice.ts', 'utf8').includes(notice), true)
+  const outputs = [
+    'components/state-machine/layer1/tier0-draft-view.tsx',
+    'components/state-machine/layer2/report-view.tsx',
+    'components/state-machine/layer3/tier2-pack-view.tsx',
+    'lib/server/facts/free-evaluation-pdf.ts',
+    'lib/server/fidrec/build-case-pack-pdf.ts',
+    'lib/server/fidrec/build-case-pack-markdown.ts',
+  ]
+  const missing = outputs.filter((path) => {
+    const text = readFileSync(path, 'utf8')
+    return !text.includes(notice) && !/(addParagraph|lines\.push)\(AUTOMATED_OUTPUT_NOTICE\)/.test(text)
+  })
+  assert.deepEqual(missing, [])
+})

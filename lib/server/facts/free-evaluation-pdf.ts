@@ -1,11 +1,11 @@
+import { AUTOMATED_OUTPUT_NOTICE } from "@/lib/legal/automated-output-notice"
 import { PdfBuilder } from "@/lib/server/fidrec/build-case-pack-pdf"
 import type { CaseNarrativeRow } from "@/lib/types/narratives"
 
 // The free evaluation as a PDF (finding C5): the same sections as the screen, in the same order, with the
 // generation date and the automated-output notice.
 
-export const AUTOMATED_OUTPUT_NOTICE =
-  "Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min)."
+export { AUTOMATED_OUTPUT_NOTICE }
 
 const ORDER = ["tier0_summary", "tier0_report_now", "tier0_evidence_checklist", "tier0_confirmed_facts", "tier0_srf_signal"]
 

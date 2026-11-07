@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 type MarketingPageProps = {
   eyebrow?: string
   title: string
-  intro: string
+  intro?: string
   children: ReactNode
   className?: string
 }
@@ -16,7 +16,7 @@ export function MarketingPage({ eyebrow, title, intro, children, className }: Ma
         <div className="gb-container max-w-4xl text-center">
           {eyebrow && <p className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-primary">{eyebrow}</p>}
           <h1 className="text-4xl font-semibold tracking-tight text-harbor-deep sm:text-5xl">{title}</h1>
-          <p className="mx-auto mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">{intro}</p>
+          {intro ? <p className="mx-auto mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">{intro}</p> : null}
         </div>
       </section>
       {children}

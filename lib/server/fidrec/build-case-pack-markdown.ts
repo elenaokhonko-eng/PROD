@@ -1,3 +1,4 @@
+import { AUTOMATED_OUTPUT_NOTICE } from "@/lib/legal/automated-output-notice"
 import type { FidrecSubmissionPack } from "@/lib/types/fidrec-case-pack"
 
 export function buildCasePackMarkdown(pack: FidrecSubmissionPack): string {
@@ -8,6 +9,8 @@ export function buildCasePackMarkdown(pack: FidrecSubmissionPack): string {
   lines.push(`**Case ID:** ${pack.case_id}`)
   lines.push(`**Generated:** ${pack.generated_at ? new Date(pack.generated_at).toLocaleString() : "n/a"}`)
   lines.push(`**Version:** ${pack.pack_version}`)
+  lines.push(``)
+  lines.push(AUTOMATED_OUTPUT_NOTICE)
   lines.push(``)
 
   lines.push(`## Executive Summary`)

@@ -98,7 +98,7 @@ export default function HomePage() {
       <section className="gb-container py-12 text-center sm:py-16" aria-labelledby="journey-title">
         <h2 id="journey-title" className="text-3xl font-semibold text-harbor-deep">The journey in one glance</h2>
         <p className="mx-auto mt-5 max-w-4xl text-lg leading-8 text-muted-foreground">
-          Tell your story → Add supporting material → Answer focused questions → Review your free draft → Choose your next step → See further options where offered.
+          Tell your story → Add supporting material → Answer focused questions → Review your draft → Choose your next step → See further options where offered.
         </p>
         <Button asChild variant="outline" className="mt-7">
           <Link href="/how-it-works">See exactly how it works <ArrowRight aria-hidden="true" /></Link>
