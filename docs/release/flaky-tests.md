@@ -77,3 +77,20 @@ test is weakened to make it pass.
   the whole upload before rejecting the file by size; the time is the upload from the GitHub runner to Render. The
   route and the test are unchanged tonight. Not retried and no timeout changed. If it recurs, the fix to consider
   is rejecting a declared file size above 50 MB before reading the body, not a longer timeout.
+
+## 2026-11-07: signed-in, "layer1FreeDraft fixture renders its contract state" (chromium-768), under watch
+
+- **Run:** 42370131271, commit `c1984ae`; first failure; it passed at 390 and 1440 in the same run and on every
+  earlier run. The re-run of the failed job passed.
+- **What failed:** the clean-console check. Next.js prefetched `/app` and `/app/settings`; the middleware answered
+  with a redirect to the Clerk sign-in page, which the browser blocked (CORS). The page itself rendered correctly,
+  and in real use Next falls back to a full navigation.
+- **Likely cause, not yet proven:** the test's short-lived Clerk session cookie lapsed between refreshes just as the
+  prefetch fired (compare D5/H1 in authenticated-lane-triage-2026-11-03.md). The signed-in screens are unchanged
+  since the last two green runs. Nothing retried or relaxed. If it recurs, the fix to consider is turning off
+  prefetch for signed-in links (`prefetch={false}`), not ignoring the console error.
+
+## 2026-11-07: public, "resources page renders loading and ready/filter states when API responds" (chromium-1440)
+
+- **Run:** 42370131271, commit `c1984ae`; failed on the first attempt and passed on the re-run, as before (teardown
+  timeout). Still under watch.
