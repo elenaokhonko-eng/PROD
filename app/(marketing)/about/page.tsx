@@ -27,9 +27,8 @@ export default function AboutPage() {
           <Compass className="size-28 text-primary" aria-hidden="true" />
         </div>
         <div>
-          <h2 className="text-3xl font-semibold text-harbor-deep">A steady light, not a promise</h2>
-          <p className="mt-4 leading-8 text-muted-foreground">A buoy does not pull you out of the water. It holds its position, keeps its light on and shows the way in. GuideBuoy helps organise one clear record so you can decide where to take it next.</p>
-          <p className="mt-4 leading-8 text-muted-foreground">You see the organised facts, correct anything that is wrong and choose what to share.</p>
+          <h2 className="text-3xl font-semibold text-harbor-deep">Tell us once.</h2>
+          <p className="mt-4 leading-8 text-muted-foreground">GuideBuoy turns what happened to you into one clear, checked record, and shows you the right next step, whether that&apos;s your bank, the police or FIDReC. You stay in control of every fact and every document you share.</p>
         </div>
       </MarketingSection>
 

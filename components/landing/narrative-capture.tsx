@@ -265,8 +265,9 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
           onChange={(event) => setNarrative(event.target.value)}
           rows={8}
           aria-describedby="story-include story-privacy"
-          placeholder="For example: In March, I received a call that looked like it was from my bank…"
-          className="min-h-48 resize-y bg-card text-base leading-7"
+          // Finding B1 (Elena, 7 Nov): a synthetic worked example showing what a useful story contains.
+          placeholder="For example: On 12 March 2026, at about 9 pm, I received an email that looked like it came from my bank. It said my digital token would expire within 24 hours and gave a link to re-activate it. I clicked the link and entered my login details and the one-time code to re-activate the token. Overnight I received several SMS alerts from the bank about transfers out of my savings account, about S$1,200 each, but I was asleep and only saw them at 7 am. There were also three large transactions on my credit card to a merchant overseas. I immediately called the bank's hotline, reported the transfers and asked them to block the account; the officer gave me a case number. I filed a police report online the same morning. In total about S$9,800 was taken from my savings account and S$3,100 charged to my credit card. The bank has acknowledged my report but hasn't given me a final answer yet."
+          className="min-h-72 resize-y bg-card text-base leading-7 placeholder:text-sm placeholder:leading-6 sm:min-h-80"
         />
         <p id="story-privacy" className="mt-3 rounded-lg bg-harbor-sage-tint px-3 py-2 text-sm leading-6">
           An unfinished story is retained in this browser so you can return to it. Voice is sent for transcription when you stop recording.

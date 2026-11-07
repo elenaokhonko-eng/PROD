@@ -15,7 +15,7 @@ export default function ResourcesPage() {
   return (
     <MarketingPage
       eyebrow="Official Singapore help"
-      title="Start with the Free Case Pack right now if the scam just happened."
+      title="Start with the free evaluation right now if the scam just happened."
       intro="GuideBuoy organises links to official sources. The authorities publish the rules and make decisions."
     >
       <MarketingSection>
