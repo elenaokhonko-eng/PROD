@@ -86,7 +86,18 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
 
   const view = facts.data as FactsView
   const stageName = STAGE_NAMES[stage]
-  const agreed = view.findings.filter((f) => f.findingType === 'agreed')
+  // Facts named by an answer that doesn't fit with another: shown first, highlighted, each with what it clashes
+  // with, even when the sources agreed on it (walkthrough 7 Nov).
+  const labelOf = (key: FactKey) => view.findings.find((f) => f.factKey === key)?.label ?? key
+  const clashes = new Map<FactKey, string>()
+  for (const issue of view.consistencyIssues) {
+    for (const key of issue.factKeys) {
+      const others = issue.factKeys.filter((k) => k !== key).map(labelOf).join(', ')
+      clashes.set(key, `Doesn’t fit with: ${others}`)
+    }
+  }
+  const clashing = view.findings.filter((f) => clashes.has(f.factKey))
+  const agreed = view.findings.filter((f) => f.findingType === 'agreed' && !clashes.has(f.factKey))
   const toCheck = view.findings.filter((f) => f.findingType !== 'agreed')
   const groups: Array<{ type: Finding['findingType']; title: string }> = [
     { type: 'conflict', title: 'Different answers' },
@@ -163,11 +174,39 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
           <CardHeader>
             <CardTitle>Two answers don’t fit together</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {view.consistencyIssues.map((issue) => <p key={issue}>{issue}</p>)}
-            <p className="text-muted-foreground">Use “Change” on the fact below that isn’t right.</p>
+          <CardContent className="space-y-3 text-sm">
+            {view.consistencyIssues.map((issue) => (
+              <div key={issue.message} className="space-y-1">
+                <p>{issue.message}</p>
+                <p className="flex flex-wrap gap-x-4 gap-y-1">
+                  {issue.factKeys.map((key) => {
+                    const target = view.findings.find((f) => f.factKey === key)
+                    return target ? (
+                      <a key={key} href={`#finding-${target.id}`} className="font-medium underline">Change: {target.label}</a>
+                    ) : null
+                  })}
+                </p>
+              </div>
+            ))}
           </CardContent>
         </Card>
+      )}
+
+      {clashing.length > 0 && (
+        <section aria-labelledby="facts-clashing" className="space-y-4">
+          <h2 id="facts-clashing" className="text-lg font-semibold">Answers to check</h2>
+          {clashing.map((finding) => (
+            <FindingCard
+              key={finding.id}
+              finding={finding}
+              stageName={stageName}
+              highlight={clashes.get(finding.factKey) ?? null}
+              saving={resolve.isPending && resolve.variables?.findingId === finding.id}
+              error={resolve.isError && resolve.variables?.findingId === finding.id ? errorText(resolve.error) : null}
+              onResolve={(resolution) => resolve.mutate({ findingId: finding.id, resolution })}
+            />
+          ))}
+        </section>
       )}
 
       {agreed.length > 0 && (
@@ -185,7 +224,7 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
       )}
 
       {groups.map((group) => {
-        const items = view.findings.filter((f) => f.findingType === group.type)
+        const items = view.findings.filter((f) => f.findingType === group.type && !clashes.has(f.factKey))
         if (!items.length) return null
         return (
           <section key={group.type} aria-labelledby={`facts-${group.type}`} className="space-y-4">
@@ -235,9 +274,10 @@ function intro(finding: Finding, stageName: string, multi: boolean): string {
   if (finding.findingType === 'unsupported') {
     return "We couldn't find a document that shows this. Choose it to keep it as your own account, or upload a document from your case page."
   }
+  if (finding.findingType === 'agreed') return 'Is this right? Choose it to keep it, or enter the correct answer.'
   return multi
-    ? 'We found different answers. Choose every one that is correct.'
-    : 'We found different answers. Choose the one that is correct.'
+    ? 'Your sources give different answers; they’re highlighted below. Choose every one that is correct.'
+    : 'Your sources give different answers; they’re highlighted below. Choose the one that is correct.'
 }
 
 function resolvedText(finding: Finding): string | null {
@@ -256,6 +296,8 @@ function resolvedText(finding: Finding): string | null {
       return 'Not known'
     case 'acknowledged':
       return `${finding.values[0]?.display ?? ''} (no supporting document)`
+    case 'agreed':
+      return finding.values[0]?.display ?? null
     default:
       return null
   }
@@ -293,9 +335,12 @@ function FindingCard({
   saving,
   error,
   onResolve,
+  highlight = null,
 }: {
   finding: Finding
   stageName: string
+  /** Why this fact needs another look ("Doesn't fit with: …"); the card is outlined and says so. */
+  highlight?: string | null
   saving: boolean
   error: string | null
   onResolve: (resolution: ResolutionInput) => void
@@ -354,15 +399,21 @@ function FindingCard({
     setEditing(false)
   }
 
+  const outline = highlight ? 'scroll-mt-28 border-2 border-amber-500' : 'scroll-mt-28'
+  const clash = highlight ? (
+    <p className="w-full text-sm font-medium text-amber-800 dark:text-amber-300"><span aria-hidden>⚠ </span>{highlight}</p>
+  ) : null
+
   if (!editing && answered) {
     return (
-      <Card>
+      <Card id={`finding-${finding.id}`} className={outline}>
         <div data-finding={finding.id} className="flex flex-wrap items-center gap-3 p-4 text-sm">
-          <span aria-hidden className="text-primary">✓</span>
+          {clash}
+          {!highlight && <span aria-hidden className="text-primary">✓</span>}
           <span className="font-medium">{finding.label}:</span>
           <span className="min-w-0 flex-1">{answered}</span>
-          <Badge variant="secondary">Answered</Badge>
-          <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>Change</Button>
+          {!highlight && <Badge variant="secondary">Answered</Badge>}
+          <Button type="button" variant={highlight ? 'default' : 'outline'} size="sm" onClick={() => setEditing(true)}>Change</Button>
         </div>
       </Card>
     )
@@ -370,25 +421,29 @@ function FindingCard({
 
   const inputType = multi ? 'checkbox' : 'radio'
   return (
-    <Card>
+    <Card id={`finding-${finding.id}`} className={outline}>
       {/* No <form>: the button saves directly. Native inputs inside labels keep every choice named and keyboard-usable. */}
       <div data-finding={finding.id}>
         <fieldset className="space-y-4 p-6">
           <legend className="flex w-full flex-wrap items-center justify-between gap-2">
             <span className="text-base font-semibold">{finding.label}</span>
-            <Badge variant={finding.status === 'open' ? 'destructive' : 'secondary'}>
-              {finding.status === 'open' ? 'To check' : 'Answered'}
+            <Badge variant={finding.status === 'open' || highlight ? 'destructive' : 'secondary'}>
+              {finding.status === 'open' || highlight ? 'To check' : 'Answered'}
             </Badge>
           </legend>
+          {clash}
           <p className="text-sm text-muted-foreground">{intro(finding, stageName, multi)}</p>
 
           <div className="grid gap-3 sm:grid-cols-2">
             {boxes.map((box) => {
               const selected = picked.includes(box.id)
+              // Where the sources disagree, each answer they gave is highlighted so it's clear what to choose between.
+              const disputed = finding.findingType === 'conflict' && box.sources.length > 0
               return (
                 <label
                   key={box.id}
-                  className={`relative flex cursor-pointer flex-col gap-1 rounded-md border p-3 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring ${selected ? 'border-primary bg-primary/10' : 'hover:border-primary/60'}`}
+                  data-disputed={disputed || undefined}
+                  className={`relative flex cursor-pointer flex-col gap-1 rounded-md border p-3 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring ${selected ? 'border-primary bg-primary/10' : disputed ? 'border-2 border-amber-500 bg-amber-50 hover:border-primary/60 dark:bg-amber-950/30' : 'hover:border-primary/60'}`}
                 >
                   <input
                     type={inputType}
@@ -401,6 +456,7 @@ function FindingCard({
                     {box.label}
                     {selected && <span aria-hidden className="text-primary">✓</span>}
                   </span>
+                  {disputed && <span className="text-xs font-medium text-amber-800 dark:text-amber-300">Found in your sources; doesn’t match the other answer</span>}
                   {box.sources.length > 0 && (
                     <ul className="space-y-1 text-muted-foreground">
                       {box.sources.map((s, j) => (

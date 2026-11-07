@@ -8,7 +8,13 @@ import type { FactsView, ResolutionInput } from '@/lib/server/facts/facts-servic
 export type { FactsView, ResolutionInput }
 
 export class FactsRequestError extends Error {
-  constructor(message: string, public readonly reason: string | null, public readonly status: number) {
+  constructor(
+    message: string,
+    public readonly reason: string | null,
+    public readonly status: number,
+    /** Names of the server checks that failed, for a problem report (never their text). */
+    public readonly checks: string[] = [],
+  ) {
     super(message)
   }
 }

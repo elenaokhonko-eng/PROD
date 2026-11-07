@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { UserButton, useUser } from '@clerk/nextjs'
 import { FolderOpen, Settings } from 'lucide-react'
 import { ModeSwitcher } from '@/components/harbor/mode-switcher'
+import { ReportProblem } from '@/components/harbor/report-problem'
 
 export function CaseShell({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn } = useUser()
@@ -52,6 +53,7 @@ export function CaseShell({ children }: { children: ReactNode }) {
       <div id="case-content" tabIndex={-1}>
         {children}
       </div>
+      <ReportProblem />
     </div>
   )
 }

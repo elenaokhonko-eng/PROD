@@ -15,9 +15,10 @@ export function useGenerateFreeEvaluation(caseId: string) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ case_id: caseId, fact_snapshot_id: snapshotId }),
       })
-      const json = (await response.json().catch(() => null)) as { error?: string; reason?: string } | null
+      const json = (await response.json().catch(() => null)) as { error?: string; reason?: string; checks?: Array<{ check?: string }> } | null
       if (!response.ok) {
-        throw new FactsRequestError(json?.error ?? 'Failed to generate the free evaluation', json?.reason ?? null, response.status)
+        const checks = [...new Set((json?.checks ?? []).map((c) => c.check).filter((c): c is string => typeof c === 'string'))]
+        throw new FactsRequestError(json?.error ?? 'Failed to generate the free evaluation', json?.reason ?? null, response.status, checks)
       }
     },
     onSuccess: async () => {

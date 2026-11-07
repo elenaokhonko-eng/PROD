@@ -156,3 +156,17 @@ test('the SRF reads the new scam types and channels', () => {
   assert.equal(assessSrf({ ...base, scamTypes: ['phishing_call'], channel: 'phone_call' }).portions[0].assessment, 'likely_out_of_scope')
   assert.equal(assessSrf({ ...base, channel: 'in_person' }).portions[0].assessment, 'likely_out_of_scope')
 })
+
+test('walkthrough 7 Nov: answers that do not fit together are named and highlighted; disagreeing values are highlighted', () => {
+  const service = readFileSync('lib/server/facts/facts-service.ts', 'utf8')
+  assert.match(service, /factKeys: \[block\.factKey, block\.relatedFactKey\]/)
+  assert.match(service, /factKeys: \["total_loss", "transactions"\]/)
+  assert.match(service, /agreed: \["choice", "choices", "value", "not_sure"\]/)
+  const panel = readFileSync('components/state-machine/facts/confirm-facts-panel.tsx', 'utf8')
+  assert.match(panel, /<h2 id="facts-clashing" className="text-lg font-semibold">Answers to check<\/h2>/)
+  assert.match(panel, /href=\{`#finding-\$\{target\.id\}`\}[^>]*>Change: \{target\.label\}/)
+  assert.match(panel, /clashes\.set\(key, `Doesn’t fit with: \$\{others\}`\)/)
+  assert.match(panel, /const disputed = finding\.findingType === 'conflict' && box\.sources\.length > 0/)
+  assert.match(panel, /Found in your sources; doesn’t match the other answer/)
+  assert.doesNotMatch(panel, /Use “Change” on the fact below that isn’t right\./)
+})

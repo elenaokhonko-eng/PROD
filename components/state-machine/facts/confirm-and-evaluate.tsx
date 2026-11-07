@@ -14,6 +14,7 @@ import { ConfirmFactsPanel } from '@/components/state-machine/facts/confirm-fact
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { FactsRequestError } from '@/hooks/state-machine/facts/use-case-facts'
 import { useGenerateFreeEvaluation } from '@/hooks/state-machine/facts/use-generate-free-evaluation'
+import { openProblemReport } from '@/lib/report-problem'
 
 export function ConfirmAndEvaluate({ caseId, readyDocumentsKey }: { caseId: string; readyDocumentsKey: string }) {
   const generate = useGenerateFreeEvaluation(caseId)
@@ -39,6 +40,7 @@ export function ConfirmAndEvaluate({ caseId, readyDocumentsKey }: { caseId: stri
 
   if (snapshotId && generate.isError) {
     const reason = generate.error instanceof FactsRequestError ? generate.error.reason : null
+    const checks = generate.error instanceof FactsRequestError ? generate.error.checks : []
     return (
       <Card role="alert">
         <CardHeader>
@@ -57,6 +59,10 @@ export function ConfirmAndEvaluate({ caseId, readyDocumentsKey }: { caseId: stri
           ) : (
             <Button onClick={() => generate.mutate(snapshotId)}>Try again</Button>
           )}
+          {/* Elena, 7 Nov: the report carries the failed check names so the cause can be found. */}
+          <Button variant="outline" onClick={() => openProblemReport(reason ?? 'free_evaluation_failed', checks.map((c) => `check: ${c}`))}>
+            Report this problem
+          </Button>
         </CardContent>
       </Card>
     )

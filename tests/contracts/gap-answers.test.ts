@@ -30,7 +30,7 @@ test('the responses API stores the mapped type, and a failed save is shown on th
   const route = readFileSync('app/api/cases/[caseId]/responses/route.ts', 'utf8')
   assert.match(route, /const responseType = storedResponseType\(response\.response_type\)/)
   const dashboard = readFileSync('app/(case)/app/case/[id]/dashboard/_components/dashboard-client.tsx', 'utf8')
-  assert.match(dashboard, /catch \{\s*setGapSaveError\(GAP_SAVE_ERROR\)/)
+  assert.match(dashboard, /catch \{\s*noteProblem\('answers_not_saved'\)\s*setGapSaveError\(GAP_SAVE_ERROR\)/)
   assert.match(dashboard, /answersError: validationErrorMessage \?\? gapSaveError \?\? null/)
 })
 

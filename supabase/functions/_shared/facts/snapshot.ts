@@ -45,7 +45,8 @@ export interface SnapshotResult {
 function effective(finding: CurrentFinding): SnapshotFact | null {
   const first = finding.values[0]?.value;
   const resolution = finding.resolution;
-  if (finding.findingType === "agreed") return { value: first, label: "confirmed" };
+  // An agreed fact counts as confirmed unless the person corrected it.
+  if (finding.findingType === "agreed" && (!resolution || resolution.kind === "agreed")) return { value: first, label: "confirmed" };
   if (finding.status === "open" || !resolution) return null;
   switch (resolution.kind) {
     case "choice":

@@ -206,3 +206,26 @@ test('dependency rule: confirmed "No" with a kept bank reply cannot be frozen', 
   ]
   assert.deepEqual(buildSnapshot(findings, 'free').blocks, [{ reason: 'inconsistent_facts', factKey: 'reported_to_bank', relatedFactKey: 'bank_reply' }])
 })
+
+test('walkthrough 7 Nov: an agreed fact that does not fit with another can be corrected, which unblocks the snapshot', () => {
+  const bankReply = stored('bank_reply', 'unsupported', { status: 'final_reply', date: null, outcome: 'rejected', qualifies: null, reference: null }, 'acknowledged', { kind: 'acknowledged' })
+  const others = freeAgreed.filter((f) => f.factKey !== 'reported_to_bank' && f.factKey !== 'bank_reply')
+  const corrected = stored('reported_to_bank', 'agreed', event('no'), 'resolved', { kind: 'value', value: event('yes', '2026-10-03') })
+  const snapshot = buildSnapshot([...others, corrected, bankReply], 'free')
+  assert.deepEqual(snapshot.blocks, [])
+  assert.deepEqual(snapshot.facts.reported_to_bank, { value: event('yes', '2026-10-03'), label: 'confirmed' })
+  const unsure = stored('reported_to_bank', 'agreed', event('no'), 'not_sure', { kind: 'not_sure' })
+  assert.equal(buildSnapshot([...others, unsure, bankReply], 'free').facts.reported_to_bank?.label, 'not_sure')
+})
+
+test('walkthrough 7 Nov: a correction to an agreed fact survives a re-run with the same values, and is dropped when they change', async () => {
+  const run1 = await findingFor('reported_to_police', [candidate('reported_to_police', event('no'), story)])
+  assert.equal(run1.findingType, 'agreed')
+  const correction = { kind: 'value', value: event('yes', '2026-10-04') }
+  const storedRows = [{ factKey: 'reported_to_police' as const, valuesHash: run1.valuesHash, status: 'resolved' as const, resolution: correction }]
+  assert.deepEqual(carryOverStatus(run1, storedRows), { status: 'resolved', resolution: correction, reopened: false })
+  const changed = await findingFor('reported_to_police', [candidate('reported_to_police', event('no', '2026-10-09'), story)])
+  assert.deepEqual(carryOverStatus(changed, storedRows), { status: 'resolved', resolution: { kind: 'agreed' }, reopened: false })
+  const plainAgreed = [{ ...storedRows[0], resolution: { kind: 'agreed' } }]
+  assert.deepEqual(carryOverStatus(run1, plainAgreed), { status: 'resolved', resolution: { kind: 'agreed' }, reopened: false })
+})

@@ -45,17 +45,24 @@ export interface FactsView {
     values: Array<{ display: string; value: unknown; sources: Array<{ sourceType: string; label: string; quotes: string[] }> }>
   }>
   latestSnapshot: { id: string; createdAt: string; unchanged: boolean } | null
-  // Answers that cannot all be true together; the facts cannot be confirmed until one is changed.
-  consistencyIssues: string[]
+  // Answers that cannot all be true together, with the facts involved so the page can point at them; the facts
+  // cannot be confirmed until one is changed (walkthrough 7 Nov).
+  consistencyIssues: Array<{ message: string; factKeys: FactKey[] }>
 }
 
-function consistencyMessages(blocks: readonly SnapshotBlock[]): string[] {
+function consistencyMessages(blocks: readonly SnapshotBlock[]): FactsView["consistencyIssues"] {
   return blocks.flatMap((block) => {
     if (block.reason === "inconsistent_facts") {
-      return ["You told us you haven’t contacted your bank, but also that your bank has replied. Please change one of these answers."]
+      return [{
+        message: "You told us you haven’t contacted your bank, but also that your bank has replied. Please change one of these answers.",
+        factKeys: [block.factKey, block.relatedFactKey],
+      }]
     }
     if (block.reason === "total_differs_from_transactions") {
-      return [`The amount you lost (S$${block.total.toLocaleString("en-SG")}) doesn’t match the payments you confirmed (S$${block.sum.toLocaleString("en-SG")} in total). Please check one of them.`]
+      return [{
+        message: `The amount you lost (S$${block.total.toLocaleString("en-SG")}) doesn’t match the payments you confirmed (S$${block.sum.toLocaleString("en-SG")} in total). Please check one of them.`,
+        factKeys: ["total_loss", "transactions"],
+      }]
     }
     return []
   })
@@ -142,7 +149,9 @@ const ALLOWED: Record<CurrentFinding["findingType"], ReadonlyArray<ResolutionInp
   conflict: ["choice", "choices", "value", "not_sure"],
   unsupported: ["acknowledged", "value", "not_sure"],
   missing: ["value", "not_known"],
-  agreed: [],
+  // A fact the sources agree on can still be wrong (both answers that don't fit together may come from the story),
+  // so the person can correct it (walkthrough 7 Nov).
+  agreed: ["choice", "choices", "value", "not_sure"],
 }
 
 export async function resolveFinding(

@@ -331,11 +331,17 @@ export interface StoredFinding {
 }
 
 // A resolution carries over to a new run only when the values it chose between are unchanged; otherwise the
-// finding reopens (design 2.3). Agreed findings need no action and are never "open".
+// finding reopens (design 2.3). Agreed findings need no action and are never "open"; a correction the person made
+// to one (walkthrough 7 Nov) carries over on the same terms.
 export function carryOverStatus(next: ReconciledFinding, previous: readonly StoredFinding[]) {
-  if (next.findingType === "agreed") return { status: "resolved" as const, resolution: { kind: "agreed" }, reopened: false };
   const prior = previous.find((p) => p.factKey === next.factKey);
-  if (prior && prior.status !== "open" && prior.valuesHash === next.valuesHash) {
+  const sameValues = Boolean(prior && prior.status !== "open" && prior.valuesHash === next.valuesHash);
+  if (next.findingType === "agreed") {
+    const corrected = sameValues && (prior!.resolution as { kind?: string } | null)?.kind !== "agreed";
+    if (corrected) return { status: prior!.status, resolution: prior!.resolution, reopened: false };
+    return { status: "resolved" as const, resolution: { kind: "agreed" }, reopened: false };
+  }
+  if (prior && sameValues) {
     return { status: prior.status, resolution: prior.resolution, reopened: false };
   }
   return { status: "open" as const, resolution: null, reopened: Boolean(prior && prior.status !== "open") };

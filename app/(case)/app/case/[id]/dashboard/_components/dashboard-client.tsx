@@ -54,6 +54,7 @@ import {
   validationIndicatesMissingData,
 } from '@/lib/validation/gap-flow'
 import type { ValidationAnswerValue } from '@/lib/types/validation'
+import { noteProblem } from '@/lib/report-problem'
 
 type DashboardClientProps = {
   caseId: string
@@ -268,6 +269,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
       setIntakeCompleted(true)
       await submitIntake.mutateAsync({ caseId, runExtract: true })
     } catch {
+      noteProblem('answers_not_saved')
       setGapSaveError(GAP_SAVE_ERROR)
     } finally {
       setIsSavingGap(false)
