@@ -39,7 +39,7 @@ test('local draft is restored when returning to router', async ({ page }) => {
   await installRouterApi(page)
   await page.goto('/router', { waitUntil: 'domcontentloaded' })
 
-  await expect(page.getByText('Your unfinished story was restored from this device.')).toBeVisible()
+  await expect(page.getByText('Your unfinished story was restored from this browser tab.')).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Your story' })).toHaveValue(narrative)
 
   await page.reload({ waitUntil: 'domcontentloaded' })
@@ -110,7 +110,7 @@ test('offline mode blocks auth handoff and keeps the local draft', async ({ page
   await page.goto('/router', { waitUntil: 'domcontentloaded' })
 
   const submit = page.getByRole('button', { name: 'Start organising — free' })
-  await expect(page.getByText('You’re offline. Your unfinished story stays on this device and can be submitted after you reconnect.')).toBeVisible()
+  await expect(page.getByText('You’re offline. Your unfinished story stays in this browser tab and can be submitted after you reconnect, as long as the tab stays open.')).toBeVisible()
   await expect(submit).toBeDisabled()
 
   await page.getByRole('textbox', { name: 'Your story' }).fill(narrative)

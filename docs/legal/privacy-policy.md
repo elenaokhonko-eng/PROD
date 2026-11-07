@@ -93,7 +93,7 @@ Email info@guidebuoyai.sg. We will check your identity, respond within 30 days, 
 
 ## 8. Cookies and analytics
 
-We use strictly necessary cookies for sign-in and security, and a browser setting that remembers an unfinished story so you can come back to it. We record how the service is used (for example which steps are completed) in our own systems, to improve it; this first-party usage data is not shared with advertisers. We don't use advertising or third-party tracking cookies.
+We use strictly necessary cookies for sign-in and security, and browser storage that keeps an unfinished story while the browser tab is open, so reloading the page or signing in doesn't lose it; it is deleted when you close the tab. We record how the service is used (for example which steps are completed) in our own systems, to improve it; this first-party usage data is not shared with advertisers. We don't use advertising or third-party tracking cookies.
 
 ## 9. Children
 

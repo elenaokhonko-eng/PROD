@@ -204,12 +204,12 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
       {!isOnline && (
         <div className="mt-4 flex gap-2 rounded-xl border border-harbor-gold/50 bg-harbor-gold-wash p-3 text-sm leading-6" role="status">
           <WifiOff className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span>You’re offline. Your unfinished story stays on this device and can be submitted after you reconnect.</span>
+          <span>You’re offline. Your unfinished story stays in this browser tab and can be submitted after you reconnect, as long as the tab stays open.</span>
         </div>
       )}
       {restoredDraft && (
         <p className="mt-4 rounded-xl bg-harbor-sage-tint p-3 text-sm leading-6" role="status">
-          Your unfinished story was restored from this device.
+          Your unfinished story was restored from this browser tab.
         </p>
       )}
 
@@ -270,7 +270,7 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
           className="min-h-72 resize-y bg-card text-base leading-7 placeholder:text-sm placeholder:leading-6 sm:min-h-80"
         />
         <p id="story-privacy" className="mt-3 rounded-lg bg-harbor-sage-tint px-3 py-2 text-sm leading-6">
-          An unfinished story is retained in this browser so you can return to it. Voice is sent for transcription when you stop recording.
+          An unfinished story is kept in this browser tab, so reloading the page or signing in won’t lose it. It is deleted when you close the tab. Voice is sent for transcription when you stop recording.
         </p>
       </div>
 

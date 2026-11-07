@@ -79,3 +79,10 @@ test('B1/E1 (Elena, 7 Nov): the story box shows the worked example; the about pa
 test('The free product is called the free evaluation, never "Free Case Pack"', () => {
   assert.deepEqual(offenders(/Free Case Pack/i), [])
 })
+
+test('The unfinished story is described as kept in the browser tab, matching sessionStorage (Elena, 7 Nov)', () => {
+  assert.match(readFileSync('components/landing/hero-capture.tsx', 'utf8'), /sessionStorage\.setItem\(STORAGE_KEY/)
+  assert.match(readFileSync('components/landing/narrative-capture.tsx', 'utf8'), /It is deleted when you close the tab\./)
+  assert.match(readFileSync('docs/legal/privacy-policy.md', 'utf8'), /it is deleted when you close the tab\./)
+  assert.deepEqual(offenders(/(stays on|restored from|retained in) this (device|browser so)/), [])
+})
