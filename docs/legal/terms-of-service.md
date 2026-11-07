@@ -1,14 +1,14 @@
 ---
 title: Terms of Service
 version: "2.0"
-effective: "[publication date]"
+effective: "7 November 2026"
 replaces: "1.0 (20 March 2026)"
 contact: info@guidebuoyai.sg
 ---
 
 # Terms of Service
 
-**Version 2.0 · Effective [publication date] · Replaces version 1.0 of 20 March 2026**
+**Version 2.0 · Effective 7 November 2026 · Replaces version 1.0 of 20 March 2026**
 
 These terms are a contract between you and GuideBuoy AI SG Pte Ltd ("GuideBuoy", "we", "us"), a company registered in Singapore (UEN 202545875C) at 51 Goldhill Plaza #07-10/11, Singapore 308900, for your use of guidebuoyai.sg and the GuideBuoy service. By creating an account or using the service you agree to them. If you don't agree, please don't use the service.
 

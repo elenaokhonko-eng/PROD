@@ -1,14 +1,14 @@
 ---
 title: Privacy Policy
 version: "2.0"
-effective: "[publication date]"
+effective: "7 November 2026"
 replaces: "1.0 (20 March 2026)"
 contact: info@guidebuoyai.sg
 ---
 
 # Privacy Policy
 
-**Version 2.0 · Effective [publication date] · Replaces version 1.0 of 20 March 2026**
+**Version 2.0 · Effective 7 November 2026 · Replaces version 1.0 of 20 March 2026**
 
 GuideBuoy AI SG Pte Ltd ("GuideBuoy", "we"), UEN 202545875C, of 51 Goldhill Plaza #07-10/11, Singapore 308900, is the organisation responsible for your personal data under Singapore's Personal Data Protection Act 2012 (PDPA). This policy explains what we collect, why, who we share it with, how long we keep it, and your rights. Our Data Protection Officer can be reached at info@guidebuoyai.sg.
 
