@@ -29,3 +29,9 @@ test('the panel is on every signed-in page, and the failed-evaluation card offer
   assert.match(hook, /\.map\(\(c\) => c\.check\)/, 'only the check names are kept, never the flagged text')
   assert.doesNotMatch(hook, /c\.detail/)
 })
+
+test('signed-in header links are not prefetched, so an expiring session cannot raise blocked sign-in redirects (flaky log, 7 Nov)', () => {
+  const shell = readFileSync('components/harbor/case-shell.tsx', 'utf8')
+  assert.match(shell, /<Link href="\/app" prefetch=\{false\}/)
+  assert.match(shell, /<Link href="\/app\/settings" prefetch=\{false\}/)
+})

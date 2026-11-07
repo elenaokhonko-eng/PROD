@@ -105,3 +105,18 @@ test is weakened to make it pass.
 - **Conclusion:** runner/server slowness, not application behaviour; the same test failed on earlier runs only on
   this project. Failed jobs re-run; no timeout raised and no assertion relaxed. If it recurs, the fix to consider is
   fewer parallel workers for the public lane against the single local server, not longer timeouts.
+
+## 2026-11-07: signed-in, "a brand-new free account completes the free evaluation" (chromium-1440), under watch
+
+- **Run:** 42384587539, commit `a2514d9`; the click on "Save answer" in the first "To check" card timed out.
+- **Checked:** the same test passed 4 times in a row run locally against the same staging build (1.3–1.6 min each),
+  so it is not a deterministic break from the confirm-card changes in `a2514d9`. The signed-in artifacts are
+  encrypted and the key is not held locally, so the CI screenshot was not read.
+- **Likely cause, not proven:** the cards were replaced ("Checking your story…") between finding the card and
+  clicking, when a document finished being read mid-round; the helper waits for that only at the start of a round.
+  If it recurs, the fix to consider is waiting for the panel to settle again right before each click.
+
+## 2026-11-07: the "layer1 … renders its contract state" console errors recurred (run 42384587539)
+
+- Second occurrence of the blocked sign-in redirect on a background prefetch of `/app` and `/app/settings`. Fixed as
+  noted above: the signed-in header links no longer prefetch (`prefetch={false}`), with a contract test.

@@ -33,11 +33,11 @@ export function CaseShell({ children }: { children: ReactNode }) {
             <span className="hidden sm:inline">GuideBuoy AI</span>
           </Link>
           <nav aria-label="Case navigation" className="ml-auto flex items-center gap-1">
-            <Link href="/app" className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-medium hover:bg-accent">
+            <Link href="/app" prefetch={false} className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-medium hover:bg-accent">
               <FolderOpen className="size-4" aria-hidden="true" />
               <span className="hidden sm:inline">My cases</span>
             </Link>
-            <Link href="/app/settings" className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-medium hover:bg-accent">
+            <Link href="/app/settings" prefetch={false} className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-medium hover:bg-accent">
               <Settings className="size-4" aria-hidden="true" />
               <span className="hidden sm:inline">Settings</span>
             </Link>
