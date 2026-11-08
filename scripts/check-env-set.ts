@@ -90,6 +90,17 @@ export const optionalKeys = [
   "CLERK_RECONCILIATION_USER_ALLOWLIST_JSON",
   "HARBOR_PREVIEW_EMAIL_SINK",
   "MAIL_TRANSPORT",
+  // Cost controls (8 Nov): daily model cap, alerts, secondary summary model, limits and the client-address source.
+  "MODEL_DAILY_CAP_USD",
+  "COST_ALERT_EMAIL",
+  "TIER0_SECONDARY_MODEL",
+  "HARBOR_TRUST_CLOUDFLARE_IP",
+  "USAGE_LIMIT_EXEMPT_PROFILE_IDS",
+  "USAGE_LIMIT_CASES_PER_ACCOUNT_PER_DAY",
+  "USAGE_LIMIT_EVALUATIONS_PER_CASE_PER_DAY",
+  "USAGE_LIMIT_UPLOADS_PER_ACCOUNT_PER_DAY",
+  "USAGE_LIMIT_MODEL_REQUESTS_PER_IP_PER_HOUR",
+  "USAGE_LIMIT_PRE_SIGN_IN_REQUESTS_PER_IP_PER_HOUR",
   "HARBOR_SMTP_TEST_RECIPIENT",
   "SUPABASE_STAGING_DB_URL",
   "SUPABASE_PRODUCTION_DB_URL",
@@ -363,6 +374,8 @@ export function checkEnvironmentSet(
     else add(sandbox ? "FAIL" : "PASS", "production SMTP is not a sandbox", `host ${smtpHost}`)
   }
   // The mail sink (lib/mail.ts) keeps test runs from sending; production must send.
+  // Test accounts may be exempt from the usage limits on staging only.
+  if (!isStaging) add(get("USAGE_LIMIT_EXEMPT_PROFILE_IDS") ? "FAIL" : "PASS", "no account is exempt from the usage limits in production")
   if (isStaging) add(get("MAIL_TRANSPORT") === "sink-test-traffic" ? "PASS" : "WARN", "staging test-run mail goes to the sink (MAIL_TRANSPORT=sink-test-traffic)")
   else add(get("MAIL_TRANSPORT").startsWith("sink") ? "FAIL" : "PASS", "production mail is not sent to the sink")
   if (!isStaging && get("EMAIL_FROM")) {

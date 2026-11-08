@@ -70,6 +70,14 @@ export default function ClassifyPage() {
           signal: controller.signal,
         })
 
+        if (response.status === 429) {
+          // The hourly limit (cost-controls B2): say so in the server's words.
+          const limited = (await response.json().catch(() => null)) as { error?: string } | null
+          window.clearTimeout(slowTimer)
+          setError(limited?.error ?? "You've reached the limit for now. Please try again later.")
+          setPhase('error')
+          return
+        }
         if (!response.ok) throw new Error('Classification failed')
 
         const classification = (await response.json()) as Record<string, unknown>

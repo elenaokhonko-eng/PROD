@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getCurrentUser } from '@/lib/auth'
 import { createUserClient } from '@/lib/supabase/server'
+import { HOURLY_LIMIT_MESSAGE, limitResponse, overCaseLimit, overIpModelLimit } from '@/lib/server/usage-limits'
 
 const BootstrapBody = z.object({
   narrative: z.string().min(1).max(20000),
@@ -26,6 +27,10 @@ export async function POST(req: Request) {
   if (!idempotencyKey || idempotencyKey.length > 200) {
     return NextResponse.json({ error: 'valid_idempotency_key_required' }, { status: 400 })
   }
+
+  // A new case starts model work: limited per account per day and per IP per hour (cost-controls §5 B1).
+  if (await overCaseLimit(user.supabaseUuid)) return limitResponse()
+  if (overIpModelLimit(req)) return limitResponse(HOURLY_LIMIT_MESSAGE)
 
   const normalizedRequest = {
     narrative,

@@ -18,8 +18,22 @@ export function rateLimit(key: string, limit = 20, windowMs = 60_000): { ok: boo
   return { ok: true, remaining: Math.max(0, limit - hit.count), reset: hit.expiresAt }
 }
 
-export function keyFrom(request: NextRequest, route: string) {
-  const headerIp = request.headers.get("x-forwarded-for")
-  const ip = headerIp?.split(",")[0]?.trim() ?? request.ip ?? "unknown"
-  return `${route}:${ip}`
+// The client's address for rate limiting (cost-controls inventory, 8 Nov): the first X-Forwarded-For entry is
+// whatever the client sent, so it is never trusted. Where Cloudflare proxies the site (production,
+// HARBOR_TRUST_CLOUDFLARE_IP=true) CF-Connecting-IP is the client; elsewhere a client could forge that header, so the
+// right-most X-Forwarded-For entry, appended by Render's proxy, is used.
+export function clientIp(
+  headers: Pick<Headers, "get">,
+  fallback?: string | null,
+  trustCloudflare = process.env.HARBOR_TRUST_CLOUDFLARE_IP === "true",
+): string {
+  const cloudflare = trustCloudflare ? headers.get("cf-connecting-ip")?.trim() : null
+  if (cloudflare) return cloudflare
+  const forwarded = headers.get("x-forwarded-for")?.split(",").map((part) => part.trim()).filter(Boolean)
+  if (forwarded?.length) return forwarded[forwarded.length - 1]
+  return fallback ?? "unknown"
+}
+
+export function keyFrom(request: NextRequest | Request, route: string) {
+  return `${route}:${clientIp(request.headers, (request as NextRequest).ip)}`
 }

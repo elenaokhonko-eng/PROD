@@ -6,6 +6,7 @@ import {
   verifyHarborEdgeRequest,
 } from "../_shared/edge-auth.ts";
 import { safeErrorText } from "../_shared/safe-error.ts";
+import { dailyBreaker, OUTPUT_CAPS, recordModelUsage, type UsageClient, usageEnvironment } from "../_shared/model-usage.ts";
 import {
   assessSrf,
   chatSummary,
@@ -16,6 +17,7 @@ import {
   factsYouConfirmed,
   type Institution,
   produceSummary,
+  ProviderFailure,
   buildTier0Input,
   documentedFacts,
   TIER0_CHECKS,
@@ -33,6 +35,8 @@ const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction");
 // Pinned to a dated snapshot so a provider-side model update cannot change behaviour unseen (hardening item 2);
 // the corpus (scripts/tier0-corpus) is re-run before this or the prompt changes.
 const TIER0_MODEL = (Deno.env.get("TIER0_MODEL") ?? "gpt-4o-mini-2024-07-18").trim().toLowerCase(); // = TIER0_DEFAULT_MODEL
+// Used straight away when the main model is rate-limited (cost-controls spec §5 B8).
+const TIER0_SECONDARY_MODEL = (Deno.env.get("TIER0_SECONDARY_MODEL") ?? "gpt-4.1-mini").trim().toLowerCase();
 const TIER0_BUDGET_MS = 90_000;
 
 type FidrecCheck = {
@@ -151,12 +155,42 @@ Deno.serve(async (req) => {
     const user = `INPUT JSON:
 ${JSON.stringify(input, null, 2)}`;
     const deadline = Date.now() + TIER0_BUDGET_MS;
+    // Metering and the daily breaker (cost-controls spec §5 B4, B6): with today's budget used up, no model call is made
+    // and the person gets the summary version.
+    const env = Deno.env.toObject();
+    const usageEnv = usageEnvironment(env);
+    const usageClient = supabase as unknown as UsageClient;
+    const meter = { caller: "edge" as const, purpose: "summary", provider: "openai" as const, caseId: case_id };
+    const breaker = await dailyBreaker(usageClient, usageEnv, env);
     const result = await produceSummary({
       facts,
       options: checks,
       sanitize: sanitizeSummary,
-      generate: (previousFailures) =>
-        chatSummary({ fetch, apiKey: OPENAI_API_KEY, model: TIER0_MODEL, system: tier0System(previousFailures), user, deadline }),
+      generate: async (previousFailures) => {
+        if (breaker.state === "open") {
+          await recordModelUsage(usageClient, usageEnv, { ...meter, model: TIER0_MODEL, outcome: "blocked" });
+          throw new ProviderFailure("budget");
+        }
+        return chatSummary({
+          fetch,
+          apiKey: OPENAI_API_KEY,
+          model: TIER0_MODEL,
+          secondaryModel: TIER0_SECONDARY_MODEL,
+          maxTokens: OUTPUT_CAPS.summary,
+          system: tier0System(previousFailures),
+          user,
+          deadline,
+          onCall: (call) =>
+            recordModelUsage(usageClient, usageEnv, {
+              ...meter,
+              model: call.model,
+              usage: call.usage ?? undefined,
+              latencyMs: call.latencyMs,
+              httpStatus: call.httpStatus,
+              outcome: call.kind === "ok" ? "ok" : call.kind === "refusal" ? "refused" : "error",
+            }),
+        });
+      },
     });
     // Review log: IDs, check names and the release only, never the story or the generated text (hardening item 6).
     const review = {

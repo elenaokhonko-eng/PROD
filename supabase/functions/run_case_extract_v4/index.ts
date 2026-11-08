@@ -8,6 +8,11 @@ import {
 } from "../_shared/edge-auth.ts";
 import { applyGapAnswers } from "../_shared/gap-answers.ts";
 import { safeError } from "../_shared/safe-error.ts";
+import { dailyBreaker, openAiUsage, OUTPUT_CAPS, recordModelUsage, type TokenUsage, usageEnvironment } from "../_shared/model-usage.ts";
+
+// Metering for this request (cost-controls spec §5 B6): set by the handler, used by every OpenAI call below.
+type MeterCall = (call: { model: string; usage: TokenUsage; latencyMs: number; httpStatus: number; outcome: "ok" | "error" }) => Promise<void>;
+let meterCall: MeterCall | null = null;
 /**
  * v2.1.3 changes (institution first-report + type-aware preference):
  * - Institution keyword set now prioritises FIRST REPORT phrases (receive/report/submitted/reference no)
@@ -281,13 +286,15 @@ function sanitizeToJsonObject(text) {
   return t.slice(first, last + 1);
 }
 async function callOpenAIResponses(openaiKey, body) {
+  const started = Date.now();
   const res = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       authorization: `Bearer ${openaiKey}`,
       "content-type": "application/json"
     },
-    body: JSON.stringify(body)
+    // Output cap (§5 B5): observed maximum + 30%.
+    body: JSON.stringify({ max_output_tokens: OUTPUT_CAPS.case_extraction, ...body })
   });
   const raw = await res.text().catch(()=>"");
   let payload = null;
@@ -296,6 +303,7 @@ async function callOpenAIResponses(openaiKey, body) {
   } catch  {
     payload = null;
   }
+  if (meterCall) await meterCall({ model: body.model, usage: openAiUsage(payload), latencyMs: Date.now() - started, httpStatus: res.status, outcome: res.ok ? "ok" : "error" });
   // The provider body can echo the input; keep the status and error type only (hardening item 6).
   if (!res.ok) throw new Error(`OpenAI failed (${res.status}): ${payload?.error?.type ?? payload?.error?.code ?? "no error type"}`);
   if (!payload) throw new Error(`OpenAI failed: empty/invalid JSON response (${res.status})`);
@@ -1126,6 +1134,8 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     const body = verified.body;
     const edge_context = verified.context;
     const case_id = edge_context.caseId;
+    const usageEnv = usageEnvironment(Deno.env.toObject());
+    meterCall = (call) => recordModelUsage(supabase, usageEnv, { caller: "edge", purpose: "case_extraction", provider: "openai", caseId: case_id, ...call });
     // Explicit tri-state persistence: always write true/false on new extracts (never null).
     const skip_validation = body.skip_validation === true;
     const allow_partial_evidence = body.allow_partial_evidence === true;
@@ -1286,6 +1296,11 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     mark("08_openai_start", {
       input_len: inputText.length
     });
+    // Daily breaker (§5 B4): with today's model budget used up, nothing is sent; the caller retries later.
+    if ((await dailyBreaker(supabase, usageEnv, Deno.env.toObject())).state === "open") {
+      await recordModelUsage(supabase, usageEnv, { caller: "edge", purpose: "case_extraction", provider: "openai", model: EXTRACT_MODEL, outcome: "blocked", caseId: case_id });
+      return new Response(JSON.stringify({ ok: false, reason: "daily_limit" }), { status: 503, headers: { "content-type": "application/json" } });
+    }
     const ejRaw = await openaiExtract({
       openaiKey: OPENAI_API_KEY,
       model: EXTRACT_MODEL,

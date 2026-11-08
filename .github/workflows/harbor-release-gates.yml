@@ -1,9 +1,14 @@
 name: Harbor release gates
 
+# CI minutes (Elena, 8 Nov): every push to a pull request runs the quick lane (install, typecheck, build, contracts,
+# database). The heavy lanes (public UI on Windows, synthetic, and the live staging lanes) run when a pull request is
+# opened, reopened, marked ready or labelled full-ci, on main, and by hand (workflow_dispatch) after a staging deploy.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -66,6 +71,8 @@ jobs:
         run: pnpm typecheck
       - name: Production build
         run: pnpm build
+      - name: No server secret in the client bundle
+        run: pnpm exec tsx scripts/check-client-bundle.mts
       - name: State-machine rules
         run: pnpm check:sm
       - name: Release and contract tests
@@ -121,6 +128,8 @@ jobs:
         run: supabase test db tests/database/pattern-c-rls.test.sql
       - name: Fact reconciliation tables (history, RLS, immutability)
         run: supabase test db tests/database/fact-reconciliation.test.sql
+      - name: Model-call metering (service role only, no text)
+        run: supabase test db tests/database/model-usage.test.sql
       - name: Security baseline (RLS, anon writes, views, buckets)
         run: supabase test db tests/database/security-baseline.test.sql
       - name: Browser-selected columns exist
@@ -135,9 +144,15 @@ jobs:
   playwright-public:
     name: Playwright public UI
     runs-on: windows-latest
+    if: >-
+      github.event_name != 'pull_request' || github.event.action != 'synchronize' ||
+      contains(github.event.pull_request.labels.*.name, 'full-ci')
     env:
       # CI-only: Clerk keyless mode must never inject its claim overlay into tests.
       NEXT_PUBLIC_CLERK_KEYLESS_DISABLED: '1'
+      # The tests' own server sees every request from one address: per-IP model limits are the spec's in production only.
+      USAGE_LIMIT_PRE_SIGN_IN_REQUESTS_PER_IP_PER_HOUR: '100000'
+      USAGE_LIMIT_MODEL_REQUESTS_PER_IP_PER_HOUR: '100000'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -150,6 +165,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.os == 'Windows' && '~\AppData\Local\ms-playwright' || '~/.cache/ms-playwright' }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm exec playwright install chromium webkit
       - run: pnpm build
       - name: Production public UI
@@ -170,10 +190,16 @@ jobs:
 
   playwright-synthetic:
     name: Playwright synthetic provider
+    if: >-
+      github.event_name != 'pull_request' || github.event.action != 'synchronize' ||
+      contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-latest
     env:
       # CI-only: Clerk keyless mode must never inject its claim overlay into tests.
       NEXT_PUBLIC_CLERK_KEYLESS_DISABLED: '1'
+      # The tests' own server sees every request from one address: per-IP model limits are the spec's in production only.
+      USAGE_LIMIT_PRE_SIGN_IN_REQUESTS_PER_IP_PER_HOUR: '100000'
+      USAGE_LIMIT_MODEL_REQUESTS_PER_IP_PER_HOUR: '100000'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -186,6 +212,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.os == 'Windows' && '~\AppData\Local\ms-playwright' || '~/.cache/ms-playwright' }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm build
       - name: Production synthetic provider
@@ -213,9 +244,11 @@ jobs:
     # repository and for main. Other branches and forks skip them.
     if: >-
       github.ref == 'refs/heads/main' ||
+      (github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'release/')) ||
       (github.event_name == 'pull_request' &&
        startsWith(github.head_ref, 'release/') &&
-       github.event.pull_request.head.repo.full_name == github.repository)
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       (github.event.action != 'synchronize' || contains(github.event.pull_request.labels.*.name, 'full-ci')))
     outputs:
       preview_confirmed_sha: ${{ steps.preview-release.outputs.harbor_preview_confirmed_sha }}
     env:
@@ -237,6 +270,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.os == 'Windows' && '~\AppData\Local\ms-playwright' || '~/.cache/ms-playwright' }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm exec playwright install --with-deps chromium
       - name: Materialize preview release Clerk state
         env:
@@ -287,9 +325,11 @@ jobs:
     # repository and for main. Other branches and forks skip them.
     if: >-
       github.ref == 'refs/heads/main' ||
+      (github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'release/')) ||
       (github.event_name == 'pull_request' &&
        startsWith(github.head_ref, 'release/') &&
-       github.event.pull_request.head.repo.full_name == github.repository)
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       (github.event.action != 'synchronize' || contains(github.event.pull_request.labels.*.name, 'full-ci')))
     env:
       HARBOR_PREVIEW_BASE_URL: ${{ vars.HARBOR_PREVIEW_BASE_URL }}
       HARBOR_PREVIEW_EXPECTED_HOST: ${{ vars.HARBOR_PREVIEW_EXPECTED_HOST }}
@@ -331,6 +371,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.os == 'Windows' && '~\AppData\Local\ms-playwright' || '~/.cache/ms-playwright' }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm exec playwright install --with-deps chromium webkit
       - name: Materialize ephemeral Clerk states
         env:

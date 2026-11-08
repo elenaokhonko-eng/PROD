@@ -8,6 +8,7 @@
 // Only infrastructure errors (database, auth) still fail the request.
 
 import { factLabel, formatFactValue } from "./display.ts";
+import { backoffMs, openAiUsage, type TokenUsage } from "../model-usage.ts";
 import type { FactKey } from "./keys.ts";
 import {
   describeFailures,
@@ -20,11 +21,12 @@ import {
   type ValidateOptions,
 } from "./validate-output.ts";
 
-export type ProviderFailureKind = "rate_limited" | "provider_error" | "timeout" | "malformed" | "empty" | "refusal";
+// "budget": today's model spend reached the daily cap (cost-controls spec §5 B4), so no call is made.
+export type ProviderFailureKind = "rate_limited" | "provider_error" | "timeout" | "malformed" | "empty" | "refusal" | "budget";
 
 /** A provider failure that survived its own retry; the ladder answers it with the summary version. */
 export class ProviderFailure extends Error {
-  constructor(readonly kind: ProviderFailureKind, readonly status: number | null = null) {
+  constructor(readonly kind: ProviderFailureKind, readonly status: number | null = null, readonly retryAfter: string | null = null) {
     super(`provider ${kind}${status ? ` ${status}` : ""}`);
   }
 }
@@ -138,6 +140,20 @@ export interface ChatSummaryRequest {
   deadline: number;
   callTimeoutMs?: number;
   sleep?: (ms: number) => Promise<void>;
+  /** Output cap (cost-controls spec §5 B5). */
+  maxTokens?: number;
+  /** Model to switch to on the first 429 instead of waiting (§5 B8). */
+  secondaryModel?: string;
+  /** Called once per HTTP attempt with tokens and outcome, for metering (§5 B6). Never sees any text. */
+  onCall?: (call: SummaryCall) => void | Promise<void>;
+}
+
+export interface SummaryCall {
+  model: string;
+  usage: TokenUsage | null;
+  latencyMs: number;
+  httpStatus: number | null;
+  kind: ProviderFailureKind | "ok";
 }
 
 const RETRYABLE: ProviderFailureKind[] = ["rate_limited", "provider_error", "timeout", "malformed", "empty"];
@@ -150,30 +166,53 @@ const RETRYABLE: ProviderFailureKind[] = ["rate_limited", "provider_error", "tim
 export async function chatSummary(req: ChatSummaryRequest): Promise<string> {
   const sleep = req.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
   let last: ProviderFailure | null = null;
+  let model = req.model;
   for (let attempt = 1; attempt <= 2; attempt++) {
     const remaining = req.deadline - Date.now();
     if (remaining < 5_000) throw last ?? new ProviderFailure("timeout");
     try {
-      return await chatSummaryOnce(req, Math.min(req.callTimeoutMs ?? 40_000, remaining));
+      return await chatSummaryOnce(req, model, Math.min(req.callTimeoutMs ?? 40_000, remaining));
     } catch (error) {
       if (!(error instanceof ProviderFailure)) throw error;
       last = error;
       if (!RETRYABLE.includes(error.kind) || attempt === 2) throw error;
-      await sleep(error.kind === "rate_limited" ? 2_000 : 500);
+      // A rate limit on the main model: switch to the secondary model at once rather than wait (§5 B8).
+      if (error.kind === "rate_limited" && req.secondaryModel && req.secondaryModel !== model) model = req.secondaryModel;
+      else await sleep(backoffMs(attempt, error.retryAfter));
     }
   }
   throw last ?? new ProviderFailure("provider_error");
 }
 
-async function chatSummaryOnce(req: ChatSummaryRequest, timeoutMs: number): Promise<string> {
+async function chatSummaryOnce(req: ChatSummaryRequest, model: string, timeoutMs: number): Promise<string> {
+  const started = Date.now();
+  const report = async (kind: SummaryCall["kind"], httpStatus: number | null, usage: TokenUsage | null = null) => {
+    try {
+      await req.onCall?.({ model, usage, latencyMs: Date.now() - started, httpStatus, kind });
+    } catch {
+      // Metering never breaks the call.
+    }
+  };
+  try {
+    const result = await chatSummaryRequest(req, model, timeoutMs);
+    await report("ok", 200, result.usage);
+    return result.summary;
+  } catch (error) {
+    if (error instanceof ProviderFailure) await report(error.kind, error.status, (error as ProviderFailure & { usage?: TokenUsage }).usage ?? null);
+    throw error;
+  }
+}
+
+async function chatSummaryRequest(req: ChatSummaryRequest, model: string, timeoutMs: number): Promise<{ summary: string; usage: TokenUsage }> {
   let resp: Response;
   try {
     resp = await req.fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${req.apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: req.model,
+        model,
         temperature: 0.2,
+        ...(req.maxTokens ? { max_tokens: req.maxTokens } : {}),
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: req.system },
@@ -185,7 +224,7 @@ async function chatSummaryOnce(req: ChatSummaryRequest, timeoutMs: number): Prom
   } catch {
     throw new ProviderFailure("timeout");
   }
-  if (resp.status === 429) throw new ProviderFailure("rate_limited", 429);
+  if (resp.status === 429) throw new ProviderFailure("rate_limited", 429, resp.headers.get("retry-after"));
   if (!resp.ok) throw new ProviderFailure("provider_error", resp.status);
   let data: { choices?: Array<{ finish_reason?: string; message?: { content?: string | null; refusal?: string | null } }> };
   try {
@@ -193,18 +232,20 @@ async function chatSummaryOnce(req: ChatSummaryRequest, timeoutMs: number): Prom
   } catch {
     throw new ProviderFailure("malformed", resp.status);
   }
+  const usage = openAiUsage(data);
+  const fail = (kind: ProviderFailureKind) => Object.assign(new ProviderFailure(kind, resp.status), { usage });
   const choice = data?.choices?.[0];
-  if (choice?.message?.refusal || choice?.finish_reason === "content_filter") throw new ProviderFailure("refusal", resp.status);
+  if (choice?.message?.refusal || choice?.finish_reason === "content_filter") throw fail("refusal");
   const content = choice?.message?.content;
-  if (!content || !content.trim()) throw new ProviderFailure("empty", resp.status);
+  if (!content || !content.trim()) throw fail("empty");
   // A cut-off answer ("length") is not valid JSON; the parse below rejects it as malformed.
   let parsed: unknown;
   try {
     parsed = JSON.parse(content);
   } catch {
-    throw new ProviderFailure("malformed", resp.status);
+    throw fail("malformed");
   }
   const summary = (parsed as { summary?: unknown })?.summary;
-  if (typeof summary !== "string" || !summary.trim()) throw new ProviderFailure("empty", resp.status);
-  return summary;
+  if (typeof summary !== "string" || !summary.trim()) throw fail("empty");
+  return { summary, usage };
 }

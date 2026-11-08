@@ -17,6 +17,7 @@ import {
   sha256Hex,
 } from "@/lib/facts"
 import { generateJson, getOpenAiModel } from "@/lib/server/ai/generate-json"
+import { ModelBudgetExceeded, OUTPUT_CAPS } from "@/lib/server/model-usage"
 import { logger } from "@/lib/logger"
 
 const log = logger.withContext({ module: "facts-reconcile" })
@@ -33,6 +34,8 @@ const SCANNED_MARKER = "_source_scanned"
 export type ExtractJson = (prompt: string, schemaName: string) => Promise<unknown>
 
 export class FactsUnavailableError extends Error {}
+/** Today's model budget is used up (cost-controls spec §5 B4): the story is kept and checked once it reopens. */
+export class FactsPausedError extends FactsUnavailableError {}
 export class FactsInProgressError extends Error {}
 
 interface Source {
@@ -205,7 +208,13 @@ export async function ensureReconciled(
   service: SupabaseClient,
   caseId: string,
   extractJson: ExtractJson = (prompt, schemaName) =>
-    generateJson({ prompt, schemaName, timeoutMs: MODEL_TIMEOUT_MS, maxRetries: MODEL_RETRIES }),
+    generateJson({
+      prompt,
+      schemaName,
+      timeoutMs: MODEL_TIMEOUT_MS,
+      maxRetries: MODEL_RETRIES,
+      usage: { purpose: "fact_extraction", caseId, maxOutputTokens: OUTPUT_CAPS.fact_extraction },
+    }),
 ): Promise<ReconcileResult> {
   await assertNoRunningRun(service, caseId)
   const { sources, answerFacts, inputHash, storyRevision, documentsProcessing } = await loadSources(service, caseId)
@@ -339,6 +348,7 @@ export async function ensureReconciled(
       .from("case_fact_reconcile_runs")
       .update({ status: "failed", error_code: "reconcile_failed", completed_at: new Date().toISOString() })
       .eq("id", runId)
+    if (error instanceof ModelBudgetExceeded) throw new FactsPausedError("Daily model budget reached")
     throw error instanceof FactsUnavailableError ? error : new FactsUnavailableError("Fact reconciliation failed")
   }
 }

@@ -1,6 +1,18 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { safeErrorText } from "../_shared/safe-error.ts";
 import {
+  backoffMs,
+  dailyBreaker,
+  GEMINI_THINKING_BUDGET,
+  geminiUsage,
+  OUTPUT_CAPS,
+  recordModelUsage,
+  type UsageClient,
+  usageEnvironment,
+} from "../_shared/model-usage.ts";
+
+type GeminiAttempt = { status: number; body: unknown; latencyMs: number; willRetry: boolean };
+import {
   authorizeHarborEdgeRequest,
   HarborEdgeAuthError,
   verifyHarborEdgeRequest,
@@ -277,14 +289,17 @@ async function geminiGenerateContentWithRetry(args: {
   requestBody: string;
   /** Total attempts = 1 + retries (default 3 retries → 4 attempts). */
   retries?: number;
-  initialDelayMs?: number;
+  /** Metering for each attempt (cost-controls spec §5 B6); never sees the document. */
+  onAttempt?: (attempt: GeminiAttempt) => Promise<void>;
 }) {
   const { endpoint, requestBody } = args;
   let attemptsLeft = (args.retries ?? 3) + 1;
-  let delayMs = args.initialDelayMs ?? 6500;
+  let attempt = 0;
 
   while (attemptsLeft > 0) {
     attemptsLeft--;
+    attempt++;
+    const started = Date.now();
     const resp = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -293,15 +308,20 @@ async function geminiGenerateContentWithRetry(args: {
     const rawErr = !resp.ok ? await resp.text().catch(() => "") : null;
 
     if (resp.ok) {
-      return resp.json();
+      const body = await resp.json();
+      await args.onAttempt?.({ status: resp.status, body, latencyMs: Date.now() - started, willRetry: false });
+      return body;
     }
 
-    if (attemptsLeft > 0 && isRetryableGeminiError(resp.status, rawErr ?? "")) {
+    const willRetry = attemptsLeft > 0 && isRetryableGeminiError(resp.status, rawErr ?? "");
+    await args.onAttempt?.({ status: resp.status, body: null, latencyMs: Date.now() - started, willRetry });
+    if (willRetry) {
+      // Truncated exponential backoff with jitter, honouring Retry-After (§5 B8).
+      const delayMs = backoffMs(attempt, resp.headers.get("retry-after"), 4_000, 30_000);
       console.warn(
-        `[evidence_processed_v2] Gemini overloaded (${resp.status}). Retrying in ${delayMs / 1000}s… (${attemptsLeft} attempt(s) left)`,
+        `[evidence_processed_v2] Gemini overloaded (${resp.status}). Retrying in ${Math.round(delayMs / 1000)}s… (${attemptsLeft} attempt(s) left)`,
       );
       await new Promise((r) => setTimeout(r, delayMs));
-      delayMs = Math.floor(delayMs * 1.5);
       continue;
     }
 
@@ -364,10 +384,13 @@ File name: ${file_name}
     generationConfig: {
       temperature: 0.1,
       response_mime_type: "application/json",
+      // Output and thinking caps (§5 B5): thinking tokens are billed as output.
+      max_output_tokens: OUTPUT_CAPS.evidence,
+      thinking_config: { thinking_budget: GEMINI_THINKING_BUDGET.evidence },
     },
   });
 
-  const j = await geminiGenerateContentWithRetry({ endpoint, requestBody });
+  const j = await geminiGenerateContentWithRetry({ endpoint, requestBody, onAttempt: args.onAttempt });
   const rawOutput = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
   const parsed = safeParseGeminiJson(String(rawOutput));
   const rawText = String(parsed.raw_text ?? rawOutput);
@@ -436,6 +459,13 @@ async function processOneDocument(args) {
       rawText = loaded.rawText;
       log("CONTENT_REUSED", { document_id, content_id: existingContentId });
     } else {
+      // Daily breaker (§5 B4): with today's model budget used up, the document is not sent; the job is retried later.
+      const env = Deno.env.toObject();
+      const usageEnv = usageEnvironment(env);
+      if ((await dailyBreaker(supabase as unknown as UsageClient, usageEnv, env)).state === "open") {
+        await recordModelUsage(supabase as unknown as UsageClient, usageEnv, { caller: "edge", purpose: "evidence", provider: "gemini", model, outcome: "blocked", caseId: doc.case_id });
+        throw new Error("model_budget_exceeded");
+      }
       const dlRes = await supabase.storage.from(doc.storage_bucket).download(doc.storage_path);
       if (!dlRes) throw new Error("Storage download returned undefined");
       if (dlRes.error || !dlRes.data) {
@@ -450,7 +480,19 @@ async function processOneDocument(args) {
         mime_type: mime_used,
         base64: toBase64(bytes),
         declared_document_type: doc.document_type ?? null,
-        file_name: fileName
+        file_name: fileName,
+        onAttempt: (a: GeminiAttempt) =>
+          recordModelUsage(supabase as unknown as UsageClient, usageEnvironment(Deno.env.toObject()), {
+            caller: "edge",
+            purpose: "evidence",
+            provider: "gemini",
+            model,
+            usage: a.body ? geminiUsage(a.body) : undefined,
+            latencyMs: a.latencyMs,
+            httpStatus: a.status,
+            outcome: a.status === 200 ? "ok" : a.willRetry ? "retry" : "error",
+            caseId: doc.case_id,
+          }),
       });
       parsed = gem.parsed;
       rawText = gem.rawText;

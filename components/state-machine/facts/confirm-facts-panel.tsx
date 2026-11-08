@@ -74,11 +74,17 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
     )
   }
   if (facts.isError) {
+    // The daily model budget is used up (cost-controls spec §5 B4): say so calmly; nothing is lost.
+    const paused = facts.error instanceof FactsRequestError && facts.error.reason === 'daily_limit'
     return (
       <Card role="alert">
         <CardHeader>
-          <CardTitle>We couldn’t check your facts just now</CardTitle>
-          <CardDescription>Nothing has been lost. Please try again in a moment.</CardDescription>
+          <CardTitle>{paused ? 'We’ve paused new checks for today' : 'We couldn’t check your facts just now'}</CardTitle>
+          <CardDescription>
+            {paused
+              ? 'Your story and documents are saved. Please come back tomorrow, or email info@guidebuoyai.sg and we’ll let you know when it’s ready.'
+              : 'Nothing has been lost. Please try again in a moment.'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={() => facts.refetch()}>Try again</Button>

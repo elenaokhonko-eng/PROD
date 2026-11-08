@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 import { factsCaseAccess } from "@/lib/server/facts/case-access"
 import { loadFactsView, parseStage } from "@/lib/server/facts/facts-service"
-import { FactsInProgressError, FactsUnavailableError } from "@/lib/server/facts/run-reconcile"
+import { FactsInProgressError, FactsPausedError, FactsUnavailableError } from "@/lib/server/facts/run-reconcile"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const dynamic = "force-dynamic"
@@ -23,6 +23,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
   } catch (error) {
     if (error instanceof FactsInProgressError) {
       return NextResponse.json({ reason: "facts_in_progress" }, { status: 202, headers: { "Cache-Control": "no-store" } })
+    }
+    if (error instanceof FactsPausedError) {
+      return NextResponse.json({ error: "Checking is paused until tomorrow", reason: "daily_limit" }, { status: 503 })
     }
     if (error instanceof FactsUnavailableError) {
       return NextResponse.json({ error: "Facts are not available right now", reason: "facts_unavailable" }, { status: 503 })

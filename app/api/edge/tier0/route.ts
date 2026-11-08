@@ -5,6 +5,7 @@ import { factsCaseAccess } from '@/lib/server/facts/case-access'
 import { loadCurrentSnapshot } from '@/lib/server/facts/facts-service'
 import { FactsInProgressError, FactsUnavailableError } from '@/lib/server/facts/run-reconcile'
 import { createServiceClient } from '@/lib/supabase/service'
+import { HOURLY_LIMIT_MESSAGE, limitResponse, overEvaluationLimit, overIpModelLimit } from '@/lib/server/usage-limits'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -38,6 +39,11 @@ export async function POST(request: Request) {
     }
     throw error
   }
+
+  // Free evaluations and "Try again": limited per case per day and per IP per hour (cost-controls §5 B1). Checked
+  // after the snapshot checks, so a stale request still gets its "facts changed" answer.
+  if (await overEvaluationLimit(caseId, access.profileId)) return limitResponse()
+  if (overIpModelLimit(request)) return limitResponse(HOURLY_LIMIT_MESSAGE)
 
   return proxyEdgeFunction({
     fnName: TIER0_FN,

@@ -104,6 +104,15 @@ export default function QuestionsPage() {
           signal: controller.signal,
         })
 
+        if (response.status === 429) {
+          // The hourly limit (cost-controls B2): say so in the server's words.
+          const limited = (await response.json().catch(() => null)) as { error?: string } | null
+          if (!cancelled) {
+            setError(limited?.error ?? "You've reached the limit for now. Please try again later.")
+            setQuestions([])
+          }
+          return
+        }
         if (!response.ok) throw new Error("Failed to load questions")
 
         const data = (await response.json()) as { questions?: unknown }

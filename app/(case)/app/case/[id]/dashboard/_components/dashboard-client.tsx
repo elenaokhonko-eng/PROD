@@ -25,7 +25,7 @@ import { useCaseEligibility } from '@/hooks/state-machine/layer1/use-case-eligib
 import { useValidationRun } from '@/hooks/state-machine/layer1/use-validation-run'
 import { useIntakeCompletion } from '@/hooks/state-machine/layer1/use-intake-completion'
 import { useSubmitIntake } from '@/hooks/state-machine/layer1/use-submit-intake'
-import { useUploadEvidence } from '@/hooks/state-machine/layer1/use-upload-evidence'
+import { UsageLimitError, useUploadEvidence } from '@/hooks/state-machine/layer1/use-upload-evidence'
 import { useCaseDocumentsRealtime } from '@/hooks/state-machine/layer1/use-case-documents-realtime'
 import { useTier0Draft } from '@/hooks/state-machine/layer1/use-tier0-draft'
 import { useQueryClient } from '@tanstack/react-query'
@@ -188,6 +188,12 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     !tier0DraftQuery.isPending &&
     !paymentStatusQuery.isPending
   const paidStagesOff = capabilityBilling?.access.paidStagesEnabled === false
+  // A reached limit says so in the server's own words; any other failure keeps the generic message.
+  const uploadErrorMessage = !uploadEvidence.isError
+    ? null
+    : uploadEvidence.error instanceof UsageLimitError
+      ? uploadEvidence.error.message
+      : 'Review the selected file and try again. Your existing case evidence is unchanged.'
   const showStageOneNextSteps =
     paidStagesOff && (node === 'S1-Tier0Draft' || node === 'T-BuyReportCTA' || node === 'T-EligibilityGate')
   // An evaluation made from facts that have since changed says so (edge cases, 8 Nov): the confirmed snapshot no
@@ -407,7 +413,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               documents={documentsQuery.data ?? []}
               isUploading={uploadEvidence.isPending}
               activeBatchFileCount={uploadEvidence.isPending ? uploadEvidence.variables?.files.length ?? 0 : 0}
-              errorMessage={uploadEvidence.isError ? 'Review the selected file and try again. Your existing case evidence is unchanged.' : null}
+              errorMessage={uploadErrorMessage}
               onUpload={handleUpload}
             />
           </div>
@@ -458,9 +464,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               activeBatchFileCount: uploadEvidence.isPending
                 ? uploadEvidence.variables?.files.length ?? 0
                 : 0,
-              uploadError: uploadEvidence.isError
-                ? 'Review the selected file and try again. Your existing case evidence is unchanged.'
-                : null,
+              uploadError: uploadErrorMessage,
               onUpload: handleUpload,
               onDeleteDocument: undefined,
             }}

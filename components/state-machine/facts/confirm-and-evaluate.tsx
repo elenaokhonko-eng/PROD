@@ -48,7 +48,9 @@ export function ConfirmAndEvaluate({ caseId, readyDocumentsKey }: { caseId: stri
           <CardDescription>
             {reason === 'facts_unconfirmed'
               ? 'Your facts changed since you confirmed them. Please check them again.'
-              : reason === 'output_validation_failed'
+              : reason === 'usage_limit'
+                ? generate.error.message
+                : reason === 'output_validation_failed'
                 ? 'We couldn’t produce an evaluation that matches your facts exactly. We’ve been notified; please try again later.'
                 : 'Something went wrong. Your answers are saved; please try again.'}
           </CardDescription>

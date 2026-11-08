@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai"
 import { getGeminiModel } from "@/lib/server/ai/models"
 import { safeErrorText } from "@/lib/server/safe-error"
+import { cappedConfig, meteredGenerate } from "@/lib/server/ai/gemini-metered"
+import { currentBreaker, GEMINI_THINKING_BUDGET, OUTPUT_CAPS } from "@/lib/server/model-usage"
+import { HOURLY_LIMIT_MESSAGE, limitResponse, MAX_AUDIO_BYTES, overPreSignInLimit } from "@/lib/server/usage-limits"
+
+const UNAVAILABLE = "Voice transcription isn't available right now. Please type your story instead."
 
 // Same model setting as the router.
 const modelName = getGeminiModel()
@@ -11,7 +16,8 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 }
 
 export async function POST(req: NextRequest) {
-  console.log("Transcription request received (using @google/generative-ai)")
+  // Reachable before sign-in: limited per IP, audio capped, output capped (cost-controls B2).
+  if (overPreSignInLimit(req)) return limitResponse(HOURLY_LIMIT_MESSAGE)
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
     if (!apiKey) {
@@ -27,13 +33,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No audio file uploaded" }, { status: 400 })
     }
 
-    console.log(`Received file: size ${file.size}, type ${file.type}`)
+    if (file.size > MAX_AUDIO_BYTES) {
+      return NextResponse.json(
+        { error: "That recording is too long. Please keep voice notes to about 3 minutes, or type your story." },
+        { status: 413 },
+      )
+    }
+    if ((await currentBreaker()).state === "open") {
+      return NextResponse.json({ error: UNAVAILABLE }, { status: 503 })
+    }
 
     const audioBuffer = await file.arrayBuffer()
     const audioBase64 = arrayBufferToBase64(audioBuffer)
 
     const model = genAI.getGenerativeModel({
       model: modelName,
+      generationConfig: cappedConfig({}, OUTPUT_CAPS.transcription, GEMINI_THINKING_BUDGET.transcription),
       safetySettings: [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -51,9 +66,7 @@ export async function POST(req: NextRequest) {
 
     const textPart = { text: "Transcribe the following audio recording:" }
 
-    console.log(`Calling Gemini (${modelName}) for transcription via Google SDK...`)
-
-    const result = await model.generateContent([textPart, audioPart])
+    const result = await meteredGenerate(model, [textPart, audioPart], { purpose: "transcription", modelName })
     const response = result.response
     const transcription =
       response.text() ??
@@ -62,8 +75,6 @@ export async function POST(req: NextRequest) {
 
     if (!transcription) {
       console.warn("Transcription result from Gemini was empty", { finishReason: response.candidates?.[0]?.finishReason ?? null })
-    } else {
-      console.log("Transcription successful via Google SDK.")
     }
 
     return NextResponse.json({ transcription })
@@ -80,7 +91,6 @@ export async function POST(req: NextRequest) {
         console.error("Error details: provider returned an error body")
       }
     }
-    const message = error instanceof Error ? error.message : "Failed to transcribe audio"
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: UNAVAILABLE }, { status: 500 })
   }
 }

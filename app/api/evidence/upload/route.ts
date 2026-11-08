@@ -7,6 +7,7 @@ import { getProfileCaseEditAccess } from "@/lib/case-documents/register-from-evi
 import { createServiceClient } from "@/lib/supabase/service"
 import { isAllowedMime } from "@/lib/types/documents"
 import { safeErrorText } from "@/lib/server/safe-error"
+import { HOURLY_LIMIT_MESSAGE, limitResponse, overIpModelLimit, overUploadLimit } from "@/lib/server/usage-limits"
 
 export const runtime = "nodejs"
 
@@ -135,6 +136,9 @@ export async function POST(request: Request) {
     if (caseAccess === "forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
+    // Every upload is read by a model: limited per account per day and per IP per hour (cost-controls §5 B1).
+    if (await overUploadLimit(user.supabaseUuid)) return limitResponse()
+    if (overIpModelLimit(request)) return limitResponse(HOURLY_LIMIT_MESSAGE)
 
     const originalName = ((file as File).name || "upload").trim()
     if (!originalName || originalName.length > MAX_FILENAME_LENGTH) {

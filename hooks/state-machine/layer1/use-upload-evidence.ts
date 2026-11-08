@@ -41,6 +41,9 @@ type ProcessEvidenceResponse =
     }
   | null
 
+/** The server's daily or hourly limit was reached; its message is shown as it is (cost-controls B1). */
+export class UsageLimitError extends Error {}
+
 export function useUploadEvidence() {
   const queryClient = useQueryClient()
 
@@ -63,6 +66,7 @@ export function useUploadEvidence() {
         const uploadJson = (await uploadResponse.json().catch(() => null)) as UploadEvidenceResponse
 
         if (!uploadResponse.ok) {
+          if (uploadResponse.status === 429 && uploadJson?.error) throw new UsageLimitError(uploadJson.error)
           throw new Error(uploadJson?.error ?? 'Failed to upload evidence')
         }
 

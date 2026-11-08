@@ -7,6 +7,9 @@ import { logger } from "@/lib/logger"
 import type { TriageSignals } from "@/lib/rules"
 import { getGeminiModel } from "@/lib/server/ai/models"
 import { safeErrorText } from "@/lib/server/safe-error"
+import { cappedConfig, meteredGenerate } from "@/lib/server/ai/gemini-metered"
+import { currentBreaker, GEMINI_THINKING_BUDGET, OUTPUT_CAPS } from "@/lib/server/model-usage"
+import { HOURLY_LIMIT_MESSAGE, limitResponse, overPreSignInLimit } from "@/lib/server/usage-limits"
 
 const modelName = getGeminiModel()
 const log = logger.withContext({ module: "router-classify", model: modelName })
@@ -97,6 +100,8 @@ export async function POST(request: NextRequest) {
   try {
     const rl = rateLimit(keyFrom(request, "/api/router/classify"), 20, 60_000)
     if (!rl.ok) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
+    // Reachable before sign-in: a model call, so limited per IP per hour (cost-controls B2).
+    if (overPreSignInLimit(request)) return limitResponse(HOURLY_LIMIT_MESSAGE)
 
     let parsedBody
     try {
@@ -117,6 +122,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Classification service is unavailable" }, { status: 503 })
     }
 
+    // Daily spend cap reached: no model call; the router continues with the rule-based fallback.
+    if ((await currentBreaker()).state === "open") {
+      const signals = fallbackSignals("We couldn't analyse your story automatically right now. Please answer the questions below.")
+      return NextResponse.json({ ...signals, claimType: "Financial Dispute", summary: signals.summary, keyEntities: [], nextSteps: getNextStepsForRuleEngine() })
+    }
+
     const genAI = new GoogleGenerativeAI(apiKey)
     const sanitizedNarrative = sanitizeText(narrative)
 
@@ -130,7 +141,7 @@ JSON Output:`
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction,
-      generationConfig: { responseMimeType: "application/json" },
+      generationConfig: cappedConfig({ responseMimeType: "application/json" }, OUTPUT_CAPS.router, GEMINI_THINKING_BUDGET.router),
       safetySettings: [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -140,7 +151,7 @@ JSON Output:`
     })
 
     log.info("Calling Gemini for triage signal extraction")
-    const result = await model.generateContent(userPrompt)
+    const result = await meteredGenerate(model, userPrompt, { purpose: "router_classify", modelName })
     const response = result.response
     const rawText =
       response.text() ??

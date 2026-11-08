@@ -91,13 +91,15 @@ export default function OnboardingPage() {
           body: JSON.stringify(pending),
           signal: controller.signal,
         })
-        const data = (await response.json().catch(() => null)) as { case_id?: string } | null
+        const data = (await response.json().catch(() => null)) as { case_id?: string; error?: string } | null
 
         if (!response.ok || !data?.case_id) {
           setError(
             response.status === 401 || response.status === 403
               ? "Sign in with the account that should own this case, then try again."
-              : "Your saved draft remains available so you can try again.",
+              : response.status === 429 && data?.error
+                ? `${data.error} Your saved draft remains available.`
+                : "Your saved draft remains available so you can try again.",
           )
           setStatus("error")
           return

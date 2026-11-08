@@ -13,6 +13,8 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { evaluateCostAlerts, supabaseCostAlertStore, type CostAlertClient } from '../lib/server/cost-alerts'
+import { sendMail } from '../lib/mail'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -455,6 +457,24 @@ async function processOneJob(): Promise<'none' | 'completed' | 'failed'> {
   return 'completed'
 }
 
+// Cost alerts (cost-controls spec §6 C2): hourly, outside the job loop, and never fatal to the worker.
+const COST_ALERT_INTERVAL_MS = 60 * 60_000
+
+async function runCostAlerts(): Promise<void> {
+  try {
+    const sent = await evaluateCostAlerts(
+      supabaseCostAlertStore(supabase as unknown as CostAlertClient),
+      process.env,
+      async (alert, to) => {
+        await sendMail({ to, subject: alert.subject, html: `<pre style="white-space:pre-wrap;font-family:inherit">${alert.text}</pre>` })
+      },
+    )
+    if (sent.length) console.log('[worker] cost alerts sent', { kinds: sent })
+  } catch (err) {
+    console.error('[worker] cost alert check failed', err instanceof Error ? err.message.slice(0, 120) : 'unknown')
+  }
+}
+
 async function main() {
   console.log('[worker] starting', { appUrl, runOnce: RUN_ONCE })
 
@@ -477,6 +497,9 @@ async function main() {
       return
     }
   }
+
+  void runCostAlerts()
+  setInterval(() => void runCostAlerts(), COST_ALERT_INTERVAL_MS).unref()
 
   // eslint-disable-next-line no-constant-condition
   while (true) {

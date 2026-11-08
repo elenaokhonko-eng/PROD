@@ -177,3 +177,32 @@ test('the summary version replaces the same row as a model summary (one tier0_su
   assert.ok(summaryWrite, 'the summary is written with the run source_ref, marked only by its title')
   assert.doesNotMatch(fn, /summary-version`/)
 })
+
+test('cost controls: the summary call is capped, switches model on a rate limit, and reports every attempt without text (8 Nov)', async () => {
+  const bodies: Array<{ model: string; max_tokens?: number }> = []
+  const responses = [new Response('', { status: 429, headers: { 'retry-after': '1' } }), ok({ summary: GOOD }, {})]
+  let i = 0
+  const fn = (async (_url: string, init: RequestInit) => {
+    bodies.push(JSON.parse(String(init.body)))
+    return responses[i++].clone()
+  }) as unknown as typeof fetch
+  const calls: Array<{ model: string; kind: string; httpStatus: number | null }> = []
+  const slept: number[] = []
+  const summary = await chatSummary({
+    ...req(fn), model: 'main-model', secondaryModel: 'second-model', maxTokens: 800,
+    sleep: async (ms) => { slept.push(ms) },
+    onCall: (c) => { calls.push({ model: c.model, kind: c.kind, httpStatus: c.httpStatus }) },
+  })
+  assert.equal(summary, GOOD)
+  assert.deepEqual(bodies.map((b) => [b.model, b.max_tokens]), [['main-model', 800], ['second-model', 800]])
+  assert.deepEqual(slept, [], 'no waiting before the secondary model')
+  assert.deepEqual(calls, [{ model: 'main-model', kind: 'rate_limited', httpStatus: 429 }, { model: 'second-model', kind: 'ok', httpStatus: 200 }])
+
+  // Without a secondary model, a retry waits as the provider asks (Retry-After), with jittered backoff otherwise.
+  const waits: number[] = []
+  const again = [new Response('', { status: 429, headers: { 'retry-after': '1' } }), ok({ summary: GOOD }, {})]
+  let j = 0
+  const fn2 = (async () => again[j++].clone()) as unknown as typeof fetch
+  await chatSummary({ ...req(fn2), sleep: async (ms) => { waits.push(ms) } })
+  assert.deepEqual(waits, [1000])
+})

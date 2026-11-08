@@ -72,7 +72,10 @@ test('the SRF assessment is server-only: the model gives no verdict and its text
   assert.match(fn, /options: checks,/)
   assert.doesNotMatch(tier0, /evidence_checklist/, 'the model is no longer asked for a checklist it would not be shown')
   // Every model text that is shown is checked; the evidence checklist shown is the server's (C2), not the model's.
-  assert.match(fn, /chatSummary\(\{ fetch, apiKey: OPENAI_API_KEY, model: TIER0_MODEL, system: tier0System\(previousFailures\), user, deadline \}\)/)
+  assert.match(fn, /return chatSummary\(\{\s*fetch,\s*apiKey: OPENAI_API_KEY,\s*model: TIER0_MODEL,[\s\S]*?system: tier0System\(previousFailures\),\s*user,\s*deadline,/)
+  // Cost controls (8 Nov): capped output and no model call once the daily budget is used up.
+  assert.match(fn, /maxTokens: OUTPUT_CAPS\.summary,/)
+  assert.match(fn, /if \(breaker\.state === "open"\) \{[\s\S]*?outcome: "blocked"[\s\S]*?throw new ProviderFailure\("budget"\)/)
   assert.match(fn, /text_content: evidenceListsText\(facts, /)
   assert.doesNotMatch(fn, /text_content: llm\.evidence_checklist/)
 })
