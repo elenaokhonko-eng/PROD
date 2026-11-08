@@ -5,6 +5,7 @@ import { WelcomeEmail } from "@/lib/email-templates"
 import { sendMail } from "@/lib/mail"
 import { render } from "@react-email/render"
 import type { ReactElement } from "react"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const welcomeSchema = z.object({
   userEmail: z.string().email(),
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     const info = await sendMail({ from: EMAIL_FROM, to: userEmail, subject: "Welcome to GuideBuoy AI - Let's Get Started", html })
     return NextResponse.json({ success: true, messageId: info.messageId })
   } catch (error) {
-    console.error("[v0] Welcome email error:", error)
+    console.error("[v0] Welcome email error:", safeErrorText(error))
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

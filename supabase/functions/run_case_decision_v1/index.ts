@@ -6,6 +6,7 @@ import {
   HarborEdgeAuthError,
   verifyHarborEdgeRequest,
 } from "../_shared/edge-auth.ts";
+import { safeErrorText } from "../_shared/safe-error.ts";
 function nowIso() {
   return new Date().toISOString();
 }
@@ -38,13 +39,9 @@ function jsonResp(data, status = 200) {
     }
   });
 }
+// Logged and returned to the caller, so no stack, row details, provider body or model text (hardening item 6).
 function errToText(e) {
-  if (e instanceof Error) return `${e.name}: ${e.message}\n${e.stack ?? ""}`.trim();
-  try {
-    return `Non-Error thrown:\n${JSON.stringify(e, null, 2)}`;
-  } catch  {
-    return `Non-Error thrown (unstringifiable): ${String(e)}`;
-  }
+  return safeErrorText(e);
 }
 /** ---------------------------
  * Locked decision schema v1
@@ -427,7 +424,8 @@ const DECISION_JSON_SCHEMA = {
     })
   });
   const raw = await res.text();
-  if (!res.ok) throw new Error(`OpenAI embeddings failed (${res.status}): ${raw}`);
+  // The provider body can echo the input; keep the status only (hardening item 6).
+  if (!res.ok) throw new Error(`OpenAI embeddings failed (${res.status})`);
   const j = JSON.parse(raw);
   const emb = j?.data?.[0]?.embedding;
   if (!Array.isArray(emb) || emb.length === 0) throw new Error("OpenAI embeddings returned no embedding array.");
@@ -485,10 +483,11 @@ async function openaiDecision(apiKey, model, inputObj) {
     })
   });
   const raw = await res.text();
-  if (!res.ok) throw new Error(`OpenAI decision failed (${res.status}): ${raw}`);
+  // The provider body can echo the input; keep the status only (hardening item 6).
+  if (!res.ok) throw new Error(`OpenAI decision failed (${res.status})`);
   const payload = JSON.parse(raw);
   const outText = payload?.output?.[0]?.content?.[0]?.text;
-  if (!outText) throw new Error(`OpenAI decision returned unexpected payload: ${raw.slice(0, 2000)}`);
+  if (!outText) throw new Error("OpenAI decision returned no output text");
   return JSON.parse(outText);
 }
 /** ---------------------------

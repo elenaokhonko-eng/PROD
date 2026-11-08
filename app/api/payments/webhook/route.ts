@@ -3,6 +3,7 @@ import Stripe from "stripe"
 import { createServiceClient } from "@/lib/supabase/service"
 import { fulfilCheckoutSessionCompleted } from "@/lib/payments/fulfil-checkout-session"
 import { reconcilePaymentLifecycleEvents as reconcilePaymentLifecycle } from "@/lib/payments/reconcile-payment-lifecycle"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 export const dynamic = "force-dynamic"
 
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret)
   } catch (err) {
-    console.error("[payments] webhook signature error:", err)
+    console.error("[payments] webhook signature error:", safeErrorText(err))
     return new NextResponse("Invalid signature", { status: 400 })
   }
 
@@ -347,7 +348,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true })
   } catch (err) {
-    console.error("[payments] webhook handler error:", err)
+    console.error("[payments] webhook handler error:", safeErrorText(err))
     return new NextResponse("Webhook handler failed", { status: 500 })
   }
 }

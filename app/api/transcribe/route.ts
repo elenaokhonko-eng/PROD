@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai"
 import { getGeminiModel } from "@/lib/server/ai/models"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 // Same model setting as the router.
 const modelName = getGeminiModel()
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No audio file uploaded" }, { status: 400 })
     }
 
-    console.log(`Received file: ${file.name}, size: ${file.size}, type: ${file.type}`)
+    console.log(`Received file: size ${file.size}, type ${file.type}`)
 
     const audioBuffer = await file.arrayBuffer()
     const audioBase64 = arrayBufferToBase64(audioBuffer)
@@ -60,23 +61,23 @@ export async function POST(req: NextRequest) {
       ""
 
     if (!transcription) {
-      console.warn("Transcription result from Gemini was empty. Full response:", JSON.stringify(response, null, 2))
+      console.warn("Transcription result from Gemini was empty", { finishReason: response.candidates?.[0]?.finishReason ?? null })
     } else {
       console.log("Transcription successful via Google SDK.")
     }
 
     return NextResponse.json({ transcription })
   } catch (error) {
-    console.error("[v0] Gemini transcription error (Google SDK):", error)
+    console.error("[v0] Gemini transcription error (Google SDK):", safeErrorText(error))
     if (
       typeof error === "object" &&
       error !== null &&
       "response" in error &&
       typeof (error as { response?: { data?: unknown } }).response === "object"
     ) {
-      const responseData = (error as { response?: { data?: unknown } }).response?.data
-      if (responseData) {
-        console.error("Error details:", JSON.stringify(responseData, null, 2))
+      // The provider body can echo the input; log only that there was one (hardening item 6).
+      if ((error as { response?: { data?: unknown } }).response?.data) {
+        console.error("Error details: provider returned an error body")
       }
     }
     const message = error instanceof Error ? error.message : "Failed to transcribe audio"

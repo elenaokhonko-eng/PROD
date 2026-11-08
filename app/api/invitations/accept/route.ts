@@ -3,6 +3,7 @@ import { z } from "zod"
 import { getCurrentUser } from "@/lib/auth"
 import { keyFrom, rateLimit } from "@/lib/rate-limit"
 import { createUserClient } from "@/lib/supabase/server"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const acceptSchema = z.object({
   invitationToken: z.string().min(32, "Invalid invitation token").max(256, "Invalid invitation token"),
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (acceptError) {
-      console.error("[invitations/accept] RPC failed", acceptError)
+      console.error("[invitations/accept] RPC failed", safeErrorText(acceptError))
       return NextResponse.json({ error: "Unable to accept invitation" }, { status: 500 })
     }
 
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, caseId: accepted.case_id })
   } catch (error) {
-    console.error("[v0] Invitation accept error:", error)
+    console.error("[v0] Invitation accept error:", safeErrorText(error))
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

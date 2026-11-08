@@ -13,6 +13,7 @@ import {
 } from "@/lib/payments/product-catalogue"
 import { loadReportPurchaseReadiness } from "@/lib/billing/report-purchase-readiness"
 import { paidStagesAvailableFrom, paidStagesEnabled } from "@/lib/billing/paid-stages"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 export type ProductKey = CheckoutProductKey
 
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
       try {
         readiness = await loadReportPurchaseReadiness(service, caseId)
       } catch (error) {
-        console.error("[payments] Failed to check report purchase readiness", error)
+        console.error("[payments] Failed to check report purchase readiness", safeErrorText(error))
         return NextResponse.json({ error: "Failed to create purchase record" }, { status: 500 })
       }
       if (!readiness.ready) {
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
       ) {
         return NextResponse.json({ error: "Purchase is not eligible" }, { status: 409 })
       }
-      console.error("[payments] Failed to reserve checkout purchase", reservationError)
+      console.error("[payments] Failed to reserve checkout purchase", safeErrorText(reservationError))
       return NextResponse.json({ error: "Failed to create purchase record" }, { status: 500 })
     }
 
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
       )
 
       if (reconciliationError || !reconciliation) {
-        console.error("[payments] Established purchase reconciliation is required", reconciliationError)
+        console.error("[payments] Established purchase reconciliation is required", safeErrorText(reconciliationError))
         return NextResponse.json(
           {
             error: "Purchase fulfilment is pending reconciliation",
@@ -263,7 +264,7 @@ export async function POST(request: NextRequest) {
             p_payment_intent_id: session.paymentIntentId,
           })
           if (error || !data) {
-            console.error("[payments] Failed to atomically attach Stripe Checkout session", error)
+            console.error("[payments] Failed to atomically attach Stripe Checkout session", safeErrorText(error))
             throw new Error(error?.message ?? "Checkout attachment failed")
           }
         },
@@ -278,7 +279,7 @@ export async function POST(request: NextRequest) {
             p_checkout_session_id: sessionId,
           })
           if (error) {
-            console.error("[payments] Failed to atomically cancel expired reservation", error)
+            console.error("[payments] Failed to atomically cancel expired reservation", safeErrorText(error))
             throw new Error(error.message)
           }
         },
@@ -298,7 +299,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: result.url })
   } catch (err) {
-    console.error("[payments] create session error:", err)
+    console.error("[payments] create session error:", safeErrorText(err))
     return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 })
   }
 }

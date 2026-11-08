@@ -7,6 +7,7 @@ import {
   verifyHarborEdgeRequest,
 } from "../_shared/edge-auth.ts";
 import { applyGapAnswers } from "../_shared/gap-answers.ts";
+import { safeError } from "../_shared/safe-error.ts";
 /**
  * v2.1.3 changes (institution first-report + type-aware preference):
  * - Institution keyword set now prioritises FIRST REPORT phrases (receive/report/submitted/reference no)
@@ -36,7 +37,7 @@ function normalizePgError(err) {
   return {
     message: err?.message,
     code: err?.code,
-    details: err?.details,
+    // Postgres "details" quote the failing row (case content), so they are never logged or returned (item 6).
     hint: err?.hint,
     status: err?.status,
     statusText: err?.statusText
@@ -295,7 +296,8 @@ async function callOpenAIResponses(openaiKey, body) {
   } catch  {
     payload = null;
   }
-  if (!res.ok) throw new Error(`OpenAI failed (${res.status}): ${payload ? JSON.stringify(payload) : raw}`);
+  // The provider body can echo the input; keep the status and error type only (hardening item 6).
+  if (!res.ok) throw new Error(`OpenAI failed (${res.status}): ${payload?.error?.type ?? payload?.error?.code ?? "no error type"}`);
   if (!payload) throw new Error(`OpenAI failed: empty/invalid JSON response (${res.status})`);
   return payload;
 }
@@ -1208,11 +1210,12 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     const incidentISO = parseIncidentISO(caseData);
     mark("06b_server_compute_start");
     const serverFacts = computeServerFacts(allEvidence, caseCur, claimAmt, incidentISO);
+    // Which facts were found, not their values: stage logs carry no case content (hardening item 6).
     mark("06b_server_compute_ok", {
-      institution_name_guess: serverFacts.institution_name_guess,
-      reported_loss: serverFacts.reported_loss,
-      reported_to_police_at: serverFacts.reported_to_police_at,
-      reported_to_institution_at: serverFacts.reported_to_institution_at
+      institution_name_found: Boolean(serverFacts.institution_name_guess),
+      reported_loss_found: serverFacts.reported_loss?.amount != null,
+      reported_to_police_at_found: Boolean(serverFacts.reported_to_police_at),
+      reported_to_institution_at_found: Boolean(serverFacts.reported_to_institution_at)
     });
     mark("06c_evidence_prompt_select_start");
     const evidenceForPrompt = selectEvidenceForPrompt(allEvidence);
@@ -1380,7 +1383,8 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
           ? "Validation skipped (skip_validation=true)."
           : null
     }, 200);  } catch (e) {
-    const details = normalizeError(e);
+    // Name, code, status and a scrubbed message only: no stack, raw error, row details or model text (item 6).
+    const details = safeError(e);
     console.log("[ERROR]", JSON.stringify({
       request_id,
       version: VERSION,

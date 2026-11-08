@@ -3,6 +3,7 @@ import { z } from "zod"
 import { getCurrentUser } from "@/lib/auth"
 import { keyFrom, rateLimit } from "@/lib/rate-limit"
 import { createUserClient } from "@/lib/supabase/server"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const shareSchema = z.object({
   email: z.string().email(),
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     return NextResponse.json({ success: true, message: "Invitation created", shareLink })
   } catch (error) {
-    console.error("[v0] Share case error:", error)
+    console.error("[v0] Share case error:", safeErrorText(error))
     return NextResponse.json({ error: "Failed to share case" }, { status: 500 })
   }
 }

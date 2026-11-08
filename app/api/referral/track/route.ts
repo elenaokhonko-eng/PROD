@@ -3,6 +3,7 @@ import { z } from "zod"
 import { getCurrentUser } from "@/lib/auth"
 import { createServiceClient } from "@/lib/supabase/service"
 import { trackServerEvent } from "@/lib/analytics/server"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const referralTrackSchema = z.object({
   referralCode: z.string().min(1, "referralCode is required"),
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("[v0] Referral tracking error:", error)
+    console.error("[v0] Referral tracking error:", safeErrorText(error))
     return NextResponse.json({ error: "Failed to track referral" }, { status: 500 })
   }
 }

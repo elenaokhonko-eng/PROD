@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const analyzeSchema = z.object({
   session_token: z.string().min(1, "session_token is required"),
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
   } catch (err) {
-    console.error("/api/triage/analyze error:", err)
+    console.error("/api/triage/analyze error:", safeErrorText(err))
     return NextResponse.json({ error: "Internal error" }, { status: 500 })
   }
 }

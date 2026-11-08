@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getCurrentUser } from "@/lib/auth"
 import { createUserClient } from "@/lib/supabase/server"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const payloadSchema = z.object({
   consent_purposes: z.array(z.string().trim().min(1).max(100)).max(32).default([]),
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   })
 
   if (error || !consentId) {
-    console.error("[consent-log] Failed to record consent", error)
+    console.error("[consent-log] Failed to record consent", safeErrorText(error))
     return NextResponse.json({ error: "Failed to record consent" }, { status: 500 })
   }
 

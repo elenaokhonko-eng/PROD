@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { createUserClient } from "@/lib/supabase/server"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 type DeletionRequest = {
   request_id: string
@@ -15,7 +16,7 @@ export async function POST() {
   const supabase = await createUserClient()
   const { data, error } = await supabase.rpc("request_privacy_deletion")
   if (error) {
-    console.error("[privacy] deletion request enqueue failed:", error)
+    console.error("[privacy] deletion request enqueue failed:", safeErrorText(error))
     return NextResponse.json({ error: "Failed to submit deletion request" }, { status: 500 })
   }
 

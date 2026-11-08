@@ -70,19 +70,17 @@ async function sendWithRetry(
 ): Promise<nodemailer.SentMessageInfo> {
   try {
     const result = await mailer.sendMail(options)
+    // Recipients and subjects (an invitation subject names the inviter) stay out of logs (hardening item 6).
     log.info("Email dispatched", {
-      to: Array.isArray(options.to) ? options.to.join(", ") : options.to,
-      subject: options.subject,
+      recipients: Array.isArray(options.to) ? options.to.length : 1,
       attempt,
       messageId: result.messageId,
-      envelopeTo: result.envelope?.to,
     })
     return result
   } catch (error) {
     const transportError = (typeof error === "object" && error !== null ? (error as TransportError) : {}) as TransportError
     const metadata = {
-      to: options.to,
-      subject: options.subject,
+      recipients: Array.isArray(options.to) ? options.to.length : 1,
       attempt,
       code: transportError.code,
       responseCode: transportError.responseCode,

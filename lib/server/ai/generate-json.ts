@@ -1,6 +1,7 @@
 import OpenAI from "openai"
 
 import { logger } from "@/lib/logger"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const log = logger.withContext({ module: "ai-generate-json" })
 
@@ -115,7 +116,8 @@ export async function generateJson<T = unknown>(input: GenerateJsonInput): Promi
   } catch (error) {
     throw new Error(
       `Model output is not valid JSON for ${schemaName}: ${
-        error instanceof Error ? error.message : String(error)
+        // A JSON.parse error quotes the model output it failed on (hardening item 6).
+        safeErrorText(error)
       }`,
     )
   }

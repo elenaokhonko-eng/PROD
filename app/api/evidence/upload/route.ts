@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth"
 import { getProfileCaseEditAccess } from "@/lib/case-documents/register-from-evidence-v1"
 import { createServiceClient } from "@/lib/supabase/service"
 import { isAllowedMime } from "@/lib/types/documents"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 export const runtime = "nodejs"
 
@@ -73,7 +74,7 @@ async function queueFailedStorageCleanup(
     { onConflict: "storage_bucket,storage_path" },
   )
   if (error) {
-    console.error("[evidence/upload] Failed to queue Storage reconciliation:", error)
+    console.error("[evidence/upload] Failed to queue Storage reconciliation:", safeErrorText(error))
   }
 }
 
@@ -148,7 +149,7 @@ export async function POST(request: Request) {
       upsert: false,
     })
     if (storageError) {
-      console.error("[evidence/upload] Storage upload failed:", storageError)
+      console.error("[evidence/upload] Storage upload failed:", safeErrorText(storageError))
       return NextResponse.json({ error: "Failed to upload file" }, { status: 500 })
     }
 
@@ -167,10 +168,10 @@ export async function POST(request: Request) {
     )
 
     if (insertError || !evidence) {
-      console.error("[evidence/upload] Insert failed:", insertError)
+      console.error("[evidence/upload] Insert failed:", safeErrorText(insertError))
       const { error: cleanupError } = await supabaseService.storage.from(STORAGE_BUCKET).remove([filePath])
       if (cleanupError) {
-        console.error("[evidence/upload] Storage rollback failed:", cleanupError)
+        console.error("[evidence/upload] Storage rollback failed:", safeErrorText(cleanupError))
         await queueFailedStorageCleanup(supabaseService, filePath, cleanupError.message)
       }
       const quotaExceeded = insertError?.message.includes("case storage quota exceeded")
@@ -182,7 +183,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ evidence })
   } catch (err) {
-    console.error("[evidence/upload] Unexpected error:", err)
+    console.error("[evidence/upload] Unexpected error:", safeErrorText(err))
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

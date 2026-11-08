@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { createUserClient } from "@/lib/supabase/server"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 export async function POST() {
   try {
@@ -18,7 +19,7 @@ export async function POST() {
 
     return NextResponse.json({ referralCode })
   } catch (error) {
-    console.error("[v0] Referral generation error:", error)
+    console.error("[v0] Referral generation error:", safeErrorText(error))
     return NextResponse.json({ error: "Failed to generate referral code" }, { status: 500 })
   }
 }

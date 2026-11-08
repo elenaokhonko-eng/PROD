@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { safeErrorText } from "../_shared/safe-error.ts";
 import {
   authorizeHarborEdgeRequest,
   HarborEdgeAuthError,
@@ -304,7 +305,8 @@ async function geminiGenerateContentWithRetry(args: {
       continue;
     }
 
-    throw new Error(`Gemini failed: ${resp.status} ${rawErr ?? ""}`.trim());
+    // The provider body can echo the document; keep the status only (hardening item 6).
+    throw new Error(`Gemini failed: ${resp.status}`);
   }
 
   throw new Error("Gemini failed after retries");
@@ -599,10 +601,10 @@ async function processOneDocument(args) {
       p_job_locked_at: job_lock_token,
       p_document_id: document_id,
       p_request_id: requestId,
-      p_error: String(error?.message ?? error ?? "unknown")
+      p_error: safeErrorText(error)
     });
     if (failure.error) {
-      log("FAILURE_STATUS_SKIPPED", { document_id, error: failure.error.message });
+      log("FAILURE_STATUS_SKIPPED", { document_id, code: failure.error.code ?? null });
     }
     throw error;
   }
@@ -654,7 +656,8 @@ Deno.serve(async (req)=>{
       headers: { "Content-Type": "application/json" }
     });
   } catch (error) {
-    const message = String(error?.message ?? error);
+    // Name, code and a scrubbed message only: lease and readiness markers survive, case content does not.
+    const message = safeErrorText(error);
     log("GLOBAL_ERROR", { requestId, message });
     const status = error instanceof HarborEdgeAuthError ? error.status : 500;
     return new Response(JSON.stringify({ ok: false, requestId, error: message }), {

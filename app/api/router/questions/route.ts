@@ -3,6 +3,7 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/ge
 import { z } from "zod"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
 import { getGeminiModel } from "@/lib/server/ai/models"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const modelName = getGeminiModel()
 
@@ -94,22 +95,22 @@ JSON Output:`
     try {
       data = JSON.parse(rawText) as Record<string, unknown>
     } catch (err) {
-      console.error("[v0] Questions JSON parse error:", err, rawText)
+      console.error("[v0] Questions JSON parse error: model returned malformed JSON")
       return NextResponse.json({ error: "Unable to parse generated questions" }, { status: 502 })
     }
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error("[v0] Questions generation error:", error)
+    console.error("[v0] Questions generation error:", safeErrorText(error))
     if (
       typeof error === "object" &&
       error !== null &&
       "response" in error &&
       typeof (error as { response?: { data?: unknown } }).response === "object"
     ) {
-      const responseData = (error as { response?: { data?: unknown } }).response?.data
-      if (responseData) {
-        console.error("API Error details:", JSON.stringify(responseData, null, 2))
+      // The provider body can echo the input; log only that there was one (hardening item 6).
+      if ((error as { response?: { data?: unknown } }).response?.data) {
+        console.error("API Error details: provider returned an error body")
       }
     }
     return NextResponse.json({ error: "Failed to generate questions" }, { status: 500 })

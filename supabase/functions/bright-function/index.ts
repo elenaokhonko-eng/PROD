@@ -5,6 +5,7 @@ import {
   HarborEdgeAuthError,
   verifyHarborEdgeRequest,
 } from "../_shared/edge-auth.ts";
+import { safeErrorText } from "../_shared/safe-error.ts";
 import {
   assessSrf,
   chatSummary,
@@ -13,15 +14,15 @@ import {
   evidenceListsText,
   type FactKey,
   factsYouConfirmed,
-  formatFactValue,
   type Institution,
   produceSummary,
-  type Money,
+  buildTier0Input,
+  TIER0_CHECKS,
+  tier0System,
   reportItNowText,
   type SnapshotFacts,
   srfAssessmentText,
   srfFactsFromSnapshot,
-  type Transaction,
 } from "../_shared/facts/index.ts";
 
 const PROJECT_URL = Deno.env.get("GUIDEBUOY_URL");
@@ -30,14 +31,8 @@ const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction");
 // OpenAI model IDs are lower case; the default keeps the model this function has always used.
 // Pinned to a dated snapshot so a provider-side model update cannot change behaviour unseen (hardening item 2);
 // the corpus (scripts/tier0-corpus) is re-run before this or the prompt changes.
-const TIER0_MODEL = (Deno.env.get("TIER0_MODEL") ?? "gpt-4o-mini-2024-07-18").trim().toLowerCase();
+const TIER0_MODEL = (Deno.env.get("TIER0_MODEL") ?? "gpt-4o-mini-2024-07-18").trim().toLowerCase(); // = TIER0_DEFAULT_MODEL
 const TIER0_BUDGET_MS = 90_000;
-const TIER0_MIN_WORDS = 40;
-const TIER0_MAX_WORDS = 450;
-// Dates the free evaluation may state that are not case facts (SRF effective dates).
-const TIER0_EXTRA_DATES = ["2024-12-16", "2025-06-16"];
-// The model may not give its own SRF, IMDA or telco verdict; the server writes that section from fixed rules.
-const SRF_VERDICT = /\bSRF\b|shared responsibility|\bIMDA\b|\btelcos?\b|mobile operator/i;
 
 type FidrecCheck = {
   institution_name_input: string | null;
@@ -122,7 +117,7 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (snapshotErr) return new Response(`Snapshot Error: ${snapshotErr.message}`, { status: 500 });
+    if (snapshotErr) return json({ ok: false, error: "snapshot_unavailable", code: snapshotErr.code ?? null }, 500);
     if (!snapshot || snapshot.id !== fact_snapshot_id) {
       return json({ ok: false, reason: "facts_unconfirmed", error: "These facts are no longer the latest confirmed facts" }, 409);
     }
@@ -136,72 +131,22 @@ Deno.serve(async (req) => {
       .order("revision", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (storyErr) return new Response(`Story Error: ${storyErr.message}`, { status: 500 });
+    if (storyErr) return json({ ok: false, error: "story_unavailable", code: storyErr.code ?? null }, 500);
 
-    // If the user settled a conflict against their story (chose a value the story does not support, or typed their
-    // own), the model is not shown the story: it copies the story's version even when told not to. The evaluation is
-    // then written from the confirmed facts alone.
     const { data: findings, error: findingsErr } = await supabase
       .from("case_fact_findings")
       .select("fact_key, finding_type, values, resolution")
       .eq("case_id", case_id)
       .is("invalidated_at", null);
-    if (findingsErr) return new Response(`Findings Error: ${findingsErr.message}`, { status: 500 });
-    const conflicts = (findings ?? []).filter((f) => f.finding_type === "conflict");
-    type StoredValue = { sources?: Array<{ sourceType?: string }> };
-    const fromStory = (v: StoredValue | undefined) => Boolean(v?.sources?.some((s) => s.sourceType === "story"));
-    const storyOverruled = (conflicts ?? []).some((f) => {
-      const values = (f.values ?? []) as StoredValue[];
-      const resolution = f.resolution as { kind?: string; index?: number } | null;
-      if (!resolution || !values.some(fromStory)) return false;
-      if (resolution.kind === "value") return true;
-      return resolution.kind === "choice" && !fromStory(values[resolution.index ?? -1]);
-    });
+    if (findingsErr) return json({ ok: false, error: "findings_unavailable", code: findingsErr.code ?? null }, 500);
 
     const institutions = (facts.institution_names?.value as Institution[] | null) ?? [];
-    const loss = (facts.total_loss?.value as Money | null) ?? null;
-    const transactions = (facts.transactions?.value as Transaction[] | null) ?? [];
-    const firstDate = transactions.map((t) => t.date).filter((d): d is string => Boolean(d)).sort()[0] ?? null;
     const fidrecCheck = await checkFidrecSubscription(supabase, institutions[0]?.name ?? null);
-
-    const input = {
-      case: {
-        institution_name: institutions.map((i) => i.name).join(", ") || null,
-        claim_amount: loss?.amount ?? null,
-        claim_currency: loss?.currency ?? null,
-        incident_date: firstDate,
-        incident_datetime: null,
-      },
-      confirmed_facts: Object.fromEntries(
-        Object.entries(facts).map(([key, fact]) => [
-          key,
-          {
-            status: fact!.label,
-            value: fact!.label === "not_sure" || fact!.label === "not_known" ? null : formatFactValue(key as FactKey, fact!.value),
-          },
-        ]),
-      ),
-      // Spelled out per fact: the model does not reliably apply the status rule to facts it also reads in the story.
-      facts_without_document: Object.entries(facts)
-        .filter(([, fact]) => fact!.label === "claimant_only")
-        .map(([key, fact]) => `${key}: ${formatFactValue(key as FactKey, fact!.value)}`),
-      facts_not_confirmed: Object.entries(facts)
-        .filter(([, fact]) => fact!.label === "not_sure" || fact!.label === "not_known")
-        .map(([key]) => key),
-      primary_narrative: storyOverruled ? null : storyRow?.story_text ?? null,
-      fidrec_check: fidrecCheck,
-    };
-
-    // The model writes the summary and checklist only. The SRF section is the server's (rules/srf.ts), so any SRF
-    // or telco verdict from the model fails, as does "the user" instead of "you".
-    const checks = {
-      extraDates: TIER0_EXTRA_DATES,
-      secondPerson: true,
-      forbidden: [{ pattern: SRF_VERDICT, detail: "the SRF assessment is written by the server" }],
-      userFacing: { minWords: TIER0_MIN_WORDS, maxWords: TIER0_MAX_WORDS },
-    };
-    // The evidence checklist shown is the server's (C2), so only the model's summary is checked and kept. A checker
-    // rejection or a provider failure ends in the summary version, never in "failed" (summary-ladder.ts).
+    // Input, prompt and checks are shared with the corpus (scripts/tier0-corpus), so it measures exactly this.
+    const input = buildTier0Input({ facts, findings: findings ?? [], storyText: storyRow?.story_text ?? null, fidrecCheck });
+    const checks = TIER0_CHECKS;
+    // The evidence checklist shown is the server's (C2); the model writes only the summary. A checker rejection or a
+    // provider failure ends in the summary version, never in "failed" (summary-ladder.ts).
     const user = `INPUT JSON:
 ${JSON.stringify(input, null, 2)}`;
     const deadline = Date.now() + TIER0_BUDGET_MS;
@@ -333,8 +278,10 @@ ${JSON.stringify(input, null, 2)}`;
       200,
     );
   } catch (e) {
-    console.error(`Error: ${String(e)}`);
-    return json({ ok: false, error: String(e) }, e instanceof HarborEdgeAuthError ? e.status : 500);
+    // No case content in logs or responses (hardening item 6): name, code and a scrubbed message only.
+    console.error(`Tier-0 error: ${safeErrorText(e)}`);
+    if (e instanceof HarborEdgeAuthError) return json({ ok: false, error: e.message }, e.status);
+    return json({ ok: false, error: "internal_error" }, 500);
   }
 });
 
@@ -405,7 +352,7 @@ async function checkFidrecSubscription(
       .maybeSingle();
 
     if (exactErr) {
-      console.warn(`Tier-0: fidrec_eligible exact match failed: ${exactErr.message}`);
+      console.warn(`Tier-0: fidrec_eligible exact match failed: ${exactErr.code ?? "unknown"}`);
       return withInput({
         fidrec_subscription_possible: null,
         matched_institution_name: null,
@@ -435,7 +382,7 @@ async function checkFidrecSubscription(
     .select("institution_name, institution_name_normalized, aliases");
 
   if (listErr) {
-    console.warn(`Tier-0: fidrec_eligible alias list unavailable: ${listErr.message}`);
+    console.warn(`Tier-0: fidrec_eligible alias list unavailable: ${listErr.code ?? "unknown"}`);
     return withInput({
       fidrec_subscription_possible: false,
       matched_institution_name: null,
@@ -797,48 +744,3 @@ function renderTier0SrfSignal(signals: SrfSignals): string {
   return lines.join("\n");
 }
 
-function tier0System(previousFailures: string | null): string {
-  return `You are writing the free evaluation for someone who may have lost money to a scam: an early-stage, informational summary that helps them see what happened and what evidence helps. It is not a legal determination, not an eligibility decision and not compensation advice.
-
-GROUND RULES
-Use only facts explicitly present in the provided JSON. Do not infer, assume, invent facts, or introduce external knowledge (e.g. how scams usually work). If something is missing, say it was not provided. Be neutral, factual, chronological, clear, calm and non-judgemental. Do not provide legal advice, do not determine liability, and do not say whether the person is eligible for compensation.
-Write to the person directly in the second person ("you", "your") throughout. Never write "the user", "the claimant" or "the customer".
-Do not assess or mention the Shared Responsibility Framework (SRF), IMDA or telco responsibility, and do not say whether any scheme applies: GuideBuoy adds that assessment separately from fixed rules.
-
-FIDREC_CHECK (optional object in input JSON)
-The fidrec_check block is a soft, reference-list signal only. Do not mention FIDReC eligibility.
-
-SUMMARY HARD RULES
-Do not add personal circumstances, location, family context, emotions, or surrounding scene details unless explicitly stated in the input. Do not add inferred context such as where the person was, what device they used, or what they were doing at the time, unless the input explicitly says so. If a fact is not explicitly in the input, do not include it.
-
-OUTPUT
-Return STRICT JSON only, with this exact structure (no extra keys):
-{
-"summary": "string",
-"evidence_checklist": "string"
-}
-
-SUMMARY
-Produce a clear, chronological summary covering: how the scam or contact started; what you did; the payments or losses; and what happened afterwards (e.g. reporting, contact with the bank). Do not add interpretation or judgement.
-
-EVIDENCE CHECKLIST
-Suggest useful supporting evidence based only on gaps implied by the input. Valid examples include: bank transaction records, screenshots of messages, call logs, police report, bank correspondence. Do not suggest evidence unrelated to the scenario; do not assume documents exist if not mentioned.
-
-CONFIRMED FACTS (these override everything else in the input)
-confirmed_facts holds the facts the user confirmed, each with a status. Use them as the facts of the case.
-- status "confirmed": state as fact.
-- status "claimant_only": the user has no document for it; attribute it ("according to you", "you say").
-- status "not_sure" or "not_known": say it is not confirmed; never state a value for it.
-facts_without_document lists the facts the user has no document for. Every sentence that mentions one of them must
-start with "You told us that". facts_not_confirmed lists facts that are not confirmed: say so and give no value.
-Never state a date, amount, institution or yes/no fact that differs from confirmed_facts. primary_narrative is the
-user's own story: use it only for the order of events and context, never for a fact that confirmed_facts covers.
-If primary_narrative is null, the user corrected their story; write only from confirmed_facts.
-Write neutrally: do not overstate or understate.
-Write the summary in ${TIER0_MIN_WORDS + 40} to ${TIER0_MAX_WORDS - 100} words of plain prose. Never use the input's field names
-(such as confirmed_facts or reported_to_police) or internal names; describe the facts in ordinary words.${previousFailures ? `
-
-YOUR PREVIOUS ANSWER WAS REJECTED for these problems:
-${previousFailures}
-Fix these points and keep everything else faithful to the confirmed facts.` : ""}`;
-}

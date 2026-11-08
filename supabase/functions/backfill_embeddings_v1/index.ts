@@ -6,6 +6,7 @@ import {
   HarborEdgeAuthError,
   verifyHarborEdgeRequest,
 } from "../_shared/edge-auth.ts";
+import { safeErrorText } from "../_shared/safe-error.ts";
 function nowIso() {
   return new Date().toISOString();
 }
@@ -43,7 +44,8 @@ async function openaiEmbed(apiKey, model, input) {
     })
   });
   const raw = await res.text();
-  if (!res.ok) throw new Error(`OpenAI embeddings failed (${res.status}): ${raw}`);
+  // The provider body can echo the input; keep the status only (hardening item 6).
+  if (!res.ok) throw new Error(`OpenAI embeddings failed (${res.status})`);
   const j = JSON.parse(raw);
   const emb = j?.data?.[0]?.embedding;
   if (!Array.isArray(emb) || emb.length === 0) throw new Error("OpenAI embeddings returned no embedding array.");
@@ -145,7 +147,7 @@ serve(async (req)=>{
       tip: "Call again until processed=0. Then your match_* RPCs will return results."
     });
   } catch (e) {
-    const msg = e instanceof Error ? `${e.name}: ${e.message}\n${e.stack ?? ""}` : String(e);
+    const msg = safeErrorText(e);
     return textResp(msg, e instanceof HarborEdgeAuthError ? e.status : 500);
   }
 });

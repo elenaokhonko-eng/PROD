@@ -8,6 +8,7 @@ import { sendMail } from "@/lib/mail"
 import { render } from "@react-email/render"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
 import type { ReactElement } from "react"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const invitationRoles = ["victim", "helper", "lead_victim", "defendant"] as const
 
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("[v0] Invitation send error:", error)
+    console.error("[v0] Invitation send error:", safeErrorText(error))
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

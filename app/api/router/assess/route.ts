@@ -3,6 +3,7 @@ import { z } from "zod"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
 import { determinePath } from "@/lib/rules"
 import type { TriageSignals } from "@/lib/rules"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const assessSchema = z.object({
   session_token: z.string().min(1, "session_token is required"),
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       is_fidrec_eligible: pathResult.recommended_path === "fidrec_eligible",
     })
   } catch (error) {
-    console.error("[assess] Error:", error)
+    console.error("[assess] Error:", safeErrorText(error))
     return NextResponse.json({ error: "Assessment failed" }, { status: 500 })
   }
 }

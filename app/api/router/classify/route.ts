@@ -7,6 +7,7 @@ import { getNextStepsForRuleEngine } from "@/lib/rules"
 import { logger } from "@/lib/logger"
 import type { TriageSignals } from "@/lib/rules"
 import { getGeminiModel } from "@/lib/server/ai/models"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const modelName = getGeminiModel()
 const log = logger.withContext({ module: "router-classify", model: modelName })
@@ -147,8 +148,7 @@ JSON Output:`
       response.candidates?.[0]?.content?.parts?.find((part) => "text" in part)?.text ??
       ""
 
-    const rawPreview = rawText.length > 1000 ? `${rawText.slice(0, 1000)}...` : rawText
-    log.debug("Gemini classify raw response", { preview: rawPreview, characters: rawText.length })
+    log.debug("Gemini classify raw response", { characters: rawText.length })
 
     let signals: TriageSignals
     try {
@@ -158,8 +158,9 @@ JSON Output:`
       }
     } catch (parseError) {
       log.warn("Classify JSON parse error — using fallback signals", {
-        error: parseError instanceof Error ? parseError.message : String(parseError),
-        rawPreview: rawText.slice(0, 400),
+        // The model output summarises the person's story: never logged (hardening item 6).
+        error: safeErrorText(parseError),
+        rawLength: rawText.length,
       })
       signals = fallbackSignals("Unable to parse narrative. Please try again.")
     }
@@ -191,9 +192,7 @@ JSON Output:`
       nextSteps: getNextStepsForRuleEngine(),
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    const stack = error instanceof Error ? error.stack : undefined
-    log.error("Classification API error", { error: message, stack })
-    return NextResponse.json({ error: message || "Failed to classify case" }, { status: 500 })
+    log.error("Classification API error", { error: safeErrorText(error) })
+    return NextResponse.json({ error: "Failed to classify case" }, { status: 500 })
   }
 }

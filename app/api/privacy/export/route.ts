@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { createUserClient } from "@/lib/supabase/server"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 type IdRow = { id: string }
 
@@ -28,7 +29,7 @@ export async function POST() {
       .eq("user_id", user.supabaseUuid)
 
     if (ownedCasesError) {
-      console.error("[privacy] failed to load owned cases:", ownedCasesError)
+      console.error("[privacy] failed to load owned cases:", safeErrorText(ownedCasesError))
       return NextResponse.json({ error: "Failed to export data" }, { status: 500 })
     }
 
@@ -72,7 +73,7 @@ export async function POST() {
     ].find((result) => result.error)
 
     if (failedQuery) {
-      console.error(`[privacy] failed to export ${failedQuery.label}:`, failedQuery.error)
+      console.error(`[privacy] failed to export ${failedQuery.label}:`, safeErrorText(failedQuery.error))
       return NextResponse.json({ error: "Failed to export data" }, { status: 500 })
     }
 
@@ -95,7 +96,7 @@ export async function POST() {
 
     return NextResponse.json(exportPayload)
   } catch (err) {
-    console.error("[privacy] export error:", err)
+    console.error("[privacy] export error:", safeErrorText(err))
     return NextResponse.json({ error: "Failed to export data" }, { status: 500 })
   }
 }

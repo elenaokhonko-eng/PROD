@@ -4,6 +4,7 @@ import { EMAIL_FROM } from "@/lib/email-config"
 import { sendMail } from "@/lib/mail"
 import { getCurrentUser } from "@/lib/auth"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const emailSendSchema = z.object({
   to: z.string().email("Recipient email must be valid"),
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     const info = await sendMail({ from: from || EMAIL_FROM, to, subject, html })
     return NextResponse.json({ success: true, messageId: info.messageId })
   } catch (err) {
-    console.error("[email/send] error:", err)
+    console.error("[email/send] error:", safeErrorText(err))
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

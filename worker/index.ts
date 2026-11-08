@@ -157,7 +157,10 @@ async function callEdge(
       } catch {
         // raw text is not JSON; keep the response body for logging below.
       }
-      const message = `POST ${path} failed (${res.status}): ${rawBody.slice(0, 500)}`
+      // Logged and stored on the job: the status and a short error code only, never the response body, which can
+      // carry case content (hardening item 6). Lease and readiness markers are read from the body below.
+      const code = parsedError && /^[a-z0-9_ .:-]{1,80}$/i.test(parsedError) ? `: ${parsedError}` : ''
+      const message = `POST ${path} failed (${res.status})${code}`
       const documentsNotReady =
         res.status === 409 &&
         (rawBody.toLowerCase().includes('documents_not_ready') ||
