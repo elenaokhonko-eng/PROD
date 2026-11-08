@@ -80,6 +80,8 @@ export interface Layer1ShellProps {
     isRefreshing?: boolean
     onRefresh?: () => void
     footerSlot?: ReactNode
+    /** Set when the facts changed after this evaluation: links back to confirm them again. */
+    outOfDateHref?: string | null
   }
 
   /** Where the user confirms their facts before the free evaluation is generated (S1-Tier0DraftPending). */
@@ -221,6 +223,7 @@ export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft, con
           isRefreshing={draft.isRefreshing}
           onRefresh={draft.onRefresh}
           footerSlot={draft.footerSlot}
+          outOfDateHref={draft.outOfDateHref}
         />
       )
 

@@ -22,6 +22,8 @@ export interface Tier0DraftViewProps {
   onRefresh?: () => void
   /** CTA shown at the bottom — typically the transition into Layer 2. */
   footerSlot?: React.ReactNode
+  /** Set when the facts changed after this evaluation (edge cases, 8 Nov): links back to confirm them again. */
+  outOfDateHref?: string | null
 }
 
 export function Tier0DraftView({
@@ -29,6 +31,7 @@ export function Tier0DraftView({
   isRefreshing = false,
   onRefresh,
   footerSlot,
+  outOfDateHref = null,
 }: Tier0DraftViewProps) {
   const { tier0_summary, tier0_evidence_checklist, tier0_srf_signal } = narratives
   // "Report it now" (C4) sits straight after the summary: it is what to do first.
@@ -61,6 +64,16 @@ export function Tier0DraftView({
           ) : null}
         </div>
       </div>
+
+      {outOfDateHref ? (
+        <div role="status" data-evaluation-out-of-date className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+          <p className="font-medium">Your facts changed since this evaluation.</p>
+          <p className="mt-1">
+            This evaluation was prepared from your earlier answers.{' '}
+            <a className="font-medium underline" href={outOfDateHref}>Check your facts again</a> to get an updated evaluation.
+          </p>
+        </div>
+      ) : null}
 
       <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground" role="note">
         Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).

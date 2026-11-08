@@ -27,7 +27,14 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const { userId, getToken } = await auth()
   if (!userId) return null
 
-  const token = await getToken({ template: 'supabase' })
+  // A session revoked or expiring mid-request can pass the handshake and then fail to mint the token: that is a
+  // signed-out user, not an error (edge cases, 8 Nov).
+  let token: string | null
+  try {
+    token = await getToken({ template: 'supabase' })
+  } catch {
+    return null
+  }
   if (!token) return null
 
   let payload: Record<string, unknown>

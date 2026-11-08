@@ -31,8 +31,9 @@ export const FACTS_IN_PROGRESS_POLL_MS = 5_000
 
 // Findings for one stage. The first load may take a while: the server reads the story, answers and documents.
 // If a check is already running (the user left and came back), the server answers 202 and we ask again shortly.
-export function useCaseFacts(caseId: string, stage: Stage) {
+export function useCaseFacts(caseId: string, stage: Stage, options: { enabled?: boolean } = {}) {
   return useQuery({
+    enabled: options.enabled ?? true,
     queryKey: qk.case.facts(caseId, stage),
     queryFn: async (): Promise<FactsView | { inProgress: true }> => {
       const response = await fetch(`/api/cases/${caseId}/facts?stage=${stage}`, { cache: 'no-store' })

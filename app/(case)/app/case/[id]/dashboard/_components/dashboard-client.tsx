@@ -20,6 +20,7 @@ import { ReportFailed } from '@/components/state-machine/layer2/report-failed'
 import { ReportView } from '@/components/state-machine/layer2/report-view'
 import { StateMachineErrorCard } from '@/components/state-machine/error-card'
 import { useStateMachine } from '@/hooks/state-machine/use-state-machine'
+import { useCaseFacts } from '@/hooks/state-machine/facts/use-case-facts'
 import { useCaseEligibility } from '@/hooks/state-machine/layer1/use-case-eligibility'
 import { useValidationRun } from '@/hooks/state-machine/layer1/use-validation-run'
 import { useIntakeCompletion } from '@/hooks/state-machine/layer1/use-intake-completion'
@@ -189,6 +190,13 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const paidStagesOff = capabilityBilling?.access.paidStagesEnabled === false
   const showStageOneNextSteps =
     paidStagesOff && (node === 'S1-Tier0Draft' || node === 'T-BuyReportCTA' || node === 'T-EligibilityGate')
+  // An evaluation made from facts that have since changed says so (edge cases, 8 Nov): the confirmed snapshot no
+  // longer matches the current facts.
+  const showsEvaluation = showStageOneNextSteps || node === 'S1-Tier0Draft'
+  const freeFacts = useCaseFacts(caseId, 'free', { enabled: showsEvaluation })
+  const freeFactsView = freeFacts.data && !('inProgress' in freeFacts.data) ? freeFacts.data : null
+  const evaluationOutOfDateHref =
+    freeFactsView?.latestSnapshot && !freeFactsView.latestSnapshot.unchanged ? `/app/case/${caseId}/facts?stage=free` : null
   const reportCapability = capabilityBilling?.capabilities.report
   const fidrecCapability = capabilityBilling?.capabilities.fidrecPack
   const returnedProductIsEntitled =
@@ -413,6 +421,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
                 tier0_srf_signal: null,
                 other: [],
               },
+              outOfDateHref: evaluationOutOfDateHref,
               footerSlot: (
                 <div className="pt-4">
                   <NextSteps caseId={caseId} priceLabels={priceLabels} />
@@ -466,6 +475,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
                 tier0_srf_signal: null,
                 other: [],
               },
+              outOfDateHref: evaluationOutOfDateHref,
               footerSlot: (
                 <div className="pt-4">
                   <BuyReportCTA

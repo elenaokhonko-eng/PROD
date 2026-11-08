@@ -8,7 +8,7 @@
  * answered; the server enforces the same rule when the facts are frozen.
  */
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -61,6 +61,9 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
   const resolve = useResolveFinding(caseId, stage)
   const confirm = useConfirmFacts(caseId, stage)
   const [reviewing, setReviewing] = useState(false)
+  // A double-click lands before the button re-renders as disabled; without this guard it froze the facts twice and
+  // started two generations (hardening item 4, 8 Nov).
+  const confirming = useRef(false)
 
   if (facts.isPending || (facts.data && 'inProgress' in facts.data)) {
     return (
@@ -107,8 +110,14 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
   const canContinue = view.openCount === 0 && view.documentsProcessing === 0 && view.consistencyIssues.length === 0
 
   async function handleConfirm() {
-    const result = await confirm.mutateAsync()
-    onConfirmed(result.snapshotId)
+    if (confirming.current) return
+    confirming.current = true
+    try {
+      const result = await confirm.mutateAsync()
+      onConfirmed(result.snapshotId)
+    } finally {
+      confirming.current = false
+    }
   }
 
   if (view.latestSnapshot?.unchanged && view.openCount === 0 && !reviewing) {

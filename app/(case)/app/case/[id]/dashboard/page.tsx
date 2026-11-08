@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import { createUserClient } from '@/lib/supabase/server'
 import { StateMachineErrorCard } from '@/components/state-machine/error-card'
@@ -22,16 +23,8 @@ export default async function UnifiedCaseDashboard({
     )
   }
 
-  if (!user) {
-    return (
-      <DashboardFallback>
-        <StateMachineErrorCard
-          kind="unauthorised"
-          context="Sign in to continue to this case."
-        />
-      </DashboardFallback>
-    )
-  }
+  // Signed out (for example the session lapsed): sign in and come back to this case (edge cases, 8 Nov).
+  if (!user) redirect(`/sign-in?redirect_url=${encodeURIComponent(`/app/case/${caseId}/dashboard`)}`)
 
   let supabase: Awaited<ReturnType<typeof createUserClient>>
   try {
