@@ -276,6 +276,8 @@ async function expectCrossUserDenied(browser: Browser, caseId: string) {
 }
 
 async function supabaseToken(page: Page): Promise<string> {
+  // Clerk loads after the page; on a busy runner the session is not there yet when the page first renders.
+  await page.waitForFunction(() => Boolean((globalThis as unknown as { Clerk?: { session?: unknown } }).Clerk?.session), undefined, { timeout: 30_000 })
   const token = await page.evaluate(async () => {
     const clerk = (globalThis as unknown as { Clerk?: { session?: { getToken(o: { template: string }): Promise<string | null> } } }).Clerk
     return clerk?.session?.getToken({ template: 'supabase' }) ?? null
