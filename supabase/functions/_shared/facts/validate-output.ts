@@ -3,7 +3,7 @@
 // unqualified statements of facts the user marked "not sure" or kept without a document. It catches direct
 // contradictions, not every paraphrase.
 
-import type { BankReply, FactKey, Institution, Money, ReportedEvent, Transaction } from "./keys.ts";
+import type { BankReply, FactKey, Institution, Money, ReportedEvent, TotalLoss, Transaction } from "./keys.ts";
 import { institutionsMentioned } from "./institutions.ts";
 import { daysBetween, normaliseDate } from "./normalise.ts";
 import type { SnapshotFact } from "./snapshot.ts";
@@ -47,8 +47,10 @@ function factValue<T>(facts: SnapshotFacts, key: FactKey, labels: SnapshotFact["
 function allowedAmounts(facts: SnapshotFacts, extra: number[]): number[] {
   const amounts = [...extra];
   for (const key of ["total_loss", "amount_recovered_or_offered"] as const) {
-    const money = factValue<Money>(facts, key);
+    const money = factValue<TotalLoss>(facts, key);
     if (money) amounts.push(money.amount);
+    // A loss confirmed as several amounts (one per account) may be stated part by part (staging, 8 Nov).
+    for (const portion of money?.portions ?? []) amounts.push(portion.amount.amount);
   }
   const transactions = factValue<Transaction[]>(facts, "transactions") ?? [];
   amounts.push(...transactions.map((t) => t.amount.amount));
@@ -119,6 +121,12 @@ const ASSERTS: Array<[FactKey, { test(sentence: string): boolean }]> = [
   ["bank_reply", BANK_REPLY_ASSERTED],
 ];
 
+// A police report number confirmed from a document shows the report was made, even when the "reported to police"
+// answer itself came without one (staging, 8 Nov): saying so needs no "You told us that".
+function documentedElsewhere(facts: SnapshotFacts, key: FactKey): boolean {
+  return key === "reported_to_police" && facts.police_report_number?.label === "confirmed";
+}
+
 export function validateOutput(output: unknown, facts: SnapshotFacts, options: ValidateOptions = {}): OutputFailure[] {
   const text = collectStrings(output).join("\n");
   const failures: OutputFailure[] = [];
@@ -153,7 +161,7 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
       if (fact.label === "not_sure" && !UNCERTAIN.test(sentence)) {
         failures.push({ check: "unqualified", detail: `${key} is not confirmed: ${sentence.slice(0, 160)}` });
       }
-      if (fact.label === "claimant_only" && !ATTRIBUTED.test(sentence) && !UNCERTAIN.test(sentence)) {
+      if (fact.label === "claimant_only" && !documentedElsewhere(facts, key) && !ATTRIBUTED.test(sentence) && !UNCERTAIN.test(sentence)) {
         failures.push({ check: "unqualified", detail: `${key} has no document: ${sentence.slice(0, 160)}` });
       }
     }
@@ -190,6 +198,7 @@ export function qualifyUnsupportedStatements(text: string, facts: SnapshotFacts)
       const fact = facts[key];
       if (!fact || !asserts.test(sentence) || ATTRIBUTED.test(sentence) || UNCERTAIN.test(sentence)) continue;
       if (fact.label !== "claimant_only" && fact.label !== "not_sure") continue;
+      if (fact.label === "claimant_only" && documentedElsewhere(facts, key)) continue;
       const prefix = fact.label === "claimant_only" ? "You told us that " : "It is not confirmed that ";
       const rest = /^[A-Z][a-z]/.test(sentence) && !/^I\b/.test(sentence) ? sentence[0].toLowerCase() + sentence.slice(1) : sentence;
       out = out.replace(sentence, prefix + rest);

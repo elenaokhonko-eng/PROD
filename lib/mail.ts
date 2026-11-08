@@ -109,16 +109,18 @@ export async function sendMail({
   subject,
   html,
   from,
+  replyTo,
 }: {
   to: string | string[]
   subject: string
   html: string
   from?: string
+  replyTo?: string
 }) {
   const mailer = getMailer()
   const defaultFromName = process.env.EMAIL_FROM_NAME || "GuideBuoy AI"
   const defaultFrom = process.env.EMAIL_FROM || "info@guidebuoyai.sg"
   const fromHeader = from || `${defaultFromName} <${defaultFrom}>`
 
-  return sendWithRetry(mailer, { from: fromHeader, to, subject, html })
+  return sendWithRetry(mailer, { from: fromHeader, to, subject, html, ...(replyTo ? { replyTo } : {}) })
 }

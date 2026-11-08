@@ -1,7 +1,9 @@
 // "Report a problem" (Elena, 7 Nov): the last error a screen showed, and the email report built from it. The report
-// carries codes and IDs only, never the case's content; the person adds their own description.
+// carries codes and IDs only, never the case's content; the person adds their own description. The server sends it
+// (/api/report-problem, 8 Nov); the email link stays as a fallback.
 
 export const REPORT_EMAIL = 'info@guidebuoyai.sg'
+export const REPORT_SUBJECT = 'GuideBuoy problem report'
 export const OPEN_REPORT_EVENT = 'gb:open-problem-report'
 
 export type NotedProblem = { code: string; details: string[]; at: string }
@@ -33,6 +35,8 @@ export function buildReport(input: {
   time: string
   userAgent: string
   problem: NotedProblem | null
+  /** The signed-in account's email, added by the server so the team can reply. */
+  account?: string | null
 }): string {
   const caseId = caseIdFromPath(input.pathname)
   return [
@@ -45,9 +49,10 @@ export function buildReport(input: {
     `Time: ${input.time}`,
     `Error: ${input.problem ? [input.problem.code, ...input.problem.details].join(', ') : 'none shown'}`,
     `Browser: ${input.userAgent}`,
+    ...(input.account ? [`Account: ${input.account}`] : []),
   ].join('\n')
 }
 
 export function reportMailto(body: string): string {
-  return `mailto:${REPORT_EMAIL}?subject=${encodeURIComponent('GuideBuoy problem report')}&body=${encodeURIComponent(body)}`
+  return `mailto:${REPORT_EMAIL}?subject=${encodeURIComponent(REPORT_SUBJECT)}&body=${encodeURIComponent(body)}`
 }

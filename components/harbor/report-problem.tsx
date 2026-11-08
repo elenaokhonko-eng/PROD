@@ -9,14 +9,16 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { buildReport, lastProblem, OPEN_REPORT_EVENT, REPORT_EMAIL, reportMailto } from '@/lib/report-problem'
 
-// A tab on the right edge of every signed-in page opens a side panel that prepares an email to the team with the
-// page, case, time and the last error shown (Elena, 7 Nov). Nothing is sent from here: the person's email app sends it.
+// A tab on the right edge of every signed-in page opens a side panel that sends the team a report with the page,
+// case, time and the last error shown (Elena, 7 Nov). The server sends it (8 Nov); if that fails, the person can still
+// send it from their own email app or copy it.
 export function ReportProblem() {
   const pathname = usePathname() ?? '/'
   const [open, setOpen] = useState(false)
   const [description, setDescription] = useState('')
   const [copied, setCopied] = useState(false)
   const [time, setTime] = useState('')
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle')
 
   useEffect(() => {
     const show = () => setOpen(true)
@@ -28,6 +30,7 @@ export function ReportProblem() {
     if (open) {
       setTime(new Date().toLocaleString('en-SG'))
       setCopied(false)
+      setStatus((s) => (s === 'sent' ? 'idle' : s))
     }
   }, [open])
 
@@ -39,6 +42,22 @@ export function ReportProblem() {
     userAgent: typeof navigator === 'undefined' ? '' : navigator.userAgent,
     problem,
   })
+
+  async function send() {
+    setStatus('sending')
+    try {
+      const res = await fetch('/api/report-problem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description, pathname, time, userAgent: navigator.userAgent, problem }),
+      })
+      if (!res.ok) throw new Error(String(res.status))
+      setStatus('sent')
+      setDescription('')
+    } catch {
+      setStatus('failed')
+    }
+  }
 
   async function copy() {
     try {
@@ -64,8 +83,8 @@ export function ReportProblem() {
           <DialogHeader>
             <DialogTitle>Report a problem</DialogTitle>
             <DialogDescription>
-              Tell us what went wrong and we’ll look into it. This prepares an email to {REPORT_EMAIL} with the details
-              below; nothing is sent until you press Send in your email app.
+              Tell us what went wrong and we’ll look into it. Your report goes to {REPORT_EMAIL} with the details below,
+              and we’ll reply to the email address on your account.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -77,15 +96,26 @@ export function ReportProblem() {
             <p className="font-medium">Included in the report</p>
             <pre className="whitespace-pre-wrap break-words font-sans text-muted-foreground">{report.split('\nDetails:\n')[1]}</pre>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild>
-              <a href={reportMailto(report)}>Open email</a>
+          {status === 'sent' ? (
+            <p role="status" className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100">
+              Thank you. Your report has been sent to {REPORT_EMAIL}.
+            </p>
+          ) : (
+            <Button type="button" onClick={send} disabled={status === 'sending'}>
+              {status === 'sending' ? 'Sending…' : 'Send report'}
             </Button>
-            <Button type="button" variant="outline" onClick={copy}>{copied ? 'Copied' : 'Copy report'}</Button>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            If your email app doesn’t open, copy the report and send it to {REPORT_EMAIL}.
-          </p>
+          )}
+          {status === 'failed' && (
+            <div role="alert" className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+              <p>We couldn’t send your report just now. Please send it from your email app, or copy it and email {REPORT_EMAIL}.</p>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="outline" size="sm">
+                  <a href={reportMailto(report)}>Open email</a>
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={copy}>{copied ? 'Copied' : 'Copy report'}</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

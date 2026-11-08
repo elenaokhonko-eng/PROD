@@ -153,3 +153,27 @@ test('a denied reply is not a reply: "not received any reply ... no amount offer
   assert.deepEqual(validateOutput({ t: text }, noBank), [])
   assert.ok(validateOutput({ t: 'Synthetic Bank later rejected your claim.' }, noBank).some((f) => f.check === 'contradiction'))
 })
+
+test('a loss confirmed as one amount per account may be stated part by part (staging, 8 Nov)', () => {
+  const split: SnapshotFacts = {
+    ...facts,
+    transactions: { value: null, label: 'not_sure' },
+    total_loss: {
+      value: { ...sgd(3000), account: null, portions: [{ amount: sgd(2400), account: 'savings_or_current' }, { amount: sgd(600), account: 'credit_card' }] },
+      label: 'confirmed',
+    },
+  }
+  assert.deepEqual(validateOutput({ t: 'You lost S$3,000 in total: S$2,400 from your bank account and S$600 on your credit card.' }, split), [])
+  assert.deepEqual(validateOutput({ t: 'You lost S$2,500 from your bank account.' }, split).map((f) => f.check), ['amount'])
+})
+
+test('a police report number confirmed from a document backs the police report (staging, 8 Nov)', () => {
+  const claimantOnly: SnapshotFacts = { ...facts, reported_to_police: { ...facts.reported_to_police!, label: 'claimant_only' } }
+  const sentence = 'You reported it to the police on 4 Oct 2026 and received police report number A0000.'
+  assert.equal(validateOutput({ t: sentence }, claimantOnly)[0]?.check, 'unqualified')
+  const withNumber: SnapshotFacts = { ...claimantOnly, police_report_number: { value: 'A0000', label: 'confirmed' } }
+  assert.deepEqual(validateOutput({ t: sentence }, withNumber), [])
+  assert.equal(qualifyUnsupportedStatements(sentence, withNumber), sentence)
+  const numberUnbacked: SnapshotFacts = { ...claimantOnly, police_report_number: { value: 'A0000', label: 'claimant_only' } }
+  assert.equal(validateOutput({ t: sentence }, numberUnbacked)[0]?.check, 'unqualified')
+})
