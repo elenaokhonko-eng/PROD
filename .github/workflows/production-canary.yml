@@ -1,0 +1,66 @@
+name: Production canary
+
+# Cutover gate 7 (prepared 8 Nov): a fresh account runs the free evaluation on production and is deleted afterwards
+# (tests/e2e/canary). Inert until the repository variable CANARY_ENABLED is "true", set at cutover with Elena's
+# approval. Hourly until the date in CANARY_HOURLY_UNTIL (YYYY-MM-DD), then once a day at 02:00 Singapore time.
+# A failure fails the run (GitHub notifies) and emails CANARY_ALERT_EMAIL.
+
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: production-canary
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    name: Free evaluation on production
+    if: vars.CANARY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production-canary
+    timeout-minutes: 30
+    steps:
+      - name: Decide whether this hour runs
+        id: cadence
+        run: |
+          today=$(date -u +%Y-%m-%d)
+          hour_sg=$(TZ=Asia/Singapore date +%H)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$today" \< "${{ vars.CANARY_HOURLY_UNTIL }}" ] || [ "$hour_sg" = "02" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.cadence.outputs.run == 'true'
+      - uses: pnpm/action-setup@v4
+        if: steps.cadence.outputs.run == 'true'
+        with:
+          version: 10.18.3
+      - uses: actions/setup-node@v4
+        if: steps.cadence.outputs.run == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: steps.cadence.outputs.run == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.cadence.outputs.run == 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Canary journey
+        if: steps.cadence.outputs.run == 'true'
+        run: pnpm exec playwright test --config=tests/e2e/playwright.canary.config.ts
+        env:
+          CANARY_BASE_URL: ${{ vars.CANARY_BASE_URL }}
+          CANARY_CLERK_SECRET_KEY: ${{ secrets.CANARY_CLERK_SECRET_KEY }}
+          CANARY_SUPABASE_URL: ${{ vars.CANARY_SUPABASE_URL }}
+          CANARY_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.CANARY_SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Alert by email
+        if: failure() && steps.cadence.outputs.run == 'true'
+        run: pnpm exec tsx scripts/canary-alert.mts
+        env:
+          SMTP_HOST: ${{ vars.CANARY_SMTP_HOST }}
+          SMTP_USER: ${{ vars.CANARY_SMTP_USER }}
+          SMTP_PASS: ${{ secrets.CANARY_SMTP_PASS }}
+          CANARY_ALERT_EMAIL: ${{ vars.CANARY_ALERT_EMAIL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

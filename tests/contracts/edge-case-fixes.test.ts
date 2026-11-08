@@ -24,7 +24,8 @@ test('(f) deleting a document removes its processed document too, so the facts a
 
 test('(d) a session that cannot mint its token is signed out, and a signed-out case page goes to sign-in and back', () => {
   const auth = readFileSync('lib/auth.ts', 'utf8')
-  assert.match(auth, /try \{\s*token = await getToken\(\{ template: 'supabase' \}\)\s*\} catch \{\s*return null\s*\}/)
+  assert.match(auth, /try \{\s*token = await getToken\(\{ template: 'supabase' \}\)\s*\} catch \(error\) \{[\s\S]*?return null\s*\}/)
+  assert.doesNotMatch(auth, /console\.\w+\([^)]*token[,)]/, 'the token itself is never logged')
   const page = readFileSync('app/(case)/app/case/[id]/dashboard/page.tsx', 'utf8')
   assert.match(page, /if \(!user\) redirect\(`\/sign-in\?redirect_url=\$\{encodeURIComponent\(`\/app\/case\/\$\{caseId\}\/dashboard`\)\}`\)/)
 })

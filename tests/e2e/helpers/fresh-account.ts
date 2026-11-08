@@ -14,7 +14,8 @@ export type ServiceClient = ReturnType<typeof createServiceClientFromEnvironment
 // Creates the Clerk test user, waits for its free profile, signs in and turns the story into a case.
 export async function startFreshCase(page: Page, supabase: ServiceClient, narrative: string) {
   expect(clerkSecretKey.startsWith('sk_test_'), 'HARBOR_CLERK_DEV_SECRET_KEY must be the Clerk Development key').toBe(true)
-  const email = `harbor.release.fresh.${Date.now()}+clerk_test@example.com`
+  // A random part too: concurrent journeys (load test) start in the same millisecond.
+  const email = `harbor.release.fresh.${Date.now()}.${Math.random().toString(36).slice(2, 8)}+clerk_test@example.com`
   const clerkUserId = await createClerkUser(email)
 
   // Provisioned by the staging Clerk webhook, with the default free account entitlement.

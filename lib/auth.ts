@@ -32,7 +32,10 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   let token: string | null
   try {
     token = await getToken({ template: 'supabase' })
-  } catch {
+  } catch (error) {
+    // Name, status and code only (for example a Clerk rate limit under load), never the token.
+    const e = error as { name?: string; status?: number; code?: string; errors?: Array<{ code?: string }> }
+    console.warn('[auth] Supabase token could not be minted', { name: e?.name, status: e?.status, code: e?.code ?? e?.errors?.[0]?.code })
     return null
   }
   if (!token) return null
