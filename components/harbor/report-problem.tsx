@@ -90,7 +90,10 @@ export function ReportProblem() {
           <div className="space-y-2">
             <Label htmlFor="problem-description">What were you doing, and what happened?</Label>
             <Textarea id="problem-description" rows={5} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} />
-            <p className="text-xs text-muted-foreground">Please don’t include passwords, card numbers or one-time codes.</p>
+            <p className="text-xs text-muted-foreground">
+              Describe what the page did, not the details of your case. Please don’t include passwords, card numbers or
+              one-time codes.
+            </p>
           </div>
           <div className="space-y-1 rounded-md border bg-muted/40 p-3 text-xs">
             <p className="font-medium">Included in the report</p>

@@ -37,6 +37,8 @@ export function buildReport(input: {
   problem: NotedProblem | null
   /** The signed-in account's email, added by the server so the team can reply. */
   account?: string | null
+  /** The deployed commit, added by the server. */
+  release?: string | null
 }): string {
   const caseId = caseIdFromPath(input.pathname)
   return [
@@ -50,6 +52,7 @@ export function buildReport(input: {
     `Error: ${input.problem ? [input.problem.code, ...input.problem.details].join(', ') : 'none shown'}`,
     `Browser: ${input.userAgent}`,
     ...(input.account ? [`Account: ${input.account}`] : []),
+    ...(input.release ? [`Release: ${input.release.slice(0, 12)}`] : []),
   ].join('\n')
 }
 

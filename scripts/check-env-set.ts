@@ -89,6 +89,7 @@ export const optionalKeys = [
   "SELF_SERVE_REPORT_MODEL",
   "CLERK_RECONCILIATION_USER_ALLOWLIST_JSON",
   "HARBOR_PREVIEW_EMAIL_SINK",
+  "MAIL_TRANSPORT",
   "HARBOR_SMTP_TEST_RECIPIENT",
   "SUPABASE_STAGING_DB_URL",
   "SUPABASE_PRODUCTION_DB_URL",
@@ -361,6 +362,9 @@ export function checkEnvironmentSet(
     }
     else add(sandbox ? "FAIL" : "PASS", "production SMTP is not a sandbox", `host ${smtpHost}`)
   }
+  // The mail sink (lib/mail.ts) keeps test runs from sending; production must send.
+  if (isStaging) add(get("MAIL_TRANSPORT") === "sink" ? "PASS" : "WARN", "staging mail goes to the sink (MAIL_TRANSPORT=sink)")
+  else add(get("MAIL_TRANSPORT") === "sink" ? "FAIL" : "PASS", "production mail is not sent to the sink")
   if (!isStaging && get("EMAIL_FROM")) {
     add(/@guidebuoyai\.sg>?$/i.test(get("EMAIL_FROM")) ? "PASS" : "WARN", "production EMAIL_FROM uses the verified guidebuoyai.sg domain")
   }

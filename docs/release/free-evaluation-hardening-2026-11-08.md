@@ -45,8 +45,10 @@ stated as fact; the bank named rather than called "the bank"; bank replies and o
 report described as filing, a visit or contacting the police; a story-only police report number treated as a document.
 
 Adjudicated judge flags on the final run: no delivered summary states an amount, date, institution or reference that is
-not a confirmed fact. Residual slips the rules cannot see (3 in 139): a FIDReC filing described as a written complaint,
-two payments described with the wrong sum, and "you have not received a reply" where the reply was marked "not sure".
+not a confirmed fact. Three meaning-level slips remain (3 in 139). Checked against the confirmed facts, only one is
+the summary's: "You have not received a reply from the bank" where the reply was marked "Not sure". The other two
+match the confirmed facts, which extraction got wrong: a FIDReC filing confirmed as "a full written complaint", and
+one of two payments missing, so "a total of S$3,200" was all that was confirmed.
 
 Extraction gaps seen (for the extraction prompt, not this stage): "reported it to the bank and the police" missed; a
 utility GIRO debit on a statement taken as a disputed payment; institution missed when only in the story.
@@ -72,8 +74,27 @@ mid-request showed "Something went wrong" instead of sign-in.
 Edge Functions, API routes, the worker and the mailer log and return IDs, codes and scrubbed messages only
 (`supabase/functions/_shared/safe-error.ts`). Live staging Render logs (about 8,500 lines): no story or amount content.
 Rows not linked to a case on deletion (review rows in `analytics_events`, `edge_request_nonces`) are covered by
-`docs/runbooks/privacy-case-deletion.md`. Open for a decision: the router stores the whole story, regex-masked, in
-`anonymized_training_data`, outside export and deletion.
+`docs/runbooks/privacy-case-deletion.md`.
+
+`anonymized_training_data` (Elena, 8 Nov: it contradicts the Privacy Policy, and regex masking is not anonymisation):
+the router's writer is removed, a contract test (`no-training-data.test.ts`) fails if any app, worker or Edge Function
+code references the table, and staging held 0 rows (checked and emptied 8 Nov). The table has row-level security with
+no policies, so only the service role could write to it. Production starts with it empty and nothing writes to it.
+
+"Report a problem" carries the person's own description, the page, case ID, time, error code and failed check names,
+browser, account email and release; the route loads no case content. Limited to 5 per account and 20 per IP in 10
+minutes. The panel asks for what the page did, not the details of the case.
+
+## Stage 2 (after launch; need approval)
+
+- **Drop `anonymized_training_data`** in a new migration (proposal, not written yet:
+  `drop table if exists public.anonymized_training_data;` with the policy test updated). No schema change in stage 1.
+- **Improve fact extraction.** Most summary versions in the corpus came from facts the story states but extraction
+  missed ("reported it to the bank and the police", institution named only in the story), and a utility GIRO debit on a
+  statement was taken as a disputed payment. Re-run the corpus to measure.
+- **Weekly fallback-rate metric in production**: share of `free_evaluation_summary_version` among all
+  `free_evaluation_summary*` rows in `analytics_events`, with the most frequent check names, reported weekly and
+  alerting above 5%.
 
 ## Not started (gate cutover)
 

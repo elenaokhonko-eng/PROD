@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai"
 import { z } from "zod"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
-import { createServiceClient } from "@/lib/supabase/service"
 import { getNextStepsForRuleEngine } from "@/lib/rules"
 import { logger } from "@/lib/logger"
 import type { TriageSignals } from "@/lib/rules"
@@ -165,21 +164,8 @@ JSON Output:`
       signals = fallbackSignals("Unable to parse narrative. Please try again.")
     }
 
-    // Persist anonymized training data
-    const supabase = createServiceClient()
-    const { error: insertError } = await supabase.from("anonymized_training_data").insert({
-      original_case_id: null,
-      anonymized_narrative: sanitizedNarrative,
-      dispute_category: "Financial Dispute",
-      outcome_type: null,
-      anonymization_method: "regex_v2",
-    })
-    if (insertError) {
-      log.error("Failed to persist anonymized training data", {
-        error: insertError.message,
-        hint: insertError.hint,
-      })
-    }
+    // Nothing from the story is kept for training (Elena, 8 Nov): it contradicts the Privacy Policy, and regex
+    // masking is not anonymisation. The old training table is to be dropped in a later migration.
 
     // Return triage signals + legacy fields for backward compatibility
     return NextResponse.json({

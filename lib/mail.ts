@@ -115,10 +115,27 @@ export async function sendMail({
   from?: string
   replyTo?: string
 }) {
+  // Staging and CI (MAIL_TRANSPORT=sink): mail is recorded, not sent, so test runs do not use up the sandbox's
+  // limit (Elena, 8 Nov). Only the release handshake (one message per release SHA, one recipient) reaches real SMTP:
+  // one real send per CI run. Production refuses sink mode (check-env-set).
+  if (mailSinkCaptures(to, subject)) {
+    const messageId = `<sink-${crypto.randomUUID()}@guidebuoy.invalid>`
+    log.info("Email captured by sink", { recipients: Array.isArray(to) ? to.length : 1, messageId })
+    return { messageId, envelope: { to: Array.isArray(to) ? to : [to] }, accepted: Array.isArray(to) ? to : [to], rejected: [] }
+  }
   const mailer = getMailer()
   const defaultFromName = process.env.EMAIL_FROM_NAME || "GuideBuoy AI"
   const defaultFrom = process.env.EMAIL_FROM || "info@guidebuoyai.sg"
   const fromHeader = from || `${defaultFromName} <${defaultFrom}>`
 
   return sendWithRetry(mailer, { from: fromHeader, to, subject, html, ...(replyTo ? { replyTo } : {}) })
+}
+
+export const RELEASE_HANDSHAKE_SUBJECT = /^Harbor release handshake [0-9a-f]{40}$/
+
+/** True when the message goes to the sink instead of SMTP. */
+export function mailSinkCaptures(to: string | string[], subject: string, env: Record<string, string | undefined> = process.env): boolean {
+  if (env.MAIL_TRANSPORT !== "sink") return false
+  const recipients = Array.isArray(to) ? to : [to]
+  return !(recipients.length === 1 && RELEASE_HANDSHAKE_SUBJECT.test(subject))
 }

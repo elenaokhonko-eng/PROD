@@ -25,8 +25,10 @@ export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const rl = rateLimit(keyFrom(request, "/api/report-problem"), 5, 10 * 60_000)
-  if (!rl.ok) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
+  // Per account and per IP (an office or mobile network can share one IP, so that limit is looser).
+  const perAccount = rateLimit(`/api/report-problem:account:${user.userId}`, 5, 10 * 60_000)
+  const perIp = rateLimit(keyFrom(request, "/api/report-problem"), 20, 10 * 60_000)
+  if (!perAccount.ok || !perIp.ok) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
 
   const parsed = reportSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
@@ -47,6 +49,7 @@ export async function POST(request: NextRequest) {
     userAgent: userAgent ?? "",
     problem: problem ? { code: problem.code ?? "", details: problem.details ?? [], at: problem.at ?? "" } : null,
     account,
+    release: process.env.RENDER_GIT_COMMIT ?? null,
   })
   try {
     await sendMail({
