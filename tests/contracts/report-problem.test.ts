@@ -71,14 +71,18 @@ test('the report carries the description, page, case ID, time, error codes and c
   assert.doesNotMatch(route, /\.from\(|story|narrative|text_content/)
 })
 
-test('mail goes to the sink in staging, except the one release handshake per run; production refuses the sink', async () => {
+test('staging sends test-run mail to the sink and mail from people testing by hand to the sandbox; production refuses any sink', async () => {
   const { mailSinkCaptures } = await import('../../lib/mail')
-  const sink = { MAIL_TRANSPORT: 'sink' }
-  assert.equal(mailSinkCaptures('info@guidebuoyai.sg', 'GuideBuoy problem report', sink), true)
-  assert.equal(mailSinkCaptures('release-test@example.com', `Harbor release handshake ${'a'.repeat(40)}`, sink), false)
-  assert.equal(mailSinkCaptures(['a@example.com', 'b@example.com'], `Harbor release handshake ${'a'.repeat(40)}`, sink), true)
-  assert.equal(mailSinkCaptures('x@example.com', 'Harbor preview handshake 1', sink), true)
-  assert.equal(mailSinkCaptures('info@guidebuoyai.sg', 'GuideBuoy problem report', {}), false)
+  const staging = { MAIL_TRANSPORT: 'sink-test-traffic' }
+  // Test runs: a test account as reply-to, reserved example domains, the handshakes.
+  assert.equal(mailSinkCaptures('info@guidebuoyai.sg', 'GuideBuoy problem report', 'harbor.release.fresh.1+clerk_test@example.com', staging), true)
+  assert.equal(mailSinkCaptures('release-test@example.com', 'anything', undefined, staging), true)
+  assert.equal(mailSinkCaptures('inbox@mailtrap.example', `Harbor release handshake ${'a'.repeat(40)}`, undefined, staging), true)
+  assert.equal(mailSinkCaptures('inbox@mailtrap.example', 'Harbor preview handshake 1', undefined, staging), true)
+  // A person testing staging by hand.
+  assert.equal(mailSinkCaptures('info@guidebuoyai.sg', 'GuideBuoy problem report', 'someone@guidebuoyai.sg', staging), false)
+  assert.equal(mailSinkCaptures('info@guidebuoyai.sg', 'GuideBuoy problem report', undefined, {}), false)
+  assert.equal(mailSinkCaptures('x@guidebuoyai.sg', 'x', undefined, { MAIL_TRANSPORT: 'sink' }), true)
   const check = readFileSync('scripts/check-env-set.ts', 'utf8')
-  assert.match(check, /add\(get\("MAIL_TRANSPORT"\) === "sink" \? "FAIL" : "PASS", "production mail is not sent to the sink"\)/)
+  assert.match(check, /add\(get\("MAIL_TRANSPORT"\)\.startsWith\("sink"\) \? "FAIL" : "PASS", "production mail is not sent to the sink"\)/)
 })

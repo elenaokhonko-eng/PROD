@@ -36,6 +36,13 @@ jobs:
   static-gates:
     name: TypeScript, build, and contracts
     runs-on: ubuntu-latest
+    # A local SMTP server for the SMTP delivery check: CI never sends to Mailtrap (Elena, 8 Nov).
+    services:
+      mailpit:
+        image: axllent/mailpit:v1.20.0
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://build.invalid
       NEXT_PUBLIC_SUPABASE_ANON_KEY: build-placeholder
@@ -63,6 +70,10 @@ jobs:
         run: pnpm check:sm
       - name: Release and contract tests
         run: pnpm exec tsx --test tests/contracts/*.test.ts tests/release/*.test.ts
+      - name: SMTP delivery (Mailpit)
+        run: pnpm exec tsx --test tests/integration/mail-mailpit.test.ts
+        env:
+          MAILPIT_API_URL: http://127.0.0.1:8025
       - name: Harbor UI contract
         run: pnpm test:harbor-contract
       - name: Edge authorization contract
