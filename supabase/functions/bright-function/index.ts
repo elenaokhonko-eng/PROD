@@ -7,28 +7,33 @@ import {
 } from "../_shared/edge-auth.ts";
 import {
   assessSrf,
-  describeFailures,
+  chatSummary,
+  FALLBACK_TITLE,
   type EvidenceFinding,
   evidenceListsText,
   type FactKey,
   factsYouConfirmed,
   formatFactValue,
   type Institution,
+  produceSummary,
   type Money,
-  qualifyUnsupportedStatements,
   reportItNowText,
   type SnapshotFacts,
   srfAssessmentText,
   srfFactsFromSnapshot,
   type Transaction,
-  validateOutput,
 } from "../_shared/facts/index.ts";
 
 const PROJECT_URL = Deno.env.get("GUIDEBUOY_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("GUIDEBUOY_SERVICE_ROLE_KEY");
 const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction");
 // OpenAI model IDs are lower case; the default keeps the model this function has always used.
-const TIER0_MODEL = (Deno.env.get("TIER0_MODEL") ?? "gpt-4o-mini").trim().toLowerCase();
+// Pinned to a dated snapshot so a provider-side model update cannot change behaviour unseen (hardening item 2);
+// the corpus (scripts/tier0-corpus) is re-run before this or the prompt changes.
+const TIER0_MODEL = (Deno.env.get("TIER0_MODEL") ?? "gpt-4o-mini-2024-07-18").trim().toLowerCase();
+const TIER0_BUDGET_MS = 90_000;
+const TIER0_MIN_WORDS = 40;
+const TIER0_MAX_WORDS = 450;
 // Dates the free evaluation may state that are not case facts (SRF effective dates).
 const TIER0_EXTRA_DATES = ["2024-12-16", "2025-06-16"];
 // The model may not give its own SRF, IMDA or telco verdict; the server writes that section from fixed rules.
@@ -67,12 +72,6 @@ type SrfSignals = {
   missing_fields: string[];
   fidrec_subscription_possible?: boolean | null;
   fidrec_match_note?: string | null;
-};
-
-type Tier0LLMResult = {
-  summary: string;
-  evidence_checklist?: string;
-  srf_signals?: SrfSignals;
 };
 
 type Tier0NormalizeInput = {
@@ -199,31 +198,39 @@ Deno.serve(async (req) => {
       extraDates: TIER0_EXTRA_DATES,
       secondPerson: true,
       forbidden: [{ pattern: SRF_VERDICT, detail: "the SRF assessment is written by the server" }],
+      userFacing: { minWords: TIER0_MIN_WORDS, maxWords: TIER0_MAX_WORDS },
     };
-    // The evidence checklist shown is the server's (C2), so only the model's summary is checked and kept.
-    const outputText = (r: Tier0LLMResult) => [r.summary];
-    let llm = await callOpenAITier0(input, null);
-    let failures = validateOutput(outputText(llm), facts, checks);
-    if (failures.length) {
-      llm = await callOpenAITier0(input, describeFailures(failures));
-      failures = validateOutput(outputText(llm), facts, checks);
-    }
-    if (failures.length && failures.every((f) => f.check === "unqualified")) {
-      // Only document-less or unsure facts stated as certain: qualify exactly those sentences, then check again.
-      llm.summary = qualifyUnsupportedStatements(llm.summary ?? "", facts);
-      failures = validateOutput(outputText(llm), facts, checks);
-    }
-    if (failures.length) {
-      console.error(`Tier-0 output failed validation twice: ${failures.map((f) => f.check).join(", ")}`);
-      // The failed checks go back to the case owner's own session only (the page does not display them), so the
-      // refusal can be diagnosed without reading function logs.
-      return json({
-        ok: false,
-        reason: "output_validation_failed",
-        error: "We couldn't produce a reliable evaluation",
-        checks: failures.map((f) => ({ check: f.check, detail: f.detail.slice(0, 160) })),
-      }, 422);
-    }
+    // The evidence checklist shown is the server's (C2), so only the model's summary is checked and kept. A checker
+    // rejection or a provider failure ends in the summary version, never in "failed" (summary-ladder.ts).
+    const user = `INPUT JSON:
+${JSON.stringify(input, null, 2)}`;
+    const deadline = Date.now() + TIER0_BUDGET_MS;
+    const result = await produceSummary({
+      facts,
+      options: checks,
+      sanitize: sanitizeSummary,
+      generate: (previousFailures) =>
+        chatSummary({ fetch, apiKey: OPENAI_API_KEY, model: TIER0_MODEL, system: tier0System(previousFailures), user, deadline }),
+    });
+    // Review log: IDs, check names and the release only, never the story or the generated text (hardening item 6).
+    const review = {
+      case_id,
+      fact_snapshot_id,
+      source: result.source,
+      fallback_reason: result.fallbackReason,
+      attempts: result.attempts,
+      fired_checks: result.firedChecks,
+      hard_checks: result.hardChecks,
+      model: TIER0_MODEL,
+      prompt_version,
+      release: typeof body.release === "string" ? body.release.slice(0, 40) : null,
+    };
+    if (result.source === "fallback") console.warn(`Tier-0 summary version used: ${JSON.stringify(review)}`);
+    const { error: reviewErr } = await supabase.from("analytics_events").insert({
+      event_name: result.source === "fallback" ? "free_evaluation_summary_version" : "free_evaluation_summary",
+      event_data: review,
+    });
+    if (reviewErr) console.error(`Tier-0 review log failed: ${reviewErr.code ?? "unknown"}`);
 
     const lang = "en";
     const intake_id = null;
@@ -232,9 +239,9 @@ Deno.serve(async (req) => {
       supabase,
       case_id,
       narrative_type: "tier0_summary",
-      title: "Free evaluation summary",
-      text_content: sanitizeSummary(llm.summary ?? ""),
-      source_ref,
+      title: result.source === "fallback" ? FALLBACK_TITLE : "Free evaluation summary",
+      text_content: result.summary,
+      source_ref: result.source === "fallback" ? `${source_ref}:summary-version` : source_ref,
       version: 1,
       language: lang,
       audience: "user",
@@ -318,6 +325,7 @@ Deno.serve(async (req) => {
         source_ref,
         outputs: {
           summary: true,
+          summary_source: result.source,
           evidence_checklist: true,
           srf_signal: srfWritten,
         },
@@ -789,8 +797,8 @@ function renderTier0SrfSignal(signals: SrfSignals): string {
   return lines.join("\n");
 }
 
-async function callOpenAITier0(input: unknown, previousFailures: string | null): Promise<Tier0LLMResult> {
-  const system = `You are writing the free evaluation for someone who may have lost money to a scam: an early-stage, informational summary that helps them see what happened and what evidence helps. It is not a legal determination, not an eligibility decision and not compensation advice.
+function tier0System(previousFailures: string | null): string {
+  return `You are writing the free evaluation for someone who may have lost money to a scam: an early-stage, informational summary that helps them see what happened and what evidence helps. It is not a legal determination, not an eligibility decision and not compensation advice.
 
 GROUND RULES
 Use only facts explicitly present in the provided JSON. Do not infer, assume, invent facts, or introduce external knowledge (e.g. how scams usually work). If something is missing, say it was not provided. Be neutral, factual, chronological, clear, calm and non-judgemental. Do not provide legal advice, do not determine liability, and do not say whether the person is eligible for compensation.
@@ -826,41 +834,11 @@ start with "You told us that". facts_not_confirmed lists facts that are not conf
 Never state a date, amount, institution or yes/no fact that differs from confirmed_facts. primary_narrative is the
 user's own story: use it only for the order of events and context, never for a fact that confirmed_facts covers.
 If primary_narrative is null, the user corrected their story; write only from confirmed_facts.
-Write neutrally: do not overstate or understate.${previousFailures ? `
+Write neutrally: do not overstate or understate.
+Write the summary in ${TIER0_MIN_WORDS + 40} to ${TIER0_MAX_WORDS - 100} words of plain prose. Never use the input's field names
+(such as confirmed_facts or reported_to_police) or internal names; describe the facts in ordinary words.${previousFailures ? `
 
-YOUR PREVIOUS ANSWER WAS REJECTED because it contradicted the confirmed facts:
+YOUR PREVIOUS ANSWER WAS REJECTED for these problems:
 ${previousFailures}
-Fix these points.` : ""}`;
-
-  const user = `INPUT JSON:\n${JSON.stringify(input, null, 2)}`;
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: TIER0_MODEL,
-      temperature: 0.2,
-      response_format: {
-        type: "json_object",
-      },
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
-  });
-
-  if (!resp.ok) {
-    const err = await resp.text();
-    console.error(`OpenAI error ${resp.status}: ${err}`);
-    throw new Error(`OpenAI error ${resp.status}`);
-  }
-
-  const data = await resp.json();
-  const content = data?.choices?.[0]?.message?.content;
-  if (!content) throw new Error("OpenAI returned empty content");
-
-  return JSON.parse(content) as Tier0LLMResult;
+Fix these points and keep everything else faithful to the confirmed facts.` : ""}`;
 }

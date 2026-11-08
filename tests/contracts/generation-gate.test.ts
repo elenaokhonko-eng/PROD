@@ -20,11 +20,11 @@ test('the free-evaluation route refuses without a current confirmed snapshot', (
 test('the free-evaluation Edge Function requires the latest free snapshot and validates its output', () => {
   assert.match(fn, /if \(!fact_snapshot_id\) return json\(\{ ok: false, reason: "facts_unconfirmed"/)
   assert.match(fn, /\.from\("case_fact_snapshots"\)[\s\S]*?\.eq\("stage", "free"\)[\s\S]*?snapshot\.id !== fact_snapshot_id/)
-  assert.match(fn, /validateOutput\(outputText\(llm\), facts/)
-  assert.match(fn, /reason: "output_validation_failed",[\s\S]{0,300}?\}, 422\)/)
-  // The only repair is qualifying document-less or unsure statements; every other failure still refuses.
-  assert.match(fn, /if \(failures\.length && failures\.every\(\(f\) => f\.check === "unqualified"\)\)/)
-  assert.ok(fn.indexOf('validateOutput(') < fn.indexOf('await upsertNarrative('), 'nothing is written before the output passes')
+  // Hardening (8 Nov): model text is shown only when it passes every check (summary-ladder.test.ts); otherwise the
+  // summary version from the confirmed facts is written instead. Nothing is written before the ladder has decided.
+  assert.match(fn, /const result = await produceSummary\(\{\s*facts,\s*options: checks,/)
+  assert.match(fn, /text_content: result\.summary,/)
+  assert.ok(fn.indexOf('await produceSummary(') < fn.indexOf('await upsertNarrative('), 'nothing is written before the summary is decided')
 })
 
 test('the free evaluation reads confirmed facts and the user story, never generated rows', () => {
@@ -54,7 +54,7 @@ test('the SRF assessment is server-only: the model gives no verdict and its text
   assert.match(fn, /forbidden: \[\{ pattern: SRF_VERDICT/)
   assert.match(fn, /secondPerson: true/)
   // Every model text that is shown is checked; the evidence checklist shown is the server's (C2), not the model's.
-  assert.match(fn, /const outputText = \(r: Tier0LLMResult\) => \[r\.summary\]/)
+  assert.match(fn, /chatSummary\(\{ fetch, apiKey: OPENAI_API_KEY, model: TIER0_MODEL, system: tier0System\(previousFailures\), user, deadline \}\)/)
   assert.match(fn, /text_content: evidenceListsText\(facts, /)
   assert.doesNotMatch(fn, /text_content: llm\.evidence_checklist/)
 })

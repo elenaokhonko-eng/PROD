@@ -11,9 +11,16 @@ import type { SnapshotFact } from "./snapshot.ts";
 export type SnapshotFacts = Partial<Record<FactKey, SnapshotFact>>;
 
 export interface OutputFailure {
-  check: "amount" | "date" | "institution" | "contradiction" | "unqualified" | "person" | "forbidden";
+  check: OutputCheck;
   detail: string;
 }
+
+// Hard rules protect the facts: a summary that breaks one after a retry is never shown. Soft rules are style: the
+// text is regenerated with the violation fed back (free-evaluation hardening, 8 Nov).
+export const HARD_CHECKS = ["amount", "date", "institution", "contradiction", "unqualified", "forbidden"] as const;
+export const SOFT_CHECKS = ["person", "internal", "length"] as const;
+export type OutputCheck = (typeof HARD_CHECKS)[number] | (typeof SOFT_CHECKS)[number];
+export const isHardCheck = (check: OutputCheck) => (HARD_CHECKS as readonly string[]).includes(check);
 
 export interface ValidateOptions {
   // Amounts the stage may state that are not case facts (prices, the S$150,000 FIDReC cap, fees).
@@ -24,7 +31,12 @@ export interface ValidateOptions {
   secondPerson?: boolean;
   // Topics this output may not cover, e.g. an SRF verdict the server writes itself.
   forbidden?: Array<{ pattern: RegExp; detail: string }>;
+  // Text shown to the person: no internal names or input field names, and a sensible length in words.
+  userFacing?: { minWords: number; maxWords: number };
 }
+
+// Internal names and the input's field names ("Tier-0", "Lumi", "confirmed_facts", any snake_case key).
+const INTERNAL = /\bTier[- ]?0\b|\bLumi\b|\bserver\b|\bJSON\b|\b[a-z]+(?:_[a-z]+)+\b/i;
 
 const THIRD_PERSON = /\bthe (?:user|claimant|complainant|customer|consumer|victim)\b/i;
 
@@ -165,11 +177,22 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
         failures.push({ check: "unqualified", detail: `${key} has no document: ${sentence.slice(0, 160)}` });
       }
     }
+    if (options.userFacing && INTERNAL.test(sentence)) {
+      failures.push({ check: "internal", detail: `internal wording: ${sentence.slice(0, 160)}` });
+    }
     if (options.secondPerson && THIRD_PERSON.test(sentence)) {
       failures.push({ check: "person", detail: `write to the person as "you": ${sentence.slice(0, 160)}` });
     }
     for (const rule of options.forbidden ?? []) {
       if (rule.pattern.test(sentence)) failures.push({ check: "forbidden", detail: `${rule.detail}: ${sentence.slice(0, 160)}` });
+    }
+  }
+
+  if (options.userFacing) {
+    const words = text.split(/\s+/).filter(Boolean).length;
+    const { minWords, maxWords } = options.userFacing;
+    if (words < minWords || words > maxWords) {
+      failures.push({ check: "length", detail: `${words} words; write between ${minWords} and ${maxWords}` });
     }
   }
 

@@ -20,7 +20,7 @@ export const EDGE_MODELS: EdgeModel[] = [
   { use: "run_case_decision_v1", provider: "openai", env: "CASE_DECISION_MODEL", fallback: "gpt-4.1-mini", key: "GuideBuoy_EdgeFunction" },
   { use: "run_case_decision_v1 embeddings", provider: "openai", env: null, fallback: "text-embedding-3-small", key: "GuideBuoy_EdgeFunction" },
   { use: "run_report_selfserve_v1", provider: "openai", env: "SELF_SERVE_REPORT_MODEL", fallback: "gpt-4.1-mini", key: "GuideBuoy_EdgeFunction" },
-  { use: "bright-function", provider: "openai", env: null, fallback: "gpt-4o-mini", key: "GuideBuoy_EdgeFunction" },
+  { use: "bright-function", provider: "openai", env: "TIER0_MODEL", fallback: "gpt-4o-mini-2024-07-18", key: "GuideBuoy_EdgeFunction" },
   { use: "backfill_embeddings_v1", provider: "openai", env: null, fallback: "text-embedding-3-small", key: "GuideBuoy_EdgeFunction" },
 ];
 

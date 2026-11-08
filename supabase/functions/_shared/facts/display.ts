@@ -9,6 +9,7 @@ import {
   type CredentialsShared,
   type FactKey,
   type Institution,
+  type LossPortion,
   type Money,
   PHISHING_CHANNEL_OPTIONS,
   type PhishingChannel,
@@ -162,7 +163,7 @@ export function validateFactValue(key: FactKey, input: unknown): unknown | null 
     case "total_loss": {
       // One or more amounts, each optionally with its account; the total is their sum.
       const rows = Array.isArray(input) ? input : [input];
-      const portions = [];
+      const portions: LossPortion[] = [];
       for (const row of rows) {
         const r = (row && typeof row === "object" ? row : { amount: row }) as Record<string, unknown>;
         const amount = normaliseMoney(typeof r.amount === "number" || typeof r.amount === "string" ? r.amount : null);

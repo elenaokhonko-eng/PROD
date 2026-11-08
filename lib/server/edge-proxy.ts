@@ -162,7 +162,9 @@ function buildForwardBody(
     const snapshotId = typeof body.fact_snapshot_id === 'string' && UUID_PATTERN.test(body.fact_snapshot_id)
       ? body.fact_snapshot_id
       : null
-    return { case_id: context.caseId, ...(snapshotId ? { fact_snapshot_id: snapshotId } : {}), ...workerBinding }
+    // The release goes into the review log of a summary version (IDs and commit only).
+    const release = process.env.RENDER_GIT_COMMIT ?? process.env.HARBOR_RELEASE_SHA ?? null
+    return { case_id: context.caseId, ...(snapshotId ? { fact_snapshot_id: snapshotId } : {}), ...(release ? { release } : {}), ...workerBinding }
   }
   if (fnName === DECISION_FN) {
     return { case_id: context.caseId, ...workerBinding }
