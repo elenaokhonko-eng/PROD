@@ -89,6 +89,14 @@ async function main() {
     await assert.rejects(ensureReconciled(service, caseId, stubModel), (e: unknown) => e instanceof FactsInProgressError)
     await check(await service.from("case_fact_reconcile_runs").delete().eq("id", (running as { id: string }).id))
 
+    // A run left "running" by a crashed request does not freeze the case: after 5 minutes it counts as abandoned
+    // (hardening item 3, 8 Nov).
+    const abandoned = await check(await service.from("case_fact_reconcile_runs")
+      .insert({ case_id: caseId, input_hash: "abandoned", status: "running", created_at: new Date(Date.now() - 6 * 60_000).toISOString() })
+      .select("id").single())
+    assert.equal((await ensureReconciled(service, caseId, stubModel)).runId, run1.runId, "an abandoned run does not block the case")
+    await check(await service.from("case_fact_reconcile_runs").delete().eq("id", (abandoned as { id: string }).id))
+
     const again = await ensureReconciled(service, caseId, stubModel)
     assert.equal(again.runId, run1.runId, "nothing changed: same run")
     assert.equal(modelCalls, 2, "nothing changed: no model call")

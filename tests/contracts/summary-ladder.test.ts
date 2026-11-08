@@ -45,7 +45,7 @@ function scripted(...outputs: Array<string | ProviderFailure>) {
 }
 
 test('hard and soft rules are classified as agreed: facts are hard, style is soft', () => {
-  for (const check of ['amount', 'date', 'institution', 'contradiction', 'unqualified', 'forbidden'] as const) assert.ok(isHardCheck(check), check)
+  for (const check of ['amount', 'date', 'institution', 'reference', 'contradiction', 'unqualified', 'forbidden'] as const) assert.ok(isHardCheck(check), check)
   for (const check of ['person', 'internal', 'length'] as const) assert.ok(!isHardCheck(check), check)
 })
 

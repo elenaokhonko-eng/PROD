@@ -17,7 +17,7 @@ export interface OutputFailure {
 
 // Hard rules protect the facts: a summary that breaks one after a retry is never shown. Soft rules are style: the
 // text is regenerated with the violation fed back (free-evaluation hardening, 8 Nov).
-export const HARD_CHECKS = ["amount", "date", "institution", "contradiction", "unqualified", "forbidden"] as const;
+export const HARD_CHECKS = ["amount", "date", "institution", "reference", "contradiction", "unqualified", "forbidden"] as const;
 export const SOFT_CHECKS = ["person", "internal", "length"] as const;
 export type OutputCheck = (typeof HARD_CHECKS)[number] | (typeof SOFT_CHECKS)[number];
 export const isHardCheck = (check: OutputCheck) => (HARD_CHECKS as readonly string[]).includes(check);
@@ -119,9 +119,72 @@ const CONTRADICTIONS: Array<{ key: FactKey; whenValue: "yes" | "no"; contradicts
 ];
 
 const UNCERTAIN = /\b(not sure|unsure|unconfirmed|unclear|may have|might have|cannot confirm|can't confirm|does not recall|do not recall)\b/i;
+// "It is not confirmed whether you reported it to your bank" qualifies the report; "You reported it to your bank, but
+// it is not confirmed whether the bank replied" does not. These phrases count only before the statement (corpus, 8 Nov).
+const QUALIFIER_BEFORE = /\b(?:not (?:yet )?confirmed|not known|no confirmed|no confirmation|unknown|not clear|cannot be confirmed)\b/i;
+const ASSERT_PATTERNS: Partial<Record<FactKey, RegExp>> = {};
+// "You reported a loss of S$9,000" attributes an amount; it does not attribute an event, so it is not in ATTRIBUTED.
+const AMOUNT_ATTRIBUTED = /\byou (?:reported|indicated|estimated|believe)\b/i;
+
+// Reference codes ("G/20261004/0000", "DBS-SYN-0001"; capitals, so "mid-2026" is not one) and labelled references
+// ("report number 123456").
+const REFERENCE_CODE = /\b(?=[A-Z0-9/-]*\d)[A-Z][A-Z0-9]*(?:[/-][A-Z0-9]+)+\b/g;
+const REFERENCE_LABELLED = /\b(?:report|reference|case|ref)(?:\s+(?:number|no\.?))?(?:\s+(?:of|is))?:?\s+(?=[A-Z0-9/-]*\d)([A-Z0-9][A-Z0-9/-]{3,})\b/gi;
+const normaliseRef = (ref: string) => ref.toUpperCase().replace(/\s+/g, "");
+
+function referencesMentioned(text: string): string[] {
+  const found = [...text.matchAll(REFERENCE_CODE)].map((m) => m[0]).concat([...text.matchAll(REFERENCE_LABELLED)].map((m) => m[1]));
+  return [...new Set(found.map(normaliseRef))]
+    // Dates and amounts are checked on their own.
+    .filter((ref) => !/^\d{4}-\d{2}-\d{2}$/.test(ref) && !/^\d{1,2}\/\d{1,2}(?:\/\d{2,4})?$/.test(ref));
+}
+
+function factReferences(facts: SnapshotFacts): string[] {
+  const refs: string[] = [];
+  for (const key of ["bank_case_reference", "police_report_number"] as const) {
+    const value = factValue<string>(facts, key);
+    if (value) refs.push(normaliseRef(String(value)));
+  }
+  for (const key of ["reported_to_bank", "reported_to_police", "written_complaint_sent", "fidrec_filed"] as const) {
+    const ref = factValue<ReportedEvent>(facts, key)?.reference;
+    if (ref) refs.push(normaliseRef(ref));
+  }
+  return refs;
+}
+const sameAmount = (a: number, b: number) => Math.abs(a - b) <= 1;
+
+function confirmedAmounts(facts: SnapshotFacts): number[] {
+  const out: number[] = [];
+  for (const key of ["total_loss", "amount_recovered_or_offered"] as const) {
+    const money = factValue<TotalLoss>(facts, key, ["confirmed"]);
+    if (money) out.push(money.amount, ...(money.portions ?? []).map((p) => p.amount.amount));
+  }
+  const paid = factValue<Transaction[]>(facts, "transactions", ["confirmed"]) ?? [];
+  if (paid.length) out.push(...paid.map((t) => t.amount.amount), paid.reduce((s, t) => s + t.amount.amount, 0));
+  return out;
+}
+
+function claimedAmounts(facts: SnapshotFacts): number[] {
+  const out: number[] = [];
+  const loss = factValue<TotalLoss>(facts, "total_loss", ["claimant_only"]);
+  if (loss) out.push(loss.amount, ...(loss.portions ?? []).map((p) => p.amount.amount));
+  const paid = factValue<Transaction[]>(facts, "transactions", ["claimant_only"]) ?? [];
+  if (paid.length) out.push(...paid.map((t) => t.amount.amount), paid.reduce((s, t) => s + t.amount.amount, 0));
+  const confirmed = confirmedAmounts(facts);
+  return out.filter((a) => !confirmed.some((c) => sameAmount(a, c)));
+}
+
+function statesClaimedAmount(sentence: string, facts: SnapshotFacts): boolean {
+  const claimed = claimedAmounts(facts);
+  return claimed.length > 0 && [...sentence.matchAll(MONEY_PATTERN)].some((m) => claimed.some((a) => sameAmount(a, Number(m[1].replace(/,/g, "")))));
+}
+
+const amountAttributed = (sentence: string) => ATTRIBUTED.test(sentence) || AMOUNT_ATTRIBUTED.test(sentence) || UNCERTAIN.test(sentence);
+
 const ATTRIBUTED = /\b(according to|the claimant (states|says|reports)|i state|i do not have|no copy|not (yet )?provided|unable to provide|without a (copy|document)|you (say|said|told us|have told us|mentioned|state|stated)|based on what you told us)\b/i;
 // Only sentences that say the event happened need a qualifier; "provide a copy of your police report" asserts nothing.
-const BANK_AFFIRMED = /\b(?:reported|told|informed|contacted|notified)\b[^.]{0,40}\bbank\b/i;
+// The bank is the one told ("reported it to your bank", "called the bank"), not "a loss from your bank account".
+const BANK_AFFIRMED = /\b(?:told|informed|contacted|notified|called)\s+(?:your|the)\s+bank\b|\b(?:reported|reporting)\b[^.]{0,40}\bto\s+(?:your|the)\s+bank\b(?!\s+account)/i;
 // A reply from the bank stated as having happened ("the bank rejected my claim", "the final reply was ...").
 const BANK_REPLY_PATTERN = /\b(?:bank|institution)\b[^.]{0,60}\b(?:rejected|refused|declined|turned down|replied|responded|offered)\b|\bfinal reply\b[^.]{0,40}\b(?:was|is|said|stated)\b/i;
 // "You have not received any reply", "no amount has been offered": a denied reply is not a reply (staging, 5 Nov).
@@ -132,6 +195,15 @@ const ASSERTS: Array<[FactKey, { test(sentence: string): boolean }]> = [
   ["reported_to_bank", BANK_AFFIRMED],
   ["bank_reply", BANK_REPLY_ASSERTED],
 ];
+ASSERT_PATTERNS.reported_to_police = POLICE_AFFIRMED;
+ASSERT_PATTERNS.reported_to_bank = BANK_AFFIRMED;
+ASSERT_PATTERNS.bank_reply = BANK_REPLY_PATTERN;
+
+function qualified(sentence: string, key: FactKey): boolean {
+  if (UNCERTAIN.test(sentence)) return true;
+  const at = ASSERT_PATTERNS[key]?.exec(sentence)?.index ?? -1;
+  return at > 0 && QUALIFIER_BEFORE.test(sentence.slice(0, at));
+}
 
 // A police report number confirmed from a document shows the report was made, even when the "reported to police"
 // answer itself came without one (staging, 8 Nov): saying so needs no "You told us that".
@@ -155,8 +227,27 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
     if (iso && !dates.some((d) => Math.abs(daysBetween(d, iso)) <= 1)) failures.push({ check: "date", detail: match[0] });
   }
 
+  // Bank, police and FIDReC references must be ones the person confirmed (corpus, 8 Nov: a report number taken from
+  // the story that the confirm screen never showed).
+  const references = factReferences(facts);
+  for (const ref of referencesMentioned(text)) {
+    if (!references.includes(ref)) failures.push({ check: "reference", detail: ref });
+  }
+
+  // Amounts kept without a document (the total or the payments) are attributed ("you told us"), unless a confirmed
+  // amount is the same (corpus, 8 Nov).
+  for (const sentence of sentences(text)) {
+    if (statesClaimedAmount(sentence, facts) && !amountAttributed(sentence)) {
+      failures.push({ check: "unqualified", detail: `amount has no document: ${sentence.slice(0, 160)}` });
+    }
+  }
+
   const confirmedInstitutions = (factValue<Institution[]>(facts, "institution_names") ?? []).map((i) => i.name.toLowerCase());
+  // A payee on a payment the person confirmed ("SHOPEEPAY*SG") is where the money went, not an institution claim.
+  const payees = (factValue<Transaction[]>(facts, "transactions") ?? []).map((t) => (t.payee ?? "").toLowerCase().replace(/[^a-z0-9]/g, ""));
   for (const named of institutionsMentioned(text)) {
+    const key = named.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (payees.some((p) => p && (p.includes(key) || key.includes(p)))) continue;
     if (!confirmedInstitutions.includes(named.name.toLowerCase())) failures.push({ check: "institution", detail: named.name });
   }
 
@@ -170,10 +261,10 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
     for (const [key, asserts] of ASSERTS) {
       const fact = facts[key];
       if (!fact || !asserts.test(sentence)) continue;
-      if (fact.label === "not_sure" && !UNCERTAIN.test(sentence)) {
+      if (fact.label === "not_sure" && !qualified(sentence, key)) {
         failures.push({ check: "unqualified", detail: `${key} is not confirmed: ${sentence.slice(0, 160)}` });
       }
-      if (fact.label === "claimant_only" && !documentedElsewhere(facts, key) && !ATTRIBUTED.test(sentence) && !UNCERTAIN.test(sentence)) {
+      if (fact.label === "claimant_only" && !documentedElsewhere(facts, key) && !ATTRIBUTED.test(sentence) && !qualified(sentence, key)) {
         failures.push({ check: "unqualified", detail: `${key} has no document: ${sentence.slice(0, 160)}` });
       }
     }
@@ -216,10 +307,15 @@ export function describeFailures(failures: readonly OutputFailure[]): string {
 // "unqualified" check is repaired this way; any other failure still refuses the output.
 export function qualifyUnsupportedStatements(text: string, facts: SnapshotFacts): string {
   let out = text;
+  const lowerFirst = (s: string) => (/^[A-Z][a-z]/.test(s) && !/^I\b/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
   for (const sentence of sentences(text)) {
+    if (statesClaimedAmount(sentence, facts) && !amountAttributed(sentence)) {
+      out = out.replace(sentence, "You told us that " + lowerFirst(sentence));
+      continue;
+    }
     for (const [key, asserts] of ASSERTS) {
       const fact = facts[key];
-      if (!fact || !asserts.test(sentence) || ATTRIBUTED.test(sentence) || UNCERTAIN.test(sentence)) continue;
+      if (!fact || !asserts.test(sentence) || ATTRIBUTED.test(sentence) || qualified(sentence, key)) continue;
       if (fact.label !== "claimant_only" && fact.label !== "not_sure") continue;
       if (fact.label === "claimant_only" && documentedElsewhere(facts, key)) continue;
       const prefix = fact.label === "claimant_only" ? "You told us that " : "It is not confirmed that ";

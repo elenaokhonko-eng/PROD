@@ -170,10 +170,56 @@ test('a loss confirmed as one amount per account may be stated part by part (sta
 test('a police report number confirmed from a document backs the police report (staging, 8 Nov)', () => {
   const claimantOnly: SnapshotFacts = { ...facts, reported_to_police: { ...facts.reported_to_police!, label: 'claimant_only' } }
   const sentence = 'You reported it to the police on 4 Oct 2026 and received police report number A0000.'
-  assert.equal(validateOutput({ t: sentence }, claimantOnly)[0]?.check, 'unqualified')
+  assert.deepEqual(validateOutput({ t: sentence }, claimantOnly).map((f) => f.check).sort(), ['reference', 'unqualified'], 'the number was never confirmed, and the report has no document')
   const withNumber: SnapshotFacts = { ...claimantOnly, police_report_number: { value: 'A0000', label: 'confirmed' } }
   assert.deepEqual(validateOutput({ t: sentence }, withNumber), [])
   assert.equal(qualifyUnsupportedStatements(sentence, withNumber), sentence)
   const numberUnbacked: SnapshotFacts = { ...claimantOnly, police_report_number: { value: 'A0000', label: 'claimant_only' } }
   assert.equal(validateOutput({ t: sentence }, numberUnbacked)[0]?.check, 'unqualified')
+})
+
+test('"not confirmed whether" qualifies a statement only when it comes first (corpus, 8 Nov)', () => {
+  const notSure: SnapshotFacts = { ...facts, reported_to_bank: { value: null, label: 'not_sure' } }
+  assert.deepEqual(validateOutput({ t: 'It is not confirmed whether you reported the incident to your bank or received any reply from them.' }, notSure), [])
+  assert.deepEqual(validateOutput({ t: 'There are no confirmed details on whether you reported it to your bank.' }, notSure), [])
+  assert.equal(validateOutput({ t: 'You reported the incident to your bank, but it is not confirmed whether you received a reply.' }, notSure)[0]?.check, 'unqualified')
+})
+
+test('references must be ones the person confirmed (corpus, 8 Nov)', () => {
+  const withRef: SnapshotFacts = { ...facts, police_report_number: { value: 'G/20261004/0000', label: 'confirmed' } }
+  assert.deepEqual(validateOutput({ t: 'Your police report number is G/20261004/0000.' }, withRef), [])
+  assert.deepEqual(validateOutput({ t: 'Your police report number is G/20261004/0000.' }, facts).map((f) => f.check), ['reference'])
+  assert.deepEqual(validateOutput({ t: 'You were given police report number 123456.' }, facts).map((f) => f.check), ['reference'])
+  assert.deepEqual(validateOutput({ t: 'Your bank case reference is SYN-0001.' }, facts).map((f) => f.check), ['reference'])
+  assert.deepEqual(validateOutput({ t: 'From mid-2026 onwards, banks follow covid-19 era rules on 3/10.' }, facts).filter((f) => f.check === 'reference'), [])
+})
+
+test('a loss without a document is attributed unless the confirmed payments add up to it (corpus, 8 Nov)', () => {
+  const claimed: SnapshotFacts = { ...facts, transactions: { value: null, label: 'not_sure' }, total_loss: { value: sgd(3000), label: 'claimant_only' } }
+  assert.deepEqual(validateOutput({ t: 'S$3,000 was taken from your account.' }, claimed).map((f) => f.check), ['unqualified'])
+  assert.deepEqual(validateOutput({ t: 'You told us that S$3,000 was taken from your account.' }, claimed), [])
+  assert.deepEqual(validateOutput({ t: 'You reported a total loss of S$3,000.' }, claimed), [])
+  const backed: SnapshotFacts = { ...facts, total_loss: { value: sgd(3000), label: 'claimant_only' } }
+  assert.deepEqual(validateOutput({ t: 'S$3,000 was taken from your account.' }, backed), [])
+})
+
+test('payment amounts without a document are attributed, and the code repair adds "You told us that" (corpus, 8 Nov)', () => {
+  const claimed: SnapshotFacts = { ...facts, total_loss: { value: sgd(3000), label: 'claimant_only' }, transactions: { ...facts.transactions!, label: 'claimant_only' } }
+  const plain = 'S$2,400 was transferred to an unknown account.'
+  assert.deepEqual(validateOutput({ t: plain }, claimed).map((f) => f.check), ['unqualified'])
+  const repaired = qualifyUnsupportedStatements(plain, claimed)
+  assert.equal(repaired, 'You told us that S$2,400 was transferred to an unknown account.')
+  assert.deepEqual(validateOutput({ t: repaired }, claimed), [])
+})
+
+test('a payee on a confirmed payment is not an institution claim; "from your bank account" is not telling the bank (corpus, 8 Nov)', () => {
+  const card: SnapshotFacts = {
+    ...facts,
+    transactions: { value: [{ date: '2026-10-03', amount: sgd(600), channel: null, payee: 'SHOPEEPAY', last4: null, instrument: 'sg_card' }], label: 'confirmed' },
+  }
+  assert.deepEqual(validateOutput({ t: 'S$600 was charged by ShopeePay on 3 Oct 2026.' }, card).filter((f) => f.check === 'institution'), [])
+  assert.deepEqual(validateOutput({ t: 'I hold an account with DBS.' }, card).map((f) => f.check), ['institution'])
+  const notSure: SnapshotFacts = { ...facts, reported_to_bank: { value: null, label: 'not_sure' } }
+  assert.deepEqual(validateOutput({ t: 'You reported a total loss of S$3,000 from your bank account.' }, notSure), [])
+  assert.equal(validateOutput({ t: 'You reported it to your bank on 3 Oct 2026.' }, notSure)[0]?.check, 'unqualified')
 })

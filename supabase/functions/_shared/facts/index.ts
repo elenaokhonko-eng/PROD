@@ -8,6 +8,7 @@ export * from "./extraction.ts";
 export * from "./display.ts";
 export * from "./validate-output.ts";
 export * from "./summary-ladder.ts";
+export * from "./tier0.ts";
 export * from "./recommend.ts";
 export * from "./free-sections.ts";
 export * from "./rules/fidrec.ts";

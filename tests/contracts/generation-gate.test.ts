@@ -8,6 +8,8 @@ import test from 'node:test'
 
 const route = readFileSync('app/api/edge/tier0/route.ts', 'utf8')
 const fn = readFileSync('supabase/functions/bright-function/index.ts', 'utf8')
+// The summary's input, prompt and checks live in a shared module the corpus also runs (hardening, 8 Nov).
+const tier0 = readFileSync('supabase/functions/_shared/facts/tier0.ts', 'utf8')
 
 test('the free-evaluation route refuses without a current confirmed snapshot', () => {
   assert.match(route, /if \(!snapshotId\) \{\s*return NextResponse\.json\(\{ error: 'Confirm your facts first', reason: 'facts_unconfirmed' \}, \{ status: 409 \}\)/)
@@ -43,16 +45,32 @@ test('nothing starts the free evaluation automatically any more', () => {
 })
 
 test('the story is withheld from the model once the user has overruled it on the confirm screen (staging run, 5 Nov)', () => {
-  assert.match(fn, /primary_narrative: storyOverruled \? null : storyRow\?\.story_text \?\? null/)
-  assert.match(fn, /if \(resolution\.kind === "value"\) return true;/)
-  assert.match(fn, /resolution\.kind === "choice" && !fromStory\(values\[resolution\.index \?\? -1\]\)/)
+  assert.match(fn, /buildTier0Input\(\{ facts, findings: findings \?\? \[\], storyText: storyRow\?\.story_text \?\? null, fidrecCheck \}\)/)
+  assert.match(tier0, /primary_narrative: storyOverruled \? null : args\.storyText/)
+  assert.match(tier0, /if \(resolution\.kind === "value"\) return true;/)
+  assert.match(tier0, /resolution\.kind === "choice" && !fromStory\(values\[resolution\.index \?\? -1\]\)/)
+})
+
+test('the story is withheld exactly when a story value was overruled (behaviour)', async () => {
+  const { buildTier0Input } = await import('../../lib/facts')
+  const story = { sourceType: 'story' }
+  const doc = { sourceType: 'document' }
+  const findings = (resolution: unknown) => [{ fact_key: 'total_loss', finding_type: 'conflict', values: [{ sources: [story] }, { sources: [doc] }], resolution }]
+  const narrative = (resolution: unknown) => buildTier0Input({ facts: {}, findings: findings(resolution), storyText: 'Synthetic story.', fidrecCheck: null }).primary_narrative
+  assert.equal(narrative({ kind: 'choice', index: 0 }), 'Synthetic story.')
+  assert.equal(narrative({ kind: 'choice', index: 1 }), null)
+  assert.equal(narrative({ kind: 'value', value: 1 }), null)
+  assert.equal(narrative(null), 'Synthetic story.')
 })
 
 test('the SRF assessment is server-only: the model gives no verdict and its text may not mention one (Elena, 5 Nov)', () => {
   assert.doesNotMatch(fn, /"srf_signals": \{/, 'the model output schema has no SRF signals')
   assert.match(fn, /text_content: srfAssessmentText\(assessSrf\(srfFactsFromSnapshot\(facts\)\)\)/)
-  assert.match(fn, /forbidden: \[\{ pattern: SRF_VERDICT/)
-  assert.match(fn, /secondPerson: true/)
+  assert.match(tier0, /forbidden: \[\{ pattern: SRF_VERDICT/)
+  assert.match(tier0, /secondPerson: true/)
+  assert.match(fn, /const checks = TIER0_CHECKS;/)
+  assert.match(fn, /options: checks,/)
+  assert.doesNotMatch(tier0, /evidence_checklist/, 'the model is no longer asked for a checklist it would not be shown')
   // Every model text that is shown is checked; the evidence checklist shown is the server's (C2), not the model's.
   assert.match(fn, /chatSummary\(\{ fetch, apiKey: OPENAI_API_KEY, model: TIER0_MODEL, system: tier0System\(previousFailures\), user, deadline \}\)/)
   assert.match(fn, /text_content: evidenceListsText\(facts, /)
