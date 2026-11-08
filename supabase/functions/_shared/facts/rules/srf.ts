@@ -79,6 +79,9 @@ const R = {
   scope: { code: "srf_scope", cite: "G §2.1 (seemingly authorised transaction, limbs (a)-(d))" },
   protectedAccount: { code: "protected_account", cite: "G §2.1 (protected account, relevant payment service provider); R para 8.4" },
   card: { code: "sg_card_excluded", cite: "G fn 1; R para 8.3(d)" },
+  // Cards (Elena, 8 Nov): the ABS card code and the card scheme's chargeback; the EUPG excludes cards from its
+  // loss-sharing rules and keeps only some issuer duties for them.
+  cardRules: { code: "card_rules", cite: "ABS Code of Practice for Banks – Credit Cards (rev. 2 July 2020) 5(a), 5(e), 6(a); EUPG (16 Dec 2024) 1.2 fn 3, 5.1; 4.2–4.6, 4.10–4.12, 4.14–4.16" },
   malware: { code: "malware_excluded", cite: "R para 3.4; CP para 4.4(c)" },
   nonDigital: { code: "non_digital_excluded", cite: "R para 3.5; CP para 4.4(b)" },
   givenDirectly: { code: "credentials_given_directly", cite: "G §2.1 limb (c); CP para 4.4(b)" },
@@ -175,10 +178,20 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
       kind: "card",
       total,
       assessment: "likely_out_of_scope",
-      reasons: [{
-        ...R.card,
-        text: `${total ? `${formatMoney(total)} on your card` : "Your card payments"}: the SRF does not cover credit, charge or debit cards issued in Singapore. Unauthorised card transactions are assessed under the MAS E-Payments User Protection Guidelines (EUPG), and your card issuer can also raise a dispute (a chargeback) through the card scheme. Ask your card issuer about both, in writing.`,
-      }],
+      reasons: [
+        {
+          ...R.card,
+          text: `${total ? `${formatMoney(total)} on your card` : "Your card payments"}: the SRF does not cover credit, charge or debit cards issued in Singapore.`,
+        },
+        {
+          ...R.cardRules,
+          text: "Card losses are covered by the ABS Code of Practice for Banks – Credit Cards. Before you tell your card issuer, your liability for unauthorised charges is capped at S$100, unless you acted fraudulently or with gross negligence, or did not tell the issuer as soon as reasonably practicable (5(a)). If your card details were used without the card being stolen, and you did not act fraudulently or with gross negligence, you are not liable (6(a)). The cap also applies to debit cards that work like credit cards (5(e)). If you approved a payment yourself, for example with a one-time password or an in-app confirmation sent to you for that payment, the issuer may treat it as negligence and the cap may not apply.",
+        },
+        {
+          ...R.cardRules,
+          text: "Your card issuer can also dispute the charge with the merchant through the card scheme (a chargeback). The MAS E-Payments User Protection Guidelines (EUPG) do not decide card losses (1.2, 5.1), but some of their duties still apply to your card issuer, such as transaction alerts and a quick way to block your card (4.2–4.6, 4.10–4.12, 4.14–4.16). Ask your card issuer about the cap and a chargeback, in writing.",
+        },
+      ],
     });
   }
   if (groups.unclassified.length) {
@@ -214,7 +227,7 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
         }
       : {
           ...R.remedies,
-          text: "For losses outside the SRF that you did not authorise, the MAS E-Payments User Protection Guidelines (EUPG) set out how such losses are shared between you and your bank or card issuer. Your bank assesses this; you can complain in writing and, if you disagree with the outcome, go to FIDReC.",
+          text: "For losses outside the SRF that you did not authorise, the MAS E-Payments User Protection Guidelines (EUPG) set out how such losses are shared between you and your bank or e-wallet provider (card losses follow the card rules). Your bank assesses this; you can complain in writing and, if you disagree with the outcome, go to FIDReC.",
         };
 
   return { portions, telco, remedies };

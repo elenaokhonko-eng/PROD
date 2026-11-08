@@ -73,6 +73,13 @@ test('C3: each part of the loss is assessed under the rules that apply to it, wi
   assert.match(text, /^Card payments \(S\$1,100\): Card rules apply, not the SRF$/m)
   assert.match(text, /E-Payments User Protection Guidelines \(EUPG\)/)
   assert.match(text, /chargeback/)
+  // Cards (Elena, 8 Nov): the ABS card code and a chargeback decide card losses; the EUPG only adds issuer duties.
+  assert.match(text, /ABS Code of Practice for Banks – Credit Cards/)
+  assert.match(text, /capped at S\$100, unless you acted fraudulently or with gross negligence, or did not tell the issuer as soon as reasonably practicable \(5\(a\)\)/)
+  assert.match(text, /you are not liable \(6\(a\)\)/)
+  assert.match(text, /do not decide card losses \(1\.2, 5\.1\)/)
+  assert.doesNotMatch(text, /card transactions are assessed under the MAS E-Payments/i)
+  assert.doesNotMatch(text, /your bank or card issuer/)
   for (const term of ['SRF', 'EUPG', 'MAS', 'IMDA', 'FIDReC']) assert.match(text, new RegExp(`^- ${term}: `, 'm'), term)
   assert.doesNotMatch(text, /Shared Responsibility Framework \(SRF\): an early view/, 'the heading is not repeated inside the section')
 })
