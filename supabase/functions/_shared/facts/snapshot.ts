@@ -66,6 +66,27 @@ function effective(finding: CurrentFinding): SnapshotFact | null {
   }
 }
 
+/**
+ * Facts whose chosen value comes from a document (an uploaded file), not only the story or answers. "Confirmed"
+ * includes values agreed from the story alone, so the output check asks this instead (corpus, 8 Nov).
+ */
+export function documentedFacts(
+  findings: ReadonlyArray<{ fact_key: string; finding_type: string; values: unknown; resolution: unknown }>,
+): FactKey[] {
+  type Stored = { sources?: Array<{ sourceType?: string }> };
+  const fromDocument = (v: Stored | undefined) => Boolean(v?.sources?.some((s) => s.sourceType === "document"));
+  return findings
+    .filter((f) => {
+      const values = (f.values ?? []) as Stored[];
+      const r = f.resolution as Resolution | null;
+      if (f.finding_type === "agreed" && (!r || r.kind === "agreed")) return values.some(fromDocument);
+      if (r?.kind === "choice") return fromDocument(values[r.index]);
+      if (r?.kind === "choices") return r.indices.some((i) => fromDocument(values[i]));
+      return false;
+    })
+    .map((f) => f.fact_key as FactKey);
+}
+
 // Conflicts and unsupported claims block every stage; a missing fact blocks only the stages that require it.
 export function relevantFindings(findings: readonly CurrentFinding[], stage: Stage): CurrentFinding[] {
   const scam = findings.find((f) => f.factKey === "scam_type");

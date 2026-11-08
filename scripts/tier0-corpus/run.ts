@@ -16,6 +16,7 @@ import {
   buildSnapshot,
   buildTier0Input,
   chatSummary,
+  documentedFacts,
   type CurrentFinding,
   type FactCandidate,
   isHardCheck,
@@ -171,16 +172,17 @@ async function runOne(story: CorpusStory, run: number): Promise<RunRecord> {
     fidrecCheck: null,
   })
   const user = `INPUT JSON:\n${JSON.stringify(input, null, 2)}`
+  const checks = { ...TIER0_CHECKS, documented: documentedFacts(findings.map((f) => ({ fact_key: f.factKey, finding_type: f.findingType, values: f.values, resolution: f.resolution }))) }
   const apiKey = process.env.GuideBuoy_EdgeFunction || process.env.OPENAI_API_KEY || ''
   const details: Array<Array<{ check: string; detail: string }>> = []
   const t1 = Date.now()
   try {
     const result = await produceSummary({
       facts,
-      options: TIER0_CHECKS,
+      options: checks,
       generate: async (previous) => {
         const summary = await chatSummary({ fetch, apiKey, model: process.env.TIER0_MODEL || TIER0_DEFAULT_MODEL, system: tier0System(previous), user, deadline: Date.now() + 90_000 })
-        details.push(validateOutput([summary], facts, TIER0_CHECKS).map((f) => ({ check: f.check, detail: f.detail })))
+        details.push(validateOutput([summary], facts, checks).map((f) => ({ check: f.check, detail: f.detail })))
         return summary
       },
     })
@@ -214,6 +216,18 @@ async function pool<T, R>(items: T[], size: number, fn: (item: T) => Promise<R>)
 const pct = (n: number, d: number) => (d ? `${((100 * n) / d).toFixed(1)}%` : '-')
 const quantile = (xs: number[], q: number) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.min(xs.length - 1, Math.floor(q * xs.length))] : 0)
 
+// A summary version caused by a fact the story states but extraction missed (so it was never confirmed): the check was
+// right to refuse it; the gap is in extraction, not in the summary.
+function extractionMiss(r: RunRecord): boolean {
+  const story = (STORIES.find((s) => s.id === r.id)?.story ?? '').toLowerCase().replace(/[,\s]/g, '')
+  const last = r.firedDetails?.at(-1) ?? []
+  const valueChecks = last.filter((f) => ['amount', 'institution', 'reference', 'date'].includes(f.check))
+  return valueChecks.length > 0 && valueChecks.every((f) => {
+    const v = f.detail.toLowerCase().replace(/^(?:s\$|sgd|usd|\$)\s?/, '').replace(/[,\s]/g, '').replace(/\/posb$/, '')
+    return f.check === 'date' ? true : story.includes(v)
+  })
+}
+
 function summarise(records: RunRecord[], meta: Record<string, string>) {
   const done = records.filter((r) => r.ok)
   const model = done.filter((r) => r.source === 'model')
@@ -234,6 +248,7 @@ function summarise(records: RunRecord[], meta: Record<string, string>) {
     `| Pipeline errors (extraction / snapshot / summary) | ${records.filter((r) => r.stage === 'extraction').length} / ${records.filter((r) => r.stage === 'snapshot').length} / ${records.filter((r) => r.stage === 'summary').length} |`,
     `| Delivered from the model | ${model.length} (${pct(model.length, done.length)}) |`,
     `| Summary version used | ${fallback.length} (${pct(fallback.length, done.length)}) |`,
+    `| of which the rejected value is in the story but was not extracted | ${fallback.filter(extractionMiss).length} |`,
     `| Model summaries the judge flagged | ${flagged.length} of ${judged.length} |`,
     `| Summary time p50 / p95 | ${(quantile(done.map((r) => r.ms.summary), 0.5) / 1000).toFixed(1)} s / ${(quantile(done.map((r) => r.ms.summary), 0.95) / 1000).toFixed(1)} s |`,
     '',

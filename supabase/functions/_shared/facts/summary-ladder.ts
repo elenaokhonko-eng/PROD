@@ -53,8 +53,8 @@ export interface LadderInput {
   sanitize?: (summary: string) => string;
 }
 
-function repair(summary: string, failures: OutputFailure[], facts: SnapshotFacts): string {
-  return failures.some((f) => f.check === "unqualified") ? qualifyUnsupportedStatements(summary, facts) : summary;
+function repair(summary: string, failures: OutputFailure[], facts: SnapshotFacts, options: ValidateOptions): string {
+  return failures.some((f) => f.check === "unqualified") ? qualifyUnsupportedStatements(summary, facts, options.documented) : summary;
 }
 
 export async function produceSummary({ facts, options, generate, sanitize = (s) => s }: LadderInput): Promise<SummaryResult> {
@@ -72,7 +72,7 @@ export async function produceSummary({ facts, options, generate, sanitize = (s) 
     let failures = validateOutput([summary], facts, options);
     firedChecks.push(failures.map((f) => f.check));
     if (failures.length) {
-      summary = repair(summary, failures, facts);
+      summary = repair(summary, failures, facts, options);
       failures = validateOutput([summary], facts, options);
     }
     if (!failures.length) {

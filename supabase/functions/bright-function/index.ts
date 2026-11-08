@@ -17,6 +17,7 @@ import {
   type Institution,
   produceSummary,
   buildTier0Input,
+  documentedFacts,
   TIER0_CHECKS,
   tier0System,
   reportItNowText,
@@ -144,7 +145,7 @@ Deno.serve(async (req) => {
     const fidrecCheck = await checkFidrecSubscription(supabase, institutions[0]?.name ?? null);
     // Input, prompt and checks are shared with the corpus (scripts/tier0-corpus), so it measures exactly this.
     const input = buildTier0Input({ facts, findings: findings ?? [], storyText: storyRow?.story_text ?? null, fidrecCheck });
-    const checks = TIER0_CHECKS;
+    const checks = { ...TIER0_CHECKS, documented: documentedFacts(findings ?? []) };
     // The evidence checklist shown is the server's (C2); the model writes only the summary. A checker rejection or a
     // provider failure ends in the summary version, never in "failed" (summary-ladder.ts).
     const user = `INPUT JSON:
@@ -186,7 +187,7 @@ ${JSON.stringify(input, null, 2)}`;
       narrative_type: "tier0_summary",
       title: result.source === "fallback" ? FALLBACK_TITLE : "Free evaluation summary",
       text_content: result.summary,
-      source_ref: result.source === "fallback" ? `${source_ref}:summary-version` : source_ref,
+      source_ref,
       version: 1,
       language: lang,
       audience: "user",

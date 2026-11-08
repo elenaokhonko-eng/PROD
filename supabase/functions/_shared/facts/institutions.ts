@@ -63,6 +63,9 @@ export function institutionsIn(text: unknown): Institution[] {
 
 // Every known institution named anywhere in a text. A span matched by an earlier alias is not matched again, so
 // "DBS PayLah!" counts as the e-wallet, not also as the bank.
+/** Any institution name or alias, for phrase checks such as "reported it to DBS" (validate-output.ts). */
+export const INSTITUTION_NAME_SOURCE = ALIASES.map((a) => `(?:${a.pattern.source})`).join("|");
+
 export function institutionsMentioned(text: string): Institution[] {
   let remaining = text;
   const found = new Map<string, Institution>();

@@ -172,8 +172,11 @@ test('a police report number confirmed from a document backs the police report (
   const sentence = 'You reported it to the police on 4 Oct 2026 and received police report number A0000.'
   assert.deepEqual(validateOutput({ t: sentence }, claimantOnly).map((f) => f.check).sort(), ['reference', 'unqualified'], 'the number was never confirmed, and the report has no document')
   const withNumber: SnapshotFacts = { ...claimantOnly, police_report_number: { value: 'A0000', label: 'confirmed' } }
-  assert.deepEqual(validateOutput({ t: sentence }, withNumber), [])
-  assert.equal(qualifyUnsupportedStatements(sentence, withNumber), sentence)
+  // From a document: the report is backed. From the story alone ("confirmed" includes agreed story values): it is not.
+  assert.deepEqual(validateOutput({ t: sentence }, withNumber, { documented: ['police_report_number'] }), [])
+  assert.equal(qualifyUnsupportedStatements(sentence, withNumber, ['police_report_number']), sentence)
+  assert.equal(validateOutput({ t: sentence }, withNumber)[0]?.check, 'unqualified')
+  assert.match(qualifyUnsupportedStatements(sentence, withNumber), /^You told us that you reported it to the police/)
   const numberUnbacked: SnapshotFacts = { ...claimantOnly, police_report_number: { value: 'A0000', label: 'claimant_only' } }
   assert.equal(validateOutput({ t: sentence }, numberUnbacked)[0]?.check, 'unqualified')
 })
@@ -222,4 +225,48 @@ test('a payee on a confirmed payment is not an institution claim; "from your ban
   const notSure: SnapshotFacts = { ...facts, reported_to_bank: { value: null, label: 'not_sure' } }
   assert.deepEqual(validateOutput({ t: 'You reported a total loss of S$3,000 from your bank account.' }, notSure), [])
   assert.equal(validateOutput({ t: 'You reported it to your bank on 3 Oct 2026.' }, notSure)[0]?.check, 'unqualified')
+})
+
+test('documented facts come only from a chosen value with a document source (corpus, 8 Nov)', async () => {
+  const { documentedFacts } = await import('../../lib/facts')
+  const doc = { sources: [{ sourceType: 'document' }] }
+  const story = { sources: [{ sourceType: 'story' }] }
+  assert.deepEqual(documentedFacts([
+    { fact_key: 'police_report_number', finding_type: 'agreed', values: [doc], resolution: null },
+    { fact_key: 'total_loss', finding_type: 'agreed', values: [story], resolution: null },
+    { fact_key: 'transactions', finding_type: 'conflict', values: [story, doc], resolution: { kind: 'choice', index: 0 } },
+    { fact_key: 'bank_reply', finding_type: 'conflict', values: [story, doc], resolution: { kind: 'choice', index: 1 } },
+    { fact_key: 'institution_names', finding_type: 'conflict', values: [doc], resolution: { kind: 'value', value: [] } },
+  ]), ['police_report_number', 'bank_reply'])
+})
+
+test('the bank may be named: telling it and its reply need a document or a qualifier too (corpus, 8 Nov)', () => {
+  const notSure: SnapshotFacts = { ...facts, reported_to_bank: { value: null, label: 'not_sure' }, bank_reply: { value: null, label: 'not_sure' } }
+  assert.ok(validateOutput({ t: 'You reported the incident to DBS and the police the following day.' }, notSure).some((f) => f.check === 'unqualified'))
+  assert.ok(validateOutput({ t: 'You called OCBC that evening.' }, notSure).some((f) => f.check === 'unqualified'))
+  const replyClaimed: SnapshotFacts = { ...facts, bank_reply: { value: { status: 'final_reply', date: null, outcome: 'rejected' }, label: 'claimant_only' } }
+  for (const t of ['UOB provided a final reply on 3 Oct 2026, rejecting your claim.', 'Your claim was rejected by the bank on 3 Oct 2026.', 'OCBC offered you S$600 as goodwill.']) {
+    assert.ok(validateOutput({ t }, replyClaimed).some((f) => f.check === 'unqualified'), t)
+  }
+  assert.deepEqual(validateOutput({ t: 'You told us that UOB provided a final reply on 3 Oct 2026, rejecting your claim.' }, replyClaimed).filter((f) => f.check === 'unqualified'), [])
+  assert.deepEqual(validateOutput({ t: 'You can ask your bank for a final reply.' }, replyClaimed), [])
+})
+
+test('a police report described as a visit or as filing counts; advice does not; recovered amounts need a document (corpus, 8 Nov)', () => {
+  const claimantOnly: SnapshotFacts = { ...facts, reported_to_police: { ...facts.reported_to_police!, label: 'claimant_only' } }
+  for (const t of ['Your daughter assisted you in filing a police report on 4 Oct 2026.', 'Your daughter accompanied you to the neighbourhood police centre on 4 Oct 2026.']) {
+    assert.ok(validateOutput({ t }, claimantOnly).some((f) => f.check === 'unqualified'), t)
+  }
+  assert.deepEqual(validateOutput({ t: 'You may want to consider filing a police report.' }, claimantOnly), [])
+  const offered: SnapshotFacts = { ...facts, amount_recovered_or_offered: { value: sgd(700), label: 'claimant_only' } }
+  assert.ok(validateOutput({ t: 'Synthetic Bank recovered S$700 for you.' }, offered).some((f) => f.check === 'unqualified'))
+  assert.deepEqual(validateOutput({ t: 'You told us that Synthetic Bank recovered S$700 for you.' }, offered).filter((f) => f.check === 'unqualified'), [])
+})
+
+test('a declined offer is still an offer; contacting the police is a police report (corpus, 8 Nov)', () => {
+  const notSure: SnapshotFacts = { ...facts, bank_reply: { value: null, label: 'not_sure' } }
+  assert.ok(validateOutput({ t: 'Synthetic Bank offered you S$600 as goodwill, but you have not accepted this offer.' }, notSure).some((f) => f.check === 'unqualified'))
+  assert.deepEqual(validateOutput({ t: 'Synthetic Bank has not replied to your report yet.' }, notSure), [])
+  const claimantOnly: SnapshotFacts = { ...facts, reported_to_police: { ...facts.reported_to_police!, label: 'claimant_only' } }
+  assert.ok(validateOutput({ t: 'You contacted the police on 4 Oct 2026.' }, claimantOnly).some((f) => f.check === 'unqualified'))
 })

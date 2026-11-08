@@ -170,3 +170,10 @@ test('provider errors never carry the response text, and the review log holds ID
   assert.match(fn, /title: result\.source === "fallback" \? FALLBACK_TITLE : "Free evaluation summary"/)
   assert.match(fn, /const TIER0_MODEL = \(Deno\.env\.get\("TIER0_MODEL"\) \?\? "gpt-4o-mini-2024-07-18"\)/, 'the model is pinned to a dated snapshot')
 })
+
+test('the summary version replaces the same row as a model summary (one tier0_summary per case)', () => {
+  const fn = readFileSync('supabase/functions/bright-function/index.ts', 'utf8')
+  const summaryWrite = /narrative_type: "tier0_summary",[\s\S]*?source_ref,\n/.exec(fn.replace(/\r\n/g, '\n'))
+  assert.ok(summaryWrite, 'the summary is written with the run source_ref, marked only by its title')
+  assert.doesNotMatch(fn, /summary-version`/)
+})

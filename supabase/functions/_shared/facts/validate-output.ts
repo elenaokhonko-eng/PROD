@@ -4,7 +4,7 @@
 // contradictions, not every paraphrase.
 
 import type { BankReply, FactKey, Institution, Money, ReportedEvent, TotalLoss, Transaction } from "./keys.ts";
-import { institutionsMentioned } from "./institutions.ts";
+import { INSTITUTION_NAME_SOURCE, institutionsMentioned } from "./institutions.ts";
 import { daysBetween, normaliseDate } from "./normalise.ts";
 import type { SnapshotFact } from "./snapshot.ts";
 
@@ -33,6 +33,8 @@ export interface ValidateOptions {
   forbidden?: Array<{ pattern: RegExp; detail: string }>;
   // Text shown to the person: no internal names or input field names, and a sensible length in words.
   userFacing?: { minWords: number; maxWords: number };
+  // Facts whose value comes from a document (snapshot.ts documentedFacts).
+  documented?: readonly FactKey[];
 }
 
 // Internal names and the input's field names ("Tier-0", "Lumi", "confirmed_facts", any snake_case key).
@@ -103,7 +105,14 @@ const POLICE_DENIED = new RegExp(
   String.raw`(?:\b(?:not|never|yet to)|n't)\s+${FILLER}${POLICE_VERBS}|\bno police report\b|\bwithout (?:a |filing a )?police report\b`,
   "i",
 );
-const POLICE_AFFIRMED = /\b(?:reported|filed|lodged|made)\b[^.]{0,60}\bpolice\b|\bpolice report\b[^.]{0,40}\b(?:was|were|has been|had been)\s+(?:filed|lodged|made)\b|\bpolice report (?:no\.?|number|reference)/i;
+// Also "filing a police report" and a visit to a police station; advice ("consider filing a police report") is not a
+// statement that it happened (corpus, 8 Nov).
+const NOT_ADVICE = String.raw`(?<!\b(?:consider(?:ing)?|recommend(?:ed)?|suggest(?:ed)?|should|could|can|may|might|need to|want to|whether to|whether)\s+(?:\w+\s+){0,2})`;
+const POLICE_AFFIRMED = new RegExp(
+  String.raw`\b(?:reported|filed|lodged|made)\b[^.]{0,60}\bpolice\b|\bpolice report\b[^.]{0,40}\b(?:was|were|has been|had been)\s+(?:filed|lodged|made)\b|\bpolice report (?:no\.?|number|reference)` +
+    String.raw`|${NOT_ADVICE}\b(?:filing|lodging|making)\b[^.]{0,20}\bpolice report\b|\b(?:contacted|called|informed|told)\s+the\s+police\b|\b(?:went|accompanied|brought|took)\b[^.]{0,60}\bpolice (?:station|centre|center|post)\b`,
+  "i",
+);
 const BANK_CONTACT_CLAIMED = /\b(?:I|you|we)\s+(?:(?!was\b|were\b|been\b|being\b)\w+\s+){0,2}?(?:reported|told|informed|contacted|notified|called)\b(?!\s+by\b)[^.]{0,40}\bbank\b/i;
 const BANK_DENIED = new RegExp(String.raw`(?:\b(?:not|never|yet to)|n't)\s+${FILLER}${BANK_VERBS}`, "i");
 
@@ -168,6 +177,8 @@ function claimedAmounts(facts: SnapshotFacts): number[] {
   const out: number[] = [];
   const loss = factValue<TotalLoss>(facts, "total_loss", ["claimant_only"]);
   if (loss) out.push(loss.amount, ...(loss.portions ?? []).map((p) => p.amount.amount));
+  const recovered = factValue<Money>(facts, "amount_recovered_or_offered", ["claimant_only"]);
+  if (recovered) out.push(recovered.amount);
   const paid = factValue<Transaction[]>(facts, "transactions", ["claimant_only"]) ?? [];
   if (paid.length) out.push(...paid.map((t) => t.amount.amount), paid.reduce((s, t) => s + t.amount.amount, 0));
   const confirmed = confirmedAmounts(facts);
@@ -184,12 +195,30 @@ const amountAttributed = (sentence: string) => ATTRIBUTED.test(sentence) || AMOU
 const ATTRIBUTED = /\b(according to|the claimant (states|says|reports)|i state|i do not have|no copy|not (yet )?provided|unable to provide|without a (copy|document)|you (say|said|told us|have told us|mentioned|state|stated)|based on what you told us)\b/i;
 // Only sentences that say the event happened need a qualifier; "provide a copy of your police report" asserts nothing.
 // The bank is the one told ("reported it to your bank", "called the bank"), not "a loss from your bank account".
-const BANK_AFFIRMED = /\b(?:told|informed|contacted|notified|called)\s+(?:your|the)\s+bank\b|\b(?:reported|reporting)\b[^.]{0,40}\bto\s+(?:your|the)\s+bank\b(?!\s+account)/i;
+// The bank may be named ("reported it to DBS", "called OCBC"; corpus, 8 Nov).
+const BANK_OR_NAMED = String.raw`(?:(?:your|the)\s+bank\b(?!\s+account)|(?:${INSTITUTION_NAME_SOURCE}))`;
+const BANK_AFFIRMED = new RegExp(
+  String.raw`\b(?:told|informed|contacted|notified|called)\s+${BANK_OR_NAMED}|\b(?:reported|reporting)\b[^.]{0,40}\bto\s+${BANK_OR_NAMED}`,
+  "i",
+);
 // A reply from the bank stated as having happened ("the bank rejected my claim", "the final reply was ...").
-const BANK_REPLY_PATTERN = /\b(?:bank|institution)\b[^.]{0,60}\b(?:rejected|refused|declined|turned down|replied|responded|offered)\b|\bfinal reply\b[^.]{0,40}\b(?:was|is|said|stated)\b/i;
+const BANK_REPLY_PATTERN = new RegExp(
+  String.raw`\b(?:bank|institution|${INSTITUTION_NAME_SOURCE})[^.]{0,60}\b(?:rejected|refused|declined|turned down|replied|responded|offered|provided (?:a |its |an )?(?:final )?(?:reply|response))\b` +
+    String.raw`|\b(?:rejected|refused|declined) by ${BANK_OR_NAMED}|\bfinal reply\b[^.]{0,40}\b(?:was|is|said|stated)\b`,
+  "i",
+);
 // "You have not received any reply", "no amount has been offered": a denied reply is not a reply (staging, 5 Nov).
 const REPLY_NEGATED = /(?:\b(?:no|not|never|yet to|without)\b|n't)[^.]{0,40}\b(?:reply|replies|replied|response|responded|offer|offered|decision)\b/i;
-const BANK_REPLY_ASSERTED = { test: (s: string) => BANK_REPLY_PATTERN.test(s) && !REPLY_NEGATED.test(s) };
+// The negation must reach the reply itself: "OCBC offered you S$1,500, which you have not accepted" still asserts the
+// offer (corpus, 8 Nov).
+const BANK_REPLY_ASSERTED = {
+  test: (s: string) => {
+    const reply = BANK_REPLY_PATTERN.exec(s);
+    if (!reply) return false;
+    const negation = REPLY_NEGATED.exec(s);
+    return !negation || negation.index >= reply.index + reply[0].length;
+  },
+};
 const ASSERTS: Array<[FactKey, { test(sentence: string): boolean }]> = [
   ["reported_to_police", POLICE_AFFIRMED],
   ["reported_to_bank", BANK_AFFIRMED],
@@ -207,8 +236,8 @@ function qualified(sentence: string, key: FactKey): boolean {
 
 // A police report number confirmed from a document shows the report was made, even when the "reported to police"
 // answer itself came without one (staging, 8 Nov): saying so needs no "You told us that".
-function documentedElsewhere(facts: SnapshotFacts, key: FactKey): boolean {
-  return key === "reported_to_police" && facts.police_report_number?.label === "confirmed";
+function documentedElsewhere(facts: SnapshotFacts, key: FactKey, documented: readonly FactKey[] = []): boolean {
+  return key === "reported_to_police" && facts.police_report_number?.label === "confirmed" && documented.includes("police_report_number");
 }
 
 export function validateOutput(output: unknown, facts: SnapshotFacts, options: ValidateOptions = {}): OutputFailure[] {
@@ -264,7 +293,7 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
       if (fact.label === "not_sure" && !qualified(sentence, key)) {
         failures.push({ check: "unqualified", detail: `${key} is not confirmed: ${sentence.slice(0, 160)}` });
       }
-      if (fact.label === "claimant_only" && !documentedElsewhere(facts, key) && !ATTRIBUTED.test(sentence) && !qualified(sentence, key)) {
+      if (fact.label === "claimant_only" && !documentedElsewhere(facts, key, options.documented) && !ATTRIBUTED.test(sentence) && !qualified(sentence, key)) {
         failures.push({ check: "unqualified", detail: `${key} has no document: ${sentence.slice(0, 160)}` });
       }
     }
@@ -305,7 +334,7 @@ export function describeFailures(failures: readonly OutputFailure[]): string {
 // Fallback when the model keeps stating a fact the user marked "not sure", or kept without a document, as certain:
 // the server prefixes exactly those sentences ("You told us that ...", "It is not confirmed that ..."). Only the
 // "unqualified" check is repaired this way; any other failure still refuses the output.
-export function qualifyUnsupportedStatements(text: string, facts: SnapshotFacts): string {
+export function qualifyUnsupportedStatements(text: string, facts: SnapshotFacts, documented: readonly FactKey[] = []): string {
   let out = text;
   const lowerFirst = (s: string) => (/^[A-Z][a-z]/.test(s) && !/^I\b/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
   for (const sentence of sentences(text)) {
@@ -317,7 +346,7 @@ export function qualifyUnsupportedStatements(text: string, facts: SnapshotFacts)
       const fact = facts[key];
       if (!fact || !asserts.test(sentence) || ATTRIBUTED.test(sentence) || qualified(sentence, key)) continue;
       if (fact.label !== "claimant_only" && fact.label !== "not_sure") continue;
-      if (fact.label === "claimant_only" && documentedElsewhere(facts, key)) continue;
+      if (fact.label === "claimant_only" && documentedElsewhere(facts, key, documented)) continue;
       const prefix = fact.label === "claimant_only" ? "You told us that " : "It is not confirmed that ";
       const rest = /^[A-Z][a-z]/.test(sentence) && !/^I\b/.test(sentence) ? sentence[0].toLowerCase() + sentence.slice(1) : sentence;
       out = out.replace(sentence, prefix + rest);

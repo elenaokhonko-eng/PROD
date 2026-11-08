@@ -68,7 +68,7 @@ test('the SRF assessment is server-only: the model gives no verdict and its text
   assert.match(fn, /text_content: srfAssessmentText\(assessSrf\(srfFactsFromSnapshot\(facts\)\)\)/)
   assert.match(tier0, /forbidden: \[\{ pattern: SRF_VERDICT/)
   assert.match(tier0, /secondPerson: true/)
-  assert.match(fn, /const checks = TIER0_CHECKS;/)
+  assert.match(fn, /const checks = \{ \.\.\.TIER0_CHECKS, documented: documentedFacts\(findings \?\? \[\]\) \};/)
   assert.match(fn, /options: checks,/)
   assert.doesNotMatch(tier0, /evidence_checklist/, 'the model is no longer asked for a checklist it would not be shown')
   // Every model text that is shown is checked; the evidence checklist shown is the server's (C2), not the model's.
