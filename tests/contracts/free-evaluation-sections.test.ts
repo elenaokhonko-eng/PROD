@@ -27,7 +27,7 @@ test('C2: the evidence checklist is two lists: what documents show, and what has
   const findings = [
     {
       factKey: 'total_loss' as const,
-      values: [{ value: facts.total_loss.value, sources: [{ sourceType: 'document' as const, sourceRef: { documentName: 'synthetic-statement.pdf' } }] }],
+      values: [{ value: facts.total_loss.value, sources: [{ sourceType: 'document' as const, sourceRef: { documentName: '17. Synthetic Person statement.pdf', documentType: 'bank_statement' } }] }],
       resolution: { kind: 'agreed' as const },
     },
     {
@@ -39,7 +39,8 @@ test('C2: the evidence checklist is two lists: what documents show, and what has
   const text = evidenceListsText(facts, findings)
   const [shown, missing] = text.split('\n\n')
   assert.ok(shown.startsWith(EVIDENCE_SHOWN_HEADING))
-  assert.match(shown, /Amount lost: Bank account: S\$2,400\. Shown by synthetic-statement\.pdf\./)
+  assert.match(shown, /Amount lost: Bank account: S\$2,400\. Shown by your bank statement \(uploaded\)\./)
+  assert.doesNotMatch(text, /Synthetic Person|\.pdf/, 'documents are named by kind, never by file name (walkthrough, 8 Nov)')
   assert.ok(missing.startsWith(EVIDENCE_MISSING_HEADING))
   assert.match(missing, /Whether you reported this to the police: Yes, 3 Oct 2026\. No document yet; for example the police report/)
   assert.doesNotMatch(text, /Whether you told your bank/, '"No" needs no document')
@@ -66,7 +67,9 @@ test('C3: each part of the loss is assessed under the rules that apply to it, wi
     },
   })
   const text = srfAssessmentText(assessSrf(facts))
-  assert.match(text, /^Bank account and e-wallet payments \(S\$2,400\): Likely covered by the SRF$/m)
+  // Labelled by what the portion holds: here a bank account only (walkthrough, 8 Nov).
+  assert.match(text, /^Bank account payments \(S\$2,400\): Likely covered by the SRF$/m)
+  assert.doesNotMatch(text, /e-wallet payments \(/)
   assert.match(text, /^Card payments \(S\$1,100\): Card rules apply, not the SRF$/m)
   assert.match(text, /E-Payments User Protection Guidelines \(EUPG\)/)
   assert.match(text, /chargeback/)

@@ -88,6 +88,13 @@ test('The unfinished story is described as kept in the browser tab, matching ses
 })
 
 test('C6 / E12: the FIDReC fee for an individual is S$50 at adjudication (ToR Annex 1 6.6), never S$250', () => {
-  assert.match(readFileSync('components/state-machine/facts/next-steps.tsx', 'utf8'), /if your case goes to adjudication, FIDReC charges individuals a S\$50 case fee\./)
+  // One value, quoted from the ToR clause, used by the card (walkthrough, 8 Nov: the config still said S$250).
+  const { FIDREC_RULES } = require('../../lib/facts') as typeof import('../../lib/facts')
+  assert.deepEqual(FIDREC_RULES.adjudicationFeeSgd, { individual: 50, charityOrSmallBusiness: 250, cite: 'Annex 1, 6.6' })
+  const card = readFileSync('components/state-machine/facts/next-steps.tsx', 'utf8')
+  assert.match(card, /if your case goes to adjudication, FIDReC charges individuals a S\$\$\{FIDREC_RULES\.adjudicationFeeSgd\.individual\} case fee\./)
+  assert.equal(card.match(/within 6 months of your bank’s final reply/g)?.length, 1, 'the general timing is written once, shown only without a case note')
+  assert.match(card, /\{note \? \([\s\S]*?\) : card\.product === 'fidrec_pack' \? \([\s\S]*?\{FIDREC_TIMING\}/)
   assert.deepEqual(offenders(/S\$250/), [])
+  assert.doesNotMatch(readFileSync('supabase/functions/_shared/facts/rules/fidrec.ts', 'utf8'), /refundableSgd/)
 })

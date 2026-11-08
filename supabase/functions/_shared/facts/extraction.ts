@@ -39,13 +39,27 @@ const SCAM_FACTS: FactKey[] = ["scam_type", "phishing_channel", "credentials_or_
 const DOCUMENT_FACTS: Record<DocumentType, ReadonlySet<FactKey>> = {
   bank_statement: new Set(MONEY_FACTS),
   card_statement: new Set(MONEY_FACTS),
-  bank_correspondence: new Set([...MONEY_FACTS, "reported_to_bank", "written_complaint_sent", "bank_reply"]),
-  police_report: new Set([...SCAM_FACTS, "transactions", "total_loss", "account_types", "reported_to_bank", "reported_to_police"]),
+  bank_correspondence: new Set([...MONEY_FACTS, "reported_to_bank", "bank_case_reference", "written_complaint_sent", "bank_reply"]),
+  // A police report is first of all evidence of the police report: its number and date (walkthrough, 8 Nov).
+  police_report: new Set(["reported_to_police", "police_report_number", ...SCAM_FACTS, "transactions", "total_loss", "account_types", "reported_to_bank"]),
   scam_message: new Set(["scam_type", "phishing_channel", "impersonated_entity_type"]),
   other: new Set(),
 };
 
 export const DOCUMENT_CONFIDENCE_THRESHOLD = 0.7;
+
+// A police report retells the scam, so the model can take it for a scam message; then its police facts were only
+// context and a different report number raised no conflict (walkthrough, 8 Nov). Police-report markers in the opening
+// lines decide. A bank letter that asks for a police report does not open with them.
+const POLICE_REPORT_OPENING = /singapore police force|police report (?:acknowledg(?:e)?ment|receipt|no\.?|number)|\breport no\.?\s*[:#]?\s*[A-Z]{0,2}\/?\d{6,}/i;
+
+export function documentTypeOf(modelType: unknown, text: string): DocumentType {
+  const declared = oneOf(DOCUMENT_TYPES, modelType) ?? "other";
+  if (declared !== "police_report" && declared !== "bank_correspondence" && POLICE_REPORT_OPENING.test(text.slice(0, 600))) {
+    return "police_report";
+  }
+  return declared;
+}
 
 export function documentCanContradict(documentType: DocumentType, factKey: FactKey, confidence: number | null): boolean {
   return DOCUMENT_FACTS[documentType].has(factKey) && confidence !== null && confidence >= DOCUMENT_CONFIDENCE_THRESHOLD;
@@ -147,7 +161,7 @@ export function parseFactExtraction(
 ): FactCandidate[] {
   const out = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const candidates: FactCandidate[] = [];
-  const documentType: DocumentType | null = source.sourceType === "document" ? (oneOf(DOCUMENT_TYPES, out.document_type) ?? "other") : null;
+  const documentType: DocumentType | null = source.sourceType === "document" ? documentTypeOf(out.document_type, sourceText) : null;
   // A document value outside what that kind of document can state, or below the confidence threshold, is kept as
   // context: stored for the record, never compared (finding A7).
   const add = (factKey: FactCandidate["factKey"], value: unknown, quotes: string[], items: unknown[] = []) => {

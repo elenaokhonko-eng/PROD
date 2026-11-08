@@ -33,6 +33,8 @@ export interface ScopeReason {
 export interface PortionAssessment {
   kind: "srf" | "card" | "unclassified";
   total: Money | null;
+  // The kinds of payment in this portion, so its label names only what applies (walkthrough, 8 Nov).
+  instruments?: Instrument[];
   assessment: ScopeAssessment;
   reasons: ScopeReason[];
 }
@@ -164,7 +166,8 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
 
   const portions: PortionAssessment[] = [];
   if (groups.srf.length || !transactions.length) {
-    portions.push({ kind: "srf", total: sum(groups.srf), ...assessSrfPortion(facts, groups.srf) });
+    const instruments = [...new Set(groups.srf.map((t) => t.instrument).filter((i): i is Instrument => Boolean(i)))];
+    portions.push({ kind: "srf", total: sum(groups.srf), instruments, ...assessSrfPortion(facts, groups.srf) });
   }
   if (groups.card.length) {
     const total = sum(groups.card);
@@ -256,6 +259,15 @@ const GLOSSARY: Array<[RegExp, string]> = [
   [/\bABS\b/, "ABS: the Association of Banks in Singapore, the banks' industry association."],
 ];
 
+function srfPortionLabel(instruments: readonly Instrument[]): string {
+  const account = instruments.includes("account_transfer");
+  const ewallet = instruments.includes("ewallet");
+  if (account && ewallet) return "Bank account and e-wallet payments";
+  if (account) return "Bank account payments";
+  if (ewallet) return "E-wallet payments";
+  return "Your payments";
+}
+
 // The free evaluation's "How the rules may apply" section, written by the server (never by the model): each part of
 // the loss under the framework that applies to it (finding C3).
 export function srfAssessmentText(assessment: SrfAssessment): string {
@@ -264,7 +276,7 @@ export function srfAssessmentText(assessment: SrfAssessment): string {
   ];
   for (const portion of assessment.portions) {
     const amount = portion.total ? ` (${formatMoney(portion.total)})` : "";
-    const label = portion.kind === "card" ? "Card payments" : portion.kind === "unclassified" ? "Other payments" : "Bank account and e-wallet payments";
+    const label = portion.kind === "card" ? "Card payments" : portion.kind === "unclassified" ? "Other payments" : srfPortionLabel(portion.instruments ?? []);
     const heading = portion.kind === "card" ? "Card rules apply, not the SRF" : ASSESSMENT_HEADINGS[portion.assessment];
     lines.push("", `${label}${amount}: ${heading}`);
     for (const reason of portion.reasons) lines.push(`- ${reason.text}`);

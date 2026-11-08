@@ -41,10 +41,20 @@ function chosenValues(finding: EvidenceFinding): FindingValue[] {
   return [];
 }
 
+// Documents are named by kind, never by file name: file names can carry other people's names and references, and the
+// evaluation is shared and downloaded (walkthrough, 8 Nov).
+const DOCUMENT_LABELS: Record<string, string> = {
+  police_report: "your police report (uploaded)",
+  bank_statement: "your bank statement (uploaded)",
+  card_statement: "your card statement (uploaded)",
+  bank_correspondence: "a letter or email from your bank (uploaded)",
+  scam_message: "the scam message (uploaded)",
+};
+
 function documentNames(values: FindingValue[]): string[] {
   const names = values.flatMap((v) => v.sources)
     .filter((s) => s.sourceType === "document")
-    .map((s) => (typeof s.sourceRef.documentName === "string" && s.sourceRef.documentName ? s.sourceRef.documentName : "an uploaded document"));
+    .map((s) => DOCUMENT_LABELS[String(s.sourceRef.documentType)] ?? "an uploaded document");
   return [...new Set(names)];
 }
 

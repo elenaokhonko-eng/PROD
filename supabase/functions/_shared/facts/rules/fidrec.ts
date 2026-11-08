@@ -22,8 +22,10 @@ export const FIDREC_RULES = {
   awardCapSgd: { value: 150_000, cite: "Rule 29(1); Rule 21(2)" },
   // F7: settled, decided by a court, or already decided by FIDReC (Rule 5(viii)-(x)).
   excludedResolved: { cite: "Rule 5(viii)-(x)" },
-  // F9: complainant case fee if the dispute goes to adjudication, part refundable (Annex 1, 6.4-6.6).
-  adjudicationFeeSgd: { value: 250, refundableSgd: 200, cite: "Annex 1, 6.4-6.6" },
+  // F9: the complainant's case fee if the dispute goes to adjudication (Annex 1, 6.6 "Other Claims"): S$50 for an
+  // individual, S$250 for a charity or small business. The S$250 fee with a possible S$200 refund (6.4-6.5) is only
+  // for motor accident claims under the FIDReC-NIMA Scheme, which GuideBuoy does not handle.
+  adjudicationFeeSgd: { individual: 50, charityOrSmallBusiness: 250, cite: "Annex 1, 6.6" },
 } as const;
 
 export type FidrecAvailability =

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { useJoinWaitlist, useRecommendation } from '@/hooks/state-machine/facts/use-recommendation'
-import type { ProductState, StageProduct } from '@/lib/facts'
+import { FIDREC_RULES, type ProductState, type StageProduct } from '@/lib/facts'
 
 const PRODUCT_TITLES: Record<StageProduct, string> = {
   free_evaluation: 'Free evaluation',
@@ -27,6 +27,9 @@ function formatDate(iso: string | null | undefined): string {
   if (!iso) return ''
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
+
+const FIDREC_TIMING =
+  'You can go to FIDReC within 6 months of your bank’s final reply, or 4 weeks after you sent a written complaint if the bank hasn’t resolved it. You don’t have to wait for a final reply.'
 
 function ruleNote(state: ProductState | undefined): string | null {
   if (!state) return null
@@ -73,8 +76,10 @@ export function NextSteps({ caseId, priceLabels }: { caseId: string; priceLabels
     {
       product: 'fidrec_pack',
       price: priceLabels.tier2,
+      // The fee comes from the rules config, quoted from the ToR (Annex 1, 6.6); the timing is shown once, for the
+      // person's case when we know it (walkthrough, 8 Nov).
       description:
-        'FIDReC is Singapore’s independent dispute resolution centre for consumers and financial institutions. It costs nothing to start; if your case goes to adjudication, FIDReC charges individuals a S$50 case fee. You can go to FIDReC within 6 months of your bank’s final reply, or 4 weeks after you sent a written complaint if the bank hasn’t resolved it. You don’t have to wait for a final reply.',
+        `FIDReC is Singapore’s independent dispute resolution centre for consumers and financial institutions. It costs nothing to start; if your case goes to adjudication, FIDReC charges individuals a S$${FIDREC_RULES.adjudicationFeeSgd.individual} case fee.`,
       detail: 'A comprehensive case pack with every material fact and the arguments on both sides, ready for FIDReC’s process.',
     },
   ]
@@ -126,7 +131,11 @@ export function NextSteps({ caseId, priceLabels }: { caseId: string; priceLabels
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <p>{card.detail}</p>
-                {note && <p className="text-muted-foreground">{note}</p>}
+                {note ? (
+                  <p className="text-muted-foreground">{note}</p>
+                ) : card.product === 'fidrec_pack' ? (
+                  <p className="text-muted-foreground">{FIDREC_TIMING}</p>
+                ) : null}
                 <p className="text-muted-foreground">{CONSULTATION}</p>
                 {!paidStages.enabled && (
                   done ? (

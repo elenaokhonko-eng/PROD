@@ -60,6 +60,7 @@ type RunRecord = {
   blocked?: string[]
   labels?: Record<string, string>
   facts?: unknown
+  missedConflicts?: string[]
   findings?: unknown
   source?: 'model' | 'fallback'
   fallbackReason?: string | null
@@ -146,6 +147,7 @@ async function runOne(story: CorpusStory, run: number): Promise<RunRecord> {
   record.ms.extraction = Date.now() - t0
 
   const reconciled = await reconcile(candidates)
+  record.missedConflicts = (story.expectConflicts ?? []).filter((k) => reconciled.find((f) => f.factKey === k)?.findingType !== 'conflict')
   let findings: CurrentFinding[] = reconciled.map((f, i) => ({ id: `f${i}`, factKey: f.factKey, findingType: f.findingType, values: f.values, status: 'open', resolution: null }))
   findings = settle(findings, story.policy)
   record.findings = findings.map((f) => ({ key: f.factKey, type: f.findingType, values: f.values.map((v) => ({ value: v.value, from: v.sources.map((s) => s.sourceType) })), resolution: f.resolution }))
@@ -250,6 +252,7 @@ function summarise(records: RunRecord[], meta: Record<string, string>) {
     `| Summary version used | ${fallback.length} (${pct(fallback.length, done.length)}) |`,
     `| of which the rejected value is in the story but was not extracted | ${fallback.filter(extractionMiss).length} |`,
     `| Model summaries the judge flagged | ${flagged.length} of ${judged.length} |`,
+    `| Expected conflict cards missed (document vs story or answers) | ${records.reduce((n, r) => n + (r.missedConflicts?.length ?? 0), 0)} of ${records.reduce((n, r) => n + (STORIES.find((s) => s.id === r.id)?.expectConflicts?.length ?? 0), 0)} |`,
     `| Summary time p50 / p95 | ${(quantile(done.map((r) => r.ms.summary), 0.5) / 1000).toFixed(1)} s / ${(quantile(done.map((r) => r.ms.summary), 0.95) / 1000).toFixed(1)} s |`,
     '',
     '| Check | Class | Fired on 1st attempt | Fired on any attempt |',

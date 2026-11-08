@@ -21,6 +21,8 @@ export interface CorpusStory {
   story: string
   documents?: CorpusDocument[]
   policy?: ConfirmPolicy
+  /** Facts that must come out as a conflict card (document vs story or answers). */
+  expectConflicts?: string[]
 }
 
 const BANK_STATEMENT_DBS = `DBS Bank Ltd - Statement of Account
@@ -50,6 +52,13 @@ Dear Customer,
 Re: Your report of unauthorised transactions (Case UOB-SYN-0001)
 We have completed our investigation. The transactions of SGD 2,000.00 on 9 Oct 2026 were authorised with your one-time password. Under the Shared Responsibility Framework we are unable to offer a goodwill payment.
 Yours faithfully, Customer Advocacy`
+
+// The report's number and dates differ from the story's (walkthrough, 8 Nov).
+const POLICE_REPORT_OTHER = `SINGAPORE POLICE FORCE - Police Report Acknowledgement
+Report No: G/20241031/0000
+Date/time of report: 31 Oct 2024 09:40
+Nature: Cheating (online)
+Informant states that on 30 Oct 2024 she received an SMS purportedly from Synthetic Bank and keyed in her one-time password on a link.`
 
 const UNRELATED_BILL = `SP Group - Utilities Bill
 Account 99-0000-000-0   Bill date 01 Oct 2026
@@ -142,6 +151,13 @@ export const STORIES: CorpusStory[] = [
   { id: 'scan-01', tags: ['scanned_pdf', 'ocr_noise'], story: 'Fake DBS SMS on 3 Oct 2026; I gave my OTP and two transfers went out. I reported it to DBS.', documents: [{ name: 'scan.pdf', text: SCANNED_OCR }] },
   { id: 'unrelated-01', tags: ['unrelated_document'], story: 'On 3 Oct 2026 I got a DBS SMS and lost $8,000 after entering my OTP. Reported to DBS and police.', documents: [{ name: 'bill.pdf', text: UNRELATED_BILL }] },
   { id: 'docs-all-01', tags: ['documents', 'full_case'], story: 'SMS phishing from "DBS" on 3 Oct 2026. Entered credentials and OTP. $4,800 and $3,200 transferred to Tan Wei Ming. Called DBS on 3 Oct, case reference DBS-SYN-0001. Police report 4 Oct. Sent a written complaint to DBS on 10 Oct 2026; no reply yet.', documents: [{ name: 'statement.txt', text: BANK_STATEMENT_DBS }, { name: 'police.txt', text: POLICE_REPORT }] },
+  // A document that disagrees with the story or answers must raise conflict cards.
+  { id: 'docmismatch-01', tags: ['document_mismatch', 'police_number', 'police_date'], expectConflicts: ['reported_to_police', 'police_report_number'],
+    story: 'On 3 Oct 2026 I got an SMS from "DBS" and gave my OTP; S$8,000 was taken. I told DBS the same day and made a police report on 4 Oct 2026, report number 123456.',
+    documents: [{ name: 'report.pdf', text: POLICE_REPORT_OTHER }] },
+  { id: 'docmismatch-02', tags: ['document_mismatch', 'police_date', 'transactions_date'], expectConflicts: ['reported_to_police'],
+    story: 'Fake bank SMS on 12 March 2026, I entered my OTP and lost S$3,000. I reported it to the police on 13 March 2026.',
+    documents: [{ name: 'report.pdf', text: POLICE_REPORT_OTHER }] },
   // Bank replies and escalation
   { id: 'reply-01', tags: ['bank_reply', 'rejected', 'fidrec'], story: 'UOB rejected my claim on 22 Oct 2026 for the $2,000 taken on 9 Oct after a phishing email. I am thinking of going to FIDReC. I made a police report on 10 Oct.' },
   { id: 'reply-02', tags: ['bank_reply', 'partial_offer'], story: 'After the $6,000 phishing loss on 1 Oct 2026, OCBC offered me $1,500 as goodwill on 25 Oct. I have not accepted. Police report made 2 Oct.' },

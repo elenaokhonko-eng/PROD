@@ -76,3 +76,35 @@ test('answer-only facts become findings without comparison', async () => {
   const fidrec = (await reconcile(candidates)).find((f) => f.factKey === 'fidrec_filed')!
   assert.equal(fidrec.findingType, 'agreed')
 })
+
+test('a police report the model calls a scam message is still a police report, and its number and date can conflict (walkthrough, 8 Nov)', async () => {
+  const report = 'SINGAPORE POLICE FORCE - Police Report Acknowledgement\nReport No: G/20241031/0000\nDate of report: 31 Oct 2024\n' +
+    'Informant states that on 30 Oct 2024 she received an SMS from "Synthetic Bank" and entered her OTP on a link.'
+  const doc = { sourceType: 'document' as const, sourceRef: { sourceKey: 'document:d1', documentId: 'd1', documentName: 'synthetic.pdf' } }
+  const fromDoc = parseFactExtraction({
+    document_type: 'scam_message',
+    reported_to_police: { value: 'yes', date: '2024-10-31', reference: 'G/20241031/0000', quote: 'Police Report Acknowledgement', confidence: 0.95 },
+    phishing_channel: { value: 'sms', quote: 'received an SMS', confidence: 0.9 },
+  }, report, doc)
+  const police = fromDoc.find((c) => c.factKey === 'reported_to_police')!
+  assert.equal((police.sourceRef as { documentType?: string }).documentType, 'police_report')
+  assert.equal((police.sourceRef as { context?: boolean }).context, false, 'a police report can state the police facts')
+
+  const fromStory = parseFactExtraction({
+    reported_to_police: { value: 'yes', date: '2026-10-04', quote: 'reported it to the bank and the police on 4 October 2026' },
+  }, story, source)
+  const { candidates: fromAnswers } = answerCandidates([
+    { questionKey: JOURNEY_KEYS.policeReport, value: 'yes', revisionId: 'a0' },
+    { questionKey: JOURNEY_KEYS.policeReportNumber, value: '123456', revisionId: 'a1' },
+  ])
+  const findings = await reconcile([...fromDoc, ...fromStory, ...fromAnswers])
+  assert.equal(findings.find((f) => f.factKey === 'police_report_number')?.findingType, 'conflict', 'the confirmed number differs from the report')
+  assert.equal(findings.find((f) => f.factKey === 'reported_to_police')?.findingType, 'conflict', 'the report date differs from the story')
+})
+
+test('a bank letter that asks for a police report is not a police report', () => {
+  const letter = 'Synthetic Bank\nDear Customer,\nRe: your report of unauthorised transactions.\nPlease send us a copy of your police report.'
+  const doc = { sourceType: 'document' as const, sourceRef: { sourceKey: 'document:d2' } }
+  const [reply] = parseFactExtraction({ document_type: 'bank_correspondence', bank_reply: { status: 'acknowledged', quote: 'your report of unauthorised transactions', confidence: 0.9 } }, letter, doc)
+  assert.equal((reply.sourceRef as { documentType?: string }).documentType, 'bank_correspondence')
+})
