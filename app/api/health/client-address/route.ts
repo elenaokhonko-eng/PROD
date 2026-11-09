@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       cfConnectingIp: request.headers.get("cf-connecting-ip"),
       trueClientIp: request.headers.get("true-client-ip"),
       xRealIp: request.headers.get("x-real-ip"),
-      trustCloudflare: process.env.HARBOR_TRUST_CLOUDFLARE_IP === "true",
+      trustCloudflare: process.env.HARBOR_TRUST_CLOUDFLARE_IP !== "false",
       resolved: clientIp(request.headers),
     },
     { headers: { "Cache-Control": "no-store" } },

@@ -381,6 +381,8 @@ export function checkEnvironmentSet(
   if (!isStaging) add(get("USAGE_LIMIT_EXEMPT_PROFILE_IDS") ? "FAIL" : "PASS", "no account is exempt from the usage limits in production")
   if (isStaging) add(get("MAIL_TRANSPORT") === "sink-test-traffic" ? "PASS" : "WARN", "staging test-run mail goes to the sink (MAIL_TRANSPORT=sink-test-traffic)")
   else add(get("MAIL_TRANSPORT").startsWith("sink") ? "FAIL" : "PASS", "production mail is not sent to the sink")
+  // Per-IP limits key on CF-Connecting-IP from Cloudflare edges (lib/rate-limit.ts); switched off, they key on the edge.
+  if (!isStaging) add(get("HARBOR_TRUST_CLOUDFLARE_IP") === "false" ? "WARN" : "PASS", "per-IP limits use the Cloudflare client address", "HARBOR_TRUST_CLOUDFLARE_IP is not false")
   // Legal pages: a production build stops without an effective date (lib/legal/legal-document.ts).
   const legalDate = get("LEGAL_EFFECTIVE_DATE")
   if (legalDate) {

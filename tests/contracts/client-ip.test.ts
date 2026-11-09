@@ -61,7 +61,23 @@ test('a malformed CF-Connecting-IP is never used as a key', () => {
   assert.equal(clientIp(headers({ 'cf-connecting-ip': 'x'.repeat(500), 'x-forwarded-for': '172.64.0.1' }), null, true), '172.64.0.1')
 })
 
-test('without HARBOR_TRUST_CLOUDFLARE_IP the header is ignored even from Cloudflare', () => {
+test('the header is believed by default, as every Render request comes through Cloudflare (measured on staging, 9 Nov)', () => {
+  const saved = process.env.HARBOR_TRUST_CLOUDFLARE_IP
+  delete process.env.HARBOR_TRUST_CLOUDFLARE_IP
+  try {
+    // The shape staging receives: client, then the Cloudflare edge that connected (a different edge per request).
+    const first = headers({ 'cf-connecting-ip': '198.51.100.7', 'x-forwarded-for': '198.51.100.7, 172.70.1.2' })
+    const second = headers({ 'cf-connecting-ip': '198.51.100.7', 'x-forwarded-for': '203.0.113.50, 198.51.100.7, 108.162.200.4' })
+    assert.equal(clientIp(first), '198.51.100.7')
+    assert.equal(clientIp(second), '198.51.100.7', 'one person keeps one bucket whichever edge carried the request')
+    assert.notEqual(clientIp(headers({ 'cf-connecting-ip': '198.51.100.9', 'x-forwarded-for': '172.70.1.2' })), clientIp(first), 'two people on one edge are not one bucket')
+  } finally {
+    if (saved === undefined) delete process.env.HARBOR_TRUST_CLOUDFLARE_IP
+    else process.env.HARBOR_TRUST_CLOUDFLARE_IP = saved
+  }
+})
+
+test('HARBOR_TRUST_CLOUDFLARE_IP=false switches the header off, even from Cloudflare', () => {
   assert.equal(clientIp(headers({ 'cf-connecting-ip': '198.51.100.7', 'x-forwarded-for': '172.64.0.1' }), null, false), '172.64.0.1')
 })
 
