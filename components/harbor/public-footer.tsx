@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { SAFETY_NOTICE } from '@/lib/safety-notice'
 
-export function PublicFooter() {
+// Signed-in case pages leave out WhatsApp: human support there is not approved (slice 7).
+export function PublicFooter({ whatsApp = true }: { whatsApp?: boolean }) {
   return (
     <footer className="mt-auto border-t bg-card" aria-labelledby="footer-heading">
       <div className="gb-container grid gap-8 py-10 md:grid-cols-[1.3fr_1fr]">
@@ -24,15 +25,17 @@ export function PublicFooter() {
             </Link>
           </nav>
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm md:justify-end">
-            <a
-              href="https://wa.me/6590727915"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="min-h-11 py-3 font-medium text-primary underline-offset-4 hover:underline"
-            >
-              WhatsApp
-              <span className="sr-only"> (opens in a new tab)</span>
-            </a>
+            {whatsApp ? (
+              <a
+                href="https://wa.me/6590727915"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-h-11 py-3 font-medium text-primary underline-offset-4 hover:underline"
+              >
+                WhatsApp
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            ) : null}
             <a href="mailto:info@guidebuoyai.sg" className="min-h-11 py-3 underline-offset-4 hover:underline">
               Email us
             </a>

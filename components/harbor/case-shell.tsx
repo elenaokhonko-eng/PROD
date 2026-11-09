@@ -55,7 +55,7 @@ export function CaseShell({ children }: { children: ReactNode }) {
         {children}
       </div>
       {/* The public site's footer, so company details, Terms and Privacy are on every page (walkthrough, 9 Nov). */}
-      <PublicFooter />
+      <PublicFooter whatsApp={false} />
       <ReportProblem />
     </div>
   )

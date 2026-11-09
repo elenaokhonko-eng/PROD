@@ -10,7 +10,7 @@ test('the safety notice is in both page footers and every email template', () =>
   assert.equal(SAFETY_NOTICE, 'GuideBuoy will never ask for your bank login, PIN or OTP.')
   assert.match(readFileSync('components/harbor/public-footer.tsx', 'utf8'), /\{SAFETY_NOTICE\}/)
   // Signed-in pages show the same footer (walkthrough, 9 Nov), so the notice comes with it.
-  assert.match(readFileSync('components/harbor/case-shell.tsx', 'utf8'), /<PublicFooter \/>/)
+  assert.match(readFileSync('components/harbor/case-shell.tsx', 'utf8'), /<PublicFooter whatsApp=\{false\} \/>/)
   assert.match(readFileSync('app/(marketing)/layout.tsx', 'utf8'), /<PublicFooter \/>/)
   const templates = readFileSync('lib/email-templates.tsx', 'utf8')
   const emails = templates.match(/^export const \w+Email\b/gm) ?? []

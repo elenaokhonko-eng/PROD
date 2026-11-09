@@ -6,7 +6,9 @@ Planned for Tuesday 10 November 2026, morning, on Elena's approval. Brief B (pro
 ## Before moving the domains
 
 - [ ] Smoke test on `https://prod-check.guidebuoyai.sg` passed: fresh account, full free evaluation, one Report a
-      problem, one waitlist click, model calls visible on `/analytics`.
+      problem, one waitlist click, model calls visible on `/analytics`. The problem report and the account emails
+      arrive in the info@ and test inboxes: this is the only check of real email delivery, because staging keeps no
+      SMTP test inbox (Elena, 10 Nov).
 - [ ] `LEGAL_EFFECTIVE_DATE=2026-11-10` on the production web service (or the actual cutover day), and the Terms and
       Privacy pages show it.
 - [ ] Clerk Production legal consent is on with `https://guidebuoyai.sg/terms` and `https://guidebuoyai.sg/privacy`;

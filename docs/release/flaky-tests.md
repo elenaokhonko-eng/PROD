@@ -126,3 +126,12 @@ test is weakened to make it pass.
 - **Run:** 42618513091, commit `4c4c59d`; the page stayed on "Loading official resources…"; passed on the re-run of the
   failed job, with no change. Same pattern as 7 Nov (runner slowness, not the app). Third occurrence: worth trying fewer
   parallel public workers in week one.
+
+## 2026-11-10: authenticated, "SMTP accepts a release-identified message", skipped on staging by decision
+
+- **Not a flake.** Run 42652946823, commit `da893e7`: staging's Mailtrap sandbox reached its monthly email limit
+  (535 "The email limit is reached"), so `/api/email/send` returned 500.
+- **Decision (Elena, 10 Nov):** no paid or second Mailtrap inbox for staging. The test skips when
+  `HARBOR_STAGING_SMTP_HANDSHAKE` is `off`, and real delivery is checked on prod-check before cutover
+  (`docs/release/cutover-checklist.md`). This is a reduction in CI cover, not a fix. The app's own staging emails still
+  go to the capture sink and stay tested (`report-problem.spec.ts`).
