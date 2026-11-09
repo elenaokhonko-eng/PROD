@@ -34,6 +34,11 @@ export interface EvidenceUploadPanelProps {
   errorMessage?: string | null
   onUpload: (files: File[]) => void
   onDelete?: (documentId: string) => void
+  /** Removal in progress for this document id. */
+  deletingId?: string | null
+  /** Offered on the upload step: go on to confirm the facts with no documents (walkthrough, 9 Nov). */
+  onSkip?: () => void
+  isSkipping?: boolean
 }
 
 export function EvidenceUploadPanel({
@@ -43,6 +48,9 @@ export function EvidenceUploadPanel({
   errorMessage,
   onUpload,
   onDelete,
+  deletingId = null,
+  onSkip,
+  isSkipping = false,
 }: EvidenceUploadPanelProps) {
   const [isDragging, setIsDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -80,7 +88,8 @@ export function EvidenceUploadPanel({
       <CardHeader>
         <CardTitle>Upload supporting evidence</CardTitle>
         <CardDescription>
-          Choose your supporting files. The upload service will check each file and report any requirements it does not meet.
+          Bank or card statements, letters from your bank, a police report, or screenshots of the scam messages. PDF,
+          PNG or JPEG, up to 15 MB and 30 pages each.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -161,22 +170,33 @@ export function EvidenceUploadPanel({
             type="file"
             className="hidden"
             multiple
+            accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
             onChange={handleChange}
             disabled={isUploading}
           />
-          <p className="mt-2 text-xs text-muted-foreground">
-            File requirements are checked by the upload service.
-          </p>
+          <p className="mt-2 text-xs text-muted-foreground">PDF, PNG or JPEG, up to 15 MB and 30 pages each.</p>
         </div>
 
         {documents.length > 0 ? (
           <ul className="space-y-2">
             {documents.map((doc) => (
               <li key={doc.id}>
-                <DocumentRow doc={doc} onDelete={onDelete} />
+                <DocumentRow doc={doc} onDelete={onDelete} isDeleting={deletingId === doc.id} />
               </li>
             ))}
           </ul>
+        ) : null}
+
+        {onSkip && !documents.some((d) => d.processing_status === 'ready') ? (
+          <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              No documents to hand? You can confirm your facts now and add documents later.
+            </p>
+            <Button type="button" variant="outline" onClick={onSkip} disabled={isSkipping || isUploading}>
+              {isSkipping ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : null}
+              Continue without documents
+            </Button>
+          </div>
         ) : null}
       </CardContent>
     </Card>
@@ -186,10 +206,13 @@ export function EvidenceUploadPanel({
 function DocumentRow({
   doc,
   onDelete,
+  isDeleting,
 }: {
   doc: EvidenceUploadPanelProps['documents'][number]
   onDelete?: (id: string) => void
+  isDeleting: boolean
 }) {
+  const [confirming, setConfirming] = useState(false)
   const Icon = doc.mime_type?.startsWith('image/') ? ImageIcon : FileText
   const status: DocumentProcessingStatus = doc.processing_status ?? 'pending'
   const { label, variant } = describeStatus(status)
@@ -215,12 +238,23 @@ function DocumentRow({
         ) : null}
       </div>
       <Badge variant={variant}>{isReady ? '✓ Ready' : label}</Badge>
-      {onDelete ? (
+      {onDelete && isDeleting ? (
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label={`Removing ${doc.original_filename}`} />
+      ) : onDelete && confirming ? (
+        <span className="flex gap-1">
+          <Button type="button" variant="destructive" size="sm" onClick={() => { setConfirming(false); onDelete(doc.id) }}>
+            Remove
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setConfirming(false)}>
+            Keep
+          </Button>
+        </span>
+      ) : onDelete ? (
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          onClick={() => onDelete(doc.id)}
+          onClick={() => setConfirming(true)}
           aria-label={`Remove ${doc.original_filename}`}
         >
           <Trash2 className="h-4 w-4" aria-hidden />

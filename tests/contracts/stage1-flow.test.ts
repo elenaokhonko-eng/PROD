@@ -47,3 +47,17 @@ test('the recommendation uses only confirmed facts and the paid-stages switch', 
   assert.match(lib, /fact\.label === "confirmed" \|\| fact\.label === "claimant_only"/)
   assert.match(lib, /bankPackEnabled: paidStages\.enabled/)
 })
+
+test('the upload step can be skipped, and the choice is kept (walkthrough, 9 Nov)', () => {
+  const afterIntake = { ...base, journeyAnswered: true, hasSubmittedIntake: true }
+  assert.equal(useStateMachine(afterIntake), 'S1-EvidenceUpload')
+  assert.equal(useStateMachine({ ...afterIntake, evidenceSkipped: true }), 'S1-Tier0DraftPending')
+  const panel = readFileSync('components/state-machine/layer1/evidence-upload-panel.tsx', 'utf8')
+  assert.match(panel, /Continue without documents/)
+  assert.match(panel, /accept="\.pdf,\.png,\.jpg,\.jpeg/)
+  const dashboard = readFileSync('app/(case)/app/case/[id]/dashboard/_components/dashboard-client.tsx', 'utf8')
+  assert.match(dashboard, /onSkip: \(\) => void handleSkipEvidence\(\)/)
+  assert.match(dashboard, /onDeleteDocument: handleDelete/, 'uploads can be removed')
+  assert.equal(dashboard.split('factsHref,').length - 1, 2, 'both evaluation views link to the facts')
+  assert.match(dashboard, /instanceof UploadRefusedError/, 'a refused file shows the reason')
+})

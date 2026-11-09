@@ -25,7 +25,9 @@ import { useCaseEligibility } from '@/hooks/state-machine/layer1/use-case-eligib
 import { useValidationRun } from '@/hooks/state-machine/layer1/use-validation-run'
 import { useIntakeCompletion } from '@/hooks/state-machine/layer1/use-intake-completion'
 import { useSubmitIntake } from '@/hooks/state-machine/layer1/use-submit-intake'
-import { UsageLimitError, useUploadEvidence } from '@/hooks/state-machine/layer1/use-upload-evidence'
+import { UploadRefusedError, UsageLimitError, useUploadEvidence } from '@/hooks/state-machine/layer1/use-upload-evidence'
+import { useDeleteEvidence } from '@/hooks/state-machine/layer1/use-delete-evidence'
+import { EVIDENCE_SKIPPED_KEY, useEvidenceSkipped } from '@/hooks/state-machine/facts/use-evidence-skipped'
 import { useCaseDocumentsRealtime } from '@/hooks/state-machine/layer1/use-case-documents-realtime'
 import { useTier0Draft } from '@/hooks/state-machine/layer1/use-tier0-draft'
 import { useQueryClient } from '@tanstack/react-query'
@@ -92,6 +94,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const validationQuery = useValidationRun(caseId)
   const intakeCompletionQuery = useIntakeCompletion(caseId)
   const journeyQuery = useJourneyAnswered(caseId)
+  const evidenceSkippedQuery = useEvidenceSkipped(caseId)
+  const [skippingEvidence, setSkippingEvidence] = useState(false)
   const queryClient = useQueryClient()
   const [journeySaving, setJourneySaving] = useState(false)
   const [journeyError, setJourneyError] = useState<string | null>(null)
@@ -107,6 +111,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const [gapSaveError, setGapSaveError] = useState<string | null>(null)
   const [isSavingGap, setIsSavingGap] = useState(false)
   const uploadEvidence = useUploadEvidence()
+  const deleteEvidence = useDeleteEvidence(caseId)
   const createCheckout = useCreateCheckoutSession()
   const tier2PackQuery = useTier2Pack(caseId, {
     enabled: paymentStatusQuery.data?.plan === 'escalation_pack',
@@ -155,6 +160,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     hasSubmittedIntake,
     // A failed lookup must not block the case, so an error counts as answered.
     journeyAnswered: journeyQuery.isError ? true : journeyQuery.data ?? null,
+    evidenceSkipped: evidenceSkippedQuery.data === true,
   })
 
   const isPaymentReturn = useMemo(
@@ -183,17 +189,24 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const stateReady =
     !eligibilityQuery.isPending &&
     !journeyQuery.isPending &&
+    !evidenceSkippedQuery.isPending &&
     !intakeCompletionQuery.isPending &&
     !documentsQuery.isPending &&
     !tier0DraftQuery.isPending &&
     !paymentStatusQuery.isPending
   const paidStagesOff = capabilityBilling?.access.paidStagesEnabled === false
-  // A reached limit says so in the server's own words; any other failure keeps the generic message.
-  const uploadErrorMessage = !uploadEvidence.isError
-    ? null
-    : uploadEvidence.error instanceof UsageLimitError
-      ? uploadEvidence.error.message
-      : 'Review the selected file and try again. Your existing case evidence is unchanged.'
+  // A reached limit or a refused file says so in the server's own words; any other failure keeps the generic message.
+  const uploadErrorMessage = deleteEvidence.isError
+    ? 'The document could not be removed. Please try again.'
+    : !uploadEvidence.isError
+      ? null
+      : uploadEvidence.error instanceof UsageLimitError
+        ? uploadEvidence.error.message
+        : uploadEvidence.error instanceof UploadRefusedError
+          ? uploadEvidence.error.message
+          : 'Review the selected file and try again. Your existing case evidence is unchanged.'
+  const deletingDocumentId = deleteEvidence.isPending ? deleteEvidence.variables ?? null : null
+  const factsHref = `/app/case/${caseId}/facts?stage=free`
   const showStageOneNextSteps =
     paidStagesOff && (node === 'S1-Tier0Draft' || node === 'T-BuyReportCTA' || node === 'T-EligibilityGate')
   // An evaluation made from facts that have since changed says so (edge cases, 8 Nov): the confirmed snapshot no
@@ -291,7 +304,25 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   }
 
   function handleUpload(files: File[]) {
+    deleteEvidence.reset()
     uploadEvidence.mutate({ caseId, files })
+  }
+
+  function handleDelete(documentId: string) {
+    uploadEvidence.reset()
+    deleteEvidence.mutate(documentId)
+  }
+
+  async function handleSkipEvidence() {
+    setSkippingEvidence(true)
+    try {
+      await saveResponses({ [EVIDENCE_SKIPPED_KEY]: 'yes' })
+      await queryClient.invalidateQueries({ queryKey: qk.case.evidenceSkipped(caseId) })
+    } catch {
+      noteProblem('answers_not_saved')
+    } finally {
+      setSkippingEvidence(false)
+    }
   }
 
   function canStartCheckout(productKey: ProductKey) {
@@ -415,6 +446,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               activeBatchFileCount={uploadEvidence.isPending ? uploadEvidence.variables?.files.length ?? 0 : 0}
               errorMessage={uploadErrorMessage}
               onUpload={handleUpload}
+              onDelete={handleDelete}
+              deletingId={deletingDocumentId}
             />
           </div>
         ) : showStageOneNextSteps ? (
@@ -428,6 +461,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
                 other: [],
               },
               outOfDateHref: evaluationOutOfDateHref,
+              factsHref,
               footerSlot: (
                 <div className="pt-4">
                   <NextSteps caseId={caseId} priceLabels={priceLabels} />
@@ -466,7 +500,10 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
                 : 0,
               uploadError: uploadErrorMessage,
               onUpload: handleUpload,
-              onDeleteDocument: undefined,
+              onDeleteDocument: handleDelete,
+              deletingDocumentId,
+              onSkip: () => void handleSkipEvidence(),
+              isSkipping: skippingEvidence,
             }}
           />
         ) : node === 'S1-Tier0Draft' ? (
@@ -480,6 +517,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
                 other: [],
               },
               outOfDateHref: evaluationOutOfDateHref,
+              factsHref,
               footerSlot: (
                 <div className="pt-4">
                   <BuyReportCTA

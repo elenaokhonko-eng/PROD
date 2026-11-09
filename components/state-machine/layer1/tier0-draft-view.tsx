@@ -24,6 +24,8 @@ export interface Tier0DraftViewProps {
   footerSlot?: React.ReactNode
   /** Set when the facts changed after this evaluation (edge cases, 8 Nov): links back to confirm them again. */
   outOfDateHref?: string | null
+  /** The confirm screen, offered at all times so a fact can be checked or changed (walkthrough, 9 Nov). */
+  factsHref?: string | null
 }
 
 export function Tier0DraftView({
@@ -32,6 +34,7 @@ export function Tier0DraftView({
   onRefresh,
   footerSlot,
   outOfDateHref = null,
+  factsHref = null,
 }: Tier0DraftViewProps) {
   const { tier0_summary, tier0_evidence_checklist, tier0_srf_signal } = narratives
   // "Report it now" (C4) sits straight after the summary: it is what to do first.
@@ -55,6 +58,11 @@ export function Tier0DraftView({
               <a href={`/api/cases/${caseId}/free-evaluation/pdf`} download>
                 <Download className="h-4 w-4" aria-hidden /> Download your free evaluation (PDF)
               </a>
+            </Button>
+          ) : null}
+          {factsHref ? (
+            <Button asChild variant="outline">
+              <a href={factsHref}>Check or change your facts</a>
             </Button>
           ) : null}
           {onRefresh ? (

@@ -48,6 +48,8 @@ export interface StateMachineInput {
   isContactSubmitted?: boolean
   /** Whether the journey questions were answered; `null` while loading or unknown (treated as answered). */
   journeyAnswered?: boolean | null
+  /** The person chose "Continue without documents" on the upload step. */
+  evidenceSkipped?: boolean
 }
 
 /**
@@ -75,6 +77,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
     isContactSubmitting = false,
     isContactSubmitted = false,
     journeyAnswered = null,
+    evidenceSkipped = false,
   } = input
 
   if (isContactSubmitted) return 'L3-Confirmed'
@@ -97,7 +100,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
     if (deriveInGapPhase(validation, gapItems)) return 'S1-GapLoop'
     if (!isIntakeSubmitted && !hasSubmittedIntake) return 'S1-IntakeForm'
     const hasReadyDoc = documents?.some((d) => d.processing_status === 'ready') ?? false
-    if (!hasReadyDoc) return 'S1-EvidenceUpload'
+    if (!hasReadyDoc && !evidenceSkipped) return 'S1-EvidenceUpload'
     return 'S1-Tier0DraftPending'
   }
 

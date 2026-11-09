@@ -73,6 +73,10 @@ export interface Layer1ShellProps {
     uploadError?: string | null
     onUpload: (files: File[]) => void
     onDeleteDocument?: (documentId: string) => void
+    deletingDocumentId?: string | null
+    /** Upload step only: go on without documents. */
+    onSkip?: () => void
+    isSkipping?: boolean
   }
 
   draft?: {
@@ -82,6 +86,8 @@ export interface Layer1ShellProps {
     footerSlot?: ReactNode
     /** Set when the facts changed after this evaluation: links back to confirm them again. */
     outOfDateHref?: string | null
+    /** Always shown: the confirm screen, to check or change a fact (walkthrough, 9 Nov). */
+    factsHref?: string | null
   }
 
   /** Where the user confirms their facts before the free evaluation is generated (S1-Tier0DraftPending). */
@@ -165,6 +171,7 @@ export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft, con
                 errorMessage={evidence.uploadError}
                 onUpload={evidence.onUpload}
                 onDelete={evidence.onDeleteDocument}
+                deletingId={evidence.deletingDocumentId}
               />
             }
           />
@@ -192,6 +199,9 @@ export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft, con
             errorMessage={evidence.uploadError}
             onUpload={evidence.onUpload}
             onDelete={evidence.onDeleteDocument}
+            deletingId={evidence.deletingDocumentId}
+            onSkip={evidence.onSkip}
+            isSkipping={evidence.isSkipping}
           />
         </div>
       )
@@ -224,6 +234,7 @@ export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft, con
           onRefresh={draft.onRefresh}
           footerSlot={draft.footerSlot}
           outOfDateHref={draft.outOfDateHref}
+          factsHref={draft.factsHref}
         />
       )
 

@@ -29,6 +29,7 @@ export const qk = {
     tier2Pack: (caseId: string) => ['case', caseId, 'tier2-pack'] as const,
     facts: (caseId: string, stage: string) => ['case', caseId, 'facts', stage] as const,
     journey: (caseId: string) => ['case', caseId, 'journey'] as const,
+    evidenceSkipped: (caseId: string) => ['case', caseId, 'evidence-skipped'] as const,
     recommendation: (caseId: string) => ['case', caseId, 'recommendation'] as const,
   },
   entitlement: (caseId: string) => ['entitlement', caseId] as const,

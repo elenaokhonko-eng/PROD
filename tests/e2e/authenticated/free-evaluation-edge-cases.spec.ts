@@ -172,7 +172,7 @@ test.describe('free evaluation edge cases', () => {
       })
 
       await test.step('(f) removing a document after confirmation reopens the facts and marks the evaluation out of date', async () => {
-        // Stage 1 has no remove button on the dashboard; the evidence API is the only way a document is removed.
+        // The dashboard's remove button calls this route with ?by=document; here the evidence id is used directly.
         const { data: evidence } = await supabase.from('evidence').select('id').eq('case_id', caseId)
         expect(evidence?.length, 'the uploaded statement').toBeGreaterThan(0)
         const [latest] = await snapshotIds(supabase, caseId)

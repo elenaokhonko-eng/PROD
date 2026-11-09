@@ -92,7 +92,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "A valid Content-Length header is required for uploads" }, { status: 411 })
     }
     if (contentLength > MAX_MULTIPART_BODY_BYTES) {
-      return NextResponse.json({ error: "Upload request is too large" }, { status: 413 })
+      return NextResponse.json({ error: UPLOAD_TOO_LARGE_MESSAGE }, { status: 413 })
     }
 
     let formData: FormData

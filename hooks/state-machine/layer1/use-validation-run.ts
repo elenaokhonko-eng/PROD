@@ -50,7 +50,9 @@ export function useValidationRun(caseId: string | null | undefined, options?: Us
     validationRunIdFromEligibility ?? fallbackValidationRunIdQuery.data ?? null
 
   const validationQuery = useQuery({
-    queryKey: caseId ? qk.case.validation(caseId) : ['case', 'validation', 'missing-case-id'],
+    // Keyed by run: under the case key alone, the run read before a new one was known stayed cached, so its answered
+    // question was asked again (walkthrough, 9 Nov: the incident date twice). Invalidating by the case prefix still works.
+    queryKey: caseId ? [...qk.case.validation(caseId), 'run', validationRunId] : ['case', 'validation', 'missing-case-id'],
     enabled: enabled && Boolean(validationRunId),
     queryFn: async () => {
       const { data, error } = await supabase

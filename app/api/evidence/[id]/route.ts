@@ -6,12 +6,29 @@ import { createServiceClient } from "@/lib/supabase/service"
 
 const STORAGE_BUCKET = "evidence"
 
-export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { id } = await params
+  const { id: requestedId } = await params
   const supabase = await createUserClient()
+
+  // The upload list knows documents, not evidence rows: `?by=document` names the case_documents row, and its
+  // evidence row is found through the stored file, both read as the user (walkthrough, 9 Nov).
+  let id = requestedId
+  if (request.nextUrl.searchParams.get("by") === "document") {
+    const { data: document } = await supabase
+      .from("case_documents")
+      .select("case_id, storage_path")
+      .eq("id", requestedId)
+      .eq("storage_bucket", STORAGE_BUCKET)
+      .maybeSingle()
+    const { data: evidence } = document
+      ? await supabase.from("evidence").select("id").eq("case_id", document.case_id).eq("file_path", document.storage_path).maybeSingle()
+      : { data: null }
+    if (!evidence) return NextResponse.json({ error: "Evidence not found" }, { status: 404 })
+    id = evidence.id as string
+  }
 
   // The owner's own client decides whether this evidence may be deleted (RLS).
   const { data: deletedEvidence, error } = await supabase
