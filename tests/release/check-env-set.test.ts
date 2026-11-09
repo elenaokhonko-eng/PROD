@@ -60,6 +60,7 @@ function productionValues(): Record<string, string> {
     ...stagingValues(),
     HARBOR_DEPLOYMENT_ENVIRONMENT: "production",
     LEGAL_EFFECTIVE_DATE: "2026-11-10",
+    HARBOR_ALLOWED_HOSTS: "guidebuoyai.sg,www.guidebuoyai.sg",
     CHECKOUT_REDIRECT_ORIGIN: "https://guidebuoyai.sg",
     NEXT_PUBLIC_APP_URL: "https://guidebuoyai.sg",
     NEXT_PUBLIC_SITE_URL: "https://guidebuoyai.sg",
@@ -106,6 +107,20 @@ test("the legal effective date is pending until set in production, and must be a
   assert.ok(pending.some((finding) => finding.status === "PENDING" && finding.check.startsWith("LEGAL_EFFECTIVE_DATE")))
   values.LEGAL_EFFECTIVE_DATE = "10 Nov 2026"
   assert.ok(failures(checkEnvironmentSet("production", file(values), { productionRef })).includes("LEGAL_EFFECTIVE_DATE is a date"))
+})
+
+test("production hosts are pending until cutover and must stay on guidebuoyai.sg", () => {
+  const values = productionValues()
+  values.HARBOR_ALLOWED_HOSTS = ""
+  const pending = checkEnvironmentSet("production", file(values), { productionRef })
+  assert.deepEqual(failures(pending), [])
+  assert.ok(pending.some((finding) => finding.status === "PENDING" && finding.check.startsWith("HARBOR_ALLOWED_HOSTS")))
+  for (const bad of ["guidebuoyai.sg", "guidebuoyai.sg,www.guidebuoyai.sg,guidebuoy-web.onrender.com"]) {
+    values.HARBOR_ALLOWED_HOSTS = bad
+    assert.ok(failures(checkEnvironmentSet("production", file(values), { productionRef })).includes("HARBOR_ALLOWED_HOSTS is guidebuoyai.sg and its subdomains only"), bad)
+  }
+  values.HARBOR_ALLOWED_HOSTS = "guidebuoyai.sg,www.guidebuoyai.sg,prod-check.guidebuoyai.sg"
+  assert.deepEqual(failures(checkEnvironmentSet("production", file(values), { productionRef })), [])
 })
 
 test("production is pending until Gate G4 confirms the Supabase ref", () => {

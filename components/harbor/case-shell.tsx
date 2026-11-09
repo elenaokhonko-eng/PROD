@@ -7,6 +7,7 @@ import { UserButton, useUser } from '@clerk/nextjs'
 import { FolderOpen, Settings } from 'lucide-react'
 import { ModeSwitcher } from '@/components/harbor/mode-switcher'
 import { ReportProblem } from '@/components/harbor/report-problem'
+import { SAFETY_NOTICE } from '@/lib/safety-notice'
 
 export function CaseShell({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn } = useUser()
@@ -53,6 +54,9 @@ export function CaseShell({ children }: { children: ReactNode }) {
       <div id="case-content" tabIndex={-1}>
         {children}
       </div>
+      <footer className="border-t">
+        <p className="gb-container py-4 text-sm font-medium text-muted-foreground">{SAFETY_NOTICE}</p>
+      </footer>
       <ReportProblem />
     </div>
   )

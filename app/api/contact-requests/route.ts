@@ -4,6 +4,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { createUserClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { ADMIN_EMAIL, EMAIL_FROM } from '@/lib/email-config'
+import { escapeHtml } from '@/lib/html-escape'
+import { safeErrorText } from '@/lib/server/safe-error'
 import { sendMail } from '@/lib/mail'
 
 const Body = z.object({
@@ -136,21 +138,21 @@ export async function POST(req: Request) {
     subject: 'New Layer 3 / Tier 2 contact request',
     html: `
       <h2>New contact request</h2>
-      <p><strong>ID:</strong> ${row.id}</p>
-      <p><strong>Case:</strong> ${body.case_id}</p>
-      <p><strong>Name:</strong> ${body.first_name} ${body.last_name}</p>
-      <p><strong>Email:</strong> ${body.email}</p>
-      <p><strong>Phone:</strong> ${body.phone}</p>
-      <p><strong>Age:</strong> ${body.age}</p>
-      <p><strong>Employment:</strong> ${body.employment_status}</p>
-      <p><strong>30 days since FI reply:</strong> ${body.thirty_days_since_last_fi_reply ? 'Yes' : 'No'}</p>
-      <p><strong>FI final response issued:</strong> ${body.fi_issued_final_response ? 'Yes' : 'No'}</p>
-      <p><strong>Amount lost (snapshot):</strong> ${amountLostSgd ?? 'n/a'}</p>
-      <p><strong>Institution (snapshot):</strong> ${financialInstitution ?? 'n/a'}</p>
-      <p><strong>Message:</strong> ${body.message ?? '(none)'}</p>
+      <p><strong>ID:</strong> ${escapeHtml(row.id)}</p>
+      <p><strong>Case:</strong> ${escapeHtml(body.case_id)}</p>
+      <p><strong>Name:</strong> ${escapeHtml(body.first_name)} ${escapeHtml(body.last_name)}</p>
+      <p><strong>Email:</strong> ${escapeHtml(body.email)}</p>
+      <p><strong>Phone:</strong> ${escapeHtml(body.phone)}</p>
+      <p><strong>Age:</strong> ${escapeHtml(body.age)}</p>
+      <p><strong>Employment:</strong> ${escapeHtml(body.employment_status)}</p>
+      <p><strong>30 days since FI reply:</strong> ${escapeHtml(body.thirty_days_since_last_fi_reply ? 'Yes' : 'No')}</p>
+      <p><strong>FI final response issued:</strong> ${escapeHtml(body.fi_issued_final_response ? 'Yes' : 'No')}</p>
+      <p><strong>Amount lost (snapshot):</strong> ${escapeHtml(amountLostSgd ?? 'n/a')}</p>
+      <p><strong>Institution (snapshot):</strong> ${escapeHtml(financialInstitution ?? 'n/a')}</p>
+      <p><strong>Message:</strong> ${escapeHtml(body.message ?? '(none)')}</p>
     `,
   }).catch((err) => {
-    console.error('[contact-requests] email send failed', err)
+    console.error('[contact-requests] email send failed', safeErrorText(err))
   })
 
   return NextResponse.json({ ok: true, id: row.id }, { status: 201 })

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { SAFETY_NOTICE } from '@/lib/safety-notice'
 
 export function PublicFooter() {
   return (
@@ -11,6 +12,7 @@ export function PublicFooter() {
           <p>UEN 202545875C</p>
           <p>51 Goldhill Plaza #07-10/11, Singapore 308900</p>
           <p>DID +65 9072 7915 · Main +65 6690 9262</p>
+          <p className="font-medium text-foreground">{SAFETY_NOTICE}</p>
         </div>
         <div className="space-y-5 md:text-right">
           <nav aria-label="Legal and support" className="flex flex-wrap gap-x-5 gap-y-2 text-sm md:justify-end">

@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import { Suspense } from "react"
 import "./globals.css"
 import { ClerkProvider } from "@clerk/nextjs"
+import { CLERK_LOCALIZATION } from "@/lib/clerk-localization"
 import { PageViewTracker } from "@/components/analytics/page-view-tracker"
 import { QueryProvider } from "@/components/providers/query-provider"
 import { RealtimeProvider } from "@/components/providers/realtime-provider"
@@ -46,7 +47,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script dangerouslySetInnerHTML={{ __html: sensoryInit }} />
       </head>
       <body className={`font-sans ${inter.variable}`}>
-        <ClerkProvider>
+        <ClerkProvider localization={CLERK_LOCALIZATION}>
           <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem disableTransitionOnChange>
             <QueryProvider>
               <RealtimeProvider>

@@ -1,3 +1,15 @@
+// Security headers on every response (Elena, 9 Nov). The CSP only restricts framing, <base> and plugins; a full script
+// policy needs testing against Clerk first. HSTS has no preload: preloading is hard to undo.
+export const securityHeaders = [
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'Content-Security-Policy', value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'" },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  // Voice input needs the microphone on our own pages.
+  { key: 'Permissions-Policy', value: 'camera=(), geolocation=(), payment=(), usb=(), microphone=(self)' },
+]
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -9,6 +21,9 @@ const nextConfig = {
   },
   // Retired routes. Declared here rather than with redirect() in a page, because Next 14.2 serves a prerendered
   // page's cached redirect as a 307 without its Location header.
+  async headers() {
+    return [{ source: '/:path*', headers: securityHeaders }]
+  },
   async redirects() {
     return [
       { source: '/coming-soon', destination: '/marketplace', permanent: false },

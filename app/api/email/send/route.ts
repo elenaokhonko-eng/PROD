@@ -5,12 +5,14 @@ import { sendMail } from "@/lib/mail"
 import { getCurrentUser } from "@/lib/auth"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
 import { safeErrorText } from "@/lib/server/safe-error"
+import { SMTP_TEST_SUBJECT_PREFIX, smtpTestRecipients } from "@/lib/server/smtp-test"
 
+// SMTP self-test only (Elena, 9 Nov): signed-in users could otherwise send any HTML, as anyone, to anyone, from our
+// domain. Mail goes only to the configured test and admin recipients, always from EMAIL_FROM, with a fixed prefix.
 const emailSendSchema = z.object({
   to: z.string().email("Recipient email must be valid"),
   subject: z.string().min(1, "Subject is required").max(200),
-  html: z.string().min(1, "Email body is required"),
-  from: z.string().email().optional(),
+  html: z.string().min(1, "Email body is required").max(5_000),
 })
 
 export async function POST(request: NextRequest) {
@@ -36,9 +38,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
     }
 
-    const { to, subject, html, from } = parsed
+    const { to, subject, html } = parsed
+    if (!smtpTestRecipients().includes(to.trim().toLowerCase())) {
+      return NextResponse.json({ error: "This address cannot receive test email" }, { status: 403 })
+    }
 
-    const info = await sendMail({ from: from || EMAIL_FROM, to, subject, html })
+    const info = await sendMail({ from: EMAIL_FROM, to, subject: `${SMTP_TEST_SUBJECT_PREFIX}${subject}`, html })
     return NextResponse.json({ success: true, messageId: info.messageId })
   } catch (err) {
     console.error("[email/send] error:", safeErrorText(err))

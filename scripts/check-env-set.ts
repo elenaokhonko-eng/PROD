@@ -3,6 +3,7 @@ import { resolve } from "node:path"
 import { resolveCheckoutRedirectOrigin } from "../lib/payments/product-catalogue"
 import { CHECKED_MODEL_IDS, MODEL_SETTING_KEYS } from "../lib/server/ai/models"
 import { legalEffectiveDate } from "../lib/legal/legal-document"
+import { allowedHosts } from "../lib/host-allowlist"
 
 // Validates one environment's git-ignored env file against the release contract
 // in docs/release-operations.md. Reports variable names, key types, refs, and
@@ -107,6 +108,8 @@ export const optionalKeys = [
   "SUPABASE_PRODUCTION_DB_URL",
   // The Terms and Privacy Policy effective date, set at cutover (Elena, 9 Nov).
   "LEGAL_EFFECTIVE_DATE",
+  // Hosts production answers on (lib/host-allowlist.ts), set at cutover.
+  "HARBOR_ALLOWED_HOSTS",
 ] as const
 
 // Values that only exist after provider setup in a later phase. Blank is PENDING, not FAIL.
@@ -383,6 +386,15 @@ export function checkEnvironmentSet(
   else add(get("MAIL_TRANSPORT").startsWith("sink") ? "FAIL" : "PASS", "production mail is not sent to the sink")
   // Per-IP limits key on CF-Connecting-IP from Cloudflare edges (lib/rate-limit.ts); switched off, they key on the edge.
   if (!isStaging) add(get("HARBOR_TRUST_CLOUDFLARE_IP") === "false" ? "WARN" : "PASS", "per-IP limits use the Cloudflare client address", "HARBOR_TRUST_CLOUDFLARE_IP is not false")
+  // Production refuses requests for any other host, *.onrender.com included (lib/host-allowlist.ts).
+  if (!isStaging) {
+    const hosts = allowedHosts(env)
+    if (!hosts.length) add("PENDING", "HARBOR_ALLOWED_HOSTS set at cutover", "guidebuoyai.sg,www.guidebuoyai.sg; until then the onrender.com address answers")
+    else {
+      const ok = ["guidebuoyai.sg", "www.guidebuoyai.sg"].every((h) => hosts.includes(h)) && hosts.every((h) => h === "guidebuoyai.sg" || h.endsWith(".guidebuoyai.sg"))
+      add(ok ? "PASS" : "FAIL", "HARBOR_ALLOWED_HOSTS is guidebuoyai.sg and its subdomains only", ok ? undefined : "must include guidebuoyai.sg and www.guidebuoyai.sg, and nothing outside guidebuoyai.sg")
+    }
+  }
   // Legal pages: a production build stops without an effective date (lib/legal/legal-document.ts).
   const legalDate = get("LEGAL_EFFECTIVE_DATE")
   if (legalDate) {

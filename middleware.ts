@@ -1,5 +1,6 @@
 import { clerkMiddleware } from '@clerk/nextjs/server'
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
+import { allowedHosts, hostAllowed } from '@/lib/host-allowlist'
 
 const blockedPathPatterns: RegExp[] = [
   /\.env/i,
@@ -15,6 +16,7 @@ const needsAuthentication = (request: NextRequest) => {
   const { pathname } = request.nextUrl
   return (pathname === '/app' || pathname.startsWith('/app/')) && !isPublicAppRoute(request)
 }
+const ALLOWED_HOSTS = allowedHosts()
 const hasClerkConfig = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
 const withClerk = hasClerkConfig
   ? clerkMiddleware(async (auth, request) => {
@@ -25,6 +27,10 @@ const withClerk = hasClerkConfig
 export default function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl
   const userAgent = request.headers.get('user-agent') ?? ''
+
+  if (!hostAllowed(request.headers.get('host'), pathname, ALLOWED_HOSTS)) {
+    return new NextResponse('Not found', { status: 404 })
+  }
 
   if (
     blockedPathPatterns.some((pattern) => pattern.test(pathname)) ||

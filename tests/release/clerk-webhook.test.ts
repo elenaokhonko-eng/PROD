@@ -86,3 +86,19 @@ test("Clerk webhook returns sanitized failures without identity disclosure", asy
   assert.equal(body.includes(userId), false)
   assert.deepEqual(JSON.parse(body), { error: "Profile provisioning failed" })
 })
+
+// Elena, 9 Nov: the webhook fails closed. No secret, or a payload signed with another secret, never provisions.
+test("Clerk webhook fails closed when its secret is missing or wrong", async () => {
+  let provisioned = 0
+  const provisionUser = async () => { provisioned += 1 }
+  const payload = JSON.stringify({ type: "user.created", data: { id: userId } })
+  for (const secret of [undefined, "", "   "]) {
+    const response = await handleClerkWebhook(signedRequest(payload), { signingSecret: secret, provisionUser })
+    assert.equal(response.status, 500)
+    assert.deepEqual(await response.json(), { error: "Webhook is not configured" })
+  }
+  const otherSecret = `whsec_${Buffer.from("a-different-clerk-webhook-secret").toString("base64")}`
+  const wrong = await handleClerkWebhook(signedRequest(payload, otherSecret), { signingSecret, provisionUser })
+  assert.equal(wrong.status, 400)
+  assert.equal(provisioned, 0)
+})

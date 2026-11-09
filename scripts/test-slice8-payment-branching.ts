@@ -1219,7 +1219,8 @@ describe("cross-user RLS isolation contract (documentation)", () => {
       "utf8",
     )
 
-    assert.match(route, /MAX_FILE_BYTES = 50 \* 1024 \* 1024/)
+    // Lowered from 50 MiB to the shared 15 MB upload cap (Elena, 9 Nov; tests/contracts/upload-limits.test.ts).
+    assert.match(route, /MAX_FILE_BYTES = MAX_UPLOAD_BYTES/)
     assert.match(route, /MAX_MULTIPART_BODY_BYTES/)
     assert.match(route, /headers\.get\("content-length"\)/)
     assert.match(route, /hasValidFileSignature/)

@@ -6,13 +6,14 @@ import { getCurrentUser } from "@/lib/auth"
 import { getProfileCaseEditAccess } from "@/lib/case-documents/register-from-evidence-v1"
 import { createServiceClient } from "@/lib/supabase/service"
 import { isAllowedMime } from "@/lib/types/documents"
+import { MAX_PDF_PAGES, MAX_UPLOAD_BYTES, pdfPageCount, UPLOAD_TOO_LARGE_MESSAGE, UPLOAD_TOO_MANY_PAGES_MESSAGE } from "@/lib/server/upload-limits"
 import { safeErrorText } from "@/lib/server/safe-error"
 import { HOURLY_LIMIT_MESSAGE, limitResponse, overIpModelLimit, overUploadLimit } from "@/lib/server/usage-limits"
 
 export const runtime = "nodejs"
 
 const STORAGE_BUCKET = "evidence"
-const MAX_FILE_BYTES = 50 * 1024 * 1024
+const MAX_FILE_BYTES = MAX_UPLOAD_BYTES
 const MAX_MULTIPART_OVERHEAD_BYTES = 1024 * 1024
 const MAX_MULTIPART_BODY_BYTES = MAX_FILE_BYTES + MAX_MULTIPART_OVERHEAD_BYTES
 const MAX_FILENAME_LENGTH = 255
@@ -116,10 +117,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Only PDF, PNG, and JPEG files are supported" }, { status: 415 })
     }
     if (file.size <= 0 || file.size > MAX_FILE_BYTES) {
-      return NextResponse.json({ error: "File must be between 1 byte and 50 MiB" }, { status: 413 })
+      return NextResponse.json({ error: UPLOAD_TOO_LARGE_MESSAGE }, { status: 413 })
     }
     if (!(await hasValidFileSignature(file))) {
       return NextResponse.json({ error: "File contents do not match the declared type" }, { status: 415 })
+    }
+    if (file.type === "application/pdf") {
+      const pages = await pdfPageCount(new Uint8Array(await file.arrayBuffer()))
+      if (pages !== null && pages > MAX_PDF_PAGES) {
+        return NextResponse.json({ error: UPLOAD_TOO_MANY_PAGES_MESSAGE }, { status: 413 })
+      }
     }
     if (!CATEGORY_PATTERN.test(category)) {
       return NextResponse.json({ error: "Invalid evidence category" }, { status: 400 })
