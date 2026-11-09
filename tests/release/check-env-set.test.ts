@@ -47,7 +47,7 @@ function stagingValues(): Record<string, string> {
     SMTP_PORT: "587",
     SMTP_USER: "user",
     SMTP_PASS: "pass-staging",
-    EMAIL_FROM: "hello@guidebuoyai.sg",
+    EMAIL_FROM: "info@guidebuoyai.sg",
     EMAIL_FROM_NAME: "GuideBuoy",
     ADMIN_EMAIL: "admin@guidebuoyai.sg",
     GuideBuoy_EdgeFunction: "edge-openai-staging",

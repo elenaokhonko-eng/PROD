@@ -11,6 +11,7 @@ import {
   normaliseYesNo,
   requiredFactsFor,
   sameInstitutionSet,
+  validateFactValue,
 } from '../../lib/facts'
 
 test('dates normalise to ISO with Singapore day/month order', () => {
@@ -75,4 +76,12 @@ test('stage requirements grow from free to bank to FIDReC', () => {
   assert.ok(bank.every((k) => fidrec.includes(k)))
   assert.ok(fidrec.includes('written_complaint_sent'))
   assert.ok(!requiredFactsFor('free', ['investment']).includes('phishing_channel'))
+})
+
+test('a typed date after today or before 2000 is refused (walkthrough, 9 Nov)', () => {
+  assert.equal(validateFactValue('date_discovered', '2099-01-01'), null)
+  assert.equal(validateFactValue('date_discovered', '1990-01-01'), null)
+  assert.equal(validateFactValue('date_discovered', '2026-10-03'), '2026-10-03')
+  assert.equal(validateFactValue('reported_to_police', { value: 'yes', date: '2099-01-01' }), null)
+  assert.equal(validateFactValue('transactions', [{ date: '2099-01-01', amount: 10 }]), null)
 })

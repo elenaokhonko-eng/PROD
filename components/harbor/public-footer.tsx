@@ -33,7 +33,7 @@ export function PublicFooter() {
               WhatsApp
               <span className="sr-only"> (opens in a new tab)</span>
             </a>
-            <a href="mailto:hello@guidebuoyai.sg" className="min-h-11 py-3 underline-offset-4 hover:underline">
+            <a href="mailto:info@guidebuoyai.sg" className="min-h-11 py-3 underline-offset-4 hover:underline">
               Email us
             </a>
           </div>

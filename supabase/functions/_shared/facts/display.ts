@@ -152,6 +152,14 @@ export function factLabel(key: FactKey): string {
 }
 
 // Values typed on the confirm screen, validated with the same normalisers as extraction. Returns null if invalid.
+// A date a person types or changes is refused when it cannot be right: after today in Singapore (one day's
+// margin) or before 2000 (walkthrough, 9 Nov: a 2027 date was accepted).
+function plausibleDate(input: unknown, now = Date.now()): string | null {
+  const date = normaliseDate(input);
+  const latest = new Date(now + (8 + 24) * 3_600_000).toISOString().slice(0, 10);
+  return date && date >= "2000-01-01" && date <= latest ? date : null;
+}
+
 export function validateFactValue(key: FactKey, input: unknown): unknown | null {
   const record = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
   switch (key) {
@@ -191,7 +199,7 @@ export function validateFactValue(key: FactKey, input: unknown): unknown | null 
     case "fidrec_filed": {
       const value = normaliseYesNo(record.value);
       if (!value) return null;
-      const date = record.date ? normaliseDate(record.date) : null;
+      const date = record.date ? plausibleDate(record.date) : null;
       if (record.date && !date) return null;
       const reference = typeof record.reference === "string" && record.reference.trim() ? record.reference.trim().slice(0, 80) : null;
       return { value, date, reference, channel: null };
@@ -199,13 +207,13 @@ export function validateFactValue(key: FactKey, input: unknown): unknown | null 
     case "bank_reply": {
       const status = record.status;
       if (status !== "none" && status !== "acknowledged" && status !== "interim" && status !== "final_reply") return null;
-      const date = record.date ? normaliseDate(record.date) : null;
+      const date = record.date ? plausibleDate(record.date) : null;
       if (record.date && !date) return null;
       const outcome = ["rejected", "partial_offer", "full_offer", "other"].includes(record.outcome as string) ? record.outcome : null;
       return { status, date, outcome, qualifies: status === "final_reply" ? normaliseYesNo(record.qualifies) : null, reference: null };
     }
     case "date_discovered":
-      return normaliseDate(input);
+      return plausibleDate(input);
     case "transactions": {
       if (!Array.isArray(input)) return null;
       const list: Transaction[] = [];
@@ -213,7 +221,7 @@ export function validateFactValue(key: FactKey, input: unknown): unknown | null 
         const t = (raw ?? {}) as Record<string, unknown>;
         const amount = normaliseMoney(typeof t.amount === "number" || typeof t.amount === "string" ? t.amount : null);
         if (!amount || amount.amount <= 0) return null;
-        const date = t.date ? normaliseDate(t.date) : null;
+        const date = t.date ? plausibleDate(t.date) : null;
         if (t.date && !date) return null;
         const instrument = ["account_transfer", "sg_card", "ewallet", "other"].includes(t.instrument as string) ? t.instrument as Transaction["instrument"] : null;
         list.push({

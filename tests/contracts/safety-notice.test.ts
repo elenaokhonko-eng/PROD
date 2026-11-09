@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { escapeHtml } from '../../lib/html-escape'
@@ -32,4 +33,9 @@ test('the sign-up consent label adds the age statement and keeps both links', as
   assert.match(label, /\{\{ termsOfServiceLink \|\| link\("Terms of Service"\) \}\}/)
   assert.match(label, /\{\{ privacyPolicyLink \|\| link\("Privacy Policy"\) \}\}/)
   assert.match(readFileSync('app/layout.tsx', 'utf8'), /<ClerkProvider localization=\{CLERK_LOCALIZATION\}>/)
+})
+
+test('nothing a person types is rendered as HTML (walkthrough L-11, 9 Nov)', () => {
+  const hits = execFileSync('git', ['grep', '-l', 'dangerouslySetInnerHTML', '--', 'app', 'components'], { encoding: 'utf8' }).trim().split('\n')
+  assert.deepEqual(hits, ['app/layout.tsx'], 'only the fixed start-up script in the root layout')
 })

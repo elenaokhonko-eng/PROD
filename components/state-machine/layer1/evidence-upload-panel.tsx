@@ -114,7 +114,7 @@ export function EvidenceUploadPanel({
             <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
             <span>
               Uploading and processing <strong>{batchCount}</strong> file
-              {batchCount === 1 ? '' : 's'}&hellip;
+              {batchCount === 1 ? '' : 's'}&hellip; Reading a long document can take about a minute.
             </span>
           </div>
         ) : null}
