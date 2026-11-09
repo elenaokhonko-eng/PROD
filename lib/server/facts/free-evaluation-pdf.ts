@@ -3,20 +3,12 @@ import { PdfBuilder } from "@/lib/server/fidrec/build-case-pack-pdf"
 import type { CaseNarrativeRow } from "@/lib/types/narratives"
 
 // The free evaluation as a PDF (finding C5): the same sections as the screen, in the same order, with the
-// generation date and the automated-output notice.
+// generation date and the automated-output notice. Text prints in Unicode fonts (lib/server/pdf-fonts.ts), so names in
+// Chinese or Tamil and symbols such as "·" print as written (Elena, 9 Nov).
 
 export { AUTOMATED_OUTPUT_NOTICE }
 
 const ORDER = ["tier0_summary", "tier0_report_now", "tier0_evidence_checklist", "tier0_confirmed_facts", "tier0_srf_signal"]
-
-// The standard PDF fonts cover Windows-1252 only; anything else (symbols, other scripts) becomes "?".
-const WIN_ANSI_EXTRA = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ"
-function printable(text: string): string {
-  return [...text].map((c) => {
-    const code = c.charCodeAt(0)
-    return c === "\n" || (code >= 0x20 && code <= 0x7e) || (code >= 0xa0 && code <= 0xff) || WIN_ANSI_EXTRA.includes(c) ? c : "?"
-  }).join("")
-}
 
 export async function buildFreeEvaluationPdf(rows: readonly Pick<CaseNarrativeRow, "narrative_type" | "title" | "text_content" | "created_at">[]): Promise<Uint8Array> {
   const builder = new PdfBuilder()
@@ -30,8 +22,8 @@ export async function buildFreeEvaluationPdf(rows: readonly Pick<CaseNarrativeRo
   for (const type of ORDER) {
     const row = rows.find((r) => r.narrative_type === type)
     if (!row?.text_content.trim()) continue
-    await builder.addSubHeading(printable(row.title ?? type))
-    await builder.addParagraph(printable(row.text_content))
+    await builder.addSubHeading(row.title ?? type)
+    await builder.addParagraph(row.text_content)
   }
   return builder.bytes()
 }

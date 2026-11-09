@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server"
+import { isCloudflareIp, parseIp } from "./cloudflare-ips"
 
 type Hit = { count: number; expiresAt: number }
 
@@ -19,18 +20,22 @@ export function rateLimit(key: string, limit = 20, windowMs = 60_000): { ok: boo
 }
 
 // The client's address for rate limiting (cost-controls inventory, 8 Nov): the first X-Forwarded-For entry is
-// whatever the client sent, so it is never trusted. Where Cloudflare proxies the site (production,
-// HARBOR_TRUST_CLOUDFLARE_IP=true) CF-Connecting-IP is the client; elsewhere a client could forge that header, so the
-// right-most X-Forwarded-For entry, appended by Render's proxy, is used.
+// whatever the client sent, so it is never trusted. The right-most entry is appended by Render's proxy: the address
+// that actually connected. CF-Connecting-IP is believed only when HARBOR_TRUST_CLOUDFLARE_IP=true AND that connecting
+// address is in Cloudflare's published ranges (Elena, 9 Nov): a request sent straight to the *.onrender.com address
+// with a forged CF-Connecting-IP comes from a non-Cloudflare address and is keyed by that address instead.
 export function clientIp(
   headers: Pick<Headers, "get">,
   fallback?: string | null,
   trustCloudflare = process.env.HARBOR_TRUST_CLOUDFLARE_IP === "true",
 ): string {
-  const cloudflare = trustCloudflare ? headers.get("cf-connecting-ip")?.trim() : null
-  if (cloudflare) return cloudflare
   const forwarded = headers.get("x-forwarded-for")?.split(",").map((part) => part.trim()).filter(Boolean)
-  if (forwarded?.length) return forwarded[forwarded.length - 1]
+  const peer = forwarded?.length ? forwarded[forwarded.length - 1] : null
+  if (trustCloudflare && peer && isCloudflareIp(peer)) {
+    const cloudflare = headers.get("cf-connecting-ip")?.trim()
+    if (cloudflare && parseIp(cloudflare)) return cloudflare
+  }
+  if (peer) return peer
   return fallback ?? "unknown"
 }
 

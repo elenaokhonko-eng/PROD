@@ -59,6 +59,7 @@ function productionValues(): Record<string, string> {
   return {
     ...stagingValues(),
     HARBOR_DEPLOYMENT_ENVIRONMENT: "production",
+    LEGAL_EFFECTIVE_DATE: "2026-11-10",
     CHECKOUT_REDIRECT_ORIGIN: "https://guidebuoyai.sg",
     NEXT_PUBLIC_APP_URL: "https://guidebuoyai.sg",
     NEXT_PUBLIC_SITE_URL: "https://guidebuoyai.sg",
@@ -95,6 +96,16 @@ test("a complete production set passes once the PROD ref is confirmed", () => {
   const findings = checkEnvironmentSet("production", file(productionValues()), { productionRef })
   assert.deepEqual(failures(findings), [])
   assert.ok(!findings.some((finding) => finding.status === "PENDING"))
+})
+
+test("the legal effective date is pending until set in production, and must be a date", () => {
+  const values = productionValues()
+  values.LEGAL_EFFECTIVE_DATE = ""
+  const pending = checkEnvironmentSet("production", file(values), { productionRef })
+  assert.deepEqual(failures(pending), [])
+  assert.ok(pending.some((finding) => finding.status === "PENDING" && finding.check.startsWith("LEGAL_EFFECTIVE_DATE")))
+  values.LEGAL_EFFECTIVE_DATE = "10 Nov 2026"
+  assert.ok(failures(checkEnvironmentSet("production", file(values), { productionRef })).includes("LEGAL_EFFECTIVE_DATE is a date"))
 })
 
 test("production is pending until Gate G4 confirms the Supabase ref", () => {

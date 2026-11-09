@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { resolveCheckoutRedirectOrigin } from "../lib/payments/product-catalogue"
 import { CHECKED_MODEL_IDS, MODEL_SETTING_KEYS } from "../lib/server/ai/models"
+import { legalEffectiveDate } from "../lib/legal/legal-document"
 
 // Validates one environment's git-ignored env file against the release contract
 // in docs/release-operations.md. Reports variable names, key types, refs, and
@@ -104,6 +105,8 @@ export const optionalKeys = [
   "HARBOR_SMTP_TEST_RECIPIENT",
   "SUPABASE_STAGING_DB_URL",
   "SUPABASE_PRODUCTION_DB_URL",
+  // The Terms and Privacy Policy effective date, set at cutover (Elena, 9 Nov).
+  "LEGAL_EFFECTIVE_DATE",
 ] as const
 
 // Values that only exist after provider setup in a later phase. Blank is PENDING, not FAIL.
@@ -378,6 +381,15 @@ export function checkEnvironmentSet(
   if (!isStaging) add(get("USAGE_LIMIT_EXEMPT_PROFILE_IDS") ? "FAIL" : "PASS", "no account is exempt from the usage limits in production")
   if (isStaging) add(get("MAIL_TRANSPORT") === "sink-test-traffic" ? "PASS" : "WARN", "staging test-run mail goes to the sink (MAIL_TRANSPORT=sink-test-traffic)")
   else add(get("MAIL_TRANSPORT").startsWith("sink") ? "FAIL" : "PASS", "production mail is not sent to the sink")
+  // Legal pages: a production build stops without an effective date (lib/legal/legal-document.ts).
+  const legalDate = get("LEGAL_EFFECTIVE_DATE")
+  if (legalDate) {
+    let ok = true
+    try { legalEffectiveDate({ LEGAL_EFFECTIVE_DATE: legalDate, HARBOR_DEPLOYMENT_ENVIRONMENT: "production" }) } catch { ok = false }
+    add(ok ? "PASS" : "FAIL", "LEGAL_EFFECTIVE_DATE is a date", ok ? undefined : "use YYYY-MM-DD")
+  } else if (!isStaging) {
+    add("PENDING", "LEGAL_EFFECTIVE_DATE set before the first production build", "the cutover day; the legal pages will not build without it")
+  }
   if (!isStaging && get("EMAIL_FROM")) {
     add(/@guidebuoyai\.sg>?$/i.test(get("EMAIL_FROM")) ? "PASS" : "WARN", "production EMAIL_FROM uses the verified guidebuoyai.sg domain")
   }

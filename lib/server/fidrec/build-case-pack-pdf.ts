@@ -1,4 +1,5 @@
-import { PDFDocument, rgb, StandardFonts, type PDFFont } from "pdf-lib"
+import { PDFDocument, rgb } from "pdf-lib"
+import { PdfFonts, type FontWeight } from "@/lib/server/pdf-fonts"
 import { AUTOMATED_OUTPUT_NOTICE } from "@/lib/legal/automated-output-notice"
 import type { FidrecSubmissionPack } from "@/lib/types/fidrec-case-pack"
 
@@ -8,53 +9,67 @@ const PAGE_WIDTH = 612
 const PAGE_HEIGHT = 792
 const TEXT_WIDTH = PAGE_WIDTH - MARGIN * 2
 
-function wrapLine(text: string, font: { widthOfTextAtSize: (text: string, size: number) => number }, size: number, maxWidth: number): string[] {
-  const words = text.split(" ")
+type Measure = (text: string) => Promise<number>
+
+const graphemes = new Intl.Segmenter("en", { granularity: "grapheme" })
+
+// Breaks at spaces; a word wider than the line (a Chinese sentence has no spaces) breaks between characters. Each word
+// is measured once and line widths are summed, so a long paragraph is not re-measured word by word.
+async function wrapLine(text: string, measure: Measure, maxWidth: number): Promise<string[]> {
+  const space = await measure(" ")
   const lines: string[] = []
   let current = ""
-
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word
-    if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
-      current = candidate
-    } else {
-      if (current) lines.push(current)
+  let width = 0
+  for (const word of text.split(" ")) {
+    const wordWidth = await measure(word)
+    if (current && width + space + wordWidth <= maxWidth) {
+      current += ` ${word}`
+      width += space + wordWidth
+      continue
+    }
+    if (current) lines.push(current)
+    if (wordWidth <= maxWidth) {
       current = word
+      width = wordWidth
+      continue
+    }
+    current = ""
+    width = 0
+    for (const { segment } of graphemes.segment(word)) {
+      const segmentWidth = await measure(segment)
+      if (current && width + segmentWidth > maxWidth) {
+        lines.push(current)
+        current = ""
+        width = 0
+      }
+      current += segment
+      width += segmentWidth
     }
   }
   if (current) lines.push(current)
   return lines.length > 0 ? lines : [text]
 }
 
-function wrapParagraph(text: string, font: { widthOfTextAtSize: (text: string, size: number) => number }, size: number, maxWidth: number): string[] {
-  const paragraphs = text.split("\n")
+async function wrapParagraph(text: string, measure: Measure, maxWidth: number): Promise<string[]> {
   const lines: string[] = []
-  for (const paragraph of paragraphs) {
-    if (paragraph.trim() === "") {
-      lines.push("")
-      continue
-    }
-    const wrapped = wrapLine(paragraph, font, size, maxWidth)
-    for (const line of wrapped) {
-      lines.push(line)
-    }
+  for (const paragraph of text.split("\n")) {
+    if (paragraph.trim() === "") lines.push("")
+    else lines.push(...(await wrapLine(paragraph, measure, maxWidth)))
   }
   return lines
 }
 
 export class PdfBuilder {
   private doc = PDFDocument.create()
-  private fontPromise: Promise<PDFFont> | null = null
-  private boldFontPromise: Promise<PDFFont> | null = null
+  private fonts: PdfFonts | null = null
   private page: any = null
   private y = 0
 
   async init() {
     const doc = await this.doc
+    this.fonts = new PdfFonts(doc)
     this.page = doc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
     this.y = PAGE_HEIGHT - MARGIN
-    this.fontPromise = doc.embedFont(StandardFonts.Helvetica)
-    this.boldFontPromise = doc.embedFont(StandardFonts.HelveticaBold)
   }
 
   private get docInstance() {
@@ -68,43 +83,46 @@ export class PdfBuilder {
     }
   }
 
+  private measure(size: number, weight: FontWeight = "regular"): Measure {
+    return (text) => this.fonts!.widthOf(text, size, weight)
+  }
+
   async addHeading(text: string, size = 18) {
-    const font = await this.boldFontPromise!
-    this.ensureSpace(size + 8)
-    this.page.drawText(text, { x: MARGIN, y: this.y, size, font, color: rgb(0, 0, 0) })
-    this.y -= size + 8
+    for (const line of await wrapLine(text, this.measure(size, "bold"), TEXT_WIDTH)) {
+      this.ensureSpace(size + 8)
+      await this.fonts!.draw(this.page, line, { x: MARGIN, y: this.y, size, color: rgb(0, 0, 0), weight: "bold" })
+      this.y -= size + 8
+    }
   }
 
   async addSubHeading(text: string, size = 14) {
-    const font = await this.boldFontPromise!
-    this.ensureSpace(size + 6)
-    this.page.drawText(text, { x: MARGIN, y: this.y, size, font, color: rgb(0.1, 0.1, 0.1) })
-    this.y -= size + 6
+    for (const line of await wrapLine(text, this.measure(size, "bold"), TEXT_WIDTH)) {
+      this.ensureSpace(size + 6)
+      await this.fonts!.draw(this.page, line, { x: MARGIN, y: this.y, size, color: rgb(0.1, 0.1, 0.1), weight: "bold" })
+      this.y -= size + 6
+    }
   }
 
   async addParagraph(text: string, size = 10) {
-    const font = await this.fontPromise!
-    const lines = wrapParagraph(text, font, size, TEXT_WIDTH)
+    const lines = await wrapParagraph(text, this.measure(size), TEXT_WIDTH)
     for (const line of lines) {
       this.ensureSpace(LINE_HEIGHT)
       if (line === "") {
         this.y -= LINE_HEIGHT
         continue
       }
-      this.page.drawText(line, { x: MARGIN, y: this.y, size, font, color: rgb(0, 0, 0) })
+      await this.fonts!.draw(this.page, line, { x: MARGIN, y: this.y, size, color: rgb(0, 0, 0) })
       this.y -= LINE_HEIGHT
     }
     this.y -= 4
   }
 
   async addBullet(text: string, size = 10) {
-    const font = await this.fontPromise!
-    const bulletText = `• ${text}`
-    const lines = wrapLine(bulletText, font, size, TEXT_WIDTH - 12)
+    const lines = await wrapLine(`• ${text}`, this.measure(size), TEXT_WIDTH - 12)
     for (let i = 0; i < lines.length; i++) {
       this.ensureSpace(LINE_HEIGHT)
       const x = i === 0 ? MARGIN + 12 : MARGIN + 24
-      this.page.drawText(lines[i], { x, y: this.y, size, font, color: rgb(0, 0, 0) })
+      await this.fonts!.draw(this.page, lines[i], { x, y: this.y, size, color: rgb(0, 0, 0) })
       this.y -= LINE_HEIGHT
     }
   }

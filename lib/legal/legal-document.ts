@@ -42,10 +42,30 @@ function parseMeta(header: string): LegalMeta {
   return { title: field('title'), version: field('version'), effective: field('effective'), replaces: field('replaces'), contact: field('contact') }
 }
 
+// The effective date is the day the pages go public (cutover), not the day the text was approved (Elena, 9 Nov). The
+// Markdown carries a placeholder; LEGAL_EFFECTIVE_DATE (YYYY-MM-DD) fills it when the pages are built. A production
+// build without it stops, so the pages can never show a date before anyone could read them.
+export const EFFECTIVE_PLACEHOLDER = '{{effective}}'
+export const EFFECTIVE_UNSET = '(date set at launch)'
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+export function legalEffectiveDate(env: Record<string, string | undefined> = process.env): string {
+  const value = env.LEGAL_EFFECTIVE_DATE?.trim() ?? ''
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  const date = match ? new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))) : null
+  if (date && date.getUTCDate() === Number(match![3]) && date.getUTCMonth() === Number(match![2]) - 1) {
+    return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`
+  }
+  if (env.HARBOR_DEPLOYMENT_ENVIRONMENT === 'production') {
+    throw new Error(value ? 'LEGAL_EFFECTIVE_DATE must be a date (YYYY-MM-DD)' : 'LEGAL_EFFECTIVE_DATE is not set: production legal pages need their effective date')
+  }
+  return EFFECTIVE_UNSET
+}
+
 const cells = (row: string) => row.trim().replace(/^\||\|$/g, '').split('|').map((cell) => inlines(cell.trim()))
 
-export function parseLegalDocument(source: string): LegalDocument {
-  const text = source.replace(/\r\n/g, '\n')
+export function parseLegalDocument(source: string, effective = legalEffectiveDate()): LegalDocument {
+  const text = source.replace(/\r\n/g, '\n').split(EFFECTIVE_PLACEHOLDER).join(effective)
   const match = /^---\n([\s\S]*?)\n---\n/.exec(text)
   if (!match) throw new Error('Legal document has no front-matter header')
   const blocks: LegalBlock[] = []

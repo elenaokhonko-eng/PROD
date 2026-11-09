@@ -2,7 +2,16 @@ import assert from 'node:assert/strict'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
-import { LEGAL_FILES, loadLegalDocument, type Inline, type LegalBlock } from '../../lib/legal/legal-document'
+import {
+  EFFECTIVE_PLACEHOLDER,
+  EFFECTIVE_UNSET,
+  LEGAL_FILES,
+  legalEffectiveDate,
+  loadLegalDocument,
+  parseLegalDocument,
+  type Inline,
+  type LegalBlock,
+} from '../../lib/legal/legal-document'
 
 // Finding F: the Terms and the Privacy Policy are shown exactly as written in docs/legal, version 2.0.
 
@@ -24,7 +33,7 @@ function blockWords(block: LegalBlock): string[] {
 
 // The source with only Markdown syntax removed: header, "#", "- ", "**", table pipes and the table rule line.
 function sourceWords(path: string): string[] {
-  const body = readFileSync(path, 'utf8').replace(/\r\n/g, '\n').replace(/^---\n[\s\S]*?\n---\n/, '')
+  const body = readFileSync(path, 'utf8').replace(/\r\n/g, '\n').replace(/^---\n[\s\S]*?\n---\n/, '').split(EFFECTIVE_PLACEHOLDER).join(legalEffectiveDate())
   return words(
     body
       .split('\n')
@@ -59,6 +68,24 @@ for (const name of Object.keys(LEGAL_FILES) as Array<keyof typeof LEGAL_FILES>) 
     assert.match(page, new RegExp(`<LegalDocumentPage document=\\{loadLegalDocument\\('${name}'\\)\\} />`))
   })
 }
+
+// Elena, 9 Nov: the effective date is the day the pages go public, set at cutover, never the approval date.
+test('F: the effective date comes from LEGAL_EFFECTIVE_DATE, never from the text', () => {
+  for (const path of Object.values(LEGAL_FILES)) {
+    const source = readFileSync(path, 'utf8')
+    assert.equal(source.split(EFFECTIVE_PLACEHOLDER).length - 1, 2, `${path}: header and version line both use the placeholder`)
+    assert.doesNotMatch(source, /Effective \d/, `${path}: no fixed effective date`)
+    const terms = parseLegalDocument(source, legalEffectiveDate({ LEGAL_EFFECTIVE_DATE: '2026-11-10', HARBOR_DEPLOYMENT_ENVIRONMENT: 'production' }))
+    assert.equal(terms.meta.effective, '10 November 2026')
+    assert.match(JSON.stringify(terms.blocks[1]), /Effective 10 November 2026 · /)
+  }
+  assert.equal(legalEffectiveDate({ LEGAL_EFFECTIVE_DATE: '2027-01-05' }), '5 January 2027')
+  assert.equal(legalEffectiveDate({}), EFFECTIVE_UNSET, 'staging and CI show a neutral placeholder')
+  assert.equal(legalEffectiveDate({ LEGAL_EFFECTIVE_DATE: '2026-02-30', HARBOR_DEPLOYMENT_ENVIRONMENT: 'preview' }), EFFECTIVE_UNSET)
+  assert.throws(() => legalEffectiveDate({ HARBOR_DEPLOYMENT_ENVIRONMENT: 'production' }), /LEGAL_EFFECTIVE_DATE is not set/)
+  assert.throws(() => legalEffectiveDate({ HARBOR_DEPLOYMENT_ENVIRONMENT: 'production', LEGAL_EFFECTIVE_DATE: '10 Nov 2026' }), /must be a date/)
+  assert.throws(() => legalEffectiveDate({ HARBOR_DEPLOYMENT_ENVIRONMENT: 'production', LEGAL_EFFECTIVE_DATE: '2026-02-30' }), /must be a date/)
+})
 
 test('F: no privacy@ address anywhere users can see it', () => {
   const files = (dir: string): string[] =>
