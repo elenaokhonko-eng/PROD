@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
 import { safeErrorText } from "@/lib/server/safe-error"
-import { HOURLY_LIMIT_MESSAGE, limitResponse, overPreSignInLimit } from "@/lib/server/usage-limits"
+import { limitResponse, preSignInLimit } from "@/lib/server/usage-limits"
 
 const analyzeSchema = z.object({
   session_token: z.string().min(1, "session_token is required"),
@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
     }
     // Reachable before sign-in and it starts model calls: limited per IP per hour here, with the client's address
     // (the inner classify/questions requests come from this server) (cost-controls B2).
-    if (overPreSignInLimit(request)) return limitResponse(HOURLY_LIMIT_MESSAGE)
+    const limited = preSignInLimit(request)
+    if (limited) return limitResponse(limited)
 
     let parsed
     try {

@@ -3,8 +3,8 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/ge
 import { getGeminiModel } from "@/lib/server/ai/models"
 import { safeErrorText } from "@/lib/server/safe-error"
 import { cappedConfig, meteredGenerate } from "@/lib/server/ai/gemini-metered"
-import { currentBreaker, GEMINI_THINKING_BUDGET, OUTPUT_CAPS } from "@/lib/server/model-usage"
-import { HOURLY_LIMIT_MESSAGE, limitResponse, MAX_AUDIO_BYTES, overPreSignInLimit } from "@/lib/server/usage-limits"
+import { preSignInModelPaused, GEMINI_THINKING_BUDGET, OUTPUT_CAPS } from "@/lib/server/model-usage"
+import { limitResponse, MAX_AUDIO_BYTES, preSignInLimit } from "@/lib/server/usage-limits"
 
 const UNAVAILABLE = "Voice transcription isn't available right now. Please type your story instead."
 
@@ -17,7 +17,8 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 
 export async function POST(req: NextRequest) {
   // Reachable before sign-in: limited per IP, audio capped, output capped (cost-controls B2).
-  if (overPreSignInLimit(req)) return limitResponse(HOURLY_LIMIT_MESSAGE)
+  const limited = preSignInLimit(req)
+  if (limited) return limitResponse(limited)
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
     if (!apiKey) {
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
         { status: 413 },
       )
     }
-    if ((await currentBreaker()).state === "open") {
+    if (await preSignInModelPaused()) {
       return NextResponse.json({ error: UNAVAILABLE }, { status: 503 })
     }
 

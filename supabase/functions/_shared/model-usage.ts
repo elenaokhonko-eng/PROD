@@ -153,6 +153,22 @@ export async function dailyBreaker(client: UsageClient, environment: string, env
   }
 }
 
+// Anonymous sub-cap (Elena, 9 Nov): model calls reachable before sign-in may spend at most this share of the daily
+// cap, so abuse from rotating addresses can never use up the budget that signed-in people's evaluations need.
+export const PRE_SIGN_IN_PURPOSES = ["router_classify", "router_questions", "transcription"] as const;
+export const PRE_SIGN_IN_CAP_SHARE = 0.25;
+
+export function preSignInCapUsd(env: Record<string, string | undefined>): number {
+  return Math.round(dailyCapUsd(env) * PRE_SIGN_IN_CAP_SHARE * 100) / 100;
+}
+
+/** Midnight in Singapore (UTC+8, no daylight saving) as an ISO timestamp: the day the caps count. */
+export function singaporeDayStart(now: Date = new Date()): string {
+  const day = 24 * 60 * 60_000;
+  const offset = 8 * 60 * 60_000;
+  return new Date(Math.floor((now.getTime() + offset) / day) * day - offset).toISOString();
+}
+
 export class ModelBudgetExceeded extends Error {
   constructor() {
     super("model_budget_exceeded");

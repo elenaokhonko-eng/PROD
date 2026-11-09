@@ -5,8 +5,8 @@ import { rateLimit, keyFrom } from "@/lib/rate-limit"
 import { getGeminiModel } from "@/lib/server/ai/models"
 import { safeErrorText } from "@/lib/server/safe-error"
 import { cappedConfig, meteredGenerate } from "@/lib/server/ai/gemini-metered"
-import { currentBreaker, GEMINI_THINKING_BUDGET, OUTPUT_CAPS } from "@/lib/server/model-usage"
-import { HOURLY_LIMIT_MESSAGE, limitResponse, overPreSignInLimit } from "@/lib/server/usage-limits"
+import { preSignInModelPaused, GEMINI_THINKING_BUDGET, OUTPUT_CAPS } from "@/lib/server/model-usage"
+import { limitResponse, preSignInLimit } from "@/lib/server/usage-limits"
 
 const modelName = getGeminiModel()
 
@@ -33,7 +33,8 @@ export async function POST(request: NextRequest) {
     const rl = rateLimit(keyFrom(request, "/api/router/questions"), 20, 60_000)
     if (!rl.ok) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
     // Reachable before sign-in: a model call, so limited per IP per hour (cost-controls B2).
-    if (overPreSignInLimit(request)) return limitResponse(HOURLY_LIMIT_MESSAGE)
+    const limited = preSignInLimit(request)
+    if (limited) return limitResponse(limited)
 
     let parsed
     try {
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Daily spend cap reached: no model call; the page says the questions could not be loaded and the story is saved.
-    if ((await currentBreaker()).state === "open") {
+    if (await preSignInModelPaused()) {
       return NextResponse.json({ error: "Questions service is unavailable" }, { status: 503 })
     }
 

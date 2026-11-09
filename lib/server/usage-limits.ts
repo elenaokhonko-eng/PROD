@@ -15,7 +15,9 @@ export const USAGE_LIMITS = {
   get evaluationsPerCasePerDay() { return limit("USAGE_LIMIT_EVALUATIONS_PER_CASE_PER_DAY", 3) },
   get documentUploadsPerAccountPerDay() { return limit("USAGE_LIMIT_UPLOADS_PER_ACCOUNT_PER_DAY", 20) },
   get modelRequestsPerIpPerHour() { return limit("USAGE_LIMIT_MODEL_REQUESTS_PER_IP_PER_HOUR", 30) },
-  get preSignInRequestsPerIpPerHour() { return limit("USAGE_LIMIT_PRE_SIGN_IN_REQUESTS_PER_IP_PER_HOUR", 10) },
+  // Tightened 9 Nov (Elena): 8 an hour and 20 a day per address before sign-in. One journey makes four or five calls.
+  get preSignInRequestsPerIpPerHour() { return limit("USAGE_LIMIT_PRE_SIGN_IN_REQUESTS_PER_IP_PER_HOUR", 8) },
+  get preSignInRequestsPerIpPerDay() { return limit("USAGE_LIMIT_PRE_SIGN_IN_REQUESTS_PER_IP_PER_DAY", 20) },
 }
 
 /** Voice notes are transcribed only up to this size (about 3 minutes of compressed speech). */
@@ -81,7 +83,12 @@ export function overIpModelLimit(request: Request): boolean {
   return !rateLimit(keyFrom(request, "model-work"), USAGE_LIMITS.modelRequestsPerIpPerHour, 60 * 60_000).ok
 }
 
-/** Model calls reachable before sign-in, per IP per hour, shared by every such route. */
-export function overPreSignInLimit(request: Request): boolean {
-  return !rateLimit(keyFrom(request, "pre-sign-in-model"), USAGE_LIMITS.preSignInRequestsPerIpPerHour, 60 * 60_000).ok
+/** Model calls reachable before sign-in, per IP per hour and per day, shared by every such route. Returns the message
+ * to show when a limit is reached, or null. */
+export function preSignInLimit(request: Request): string | null {
+  const hour = rateLimit(keyFrom(request, "pre-sign-in-model"), USAGE_LIMITS.preSignInRequestsPerIpPerHour, 60 * 60_000).ok
+  const day = rateLimit(keyFrom(request, "pre-sign-in-model-day"), USAGE_LIMITS.preSignInRequestsPerIpPerDay, 24 * 60 * 60_000).ok
+  if (!day) return LIMIT_MESSAGE
+  if (!hour) return HOURLY_LIMIT_MESSAGE
+  return null
 }

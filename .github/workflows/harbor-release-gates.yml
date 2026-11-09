@@ -152,6 +152,7 @@ jobs:
       NEXT_PUBLIC_CLERK_KEYLESS_DISABLED: '1'
       # The tests' own server sees every request from one address: per-IP model limits are the spec's in production only.
       USAGE_LIMIT_PRE_SIGN_IN_REQUESTS_PER_IP_PER_HOUR: '100000'
+      USAGE_LIMIT_PRE_SIGN_IN_REQUESTS_PER_IP_PER_DAY: '100000'
       USAGE_LIMIT_MODEL_REQUESTS_PER_IP_PER_HOUR: '100000'
     steps:
       - uses: actions/checkout@v4
@@ -199,6 +200,7 @@ jobs:
       NEXT_PUBLIC_CLERK_KEYLESS_DISABLED: '1'
       # The tests' own server sees every request from one address: per-IP model limits are the spec's in production only.
       USAGE_LIMIT_PRE_SIGN_IN_REQUESTS_PER_IP_PER_HOUR: '100000'
+      USAGE_LIMIT_PRE_SIGN_IN_REQUESTS_PER_IP_PER_DAY: '100000'
       USAGE_LIMIT_MODEL_REQUESTS_PER_IP_PER_HOUR: '100000'
     steps:
       - uses: actions/checkout@v4

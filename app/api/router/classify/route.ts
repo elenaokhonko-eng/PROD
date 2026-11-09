@@ -8,8 +8,8 @@ import type { TriageSignals } from "@/lib/rules"
 import { getGeminiModel } from "@/lib/server/ai/models"
 import { safeErrorText } from "@/lib/server/safe-error"
 import { cappedConfig, meteredGenerate } from "@/lib/server/ai/gemini-metered"
-import { currentBreaker, GEMINI_THINKING_BUDGET, OUTPUT_CAPS } from "@/lib/server/model-usage"
-import { HOURLY_LIMIT_MESSAGE, limitResponse, overPreSignInLimit } from "@/lib/server/usage-limits"
+import { preSignInModelPaused, GEMINI_THINKING_BUDGET, OUTPUT_CAPS } from "@/lib/server/model-usage"
+import { limitResponse, preSignInLimit } from "@/lib/server/usage-limits"
 
 const modelName = getGeminiModel()
 const log = logger.withContext({ module: "router-classify", model: modelName })
@@ -101,7 +101,8 @@ export async function POST(request: NextRequest) {
     const rl = rateLimit(keyFrom(request, "/api/router/classify"), 20, 60_000)
     if (!rl.ok) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
     // Reachable before sign-in: a model call, so limited per IP per hour (cost-controls B2).
-    if (overPreSignInLimit(request)) return limitResponse(HOURLY_LIMIT_MESSAGE)
+    const limited = preSignInLimit(request)
+    if (limited) return limitResponse(limited)
 
     let parsedBody
     try {
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Daily spend cap reached: no model call; the router continues with the rule-based fallback.
-    if ((await currentBreaker()).state === "open") {
+    if (await preSignInModelPaused()) {
       const signals = fallbackSignals("We couldn't analyse your story automatically right now. Please answer the questions below.")
       return NextResponse.json({ ...signals, claimType: "Financial Dispute", summary: signals.summary, keyEntities: [], nextSteps: getNextStepsForRuleEngine() })
     }
