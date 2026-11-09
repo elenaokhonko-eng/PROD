@@ -22,7 +22,7 @@ import type { FactCandidate } from "./reconcile.ts";
 import { normaliseInstitution } from "./institutions.ts";
 import { normaliseDate, normaliseMoney, normaliseYesNo } from "./normalise.ts";
 
-export const FACT_EXTRACTION_PROMPT_VERSION = "fact-extract-v2";
+export const FACT_EXTRACTION_PROMPT_VERSION = "fact-extract-v3";
 
 const ACCOUNT_TYPES: AccountType[] = ["savings_or_current", "debit_card", "credit_card", "ewallet", "investment", "other"];
 const SCAM_TYPES: readonly ScamType[] = SCAM_TYPE_OPTIONS;
@@ -52,6 +52,9 @@ export const DOCUMENT_CONFIDENCE_THRESHOLD = 0.7;
 // context and a different report number raised no conflict (walkthrough, 8 Nov). Police-report markers in the opening
 // lines decide. A bank letter that asks for a police report does not open with them.
 const POLICE_REPORT_OPENING = /singapore police force|police report (?:acknowledg(?:e)?ment|receipt|no\.?|number)|\breport no\.?\s*[:#]?\s*[A-Z]{0,2}\/?\d{6,}/i;
+
+// The report's own number, near the top of a police report: "Report No: G/20241031/0000", "Police report no. A2026...".
+const POLICE_REPORT_NUMBER = /\breport\s+(?:no\.?|number)\s*[:#.]?\s*([A-Z]{0,2}\/?\d{6,}(?:\/\d{1,6})?)/i;
 
 export function documentTypeOf(modelType: unknown, text: string): DocumentType {
   const declared = oneOf(DOCUMENT_TYPES, modelType) ?? "other";
@@ -120,6 +123,8 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
     "  installed_app_or_malware when an app was installed.",
     "- scam_types: the kind of scam the source describes, never the bank's later handling of it.",
     "- total_loss: one entry per amount stated as lost, with the account or card it left from when the source says so.",
+    "- A police report is itself evidence that the scam was reported to the police: reported_to_police is yes, with the",
+    "  report's own number as reference and its date.",
     "- For a document: set document_type, and give every value \"confidence\" (0 to 1) that the document states it about",
     "  this scam. Correspondence about the dispute is bank_correspondence, even when it repeats the claimant's words.",
     "",
@@ -257,6 +262,18 @@ export function parseFactExtraction(
       reference: typeof item?.reference === "string" && item.reference.trim() ? item.reference.trim().slice(0, 80) : null,
       channel: null,
     }, [quote], [item]);
+  }
+
+  // A police report states that a police report was made, whatever the model returned for it (walkthrough, 9 Nov:
+  // the report was read, its number was not, so the number typed in the answers went unchecked).
+  if (documentType === "police_report") {
+    const number = POLICE_REPORT_NUMBER.exec(sourceText.slice(0, 1500));
+    const police = candidates.find((c) => c.factKey === "reported_to_police");
+    if (number && police && (police.value as { value: string }).value === "yes" && !(police.value as { reference: string | null }).reference) {
+      (police.value as { reference: string | null }).reference = number[1];
+    } else if (number && !police) {
+      add("reported_to_police", { value: "yes", date: null, reference: number[1], channel: null }, [number[0]], [{ confidence: 1 }]);
+    }
   }
 
   const reply = out.bank_reply as Record<string, unknown> | null;

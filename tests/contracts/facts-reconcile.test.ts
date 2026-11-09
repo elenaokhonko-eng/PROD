@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   buildSnapshot,
   carryOverStatus,
+  combineChoices,
   type CurrentFinding,
   type FactCandidate,
   type FactKey,
@@ -228,4 +229,31 @@ test('walkthrough 7 Nov: a correction to an agreed fact survives a re-run with t
   assert.deepEqual(carryOverStatus(changed, storedRows), { status: 'resolved', resolution: { kind: 'agreed' }, reopened: false })
   const plainAgreed = [{ ...storedRows[0], resolution: { kind: 'agreed' } }]
   assert.deepEqual(carryOverStatus(run1, plainAgreed), { status: 'resolved', resolution: { kind: 'agreed' }, reopened: false })
+})
+
+test('amounts a source names per account are one total in parts, so they agree with the same total (walkthrough, 9 Nov)', async () => {
+  const report = { sourceType: 'document' as const, sourceRef: { sourceKey: 'document:d1', documentId: 'd1' } }
+  const f = await findingFor('total_loss', [
+    candidate('total_loss', { ...sgd(5030), account: null }, story),
+    candidate('total_loss', { ...sgd(5030), account: null }, answer('financial_impact')),
+    candidate('total_loss', { ...sgd(4250), account: 'savings_or_current' }, report),
+    candidate('total_loss', { ...sgd(780), account: 'credit_card' }, report),
+  ])
+  assert.equal(f.findingType, 'agreed')
+  assert.equal(f.values.length, 1)
+  const loss = f.values[0].value as { amount: number; portions?: Array<{ account: string | null; amount: Money }> }
+  assert.equal(loss.amount, 5030)
+  assert.deepEqual(loss.portions?.map((p) => [p.account, p.amount.amount]), [['savings_or_current', 4250], ['credit_card', 780]])
+})
+
+test('a total ticked together with its own parts is counted once', () => {
+  const total = combineChoices('total_loss', [
+    { ...sgd(5030), account: null },
+    { ...sgd(4250), account: 'savings_or_current' },
+    { ...sgd(780), account: 'credit_card' },
+  ]) as { amount: number; portions: unknown[] }
+  assert.equal(total.amount, 5030)
+  assert.equal(total.portions.length, 2)
+  const separate = combineChoices('total_loss', [sgd(100), sgd(200), sgd(50)]) as { amount: number }
+  assert.equal(separate.amount, 350, 'amounts that are not a total and its parts still add up')
 })

@@ -164,7 +164,9 @@ function merge(key: FactKey, a: unknown, b: unknown): unknown {
   if (key === "account_types" || key === "scam_type") return [...new Set([...(a as string[]), ...(b as string[])])];
   if (key === "total_loss") {
     const x = a as TotalLoss;
-    return { ...x, account: x.account ?? (b as TotalLoss).account ?? null };
+    const y = b as TotalLoss;
+    const portions = x.portions?.length ? x.portions : y.portions;
+    return { ...x, account: x.account ?? y.account ?? null, ...(portions?.length ? { portions } : {}) };
   }
   if (key === "reported_to_bank" || key === "reported_to_police" || key === "written_complaint_sent" || key === "fidrec_filed") {
     const x = a as ReportedEvent;
@@ -213,7 +215,28 @@ export async function valuesHash(values: readonly FindingValue[]): Promise<strin
   return sha256Hex(values.map((v) => stableStringify(v.value)).sort().join("\n"));
 }
 
-function reconcileKey(key: FactKey, candidates: readonly FactCandidate[]): { findingType: FindingType; values: FindingValue[] } {
+// A source that names several amounts lost (S$4,250 from savings, S$780 on the card) is stating one total in parts.
+// Kept apart, the parts were offered beside the total and ticking all three counted the loss twice (walkthrough,
+// 9 Nov), so each source's amounts become one total with its portions before comparing.
+function oneLossPerSource(candidates: readonly FactCandidate[]): FactCandidate[] {
+  const bySource = new Map<string, FactCandidate[]>();
+  const single: FactCandidate[] = [];
+  for (const c of candidates) {
+    const sourceKey = c.sourceRef.sourceKey;
+    if (typeof sourceKey !== "string") single.push(c);
+    else bySource.set(sourceKey, [...(bySource.get(sourceKey) ?? []), c]);
+  }
+  const combined = [...bySource.values()].map((group) => {
+    if (group.length === 1 || group.some((c) => (c.value as Money).currency !== (group[0].value as Money).currency)) return group;
+    const value = combineChoices("total_loss", group.map((c) => c.value));
+    const quotes = group.flatMap((c) => (Array.isArray(c.sourceRef.quotes) ? c.sourceRef.quotes : []));
+    return [{ ...group[0], value, sourceRef: { ...group[0].sourceRef, quotes } } as FactCandidate];
+  });
+  return [...single, ...combined.flat()];
+}
+
+function reconcileKey(key: FactKey, input: readonly FactCandidate[]): { findingType: FindingType; values: FindingValue[] } {
+  const candidates = key === "total_loss" ? oneLossPerSource(input) : input;
   const definite = candidates.filter((c) => !isUnsure(key, c.value));
   const usable = definite.length ? definite : candidates;
   if (!usable.length) return { findingType: "missing", values: [] };
@@ -275,7 +298,8 @@ export function withImpliedCandidates(candidates: readonly FactCandidate[]): Fac
   for (const [eventKey, referenceKey] of REFERENCE_FACTS) {
     for (const c of candidates.filter((c) => c.factKey === eventKey)) {
       const event = c.value as ReportedEvent;
-      if (event.value === "yes" && event.reference?.trim()) {
+      // A case or report number has digits; "morning" typed in the reference box is not one (walkthrough, 9 Nov).
+      if (event.value === "yes" && event.reference?.trim() && /\d/.test(event.reference)) {
         references.push({ factKey: referenceKey, value: event.reference.trim(), sourceType: c.sourceType, sourceRef: { ...c.sourceRef, impliedBy: eventKey } } as FactCandidate);
       }
     }
@@ -294,6 +318,16 @@ export function combineChoices(key: FactKey, values: readonly unknown[]): unknow
   if (!values.length) return null;
   if (key === "transactions") return values.flatMap((v) => v as Transaction[]);
   if (key === "total_loss") {
+    // A total ticked together with its own parts counts once: the parts are kept as its portions.
+    if (values.length >= 3) {
+      const losses = values as TotalLoss[];
+      const whole = losses.findIndex((v, i) => {
+        const others = losses.filter((_, j) => j !== i);
+        return !v.portions?.length && others.every((o) => o.currency === v.currency) &&
+          Math.abs(others.reduce((s, o) => s + o.amount, 0) - v.amount) <= MONEY_TOLERANCE;
+      });
+      if (whole >= 0) return combineChoices(key, values.filter((_, i) => i !== whole));
+    }
     const portions = values.flatMap((v) => {
       const loss = v as TotalLoss;
       return loss.portions?.length ? loss.portions : [{ account: loss.account ?? null, amount: { amount: loss.amount, currency: loss.currency, amountSgd: loss.amountSgd } }];

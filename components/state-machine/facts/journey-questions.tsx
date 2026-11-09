@@ -116,7 +116,7 @@ export function JourneyQuestions({ isSaving = false, errorMessage, onSave }: Jou
             <div className="grid gap-3 sm:grid-cols-3">
               <Field id="journey-bank-date" label="When? (optional)" type="date" value={a[JOURNEY_KEYS.reportedToBankDate] ?? ''} onChange={set(JOURNEY_KEYS.reportedToBankDate)} />
               <Radios id="journey-bank-channel" legend="How?" choices={CHANNELS} value={a[JOURNEY_KEYS.reportedToBankChannel] ?? ''} onChange={set(JOURNEY_KEYS.reportedToBankChannel)} />
-              <Field id="journey-bank-ref" label="Reference (optional)" value={a[JOURNEY_KEYS.reportedToBankReference] ?? ''} onChange={set(JOURNEY_KEYS.reportedToBankReference)} />
+              <Field id="journey-bank-ref" label="Bank's case or reference number (optional)" value={a[JOURNEY_KEYS.reportedToBankReference] ?? ''} onChange={set(JOURNEY_KEYS.reportedToBankReference)} />
             </div>
           )}
 

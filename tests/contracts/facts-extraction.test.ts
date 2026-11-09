@@ -108,3 +108,39 @@ test('a bank letter that asks for a police report is not a police report', () =>
   const [reply] = parseFactExtraction({ document_type: 'bank_correspondence', bank_reply: { status: 'acknowledged', quote: 'your report of unauthorised transactions', confidence: 0.9 } }, letter, doc)
   assert.equal((reply.sourceRef as { documentType?: string }).documentType, 'bank_correspondence')
 })
+
+test('a police report whose number the model left out still states the report and its number (walkthrough, 9 Nov)', async () => {
+  const report = 'Police report no. A20990101009999\nSYNTHETIC TEST DOCUMENT\nDate and time of report: 2 January 2099\n' +
+    'Brief facts: the informant received an SMS from "Synthetic Bank" and entered a one-time password.'
+  const doc = { sourceType: 'document' as const, sourceRef: { sourceKey: 'document:d3', documentId: 'd3', documentName: 'synthetic.pdf' } }
+  const fromDoc = parseFactExtraction({
+    document_type: 'police_report',
+    phishing_channel: { value: 'sms', quote: 'received an SMS', confidence: 0.9 },
+  }, report, doc)
+  const police = fromDoc.find((c) => c.factKey === 'reported_to_police')!
+  assert.deepEqual(police.value, { value: 'yes', date: null, reference: 'A20990101009999', channel: null })
+  assert.equal((police.sourceRef as { context?: boolean }).context, false)
+
+  const { candidates: fromAnswers } = answerCandidates([
+    { questionKey: JOURNEY_KEYS.policeReport, value: 'yes', revisionId: 'a0' },
+    { questionKey: JOURNEY_KEYS.policeReportNumber, value: 'A20990101001111', revisionId: 'a1' },
+  ])
+  const findings = await reconcile([...fromDoc, ...fromAnswers])
+  assert.equal(findings.find((f) => f.factKey === 'police_report_number')?.findingType, 'conflict', 'the typed number differs from the report')
+  assert.equal(findings.find((f) => f.factKey === 'reported_to_police')?.findingType, 'agreed', 'the report backs the answer')
+
+  const withoutNumber = parseFactExtraction({
+    document_type: 'police_report',
+    reported_to_police: { value: 'yes', date: null, reference: null, quote: 'Date and time of report', confidence: 0.9 },
+  }, report, doc)
+  assert.equal((withoutNumber.find((c) => c.factKey === 'reported_to_police')!.value as { reference: string }).reference, 'A20990101009999')
+})
+
+test('a reference with no digits is not a case reference (walkthrough, 9 Nov)', async () => {
+  const { candidates } = answerCandidates([
+    { questionKey: JOURNEY_KEYS.reportedToBank, value: 'yes', revisionId: 'b0' },
+    { questionKey: JOURNEY_KEYS.reportedToBankReference, value: 'morning', revisionId: 'b1' },
+  ])
+  const findings = await reconcile(candidates)
+  assert.equal(findings.find((f) => f.factKey === 'bank_case_reference')?.findingType, 'missing')
+})
