@@ -221,7 +221,9 @@ export async function signIn(page: Page, clerkUserId: string) {
 export async function createClerkUser(email: string): Promise<string> {
   const response = await clerkApi('/users', {
     method: 'POST',
-    body: JSON.stringify({ email_address: [email], skip_password_requirement: true }),
+    // With legal consent on in Clerk (9 Nov), a user created through the API must record that the terms were accepted,
+    // as ticking the sign-up box does.
+    body: JSON.stringify({ email_address: [email], skip_password_requirement: true, legal_accepted_at: new Date().toISOString() }),
   })
   const body = (await response.json()) as { id?: string }
   expect(body.id, `Clerk test user (HTTP ${response.status})`).toMatch(/^user_/)

@@ -36,6 +36,8 @@ test('production free evaluation canary', async ({ page }) => {
     body: JSON.stringify({
       email_address: [`guidebuoy-canary+${Date.now()}@guidebuoyai.sg`],
       skip_password_requirement: true,
+      // Legal consent is on in Clerk Production: record acceptance, as the sign-up box does.
+      legal_accepted_at: new Date().toISOString(),
       public_metadata: { canary: true },
     }),
   })

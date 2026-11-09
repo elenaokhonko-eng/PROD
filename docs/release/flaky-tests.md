@@ -120,3 +120,9 @@ test is weakened to make it pass.
 
 - Second occurrence of the blocked sign-in redirect on a background prefetch of `/app` and `/app/settings`. Fixed as
   noted above: the signed-in header links no longer prefetch (`prefetch={false}`), with a contract test.
+
+## 2026-11-09: public, "resources page renders loading and ready/filter states when API responds", recurred
+
+- **Run:** 42618513091, commit `4c4c59d`; the page stayed on "Loading official resources…"; passed on the re-run of the
+  failed job, with no change. Same pattern as 7 Nov (runner slowness, not the app). Third occurrence: worth trying fewer
+  parallel public workers in week one.
