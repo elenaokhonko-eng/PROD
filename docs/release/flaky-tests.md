@@ -135,3 +135,6 @@ test is weakened to make it pass.
   `HARBOR_STAGING_SMTP_HANDSHAKE` is `off`, and real delivery is checked on prod-check before cutover
   (`docs/release/cutover-checklist.md`). This is a reduction in CI cover, not a fix. The app's own staging emails still
   go to the capture sink and stay tested (`report-problem.spec.ts`).
+- **Second copy (Elena, 10 Nov):** run 42826444159, commit `2d55137`: "delivers an authenticated SMTP sink message"
+  in the five-service handshakes (`harbor-preview-handshakes.spec.ts`) sends through the same route and failed the
+  same way. It skips on the same switch.

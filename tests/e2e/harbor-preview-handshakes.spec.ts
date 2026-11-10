@@ -608,6 +608,8 @@ test.describe("Harbor preview integration handshakes", () => {
   })
 
   test("delivers an authenticated SMTP sink message", async ({ page }) => {
+    // Same /api/email/send check as external-handshakes.spec.ts, so the same switch (Elena, 10 Nov).
+    test.skip(process.env.HARBOR_STAGING_SMTP_HANDSHAKE === "off", "staging has no SMTP test inbox; proved on prod-check")
     await authenticatedIdentity(page)
     const marker = randomUUID()
     const response = await appFetch(page, "/api/email/send", {
