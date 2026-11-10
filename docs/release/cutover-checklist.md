@@ -1,18 +1,18 @@
 # Cutover checklist
 
-Planned for Tuesday 10 November 2026, morning, on Elena's approval. Brief B (production setup and the smoke test on
-`prod-check.guidebuoyai.sg`) is complete before this starts. Names only; no values.
+Planned for Wednesday 11 November 2026, morning, on Elena's approval (moved from Tuesday 10 November). Brief B
+(production setup and the smoke test on `prod-check.guidebuoyai.sg`) is complete before this starts. Names only; no values.
 
 ## Before moving the domains
 
 - [ ] Smoke test on `https://prod-check.guidebuoyai.sg` passed: fresh account, full free evaluation, one Report a
-      problem, one waitlist click, model calls visible on `/analytics`. The problem report and the account emails
-      arrive in the info@ and test inboxes: this is the only check of real email delivery, because staging keeps no
-      SMTP test inbox (Elena, 10 Nov).
-- [ ] `LEGAL_EFFECTIVE_DATE=2026-11-10` on the production web service (or the actual cutover day), and the Terms and
+      problem, one waitlist click, model calls visible on `/analytics`. All three emails arrive in real inboxes: the
+      account email, the waitlist confirmation, and the problem report at info@. This is the only check of real email
+      delivery, because staging keeps no SMTP test inbox (Elena, 10 Nov).
+- [ ] `LEGAL_EFFECTIVE_DATE=2026-11-11` on the production web service (or the actual cutover day), and the Terms and
       Privacy pages show it.
-- [ ] Clerk Production legal consent is on with `https://guidebuoyai.sg/terms` and `https://guidebuoyai.sg/privacy`;
-      disposable-domain and sub-address blocking are on.
+- [ ] Clerk Production legal consent is on (Elena confirmed, 10 Nov) with `https://guidebuoyai.sg/terms` and
+      `https://guidebuoyai.sg/privacy`; disposable-domain and sub-address blocking are on.
 - [ ] Console limits in place (Elena): OpenAI hard limit, Google budget and Gemini quotas, Google key restrictions,
       Supabase spend cap, `COST_ALERT_EMAIL` on the worker.
 
@@ -41,3 +41,6 @@ Planned for Tuesday 10 November 2026, morning, on Elena's approval. Brief B (pro
 - [ ] Rotate production secrets as the cost-controls spec says and record the date.
 - [ ] Keep the maintenance service suspended, not deleted, for 7 days as the rollback.
 - [ ] Week one: daily look at the cost page, the fallback rate and alerts; the 429 alert in particular.
+- [ ] First change after launch: one floating WhatsApp button on every page, public, sign-in and case pages
+      (Elena monitors the number, 10 Nov). It replaces the footer link and changes the Slice 7 rule and its test; the
+      public visual baselines are re-rendered by CI and approved by Elena.
