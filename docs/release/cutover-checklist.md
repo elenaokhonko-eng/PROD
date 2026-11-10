@@ -6,9 +6,10 @@ Planned for Wednesday 11 November 2026, morning, on Elena's approval (moved from
 ## Before moving the domains
 
 - [ ] Smoke test on `https://prod-check.guidebuoyai.sg` passed: fresh account, full free evaluation, one Report a
-      problem, one waitlist click, model calls visible on `/analytics`. All three emails arrive in real inboxes: the
-      account email, the waitlist confirmation, and the problem report at info@. This is the only check of real email
-      delivery, because staging keeps no SMTP test inbox (Elena, 10 Nov).
+      problem, one waitlist click, model calls visible on `/analytics`. Two emails arrive in real inboxes: Clerk
+      Production's sign-up code, and the problem report at info@ (the app's own SMTP). The waitlist click sends no
+      email: it shows "Thank you. We'll email …" and saves the address. This is the only check of real email delivery,
+      because staging keeps no SMTP test inbox (Elena, 10 Nov).
 - [ ] `LEGAL_EFFECTIVE_DATE=2026-11-11` on the production web service (or the actual cutover day), and the Terms and
       Privacy pages show it.
 - [ ] Clerk Production legal consent is on (Elena confirmed, 10 Nov) with `https://guidebuoyai.sg/terms` and
