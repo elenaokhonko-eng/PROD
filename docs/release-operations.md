@@ -296,14 +296,13 @@ The preview and authenticated CI jobs sign in with saved Clerk Development sessi
 
 1. In the clone, with `.env.staging.local` holding the Clerk Development secret key and `NEXT_PUBLIC_APP_URL` set to the staging origin, set `CLERK_RECONCILIATION_USER_ALLOWLIST_JSON` to the labelled Clerk IDs (as for reconciliation).
 2. Run `pnpm exec tsx --env-file=.env.staging.local scripts/refresh-harbor-auth-states.ts`. It signs each identity in with a one-time Clerk sign-in token, checks the session against staging, and writes the git-ignored files under `tests/e2e/.auth/`. It refuses `userGolden`.
-3. Upload them without displaying them (PowerShell):
+3. Upload them without displaying them (Git Bash, from the clone). Don't pipe from Windows PowerShell 5.1: it adds a
+   line ending that CI's `base64 --decode` rejects (10 Nov).
 
-   ```powershell
-   $states = @{ USER_A = 'harbor-user-a'; USER_B = 'harbor-user-b'; DELETION_USER = 'harbor-deletion-user' }
-   foreach ($name in $states.Keys) {
-     [Convert]::ToBase64String([IO.File]::ReadAllBytes("tests/e2e/.auth/$($states[$name]).json")) |
-       gh secret set "HARBOR_AUTH_STORAGE_STATE_${name}_BASE64" --env harbor-preview
-   }
+   ```bash
+   for pair in USER_A:harbor-user-a USER_B:harbor-user-b DELETION_USER:harbor-deletion-user; do
+     base64 -w0 "tests/e2e/.auth/${pair#*:}.json" | gh secret set "HARBOR_AUTH_STORAGE_STATE_${pair%%:*}_BASE64" --env harbor-preview
+   done
    ```
 
 4. Re-run the failed workflow. A session made this way is a live sign-in for that identity until it expires, so never paste, attach, or commit the files.
