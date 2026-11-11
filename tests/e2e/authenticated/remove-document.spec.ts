@@ -36,7 +36,8 @@ test('removing an empty page on the confirm step keeps the person there and reop
     await resolveOpenFindings(page, caseId)
 
     await page.locator('input[type="file"]').setInputFiles({ name: 'spare-page.pdf', mimeType: 'application/pdf', buffer: syntheticPdf(['Spare page']) })
-    const spare = page.locator('div').filter({ has: page.getByText('spare-page.pdf', { exact: true }) }).last()
+    // The document row is the one holding its remove button; the name alone sits in an inner box without the badge.
+    const spare = page.locator('div.rounded-md.border').filter({ has: page.getByRole('button', { name: 'Remove spare-page.pdf' }) })
     await expect(spare.getByText('✓ Ready')).toBeVisible({ timeout: 6 * 60_000 })
     // The check that runs once the page is read must not take the person off the confirm step.
     await resolveOpenFindings(page, caseId)
