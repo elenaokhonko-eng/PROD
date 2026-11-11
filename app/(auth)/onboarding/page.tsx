@@ -20,6 +20,9 @@ import { trackClientEvent } from "@/lib/analytics/client"
 
 const BOOTSTRAP_IDEMPOTENCY_KEY = "gb_bootstrap_idempotency_key"
 const BOOTSTRAP_REQUEST_FINGERPRINT = "gb_bootstrap_request_fingerprint"
+// Just after sign-up the account can take a few seconds to be linked, so "not signed in" is retried quietly first.
+const ACCOUNT_LINK_RETRIES = 3
+const ACCOUNT_LINK_RETRY_MS = 2000
 
 async function getOrCreateBootstrapIdempotencyKey(requestBody: unknown) {
   const encoded = new TextEncoder().encode(JSON.stringify(requestBody))
@@ -42,6 +45,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
   const lastAttemptRef = useRef<number | null>(null)
+  const linkRetriesRef = useRef(0)
   const errorRef = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
@@ -77,6 +81,7 @@ export default function OnboardingPage() {
     }
 
     const controller = new AbortController()
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
 
     const bootstrapCase = async () => {
       try {
@@ -92,6 +97,12 @@ export default function OnboardingPage() {
           signal: controller.signal,
         })
         const data = (await response.json().catch(() => null)) as { case_id?: string; error?: string } | null
+
+        if (response.status === 401 && linkRetriesRef.current < ACCOUNT_LINK_RETRIES) {
+          linkRetriesRef.current += 1
+          retryTimer = setTimeout(() => setAttempt((value) => value + 1), ACCOUNT_LINK_RETRY_MS)
+          return
+        }
 
         if (!response.ok || !data?.case_id) {
           setError(
@@ -129,7 +140,10 @@ export default function OnboardingPage() {
     }
 
     void bootstrapCase()
-    return () => controller.abort()
+    return () => {
+      controller.abort()
+      clearTimeout(retryTimer)
+    }
   }, [attempt, isLoaded, isSignedIn, router])
 
   if (status === "checking" || status === "importing") {

@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { auth } from '@clerk/nextjs/server'
 import { getCurrentUser } from '@/lib/auth'
+import { provisionClerkProfileWithRuntimeDependencies } from '@/lib/server/clerk-profile-provisioner'
 import { createUserClient } from '@/lib/supabase/server'
 import { HOURLY_LIMIT_MESSAGE, limitResponse, overCaseLimit, overIpModelLimit } from '@/lib/server/usage-limits'
 
@@ -12,8 +14,25 @@ const BootstrapBody = z.object({
   title: z.string().max(200).optional(),
 })
 
-export async function POST(req: Request) {
+// A brand-new account can reach this before Clerk's user.created webhook has linked it to its profile, so its token has
+// no supabase_uuid yet and the case could not start (G3b re-check, 11 Nov). Link it here; provisioning is idempotent, so
+// racing the webhook is harmless.
+async function currentUserLinkingNewAccount() {
   const user = await getCurrentUser()
+  if (user) return user
+  const { userId } = await auth()
+  if (!userId) return null
+  try {
+    await provisionClerkProfileWithRuntimeDependencies(userId)
+  } catch (error) {
+    console.warn('[bootstrap] New account could not be linked yet', { name: (error as Error)?.name })
+    return null
+  }
+  return getCurrentUser()
+}
+
+export async function POST(req: Request) {
+  const user = await currentUserLinkingNewAccount()
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }

@@ -202,6 +202,33 @@ async function assertNoRunningRun(service: SupabaseClient, caseId: string) {
   if (data?.length) throw new FactsInProgressError("Facts are still being checked")
 }
 
+/** The run that goes ahead when several start together: the earliest, then the lowest id. */
+export function firstRunningRun(rows: Array<{ id: string; created_at: string }>): string | null {
+  const sorted = [...rows].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at) || a.id.localeCompare(b.id))
+  return sorted[0]?.id ?? null
+}
+
+// Two requests can pass assertNoRunningRun together: removing a document refetched the facts twice, and the later run
+// found the earlier one's findings already retired, so it lost every resolution and the user had to confirm conflicts
+// again (G3b re-check, 11 Nov). Only the first run goes on; the others stand down and the caller answers "still checking".
+async function standDownUnlessFirst(service: SupabaseClient, caseId: string, runId: string) {
+  const { data, error } = await service
+    .from("case_fact_reconcile_runs")
+    .select("id, created_at")
+    .eq("case_id", caseId)
+    .eq("status", "running")
+    .gte("created_at", new Date(Date.now() - RUNNING_STALE_MS).toISOString())
+  if (error) throw new FactsUnavailableError("Failed to load reconcile runs")
+  const first = firstRunningRun((data ?? []) as Array<{ id: string; created_at: string }>)
+  if (first && first !== runId) {
+    await service
+      .from("case_fact_reconcile_runs")
+      .update({ status: "failed", error_code: "superseded", completed_at: new Date().toISOString() })
+      .eq("id", runId)
+    throw new FactsInProgressError("Facts are still being checked")
+  }
+}
+
 // Reconciles the case if its story, answers or documents changed since the last completed run, then returns the
 // current findings. Unchanged sources reuse their earlier candidates, so the model sees each source once.
 export async function ensureReconciled(
@@ -245,6 +272,7 @@ export async function ensureReconciled(
     .single()
   if (runError || !run) throw new FactsUnavailableError("Failed to start reconcile run")
   const runId = run.id as string
+  await standDownUnlessFirst(service, caseId, runId)
 
   try {
     const reusable = new Map<string, FactCandidate[]>()

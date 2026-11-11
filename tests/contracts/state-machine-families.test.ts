@@ -37,11 +37,15 @@ const tier0: Tier0DraftBundle = {
 
 const purchasable = { ready: true }
 const readyDocument = [{ id: 'd1', processing_status: 'ready' as const }]
+const gapValidation = { status: 'error' } as never
 
 const cases: Array<[string, Partial<StateMachineInput>, string]> = [
   ['Layer 1 intake', {}, 'S1-IntakeForm'],
   ['Layer 1 evidence', { isIntakeSubmitted: true }, 'S1-EvidenceUpload'],
   ['Layer 1 draft pending', { isIntakeSubmitted: true, documents: [{ id: 'd1', processing_status: 'ready' }] }, 'S1-Tier0DraftPending'],
+  ['Layer 1 gap questions before the confirm step', { isIntakeSubmitted: true, documents: readyDocument, validation: gapValidation, gapItems: [] }, 'S1-GapLoop'],
+  // G3b re-check, 11 Nov: a second upload's check found gaps and took the person off the confirm step mid-action.
+  ['Layer 1 confirm step stays once shown', { isIntakeSubmitted: true, documents: readyDocument, validation: gapValidation, gapItems: [], confirmStepShown: true }, 'S1-Tier0DraftPending'],
   ['eligibility transition', { narratives: tier0 }, 'T-EligibilityGate'],
   ['blocked before purchase', { narratives: tier0, reportPurchase: { ready: false }, documents: readyDocument }, 'T-EligibilityGate'],
   ['buy transition', { narratives: tier0, reportPurchase: purchasable }, 'T-BuyReportCTA'],

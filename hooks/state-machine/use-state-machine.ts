@@ -50,6 +50,11 @@ export interface StateMachineInput {
   journeyAnswered?: boolean | null
   /** The person chose "Continue without documents" on the upload step. */
   evidenceSkipped?: boolean
+  /**
+   * The confirm step has already shown in this tab. A later document check that finds gaps then leaves the person on
+   * it instead of switching to the questions mid-action (G3b re-check, 11 Nov); the confirm step checks the facts.
+   */
+  confirmStepShown?: boolean
 }
 
 /**
@@ -78,6 +83,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
     isContactSubmitted = false,
     journeyAnswered = null,
     evidenceSkipped = false,
+    confirmStepShown = false,
   } = input
 
   if (isContactSubmitted) return 'L3-Confirmed'
@@ -97,7 +103,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   if (!narratives?.tier0_summary && !narratives?.tier0_evidence_checklist && !narratives?.tier0_srf_signal) {
     // Journey questions come first after sign-in (spec 4.1): where the user is with their bank.
     if (journeyAnswered === false) return 'S1-Journey'
-    if (deriveInGapPhase(validation, gapItems)) return 'S1-GapLoop'
+    if (!confirmStepShown && deriveInGapPhase(validation, gapItems)) return 'S1-GapLoop'
     if (!isIntakeSubmitted && !hasSubmittedIntake) return 'S1-IntakeForm'
     const hasReadyDoc = documents?.some((d) => d.processing_status === 'ready') ?? false
     if (!hasReadyDoc && !evidenceSkipped) return 'S1-EvidenceUpload'

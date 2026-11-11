@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import { Layer1Shell } from '@/components/state-machine/layer1/layer1-shell'
@@ -145,6 +145,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
       : null
 
   const reportPurchase = paymentStatusQuery.data?.capabilityBilling.capabilities.report
+  const [confirmStepShown, setConfirmStepShown] = useState(false)
   const node = useStateMachine({
     reportPurchase: reportPurchase ? { ready: reportPurchase.purchaseReady } : null,
     validation: validationQuery.data ?? null,
@@ -161,7 +162,11 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     // A failed lookup must not block the case, so an error counts as answered.
     journeyAnswered: journeyQuery.isError ? true : journeyQuery.data ?? null,
     evidenceSkipped: evidenceSkippedQuery.data === true,
+    confirmStepShown,
   })
+  useEffect(() => {
+    if (node === 'S1-Tier0DraftPending') setConfirmStepShown(true)
+  }, [node])
 
   const isPaymentReturn = useMemo(
     () =>
