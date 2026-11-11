@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { firstRunningRun } from '../../lib/server/facts/run-reconcile'
+import { normalizeGapItemToQuestion, userFacingHelpText } from '../../lib/validation-gaps'
 
 test('when two fact checks start together, the earliest goes on and a tie goes to the lower id (G3b re-check, 11 Nov)', () => {
   assert.equal(
@@ -33,4 +34,13 @@ test('starting a case links a brand-new account before treating it as signed out
   const source = readFileSync('app/api/cases/bootstrap/route.ts', 'utf8')
   assert.match(source, /provisionClerkProfileWithRuntimeDependencies\(userId\)/)
   assert.match(source, /const user = await currentUserLinkingNewAccount\(\)/)
+})
+
+test('internal gap reasons are never shown under a question (G3b re-check, 11 Nov)', () => {
+  assert.equal(userFacingHelpText('Not found in extracted fields'), null)
+  assert.equal(userFacingHelpText('Loss amount missing'), null)
+  assert.equal(userFacingHelpText('  '), null)
+  assert.equal(userFacingHelpText('The date on your bank statement is fine.'), 'The date on your bank statement is fine.')
+  const question = normalizeGapItemToQuestion({ field_key: 'incident_date', question_text: 'What date did the incident occur?', help_text: 'Not found in extracted fields', severity: 'required' } as never)
+  assert.equal(question?.help_text, null)
 })

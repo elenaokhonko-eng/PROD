@@ -132,6 +132,33 @@ test('a resolution survives a re-run with the same values and reopens when the v
   assert.equal(carried.reopened, true)
 })
 
+// G3b re-check, 11 Nov (R-05): removing an empty page reopened four resolved conflicts. A document that gave no facts
+// changes no finding, so every resolution carries over; removing a document that was a source reopens what it changed.
+test('removing a document that gave no facts reopens nothing; removing a source reopens only what it changed', async () => {
+  const base = [
+    candidate('police_report_number', 'A20261005004321', answer('journey_police_report_number')),
+    candidate('police_report_number', 'A20261005008765', doc('police')),
+    candidate('reported_to_bank', event('yes', '2026-10-04'), story),
+    candidate('reported_to_bank', event('yes', '2026-10-05'), answer('journey_reported_to_bank')),
+  ]
+  const before = await reconcile(base)
+  const resolved = before.map((f) => ({ factKey: f.factKey, valuesHash: f.valuesHash, status: 'resolved' as const, resolution: { kind: 'choice', index: 0 } }))
+
+  // The empty page added no candidates, so the run after removing it sees exactly the same ones.
+  for (const finding of await reconcile([...base])) {
+    const carried = carryOverStatus(finding, resolved)
+    assert.equal(carried.reopened, false, finding.factKey)
+    assert.equal(carried.status, 'resolved', finding.factKey)
+  }
+
+  // Removing the police report itself changes the report number only; its conflict is gone, so it needs no choice.
+  const withoutPolice = await reconcile(base.filter((c) => (c.sourceRef as { documentId?: string }).documentId !== 'police'))
+  const changed = withoutPolice.filter((f) => f.valuesHash !== before.find((b) => b.factKey === f.factKey)?.valuesHash).map((f) => f.factKey)
+  assert.deepEqual(changed, ['police_report_number'])
+  assert.equal(withoutPolice.find((f) => f.factKey === 'police_report_number')?.findingType, 'agreed')
+  assert.equal(carryOverStatus(withoutPolice.find((f) => f.factKey === 'reported_to_bank')!, resolved).status, 'resolved')
+})
+
 function stored(key: FactKey, findingType: CurrentFinding['findingType'], value: unknown, status: CurrentFinding['status'] = 'resolved', resolution: CurrentFinding['resolution'] = { kind: 'agreed' }): CurrentFinding {
   return { id: `f-${key}`, factKey: key, findingType, values: value === undefined ? [] : [{ value, sources: [] }], status, resolution }
 }

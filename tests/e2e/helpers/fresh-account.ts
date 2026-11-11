@@ -244,12 +244,15 @@ export function clerkApi(path: string, init: RequestInit) {
 
 // A one-page synthetic statement, built here so no document file is committed.
 export function syntheticStatementPdf(): Buffer {
-  const text = [
+  return syntheticPdf([
     'Synthetic Bank - Statement of account (synthetic test document)',
     'Account: Savings ending 0000',
     '03 Oct 2026  Transfer to unknown payee   S$2,400.00 debit',
     'Closing balance S$1,000.00',
-  ]
+  ])
+}
+
+export function syntheticPdf(text: string[]): Buffer {
   const stream = `BT /F1 11 Tf 50 760 Td 14 TL ${text.map((line) => `(${line}) '`).join(' ')} ET`
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
