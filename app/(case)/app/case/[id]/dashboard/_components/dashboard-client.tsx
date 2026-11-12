@@ -1,0 +1,607 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
+import { Layer1Shell } from '@/components/state-machine/layer1/layer1-shell'
+import type { IntakeAnswers } from '@/components/state-machine/layer1/intake-form'
+import { BuyReportCTA } from '@/components/state-machine/transition/buy-report-cta'
+import { CheckoutRedirect } from '@/components/state-machine/transition/checkout-redirect'
+import {
+  EligibilityGate,
+  type EligibilityGateResult,
+} from '@/components/state-machine/transition/eligibility-gate'
+import { BlockedOnPrereq } from '@/components/state-machine/transition/blocked-on-prereq'
+import { PaymentSuccessLanding } from '@/components/state-machine/transition/payment-success-landing'
+import { PaymentCancelled } from '@/components/state-machine/transition/payment-cancelled'
+import { DecisionProgress } from '@/components/state-machine/layer2/decision-progress'
+import { ReportDrafting } from '@/components/state-machine/layer2/report-drafting'
+import { ReportFailed } from '@/components/state-machine/layer2/report-failed'
+import { ReportView } from '@/components/state-machine/layer2/report-view'
+import { StateMachineErrorCard } from '@/components/state-machine/error-card'
+import { useStateMachine } from '@/hooks/state-machine/use-state-machine'
+import { useCaseFacts } from '@/hooks/state-machine/facts/use-case-facts'
+import { useCaseEligibility } from '@/hooks/state-machine/layer1/use-case-eligibility'
+import { useValidationRun } from '@/hooks/state-machine/layer1/use-validation-run'
+import { useIntakeCompletion } from '@/hooks/state-machine/layer1/use-intake-completion'
+import { useSubmitIntake } from '@/hooks/state-machine/layer1/use-submit-intake'
+import { UploadRefusedError, UsageLimitError, useUploadEvidence } from '@/hooks/state-machine/layer1/use-upload-evidence'
+import { useDeleteEvidence } from '@/hooks/state-machine/layer1/use-delete-evidence'
+import { EVIDENCE_SKIPPED_KEY, useEvidenceSkipped } from '@/hooks/state-machine/facts/use-evidence-skipped'
+import { useCaseDocumentsRealtime } from '@/hooks/state-machine/layer1/use-case-documents-realtime'
+import { useTier0Draft } from '@/hooks/state-machine/layer1/use-tier0-draft'
+import { useQueryClient } from '@tanstack/react-query'
+import { useJourneyAnswered } from '@/hooks/state-machine/facts/use-journey-answered'
+import { qk } from '@/hooks/state-machine/query-keys'
+import { ConfirmAndEvaluate } from '@/components/state-machine/facts/confirm-and-evaluate'
+import { JourneyQuestions } from '@/components/state-machine/facts/journey-questions'
+import { NextSteps } from '@/components/state-machine/facts/next-steps'
+import { EvidenceUploadPanel } from '@/components/state-machine/layer1/evidence-upload-panel'
+import { StateMachineLoading } from '@/components/state-machine/loading-state'
+import { useAutoRefireExtract } from '@/hooks/state-machine/layer1/use-auto-refire-extract'
+import { useCreateCheckoutSession, type ProductKey } from '@/hooks/state-machine/transition/use-create-checkout-session'
+import { usePaymentStatus } from '@/hooks/state-machine/transition/use-payment-status'
+import { useDecisionRunRealtime } from '@/hooks/state-machine/layer2/use-decision-run-realtime'
+import { useReportRealtime } from '@/hooks/state-machine/layer2/use-report-realtime'
+import { useJobStatus } from '@/hooks/state-machine/layer2/use-job-status'
+import { useTier2Pack } from '@/hooks/state-machine/layer3/use-tier2-pack'
+import { useCasePackExport } from '@/hooks/state-machine/layer3/use-case-pack-export'
+import { Tier2PackPanel } from '@/components/state-machine/layer3/tier2-pack-panel'
+import { Tier2PackView } from '@/components/state-machine/layer3/tier2-pack-view'
+import {
+  getValidationResponseTypes,
+  serializeValidationAnswer,
+} from '@/lib/validation-gaps'
+import {
+  GAP_QUESTIONS_FALLBACK_NOTICE,
+  validationIndicatesMissingData,
+} from '@/lib/validation/gap-flow'
+import type { ValidationAnswerValue } from '@/lib/types/validation'
+import { noteProblem } from '@/lib/report-problem'
+
+type DashboardClientProps = {
+  caseId: string
+  initialCaseSnapshot: {
+    institutionName: string | null
+    claimAmount: number | null
+  }
+  priceLabels: {
+    report: string
+    tier2: string
+  }
+}
+
+const GAP_SAVE_ERROR = "We couldn't save your answers. Please try again; if it keeps happening, email info@guidebuoyai.sg."
+
+export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabels }: DashboardClientProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { getToken } = useAuth()
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [checkoutProduct, setCheckoutProduct] = useState<ProductKey | null>(null)
+  const [checkoutRedirecting, setCheckoutRedirecting] = useState(false)
+  const [gateBlocked, setGateBlocked] = useState<{ missing: string[]; reason: string } | null>(null)
+  const [intakeCompleted, setIntakeCompleted] = useState(false)
+  const handleEligibilityResult = useCallback((result: EligibilityGateResult) => {
+    if (result.eligible === false) {
+      setGateBlocked({ missing: result.missing, reason: result.blockedReason })
+      return
+    }
+    setGateBlocked(null)
+  }, [])
+
+  const eligibilityQuery = useCaseEligibility(caseId)
+  const validationQuery = useValidationRun(caseId)
+  const intakeCompletionQuery = useIntakeCompletion(caseId)
+  const journeyQuery = useJourneyAnswered(caseId)
+  const evidenceSkippedQuery = useEvidenceSkipped(caseId)
+  const [skippingEvidence, setSkippingEvidence] = useState(false)
+  const queryClient = useQueryClient()
+  const [journeySaving, setJourneySaving] = useState(false)
+  const [journeyError, setJourneyError] = useState<string | null>(null)
+  const documentsQuery = useCaseDocumentsRealtime(caseId)
+  const tier0DraftQuery = useTier0Draft(caseId)
+  const paymentStatusQuery = usePaymentStatus(caseId)
+  const isReportPaid = ['self_serve_report', 'escalation_pack'].includes(paymentStatusQuery.data?.plan ?? '')
+  const decisionQuery = useDecisionRunRealtime(caseId, { poll: isReportPaid })
+  const reportQuery = useReportRealtime(caseId, { poll: isReportPaid })
+  const jobStatusQuery = useJobStatus(caseId)
+
+  const submitIntake = useSubmitIntake()
+  const [gapSaveError, setGapSaveError] = useState<string | null>(null)
+  const [isSavingGap, setIsSavingGap] = useState(false)
+  const uploadEvidence = useUploadEvidence()
+  const deleteEvidence = useDeleteEvidence(caseId)
+  const createCheckout = useCreateCheckoutSession()
+  const tier2PackQuery = useTier2Pack(caseId, {
+    enabled: paymentStatusQuery.data?.plan === 'escalation_pack',
+  })
+  const casePackExport = useCasePackExport()
+  const hasSubmittedIntake = intakeCompleted || intakeCompletionQuery.data === true
+
+  useAutoRefireExtract({
+    caseId,
+    documents: documentsQuery.data,
+    hasNarrative: hasSubmittedIntake,
+  })
+
+  const gapQuestions = validationQuery.questions
+  const gapResponseTypes = useMemo(
+    () => getValidationResponseTypes(gapQuestions),
+    [gapQuestions],
+  )
+  const isLoadingGapItems =
+    Boolean(validationQuery.validationRunId) && validationQuery.gapItems === undefined
+  const validationErrorMessage =
+    validationQuery.data?.status === 'error'
+      ? validationQuery.data.error_message ?? 'Validation failed while preparing follow-up questions.'
+      : null
+  const missingQuestionsNotice =
+    !isLoadingGapItems &&
+    !validationErrorMessage &&
+    gapQuestions.length === 0 &&
+    validationIndicatesMissingData(validationQuery.data ?? null)
+      ? GAP_QUESTIONS_FALLBACK_NOTICE
+      : null
+
+  const reportPurchase = paymentStatusQuery.data?.capabilityBilling.capabilities.report
+  const [confirmStepShown, setConfirmStepShown] = useState(false)
+  const node = useStateMachine({
+    reportPurchase: reportPurchase ? { ready: reportPurchase.purchaseReady } : null,
+    validation: validationQuery.data ?? null,
+    gapItems: validationQuery.gapItems,
+    narratives: tier0DraftQuery.data ?? null,
+    entitlementPlan: paymentStatusQuery.data?.plan ?? null,
+    documents: documentsQuery.data ?? null,
+    decision: decisionQuery.data ?? null,
+    report: reportQuery.data ?? null,
+    jobStatus: jobStatusQuery.data ?? null,
+    isCheckoutRedirecting: checkoutRedirecting,
+    isIntakeSubmitted: submitIntake.isPending,
+    hasSubmittedIntake,
+    // A failed lookup must not block the case, so an error counts as answered.
+    journeyAnswered: journeyQuery.isError ? true : journeyQuery.data ?? null,
+    evidenceSkipped: evidenceSkippedQuery.data === true,
+    confirmStepShown,
+  })
+  useEffect(() => {
+    if (node === 'S1-Tier0DraftPending') setConfirmStepShown(true)
+  }, [node])
+
+  const isPaymentReturn = useMemo(
+    () =>
+      Boolean(
+        searchParams.get('session_id') ||
+          searchParams.get('payment') === 'success' ||
+          searchParams.get('checkout') === 'success',
+      ),
+    [searchParams],
+  )
+  const paymentReturnProduct = useMemo<ProductKey | null>(() => {
+    if (!isPaymentReturn) return null
+    const product = searchParams.get('product')
+    return product === 'self_serve_report' || product === 'fidrec_tier2_pack' ? product : null
+  }, [isPaymentReturn, searchParams])
+  const cancelledProduct = useMemo<ProductKey | null>(() => {
+    if (searchParams.get('checkout') !== 'cancel') return null
+    const product = searchParams.get('product')
+    return product === 'self_serve_report' || product === 'fidrec_tier2_pack' ? product : null
+  }, [searchParams])
+  const isPaymentCancelled = cancelledProduct !== null
+  const capabilityBilling = paymentStatusQuery.data?.capabilityBilling
+  // App-level ready signal for tests and monitoring: the queries that decide the state have settled. The dashboard
+  // keeps polling while work runs, so "network idle" is not a reliable signal.
+  const stateReady =
+    !eligibilityQuery.isPending &&
+    !journeyQuery.isPending &&
+    !evidenceSkippedQuery.isPending &&
+    !intakeCompletionQuery.isPending &&
+    !documentsQuery.isPending &&
+    !tier0DraftQuery.isPending &&
+    !paymentStatusQuery.isPending
+  const paidStagesOff = capabilityBilling?.access.paidStagesEnabled === false
+  // A reached limit or a refused file says so in the server's own words; any other failure keeps the generic message.
+  const uploadErrorMessage = deleteEvidence.isError
+    ? 'The document could not be removed. Please try again.'
+    : !uploadEvidence.isError
+      ? null
+      : uploadEvidence.error instanceof UsageLimitError
+        ? uploadEvidence.error.message
+        : uploadEvidence.error instanceof UploadRefusedError
+          ? uploadEvidence.error.message
+          : 'Review the selected file and try again. Your existing case evidence is unchanged.'
+  const deletingDocumentId = deleteEvidence.isPending ? deleteEvidence.variables ?? null : null
+  const factsHref = `/app/case/${caseId}/facts?stage=free`
+  const showStageOneNextSteps =
+    paidStagesOff && (node === 'S1-Tier0Draft' || node === 'T-BuyReportCTA' || node === 'T-EligibilityGate')
+  // An evaluation made from facts that have since changed says so (edge cases, 8 Nov): the confirmed snapshot no
+  // longer matches the current facts.
+  const showsEvaluation = showStageOneNextSteps || node === 'S1-Tier0Draft'
+  const freeFacts = useCaseFacts(caseId, 'free', { enabled: showsEvaluation })
+  const freeFactsView = freeFacts.data && !('inProgress' in freeFacts.data) ? freeFacts.data : null
+  const evaluationOutOfDateHref =
+    freeFactsView?.latestSnapshot && !freeFactsView.latestSnapshot.unchanged ? `/app/case/${caseId}/facts?stage=free` : null
+  const reportCapability = capabilityBilling?.capabilities.report
+  const fidrecCapability = capabilityBilling?.capabilities.fidrecPack
+  const returnedProductIsEntitled =
+    paymentReturnProduct === 'fidrec_tier2_pack'
+      ? fidrecCapability?.entitled === true
+      : paymentReturnProduct === 'self_serve_report'
+        ? reportCapability?.entitled === true
+        : false
+  const hasInvalidPaymentReturn = isPaymentReturn && paymentReturnProduct === null
+  const isAwaitingPaymentConfirmation = paymentReturnProduct !== null && !returnedProductIsEntitled
+  const reportCheckoutUnavailableReason = paymentStatusQuery.isError
+    ? 'Checkout status could not be loaded. Refresh before trying again.'
+    : reportCapability?.reconciliationRequired
+      ? 'Your payment is recorded and fulfilment is being reconciled. No new checkout is needed.'
+      : reportCapability?.canCheckout !== true
+        ? 'Checkout is not currently available for this case.'
+        : undefined
+  const tier2CheckoutUnavailableReason = paymentStatusQuery.isError
+    ? 'Checkout status could not be loaded. Refresh before trying again.'
+    : fidrecCapability?.reconciliationRequired
+      ? 'Your Tier 2 payment is recorded and fulfilment is being reconciled. No new checkout is needed.'
+      : 'Tier 2 is not currently available for this case.'
+
+  async function saveResponses(
+    answers: Record<string, ValidationAnswerValue>,
+    responseTypes: Record<string, string> = {},
+  ) {
+    const token = await getToken({ template: 'supabase' })
+    if (!token) {
+      throw new Error('Missing Supabase token')
+    }
+
+    const responses = Object.entries(answers).map(([question_key, response_value]) => ({
+      question_key,
+      response_value: serializeValidationAnswer(response_value),
+      response_type: responseTypes[question_key] ?? 'text',
+    }))
+
+    const response = await fetch(`/api/cases/${caseId}/responses`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ responses }),
+    })
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string } | null
+      throw new Error(body?.error ?? 'Failed to save responses')
+    }
+  }
+
+  async function handleIntakeSubmit(answers: IntakeAnswers) {
+    await saveResponses(answers as Record<string, ValidationAnswerValue>)
+    setIntakeCompleted(true)
+    await submitIntake.mutateAsync({ caseId, runExtract: false })
+  }
+
+  async function handleJourneySave(answers: Record<string, string>) {
+    setJourneySaving(true)
+    setJourneyError(null)
+    try {
+      await saveResponses(answers)
+      await queryClient.invalidateQueries({ queryKey: qk.case.journey(caseId) })
+    } catch (error) {
+      setJourneyError(error instanceof Error ? error.message : 'Could not save your answers')
+    } finally {
+      setJourneySaving(false)
+    }
+  }
+
+  // A failed save is shown on the form; before, the rejection was dropped and "Save answers" did nothing.
+  async function handleGapSave(answers: Record<string, ValidationAnswerValue>) {
+    setGapSaveError(null)
+    setIsSavingGap(true)
+    try {
+      await saveResponses(answers, gapResponseTypes)
+      setIntakeCompleted(true)
+      await submitIntake.mutateAsync({ caseId, runExtract: true })
+    } catch {
+      noteProblem('answers_not_saved')
+      setGapSaveError(GAP_SAVE_ERROR)
+    } finally {
+      setIsSavingGap(false)
+    }
+  }
+
+  function handleUpload(files: File[]) {
+    deleteEvidence.reset()
+    uploadEvidence.mutate({ caseId, files })
+  }
+
+  function handleDelete(documentId: string) {
+    uploadEvidence.reset()
+    deleteEvidence.mutate(documentId)
+  }
+
+  async function handleSkipEvidence() {
+    setSkippingEvidence(true)
+    try {
+      await saveResponses({ [EVIDENCE_SKIPPED_KEY]: 'yes' })
+      await queryClient.invalidateQueries({ queryKey: qk.case.evidenceSkipped(caseId) })
+    } catch {
+      noteProblem('answers_not_saved')
+    } finally {
+      setSkippingEvidence(false)
+    }
+  }
+
+  function canStartCheckout(productKey: ProductKey) {
+    if (productKey === 'self_serve_report') return reportCapability?.canCheckout === true
+    if (productKey === 'fidrec_tier2_pack') return fidrecCapability?.canCheckout === true
+    return false
+  }
+
+  async function handleCheckout(productKey: ProductKey) {
+    setCheckoutError(null)
+    setCheckoutProduct(productKey)
+    if (!canStartCheckout(productKey)) {
+      setCheckoutError('Checkout is not currently available for this case.')
+      return
+    }
+
+    try {
+      const checkout = await createCheckout.mutateAsync({ caseId, productKey })
+      if (checkout.status === 'reconciled') {
+        setCheckoutProduct(null)
+        await paymentStatusQuery.refetch()
+        return
+      }
+      setCheckoutRedirecting(true)
+      window.location.assign(checkout.url)
+    } catch (error) {
+      setCheckoutRedirecting(false)
+      setCheckoutError(error instanceof Error ? error.message : 'Could not start checkout')
+    }
+  }
+
+  const isTier2Ready = fidrecCapability?.entitled === true
+  const canBuyTier2 =
+    eligibilityQuery.data?.eligible_actions.run_escalation_pack === true &&
+    fidrecCapability?.canCheckout === true
+
+  const renderLayer3 = () => (
+    <div className="space-y-6">
+      {reportQuery.data && !isTier2Ready ? (
+        <ReportView report={reportQuery.data} decision={decisionQuery.data} />
+      ) : null}
+      <div className="rounded-lg border bg-muted/40 p-4 text-sm">
+        <p className="font-medium">Case reference</p>
+        <p className="text-muted-foreground">{caseId}</p>
+        {initialCaseSnapshot.institutionName ? (
+          <p className="mt-2 text-muted-foreground">
+            Financial institution: {initialCaseSnapshot.institutionName}
+          </p>
+        ) : null}
+        {initialCaseSnapshot.claimAmount != null ? (
+          <p className="text-muted-foreground">
+            Reported loss: SGD {initialCaseSnapshot.claimAmount.toLocaleString()}
+          </p>
+        ) : null}
+      </div>
+
+      {isTier2Ready ? (
+        <Tier2PackView
+          pack={tier2PackQuery.data?.submission_pack}
+          isLoading={tier2PackQuery.isLoading}
+          errorMessage={tier2PackQuery.error ? 'The Tier 2 pack could not be loaded.' : null}
+          onRefresh={() => void tier2PackQuery.refetch()}
+          onDownloadPdf={() => void casePackExport.download(caseId, 'pdf')}
+          onDownloadMd={() => void casePackExport.download(caseId, 'md')}
+        />
+      ) : (
+        <Tier2PackPanel
+          priceLabel={priceLabels.tier2}
+          disabled={!canBuyTier2}
+          unavailableReason={!canBuyTier2 ? tier2CheckoutUnavailableReason : undefined}
+          isStartingCheckout={createCheckout.isPending && checkoutProduct === 'fidrec_tier2_pack'}
+          errorMessage={checkoutProduct === 'fidrec_tier2_pack' ? checkoutError : null}
+          onClick={() => void handleCheckout('fidrec_tier2_pack')}
+        />
+      )}
+
+      <section className="rounded-xl border border-dashed bg-muted/30 p-5" aria-labelledby="consultation-status">
+        <h2 id="consultation-status" className="font-semibold">Human consultation</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.
+        </p>
+        <button type="button" className="mt-4 min-h-11 rounded-full border px-4 text-sm font-semibold" disabled>
+          Consultation unavailable
+        </button>
+      </section>
+    </div>
+  )
+
+  return (
+    <div className="min-h-screen bg-background">
+      <main className="container mx-auto max-w-5xl px-4 py-8" data-harbor-node={node} data-harbor-ready={stateReady ? 'true' : 'false'}>
+        {eligibilityQuery.isError ? (
+          <StateMachineErrorCard kind="internal" context="Case eligibility could not be loaded." />
+        ) : isPaymentCancelled ? (
+          <PaymentCancelled
+            onTryAgain={
+              cancelledProduct && canStartCheckout(cancelledProduct)
+                ? () => void handleCheckout(cancelledProduct)
+                : undefined
+            }
+            onBackToDraft={
+              cancelledProduct === 'self_serve_report'
+                ? () => router.replace(`/app/case/${caseId}/dashboard`)
+                : undefined
+            }
+          />
+        ) : node === 'S1-IntakeForm' && journeyQuery.isPending ? (
+          <StateMachineLoading title="Loading your case" />
+        ) : node === 'S1-Journey' ? (
+          <JourneyQuestions isSaving={journeySaving} errorMessage={journeyError} onSave={(answers) => void handleJourneySave(answers)} />
+        ) : node === 'S1-Tier0DraftPending' ? (
+          // Q2 option (a): the evidence list stays visible while the facts are confirmed.
+          <div className="space-y-8">
+            <ConfirmAndEvaluate
+              caseId={caseId}
+              readyDocumentsKey={(documentsQuery.data ?? []).filter((d) => d.processing_status === 'ready').map((d) => d.id).sort().join(',')}
+            />
+            <EvidenceUploadPanel
+              documents={documentsQuery.data ?? []}
+              isUploading={uploadEvidence.isPending}
+              activeBatchFileCount={uploadEvidence.isPending ? uploadEvidence.variables?.files.length ?? 0 : 0}
+              errorMessage={uploadErrorMessage}
+              onUpload={handleUpload}
+              onDelete={handleDelete}
+              deletingId={deletingDocumentId}
+            />
+          </div>
+        ) : showStageOneNextSteps ? (
+          <Layer1Shell
+            node="S1-Tier0Draft"
+            draft={{
+              narratives: tier0DraftQuery.data ?? {
+                tier0_summary: null,
+                tier0_evidence_checklist: null,
+                tier0_srf_signal: null,
+                other: [],
+              },
+              outOfDateHref: evaluationOutOfDateHref,
+              factsHref,
+              footerSlot: (
+                <div className="pt-4">
+                  <NextSteps caseId={caseId} priceLabels={priceLabels} />
+                </div>
+              ),
+            }}
+          />
+        ) : node === 'S1-IntakeForm' ||
+          node === 'S1-GapLoop' ||
+          node === 'S1-EvidenceUpload' ? (
+          <Layer1Shell
+            node={node}
+            confirmFactsHref={`/app/case/${caseId}/facts?stage=free`}
+            intake={{
+              isSubmitting: submitIntake.isPending,
+              submitError: submitIntake.error?.message ?? null,
+              onSubmit: handleIntakeSubmit,
+            }}
+            gapLoop={{
+              questions: validationErrorMessage ? [] : gapQuestions,
+              isLoadingGapItems,
+              missingQuestionsNotice,
+              onRetryGapLoad: () => {
+                void validationQuery.gapItemsQuery.refetch()
+                void validationQuery.refetch()
+              },
+              isSavingAnswers: isSavingGap || submitIntake.isPending,
+              answersError: validationErrorMessage ?? gapSaveError ?? null,
+              onSaveAnswers: handleGapSave,
+            }}
+            evidence={{
+              documents: documentsQuery.data ?? [],
+              isUploading: uploadEvidence.isPending,
+              activeBatchFileCount: uploadEvidence.isPending
+                ? uploadEvidence.variables?.files.length ?? 0
+                : 0,
+              uploadError: uploadErrorMessage,
+              onUpload: handleUpload,
+              onDeleteDocument: handleDelete,
+              deletingDocumentId,
+              onSkip: () => void handleSkipEvidence(),
+              isSkipping: skippingEvidence,
+            }}
+          />
+        ) : node === 'S1-Tier0Draft' ? (
+          <Layer1Shell
+            node="S1-Tier0Draft"
+            draft={{
+              narratives: tier0DraftQuery.data ?? {
+                tier0_summary: null,
+                tier0_evidence_checklist: null,
+                tier0_srf_signal: null,
+                other: [],
+              },
+              outOfDateHref: evaluationOutOfDateHref,
+              factsHref,
+              footerSlot: (
+                <div className="pt-4">
+                  <BuyReportCTA
+                    priceLabel={priceLabels.report}
+                    disabled={reportCapability?.canCheckout !== true}
+                    unavailableReason={reportCheckoutUnavailableReason}
+                    isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
+                    errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
+                    onClick={() => void handleCheckout('self_serve_report')}
+                  />
+                </div>
+              ),
+            }}
+          />
+        ) : hasInvalidPaymentReturn ? (
+          <StateMachineErrorCard
+            kind="internal"
+            context="Invalid payment return product"
+            onRetry={() => router.replace(`/app/case/${caseId}/dashboard`)}
+          />
+        ) : isAwaitingPaymentConfirmation ? (
+          <PaymentSuccessLanding isConfirming />
+        ) : node === 'T-EligibilityGate' ? (
+          <>
+            <EligibilityGate
+              purchase={
+                reportPurchase
+                  ? { ready: reportPurchase.purchaseReady, blockedReason: reportPurchase.purchaseBlockedReason }
+                  : null
+              }
+              eligibility={eligibilityQuery.data}
+              onResult={handleEligibilityResult}
+            />
+            {gateBlocked ? (
+              <BlockedOnPrereq
+                missing={gateBlocked.missing}
+                reason={gateBlocked.reason}
+                onRetry={() => {
+                  setGateBlocked(null)
+                  void eligibilityQuery.refetch()
+                }}
+              />
+            ) : null}
+          </>
+        ) : node === 'T-BuyReportCTA' ? (
+          <BuyReportCTA
+            priceLabel={priceLabels.report}
+            disabled={reportCapability?.canCheckout !== true}
+            unavailableReason={reportCheckoutUnavailableReason}
+            isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
+            errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
+            onClick={() => void handleCheckout('self_serve_report')}
+          />
+        ) : node === 'T-CheckoutRedirect' ? (
+          <CheckoutRedirect />
+        ) : node === 'L2-DecisionRunning' ? (
+          <DecisionProgress />
+        ) : node === 'L2-ReportDrafting' ? (
+          <ReportDrafting decisionPreview={decisionQuery.data?.decision_json ?? null} />
+        ) : node === 'L2-ReportFailed' ? (
+          <ReportFailed />
+        ) : node === 'L2-ReportReady' ? (
+          reportQuery.data ? (
+            <ReportView report={reportQuery.data} decision={decisionQuery.data} />
+          ) : (
+            <DecisionProgress />
+          )
+        ) : node === 'L3-FormFilling' ||
+          node === 'L3-Tier2Ready' ||
+          node === 'L3-Submitting' ||
+          node === 'L3-Confirmed' ? (
+          renderLayer3()
+        ) : (
+          <StateMachineErrorCard
+            kind="internal"
+            context="The case view could not be resolved."
+          />
+        )}
+      </main>
+    </div>
+  )
+}

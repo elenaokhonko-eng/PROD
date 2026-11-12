@@ -2,18 +2,16 @@ import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai"
 import { z } from "zod"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
-import { createServiceClient } from "@/lib/supabase/service"
 import { getNextStepsForRuleEngine } from "@/lib/rules"
 import { logger } from "@/lib/logger"
 import type { TriageSignals } from "@/lib/rules"
+import { getGeminiModel } from "@/lib/server/ai/models"
+import { safeErrorText } from "@/lib/server/safe-error"
+import { cappedConfig, meteredGenerate } from "@/lib/server/ai/gemini-metered"
+import { preSignInModelPaused, GEMINI_THINKING_BUDGET, OUTPUT_CAPS } from "@/lib/server/model-usage"
+import { limitResponse, preSignInLimit } from "@/lib/server/usage-limits"
 
-const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-if (!API_KEY) {
-  throw new Error("GOOGLE_GENERATIVE_AI_API_KEY environment variable not set.")
-}
-
-const genAI = new GoogleGenerativeAI(API_KEY)
-const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-2.0-flash"
+const modelName = getGeminiModel()
 const log = logger.withContext({ module: "router-classify", model: modelName })
 
 const classifyRequestSchema = z.object({
@@ -102,6 +100,9 @@ export async function POST(request: NextRequest) {
   try {
     const rl = rateLimit(keyFrom(request, "/api/router/classify"), 20, 60_000)
     if (!rl.ok) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
+    // Reachable before sign-in: a model call, so limited per IP per hour (cost-controls B2).
+    const limited = preSignInLimit(request)
+    if (limited) return limitResponse(limited)
 
     let parsedBody
     try {
@@ -116,6 +117,19 @@ export async function POST(request: NextRequest) {
     const { session_token: sessionToken, narrative } = parsedBody
     void sessionToken
 
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) {
+      log.error("Classification AI service is not configured")
+      return NextResponse.json({ error: "Classification service is unavailable" }, { status: 503 })
+    }
+
+    // Daily spend cap reached: no model call; the router continues with the rule-based fallback.
+    if (await preSignInModelPaused()) {
+      const signals = fallbackSignals("We couldn't analyse your story automatically right now. Please answer the questions below.")
+      return NextResponse.json({ ...signals, claimType: "Financial Dispute", summary: signals.summary, keyEntities: [], nextSteps: getNextStepsForRuleEngine() })
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey)
     const sanitizedNarrative = sanitizeText(narrative)
 
     const userPrompt = `User narrative:
@@ -128,7 +142,7 @@ JSON Output:`
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction,
-      generationConfig: { responseMimeType: "application/json" },
+      generationConfig: cappedConfig({ responseMimeType: "application/json" }, OUTPUT_CAPS.router, GEMINI_THINKING_BUDGET.router),
       safetySettings: [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -138,15 +152,14 @@ JSON Output:`
     })
 
     log.info("Calling Gemini for triage signal extraction")
-    const result = await model.generateContent(userPrompt)
+    const result = await meteredGenerate(model, userPrompt, { purpose: "router_classify", modelName })
     const response = result.response
     const rawText =
       response.text() ??
       response.candidates?.[0]?.content?.parts?.find((part) => "text" in part)?.text ??
       ""
 
-    const rawPreview = rawText.length > 1000 ? `${rawText.slice(0, 1000)}...` : rawText
-    log.debug("Gemini classify raw response", { preview: rawPreview, characters: rawText.length })
+    log.debug("Gemini classify raw response", { characters: rawText.length })
 
     let signals: TriageSignals
     try {
@@ -156,27 +169,15 @@ JSON Output:`
       }
     } catch (parseError) {
       log.warn("Classify JSON parse error — using fallback signals", {
-        error: parseError instanceof Error ? parseError.message : String(parseError),
-        rawPreview: rawText.slice(0, 400),
+        // The model output summarises the person's story: never logged (hardening item 6).
+        error: safeErrorText(parseError),
+        rawLength: rawText.length,
       })
       signals = fallbackSignals("Unable to parse narrative. Please try again.")
     }
 
-    // Persist anonymized training data
-    const supabase = createServiceClient()
-    const { error: insertError } = await supabase.from("anonymized_training_data").insert({
-      original_case_id: null,
-      anonymized_narrative: sanitizedNarrative,
-      dispute_category: "Financial Dispute",
-      outcome_type: null,
-      anonymization_method: "regex_v2",
-    })
-    if (insertError) {
-      log.error("Failed to persist anonymized training data", {
-        error: insertError.message,
-        hint: insertError.hint,
-      })
-    }
+    // Nothing from the story is kept for training (Elena, 8 Nov): it contradicts the Privacy Policy, and regex
+    // masking is not anonymisation. The old training table is to be dropped in a later migration.
 
     // Return triage signals + legacy fields for backward compatibility
     return NextResponse.json({
@@ -189,9 +190,7 @@ JSON Output:`
       nextSteps: getNextStepsForRuleEngine(),
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    const stack = error instanceof Error ? error.stack : undefined
-    log.error("Classification API error", { error: message, stack })
-    return NextResponse.json({ error: message || "Failed to classify case" }, { status: 500 })
+    log.error("Classification API error", { error: safeErrorText(error) })
+    return NextResponse.json({ error: "Failed to classify case" }, { status: 500 })
   }
 }

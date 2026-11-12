@@ -7,12 +7,13 @@
  *   S1-IntakeForm            → IntakeForm only (no upload)
  *   S1-GapLoop               → GapQuestionPanel only (no upload)
  *   S1-EvidenceUpload        → EvidenceUploadPanel (dedicated upload step)
- *   S1-Tier0DraftPending     → StateMachineLoading (full)
+ *   S1-Tier0DraftPending     → "Confirm your facts" card (the free evaluation is generated after confirming)
  *   S1-Tier0Draft            → Tier0DraftView
  *   (error at any node)      → StateMachineErrorCard
  */
 
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 import {
   StateMachineErrorCard,
   type StateMachineErrorKind,
@@ -21,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { EvidenceUploadPanel } from '@/components/state-machine/layer1/evidence-upload-panel'
+import { EvidenceQuestionsWorkspace } from '@/components/state-machine/layer1/evidence-questions-workspace'
 import { GapQuestionPanel } from '@/components/state-machine/layer1/gap-question-panel'
 import { IntakeForm, type IntakeAnswers } from '@/components/state-machine/layer1/intake-form'
 import { Tier0DraftView } from '@/components/state-machine/layer1/tier0-draft-view'
@@ -68,9 +70,13 @@ export interface Layer1ShellProps {
     documents: CaseDocumentRow[]
     isUploading?: boolean
     activeBatchFileCount?: number
+    uploadError?: string | null
     onUpload: (files: File[]) => void
     onDeleteDocument?: (documentId: string) => void
-    onRejectFile?: (file: File, reason: string) => void
+    deletingDocumentId?: string | null
+    /** Upload step only: go on without documents. */
+    onSkip?: () => void
+    isSkipping?: boolean
   }
 
   draft?: {
@@ -78,10 +84,17 @@ export interface Layer1ShellProps {
     isRefreshing?: boolean
     onRefresh?: () => void
     footerSlot?: ReactNode
+    /** Set when the facts changed after this evaluation: links back to confirm them again. */
+    outOfDateHref?: string | null
+    /** Always shown: the confirm screen, to check or change a fact (walkthrough, 9 Nov). */
+    factsHref?: string | null
   }
+
+  /** Where the user confirms their facts before the free evaluation is generated (S1-Tier0DraftPending). */
+  confirmFactsHref?: string
 }
 
-export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft }: Layer1ShellProps) {
+export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft, confirmFactsHref }: Layer1ShellProps) {
   if (error) {
     return (
       <StateMachineErrorCard
@@ -139,6 +152,31 @@ export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft }: L
           </div>
         )
       }
+      if (evidence) {
+        return (
+          <EvidenceQuestionsWorkspace
+            questions={
+              <GapQuestionPanel
+                questions={gapLoop.questions}
+                isSubmitting={gapLoop.isSavingAnswers}
+                errorMessage={gapLoop.answersError ?? null}
+                onSave={gapLoop.onSaveAnswers}
+              />
+            }
+            evidence={
+              <EvidenceUploadPanel
+                documents={evidence.documents}
+                isUploading={evidence.isUploading}
+                activeBatchFileCount={evidence.activeBatchFileCount}
+                errorMessage={evidence.uploadError}
+                onUpload={evidence.onUpload}
+                onDelete={evidence.onDeleteDocument}
+                deletingId={evidence.deletingDocumentId}
+              />
+            }
+          />
+        )
+      }
       return (
         <div className="mx-auto max-w-2xl">
           <GapQuestionPanel
@@ -158,20 +196,33 @@ export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft }: L
             documents={evidence.documents}
             isUploading={evidence.isUploading}
             activeBatchFileCount={evidence.activeBatchFileCount}
+            errorMessage={evidence.uploadError}
             onUpload={evidence.onUpload}
             onDelete={evidence.onDeleteDocument}
-            onRejected={evidence.onRejectFile}
+            deletingId={evidence.deletingDocumentId}
+            onSkip={evidence.onSkip}
+            isSkipping={evidence.isSkipping}
           />
         </div>
       )
 
     case 'S1-Tier0DraftPending':
+      if (!confirmFactsHref) return <MissingPropsFallback prop="confirmFactsHref" />
       return (
-        <StateMachineLoading
-          size="full"
-          title="Preparing your free draft"
-          description="Up to 15 seconds — we're weaving your story and evidence into a triage summary."
-        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Next: confirm your facts</CardTitle>
+            <CardDescription>
+              Before we prepare your free evaluation, check what we found in your story, your answers and your
+              documents. It takes a few minutes.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href={confirmFactsHref}>Confirm your facts</Link>
+            </Button>
+          </CardContent>
+        </Card>
       )
 
     case 'S1-Tier0Draft':
@@ -182,6 +233,8 @@ export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft }: L
           isRefreshing={draft.isRefreshing}
           onRefresh={draft.onRefresh}
           footerSlot={draft.footerSlot}
+          outOfDateHref={draft.outOfDateHref}
+          factsHref={draft.factsHref}
         />
       )
 

@@ -1,8 +1,14 @@
 import type { Metadata } from "next"
+import { notFound } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createServiceClient } from "@/lib/supabase/service"
 import { SiteHeader } from "@/components/site-header"
+import { getCurrentUser } from "@/lib/auth"
+import { createUserClient } from "@/lib/supabase/server"
+import { CostDashboardSection } from "@/components/harbor/cost-dashboard"
+import { type CostDashboard, type CostDashboardClient, loadCostDashboard } from "@/lib/server/cost-dashboard"
+import { dailyCapUsd, usageEnvironment } from "@/lib/server/model-usage"
 
 export const metadata: Metadata = {
   title: "Analytics | GuideBuoy AI",
@@ -195,6 +201,23 @@ function formatNumber(value: number | null) {
 }
 
 export default async function AnalyticsPage() {
+  const currentUser = await getCurrentUser()
+  if (!currentUser) notFound()
+
+  const userClient = await createUserClient()
+  const { data: isAdmin, error: roleError } = await userClient.rpc("current_app_has_role", {
+    p_role: "admin",
+  })
+  if (roleError || !isAdmin) notFound()
+
+  // Model costs (cost-controls spec §6 C1): read only after the admin check above.
+  let costs: CostDashboard | null = null
+  try {
+    costs = await loadCostDashboard(createServiceClient() as unknown as CostDashboardClient, usageEnvironment(process.env))
+  } catch (error) {
+    console.error("[analytics] model costs unavailable:", error instanceof Error ? error.message.slice(0, 120) : "unknown")
+  }
+
   const [sessions, countries, sessionCounts, sessionPeriods, funnel, registeredUsers, waitlistUsers, complaintStatus, reportStatus] =
     await Promise.all([
       fetchSessionRows(),
@@ -227,6 +250,8 @@ export default async function AnalyticsPage() {
       </div>
 
       <div className="container mx-auto px-4 py-10 space-y-8">
+        <CostDashboardSection data={costs} capUsd={dailyCapUsd(process.env)} />
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader>

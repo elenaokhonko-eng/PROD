@@ -2,14 +2,13 @@ import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai"
 import { z } from "zod"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
+import { getGeminiModel } from "@/lib/server/ai/models"
+import { safeErrorText } from "@/lib/server/safe-error"
+import { cappedConfig, meteredGenerate } from "@/lib/server/ai/gemini-metered"
+import { preSignInModelPaused, GEMINI_THINKING_BUDGET, OUTPUT_CAPS } from "@/lib/server/model-usage"
+import { limitResponse, preSignInLimit } from "@/lib/server/usage-limits"
 
-const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-if (!API_KEY) {
-  throw new Error("GOOGLE_GENERATIVE_AI_API_KEY environment variable not set.")
-}
-
-const genAI = new GoogleGenerativeAI(API_KEY)
-const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL ?? "models/gemini-2.0-flash"
+const modelName = getGeminiModel()
 
 function scrub<T>(obj: T): T {
   try {
@@ -33,6 +32,9 @@ export async function POST(request: NextRequest) {
   try {
     const rl = rateLimit(keyFrom(request, "/api/router/questions"), 20, 60_000)
     if (!rl.ok) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
+    // Reachable before sign-in: a model call, so limited per IP per hour (cost-controls B2).
+    const limited = preSignInLimit(request)
+    if (limited) return limitResponse(limited)
 
     let parsed
     try {
@@ -47,9 +49,20 @@ export async function POST(request: NextRequest) {
     const { session_token: sessionToken, classification } = parsed
     void sessionToken
 
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) {
+      return NextResponse.json({ error: "Questions service is unavailable" }, { status: 503 })
+    }
+
+    // Daily spend cap reached: no model call; the page says the questions could not be loaded and the story is saved.
+    if (await preSignInModelPaused()) {
+      return NextResponse.json({ error: "Questions service is unavailable" }, { status: 503 })
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({
       model: modelName,
-      generationConfig: { responseMimeType: "application/json" },
+      generationConfig: cappedConfig({ responseMimeType: "application/json" }, OUTPUT_CAPS.router, GEMINI_THINKING_BUDGET.router),
       safetySettings: [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -82,7 +95,7 @@ Keep wording plain and friendly. Do not include legal disclaimers.
 
 JSON Output:`
 
-    const result = await model.generateContent(prompt)
+    const result = await meteredGenerate(model, prompt, { purpose: "router_questions", modelName })
     const response = result.response
     const rawText =
       response.text() ??
@@ -93,22 +106,22 @@ JSON Output:`
     try {
       data = JSON.parse(rawText) as Record<string, unknown>
     } catch (err) {
-      console.error("[v0] Questions JSON parse error:", err, rawText)
+      console.error("[v0] Questions JSON parse error: model returned malformed JSON")
       return NextResponse.json({ error: "Unable to parse generated questions" }, { status: 502 })
     }
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error("[v0] Questions generation error:", error)
+    console.error("[v0] Questions generation error:", safeErrorText(error))
     if (
       typeof error === "object" &&
       error !== null &&
       "response" in error &&
       typeof (error as { response?: { data?: unknown } }).response === "object"
     ) {
-      const responseData = (error as { response?: { data?: unknown } }).response?.data
-      if (responseData) {
-        console.error("API Error details:", JSON.stringify(responseData, null, 2))
+      // The provider body can echo the input; log only that there was one (hardening item 6).
+      if ((error as { response?: { data?: unknown } }).response?.data) {
+        console.error("API Error details: provider returned an error body")
       }
     }
     return NextResponse.json({ error: "Failed to generate questions" }, { status: 500 })

@@ -2,16 +2,19 @@
  * Regression guard for Executive Summary case-overview facts on the rich DBS case.
  *
  * Usage:
- *   npx tsx scripts/regression/test-executive-summary-rich-case.ts
+ *   HARBOR_REGRESSION_EXEC_SUMMARY_BASELINE=<path> npx tsx scripts/regression/test-executive-summary-rich-case.ts
  *
  * Requires local env (.env.local) with Supabase + OpenAI credentials because
  * generateCasePackJson loads live tier-2 artefacts for the case.
+ *
+ * The expected values come from a real case, so they live outside the repo and
+ * are never committed. executive-summary-baseline-rich-case.json shows the
+ * format with synthetic values. Skips when the variable is unset.
  */
 
 import "../load-local-env.ts"
 
 import { readFile } from "node:fs/promises"
-import { resolve } from "node:path"
 
 import { generateCasePackJson } from "../../lib/server/fidrec/generate-case-pack-json.ts"
 
@@ -26,16 +29,18 @@ type ExecutiveSummaryRegressionBaseline = {
   must_not_contain: string[]
 }
 
-const BASELINE_PATH = resolve(
-  process.cwd(),
-  "scripts/regression/executive-summary-baseline-rich-case.json",
-)
+const BASELINE_PATH = process.env.HARBOR_REGRESSION_EXEC_SUMMARY_BASELINE
 
 function assertCondition(condition: boolean, message: string, failures: string[]): void {
   if (!condition) failures.push(message)
 }
 
 async function main() {
+  if (!BASELINE_PATH) {
+    console.log("Executive Summary rich-case regression skipped: HARBOR_REGRESSION_EXEC_SUMMARY_BASELINE is not set.")
+    return
+  }
+
   const baselineRaw = await readFile(BASELINE_PATH, "utf8")
   const baseline = JSON.parse(baselineRaw) as ExecutiveSummaryRegressionBaseline
 

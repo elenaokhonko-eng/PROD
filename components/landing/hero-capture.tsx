@@ -2,42 +2,39 @@
 
 const STORAGE_KEY = "gb_pending_narrative"
 
-type PendingNarrativePayload = {
+export type PendingNarrativePayload = {
   narrative: string
   transcript?: string
 }
 
 export function persistPendingNarrative(payload: PendingNarrativePayload) {
   if (typeof window === "undefined") return
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
-
-  // Best-effort mirror for Clerk session continuity.
-  const clerk = (window as typeof window & { Clerk?: any }).Clerk
-  if (!clerk?.user) return
-
-  void clerk.user
-    .update({
-      unsafeMetadata: {
-        ...(clerk.user.unsafeMetadata ?? {}),
-        pending_narrative: payload,
-      },
-    })
-    .catch(() => {})
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+  } catch {
+    // The capture remains in component state when browser storage is unavailable.
+  }
 }
 
-export function readAndClearPendingNarrative(): PendingNarrativePayload | null {
+export function readPendingNarrative(): PendingNarrativePayload | null {
   if (typeof window === "undefined") return null
 
-  const raw = sessionStorage.getItem(STORAGE_KEY)
-  if (!raw) return null
-
   try {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
     const parsed = JSON.parse(raw) as PendingNarrativePayload
-    sessionStorage.removeItem(STORAGE_KEY)
-    return parsed
+    return typeof parsed.narrative === "string" && parsed.narrative.trim() ? parsed : null
   } catch {
-    sessionStorage.removeItem(STORAGE_KEY)
     return null
+  }
+}
+
+export function clearPendingNarrative() {
+  if (typeof window === "undefined") return
+  try {
+    sessionStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // Nothing else is required when storage is unavailable.
   }
 }
 

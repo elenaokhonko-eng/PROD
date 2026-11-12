@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { storedResponseType } from '@/lib/validation-gaps'
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
@@ -52,12 +53,10 @@ export async function PUT(
     global: { headers: { Authorization: `Bearer ${bearer}` } },
   })
 
-  // Verify case ownership
   const { data: caseData, error: caseErr } = await supabase
     .from('cases')
     .select('id')
     .eq('id', caseId)
-    .eq('user_id', supabaseUuid)
     .maybeSingle()
 
   if (caseErr) {
@@ -84,10 +83,8 @@ export async function PUT(
       )
     }
 
-    const responseType =
-      typeof response.response_type === 'string' && response.response_type
-        ? response.response_type
-        : 'text'
+    // Stored as one of the types the database accepts; a "money" answer was rejected before (demo 7 Nov).
+    const responseType = storedResponseType(response.response_type)
     const responseValue =
       typeof response.response_value === 'string'
         ? response.response_value

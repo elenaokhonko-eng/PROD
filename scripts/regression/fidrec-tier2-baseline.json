@@ -1,0 +1,512 @@
+{
+  "caseId": "00000000-0000-4000-8000-000000000001",
+  "generatedAt": "2026-01-15T09:00:00.000Z",
+  "counts": {
+    "bankAssertions": 3,
+    "caseFindings": 3,
+    "links": 9,
+    "investigationQuestions": 2,
+    "evidenceRequests": 3
+  },
+  "bankAssertions": [
+    {
+      "assertion_text": "Synthetic assertion text 1 for a fictional claimant and bank.",
+      "assertion_type": "technical",
+      "bank_conclusion_supported": "Synthetic bank conclusion supported 2 for a fictional claimant and bank."
+    },
+    {
+      "assertion_text": "Synthetic assertion text 3 for a fictional claimant and bank.",
+      "assertion_type": "technical",
+      "bank_conclusion_supported": "Synthetic bank conclusion supported 4 for a fictional claimant and bank."
+    },
+    {
+      "assertion_text": "Synthetic assertion text 5 for a fictional claimant and bank.",
+      "assertion_type": "technical",
+      "bank_conclusion_supported": "Synthetic bank conclusion supported 6 for a fictional claimant and bank."
+    }
+  ],
+  "caseFindings": [
+    {
+      "finding_text": "Synthetic finding text 7 for a fictional claimant and bank.",
+      "finding_type": "notification",
+      "confidence": "high"
+    },
+    {
+      "finding_text": "Synthetic finding text 8 for a fictional claimant and bank.",
+      "finding_type": "transaction_pattern",
+      "confidence": "high"
+    },
+    {
+      "finding_text": "Synthetic finding text 9 for a fictional claimant and bank.",
+      "finding_type": "authentication",
+      "confidence": "high"
+    }
+  ],
+  "links": [
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 10 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 11 for a fictional claimant and bank.",
+      "relationship": "requires_particulars",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 12 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 13 for a fictional claimant and bank.",
+      "relationship": "requires_particulars",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 14 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 15 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 16 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 17 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 18 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 19 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 20 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 21 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 22 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 23 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 24 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 25 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    },
+    {
+      "bank_assertion_text": "Synthetic bank assertion text 26 for a fictional claimant and bank.",
+      "finding_text": "Synthetic finding text 27 for a fictional claimant and bank.",
+      "relationship": "irrelevant",
+      "confidence": "high"
+    }
+  ],
+  "investigationQuestions": [
+    {
+      "question_text": "Synthetic question text 28 for a fictional claimant and bank.",
+      "question_type": "authentication_gap",
+      "priority": "critical"
+    },
+    {
+      "question_text": "Synthetic question text 29 for a fictional claimant and bank.",
+      "question_type": "containment_gap",
+      "priority": "medium"
+    }
+  ],
+  "evidenceRequests": [
+    {
+      "request_text": "Synthetic request text 30 for a fictional claimant and bank.",
+      "evidence_category": "authentication_record",
+      "requested_from": "bank",
+      "priority": "critical"
+    },
+    {
+      "request_text": "Synthetic request text 31 for a fictional claimant and bank.",
+      "evidence_category": "notification_record",
+      "requested_from": "bank",
+      "priority": "medium"
+    },
+    {
+      "request_text": "Synthetic request text 32 for a fictional claimant and bank.",
+      "evidence_category": "hotline_record",
+      "requested_from": "customer",
+      "priority": "medium"
+    }
+  ],
+  "case_pack_json": {
+    "case_id": "00000000-0000-4000-8000-000000000001",
+    "generated_at": "2026-01-15T09:00:00.000Z",
+    "pack_version": "Synthetic pack version 33 for a fictional claimant and bank.",
+    "executive_summary": {
+      "text": "Synthetic text 34 for a fictional claimant and bank."
+    },
+    "key_themes": [
+      {
+        "theme_id": "Synthetic theme id 35 for a fictional claimant and bank.",
+        "theme_title": "Synthetic theme title 36 for a fictional claimant and bank.",
+        "theme_type": "authentication",
+        "priority": "critical",
+        "theme_summary": "Synthetic theme summary 37 for a fictional claimant and bank.",
+        "issue": "Synthetic issue 38 for a fictional claimant and bank.",
+        "investigation_question": {
+          "id": "Synthetic id 39 for a fictional claimant and bank.",
+          "question_text": "Synthetic question text 40 for a fictional claimant and bank.",
+          "priority": "critical"
+        },
+        "evidence_requests": [
+          {
+            "id": "Synthetic id 41 for a fictional claimant and bank.",
+            "request_text": "Synthetic request text 42 for a fictional claimant and bank.",
+            "evidence_category": "authentication_record",
+            "requested_from": "bank",
+            "priority": "critical",
+            "status": "open"
+          }
+        ],
+        "regulatory_references": [
+          {
+            "clause_id": "Synthetic clause id 43 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 44 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 45 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 46 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 47 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 48 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 49 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 50 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 51 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 52 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 53 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 54 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 55 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 56 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 57 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 58 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 59 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 60 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 61 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 62 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 63 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 64 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 65 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 66 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 67 for a fictional claimant and bank.",
+            "similarity_score": 0
+          }
+        ]
+      },
+      {
+        "theme_id": "Synthetic theme id 68 for a fictional claimant and bank.",
+        "theme_title": "Synthetic theme title 69 for a fictional claimant and bank.",
+        "theme_type": "containment",
+        "priority": "medium",
+        "theme_summary": "Synthetic theme summary 70 for a fictional claimant and bank.",
+        "issue": "Synthetic issue 71 for a fictional claimant and bank.",
+        "investigation_question": {
+          "id": "Synthetic id 72 for a fictional claimant and bank.",
+          "question_text": "Synthetic question text 73 for a fictional claimant and bank.",
+          "priority": "medium"
+        },
+        "evidence_requests": [
+          {
+            "id": "Synthetic id 74 for a fictional claimant and bank.",
+            "request_text": "Synthetic request text 75 for a fictional claimant and bank.",
+            "evidence_category": "notification_record",
+            "requested_from": "bank",
+            "priority": "medium",
+            "status": "open"
+          },
+          {
+            "id": "Synthetic id 76 for a fictional claimant and bank.",
+            "request_text": "Synthetic request text 77 for a fictional claimant and bank.",
+            "evidence_category": "hotline_record",
+            "requested_from": "customer",
+            "priority": "medium",
+            "status": "open"
+          }
+        ],
+        "regulatory_references": [
+          {
+            "clause_id": "Synthetic clause id 78 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 79 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 80 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 81 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 82 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 83 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 84 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 85 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 86 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 87 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 88 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 89 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 90 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 91 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 92 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 93 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 94 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 95 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 96 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 97 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 98 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 99 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 100 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 101 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 102 for a fictional claimant and bank.",
+            "similarity_score": 0
+          }
+        ]
+      }
+    ],
+    "bank_assertions_and_material_findings": [
+      {
+        "assertion_id": "Synthetic assertion id 103 for a fictional claimant and bank.",
+        "assertion_text": "Synthetic assertion text 104 for a fictional claimant and bank.",
+        "assertion_type": "technical",
+        "bank_conclusion_supported": "Synthetic bank conclusion supported 105 for a fictional claimant and bank.",
+        "material_findings": [
+          {
+            "finding_id": "Synthetic finding id 106 for a fictional claimant and bank.",
+            "finding_text": "Synthetic finding text 107 for a fictional claimant and bank.",
+            "finding_type": "authentication",
+            "relationship": "requires_particulars",
+            "confidence": "high",
+            "explanation": "Synthetic explanation 108 for a fictional claimant and bank."
+          }
+        ]
+      },
+      {
+        "assertion_id": "Synthetic assertion id 109 for a fictional claimant and bank.",
+        "assertion_text": "Synthetic assertion text 110 for a fictional claimant and bank.",
+        "assertion_type": "technical",
+        "bank_conclusion_supported": "Synthetic bank conclusion supported 111 for a fictional claimant and bank.",
+        "material_findings": [
+          {
+            "finding_id": "Synthetic finding id 112 for a fictional claimant and bank.",
+            "finding_text": "Synthetic finding text 113 for a fictional claimant and bank.",
+            "finding_type": "authentication",
+            "relationship": "requires_particulars",
+            "confidence": "high",
+            "explanation": "Synthetic explanation 114 for a fictional claimant and bank."
+          }
+        ]
+      },
+      {
+        "assertion_id": "Synthetic assertion id 115 for a fictional claimant and bank.",
+        "assertion_text": "Synthetic assertion text 116 for a fictional claimant and bank.",
+        "assertion_type": "technical",
+        "bank_conclusion_supported": "Synthetic bank conclusion supported 117 for a fictional claimant and bank.",
+        "material_findings": []
+      }
+    ],
+    "outstanding_evidence_requests": [
+      {
+        "theme_id": "Synthetic theme id 118 for a fictional claimant and bank.",
+        "theme_title": "Synthetic theme title 119 for a fictional claimant and bank.",
+        "requests": [
+          {
+            "id": "Synthetic id 120 for a fictional claimant and bank.",
+            "request_text": "Synthetic request text 121 for a fictional claimant and bank.",
+            "request_reason": "Synthetic request reason 122 for a fictional claimant and bank.",
+            "evidence_category": "authentication_record",
+            "requested_from": "bank",
+            "priority": "critical",
+            "status": "open",
+            "suggested_file_types": [
+              "csv",
+              "pdf",
+              "xls"
+            ],
+            "example_documents": [
+              "Synthetic example documents 123 for a fictional claimant and bank.",
+              "Synthetic example documents 124 for a fictional claimant and bank.",
+              "Synthetic example documents 125 for a fictional claimant and bank."
+            ]
+          }
+        ]
+      },
+      {
+        "theme_id": "Synthetic theme id 126 for a fictional claimant and bank.",
+        "theme_title": "Synthetic theme title 127 for a fictional claimant and bank.",
+        "requests": [
+          {
+            "id": "Synthetic id 128 for a fictional claimant and bank.",
+            "request_text": "Synthetic request text 129 for a fictional claimant and bank.",
+            "request_reason": "Synthetic request reason 130 for a fictional claimant and bank.",
+            "evidence_category": "notification_record",
+            "requested_from": "bank",
+            "priority": "medium",
+            "status": "open",
+            "suggested_file_types": [
+              "pdf",
+              "csv",
+              "Synthetic suggested file types 131 for a fictional claimant and bank."
+            ],
+            "example_documents": [
+              "Synthetic example documents 132 for a fictional claimant and bank.",
+              "Synthetic example documents 133 for a fictional claimant and bank.",
+              "Synthetic example documents 134 for a fictional claimant and bank."
+            ]
+          },
+          {
+            "id": "Synthetic id 135 for a fictional claimant and bank.",
+            "request_text": "Synthetic request text 136 for a fictional claimant and bank.",
+            "request_reason": "Synthetic request reason 137 for a fictional claimant and bank.",
+            "evidence_category": "hotline_record",
+            "requested_from": "customer",
+            "priority": "medium",
+            "status": "open",
+            "suggested_file_types": [
+              "pdf",
+              "Synthetic suggested file types 138 for a fictional claimant and bank.",
+              "wav"
+            ],
+            "example_documents": [
+              "Synthetic example documents 139 for a fictional claimant and bank.",
+              "Synthetic example documents 140 for a fictional claimant and bank."
+            ]
+          }
+        ]
+      }
+    ],
+    "relevant_regulatory_references": [
+      {
+        "theme_id": "Synthetic theme id 141 for a fictional claimant and bank.",
+        "theme_title": "Synthetic theme title 142 for a fictional claimant and bank.",
+        "references": [
+          {
+            "clause_id": "Synthetic clause id 143 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 144 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 145 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 146 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 147 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 148 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 149 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 150 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 151 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 152 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 153 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 154 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 155 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 156 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 157 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 158 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 159 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 160 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 161 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 162 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 163 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 164 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 165 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 166 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 167 for a fictional claimant and bank.",
+            "similarity_score": 0
+          }
+        ]
+      },
+      {
+        "theme_id": "Synthetic theme id 168 for a fictional claimant and bank.",
+        "theme_title": "Synthetic theme title 169 for a fictional claimant and bank.",
+        "references": [
+          {
+            "clause_id": "Synthetic clause id 170 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 171 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 172 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 173 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 174 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 175 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 176 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 177 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 178 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 179 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 180 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 181 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 182 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 183 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 184 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 185 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 186 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 187 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 188 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 189 for a fictional claimant and bank.",
+            "similarity_score": 0
+          },
+          {
+            "clause_id": "Synthetic clause id 190 for a fictional claimant and bank.",
+            "document_name": "Synthetic document name 191 for a fictional claimant and bank.",
+            "clause_number": "Synthetic clause number 192 for a fictional claimant and bank.",
+            "clause_title": "Synthetic clause title 193 for a fictional claimant and bank.",
+            "clause_summary": "Synthetic clause summary 194 for a fictional claimant and bank.",
+            "similarity_score": 0
+          }
+        ]
+      }
+    ],
+    "annexure_placeholders": [
+      {
+        "annexure_label": "Synthetic annexure label 195 for a fictional claimant and bank.",
+        "title": "Synthetic title 196 for a fictional claimant and bank.",
+        "source": "bank",
+        "related_theme_id": "Synthetic related theme id 197 for a fictional claimant and bank.",
+        "related_evidence_request_id": "Synthetic related evidence request id 198 for a fictional claimant and bank.",
+        "status": "placeholder"
+      },
+      {
+        "annexure_label": "Synthetic annexure label 199 for a fictional claimant and bank.",
+        "title": "Synthetic title 200 for a fictional claimant and bank.",
+        "source": "bank",
+        "related_theme_id": "Synthetic related theme id 201 for a fictional claimant and bank.",
+        "related_evidence_request_id": "Synthetic related evidence request id 202 for a fictional claimant and bank.",
+        "status": "placeholder"
+      },
+      {
+        "annexure_label": "Synthetic annexure label 203 for a fictional claimant and bank.",
+        "title": "Synthetic title 204 for a fictional claimant and bank.",
+        "source": "customer",
+        "related_theme_id": "Synthetic related theme id 205 for a fictional claimant and bank.",
+        "related_evidence_request_id": "Synthetic related evidence request id 206 for a fictional claimant and bank.",
+        "status": "placeholder"
+      }
+    ]
+  }
+}

@@ -48,6 +48,16 @@ export function normalizeValidationAnswerType(value: unknown): ValidationAnswerT
     : 'text'
 }
 
+// run_validation_v1 copies its diagnostic reason into help_text; those are notes for us, never shown to the person
+// (G3b re-check, 11 Nov: "Not found in extracted fields" appeared under a question).
+const INTERNAL_GAP_REASONS = new Set(['not found in extracted fields', 'loss amount missing'])
+
+export function userFacingHelpText(value: unknown): string | null {
+  const text = cleanString(value)
+  if (!text || INTERNAL_GAP_REASONS.has(text.toLowerCase())) return null
+  return text
+}
+
 export function normalizeGapItemToQuestion(row: ValidationGapItemRow): ValidationQuestion | null {
   const key = cleanString(row.field_key)
   const question = cleanString(row.question_text)
@@ -60,7 +70,7 @@ export function normalizeGapItemToQuestion(row: ValidationGapItemRow): Validatio
     required: row.severity === 'required',
     options: Array.isArray(row.answer_options) ? row.answer_options : [],
     severity: row.severity,
-    help_text: row.help_text ?? null,
+    help_text: userFacingHelpText(row.help_text),
     id: row.id,
     field_label: row.field_label,
     gap_type: row.gap_type,
@@ -102,7 +112,7 @@ export function normalizeLegacyValidationQuestion(
     required: raw.required === true || severity === 'required',
     options: Array.isArray(options) ? options : [],
     severity,
-    help_text: cleanString(raw.help_text) ?? null,
+    help_text: userFacingHelpText(raw.help_text),
   }
 }
 
@@ -162,11 +172,35 @@ export function serializeValidationAnswer(value: ValidationAnswerValue): string 
   return value
 }
 
-export function getValidationResponseTypes(questions: ValidationQuestion[]): Record<string, string> {
+// The only values `case_responses.response_type` accepts (constraint case_responses_response_type_check). A
+// question's answer type ("money", "single_choice", ...) is stored as the nearest of these; nothing reads it back.
+export const STORED_RESPONSE_TYPES = ['text', 'boolean', 'number', 'date', 'file'] as const
+export type StoredResponseType = (typeof STORED_RESPONSE_TYPES)[number]
+
+export function storedResponseType(value: unknown): StoredResponseType {
+  const raw = cleanString(value)
+  if (raw && (STORED_RESPONSE_TYPES as readonly string[]).includes(raw)) return raw as StoredResponseType
+  switch (normalizeValidationAnswerType(value)) {
+    case 'money':
+    case 'number':
+      return 'number'
+    case 'boolean':
+      return 'boolean'
+    case 'date':
+    case 'datetime':
+      return 'date'
+    case 'file_upload':
+      return 'file'
+    default:
+      return 'text'
+  }
+}
+
+export function getValidationResponseTypes(questions: ValidationQuestion[]): Record<string, StoredResponseType> {
   return Object.fromEntries(
     questions.map((question) => [
       question.key,
-      normalizeValidationAnswerType(question.field_type),
+      storedResponseType(question.field_type),
     ]),
   )
 }

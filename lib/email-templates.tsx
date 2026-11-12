@@ -1,5 +1,6 @@
 import type * as React from "react"
 import { buildAppUrl } from "@/lib/url"
+import { SAFETY_NOTICE } from "@/lib/safety-notice"
 
 type WelcomeEmailProps = {
   userName?: string
@@ -40,6 +41,7 @@ export const WelcomeEmail: React.FC<WelcomeEmailProps> = ({ userName, userEmail,
     </div>
     <div style={{ padding: "16px", textAlign: "center", fontSize: "12px", color: "#9ca3af" }}>
       <p>&copy; 2025 GuideBuoy AI. All rights reserved.</p>
+        <p style={{ marginTop: "8px", fontWeight: "bold", color: "#6b7280" }}>{SAFETY_NOTICE}</p>
     </div>
   </div>
 )
@@ -108,6 +110,7 @@ export const WaitlistConfirmationEmail: React.FC<WaitlistConfirmationProps> = ({
     </div>
     <div style={{ padding: "16px", textAlign: "center", fontSize: "12px", color: "#9ca3af" }}>
       <p>&copy; 2025 GuideBuoy AI. All rights reserved.</p>
+        <p style={{ marginTop: "8px", fontWeight: "bold", color: "#6b7280" }}>{SAFETY_NOTICE}</p>
     </div>
   </div>
 )
@@ -184,6 +187,7 @@ export const InvitationEmail: React.FC<InvitationEmailProps> = ({
       </div>
       <div style={{ padding: "16px", textAlign: "center", fontSize: "12px", color: "#9ca3af" }}>
         <p>&copy; 2025 GuideBuoy AI. All rights reserved.</p>
+        <p style={{ marginTop: "8px", fontWeight: "bold", color: "#6b7280" }}>{SAFETY_NOTICE}</p>
         <p style={{ marginTop: "8px" }}>
           If you didn&apos;t expect this invitation, you can safely ignore this email.
         </p>

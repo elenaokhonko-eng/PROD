@@ -15,6 +15,8 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
   }
 }
 
+const REPORT_GENERATION_JOB_TYPE = 'post_payment_report_generation'
+
 type JobRow = {
   id: string
   case_id: string
@@ -55,7 +57,6 @@ export async function GET(
     .from('cases')
     .select('id')
     .eq('id', caseId)
-    .eq('user_id', supabaseUuid)
     .maybeSingle()
 
   if (caseErr) {
@@ -69,6 +70,7 @@ export async function GET(
     .from('jobs')
     .select('id, case_id, status, error, created_at')
     .eq('case_id', caseId)
+    .eq('job_type', REPORT_GENERATION_JOB_TYPE)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 
-import { getCurrentUser } from "@/lib/auth"
 import { assertCaseAccess, CaseAccessDeniedError, CaseNotFoundError } from "@/lib/server/fidrec/assert-case-access"
 import { assertTier2Eligible, Tier2NotEnabledError } from "@/lib/server/fidrec/assert-tier2-eligible"
 import { generateCasePackJson } from "@/lib/server/fidrec/generate-case-pack-json"
+import { resolveRequestSupabaseUuid } from "@/lib/server/request-identity"
 
 export const runtime = "nodejs"
 
@@ -13,8 +13,8 @@ const querySchema = z.object({
 })
 
 export async function GET(request: Request) {
-  const user = await getCurrentUser()
-  if (!user) {
+  const supabaseUuid = await resolveRequestSupabaseUuid(request)
+  if (!supabaseUuid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    await assertCaseAccess({ caseId: parsedQuery.caseId, userSupabaseUuid: user.supabaseUuid })
+    await assertCaseAccess({ caseId: parsedQuery.caseId, userSupabaseUuid: supabaseUuid })
   } catch (error) {
     if (error instanceof CaseNotFoundError) {
       return NextResponse.json({ error: "Case not found" }, { status: 404 })

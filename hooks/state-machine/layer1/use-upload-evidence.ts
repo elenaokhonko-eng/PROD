@@ -41,6 +41,12 @@ type ProcessEvidenceResponse =
     }
   | null
 
+/** The server's daily or hourly limit was reached; its message is shown as it is (cost-controls B1). */
+export class UsageLimitError extends Error {}
+
+/** The server refused the file (type, size, pages); its reason is shown with the file's name (walkthrough, 9 Nov). */
+export class UploadRefusedError extends Error {}
+
 export function useUploadEvidence() {
   const queryClient = useQueryClient()
 
@@ -63,6 +69,10 @@ export function useUploadEvidence() {
         const uploadJson = (await uploadResponse.json().catch(() => null)) as UploadEvidenceResponse
 
         if (!uploadResponse.ok) {
+          if (uploadResponse.status === 429 && uploadJson?.error) throw new UsageLimitError(uploadJson.error)
+          if ((uploadResponse.status === 413 || uploadResponse.status === 415) && uploadJson?.error) {
+            throw new UploadRefusedError(`${file.name}: ${uploadJson.error}`)
+          }
           throw new Error(uploadJson?.error ?? 'Failed to upload evidence')
         }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import type { CaseEligibilityResponse } from '@/lib/types/eligibility'
+import type { ReportPurchaseReadiness } from '@/lib/billing/report-purchase-readiness'
 import type { CaseValidationRunRow, ValidationGapItemRow } from '@/lib/types/validation'
 import { deriveInGapPhase } from '@/lib/validation/gap-flow'
 import type { Tier0DraftBundle } from '@/lib/types/narratives'
@@ -10,6 +10,7 @@ import type { CaseDecisionRunRow } from '@/lib/types/decision'
 import type { CaseDocumentRow } from '@/lib/types/documents'
 
 export type StateMachineNode =
+  | 'S1-Journey'
   | 'S1-IntakeForm'
   | 'S1-GapLoop'
   | 'S1-EvidenceUpload'
@@ -29,7 +30,8 @@ export type StateMachineNode =
   | 'L3-Confirmed'
 
 export interface StateMachineInput {
-  eligibility: CaseEligibilityResponse | null
+  /** From the capabilities API; `null` while loading. Whether the free case may buy the S$18 report. */
+  reportPurchase: Pick<ReportPurchaseReadiness, 'ready'> | null
   validation: CaseValidationRunRow | null
   /** `undefined` = gap-items query still loading for the resolved validation run. */
   gapItems: ValidationGapItemRow[] | undefined
@@ -44,6 +46,15 @@ export interface StateMachineInput {
   hasSubmittedIntake?: boolean
   isContactSubmitting?: boolean
   isContactSubmitted?: boolean
+  /** Whether the journey questions were answered; `null` while loading or unknown (treated as answered). */
+  journeyAnswered?: boolean | null
+  /** The person chose "Continue without documents" on the upload step. */
+  evidenceSkipped?: boolean
+  /**
+   * The confirm step has already shown in this tab. A later document check that finds gaps then leaves the person on
+   * it instead of switching to the questions mid-action (G3b re-check, 11 Nov); the confirm step checks the facts.
+   */
+  confirmStepShown?: boolean
 }
 
 /**
@@ -56,7 +67,7 @@ export interface StateMachineInput {
  */
 export function useStateMachine(input: StateMachineInput): StateMachineNode {
   const {
-    eligibility,
+    reportPurchase,
     validation,
     gapItems,
     narratives,
@@ -70,6 +81,9 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
     hasSubmittedIntake = false,
     isContactSubmitting = false,
     isContactSubmitted = false,
+    journeyAnswered = null,
+    evidenceSkipped = false,
+    confirmStepShown = false,
   } = input
 
   if (isContactSubmitted) return 'L3-Confirmed'
@@ -87,24 +101,22 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   }
 
   if (!narratives?.tier0_summary && !narratives?.tier0_evidence_checklist && !narratives?.tier0_srf_signal) {
-    if (deriveInGapPhase(validation, gapItems)) return 'S1-GapLoop'
+    // Journey questions come first after sign-in (spec 4.1): where the user is with their bank.
+    if (journeyAnswered === false) return 'S1-Journey'
+    if (!confirmStepShown && deriveInGapPhase(validation, gapItems)) return 'S1-GapLoop'
     if (!isIntakeSubmitted && !hasSubmittedIntake) return 'S1-IntakeForm'
     const hasReadyDoc = documents?.some((d) => d.processing_status === 'ready') ?? false
-    if (!hasReadyDoc) return 'S1-EvidenceUpload'
+    if (!hasReadyDoc && !evidenceSkipped) return 'S1-EvidenceUpload'
     return 'S1-Tier0DraftPending'
   }
 
   if (isCheckoutRedirecting) return 'T-CheckoutRedirect'
 
-  if (!eligibility) return 'T-EligibilityGate'
+  // "Can buy", not get_case_eligibility's run_report_selfserve, which is only true once the report is paid for.
+  if (!reportPurchase || !reportPurchase.ready) return 'T-EligibilityGate'
 
-  if (eligibility.plan !== 'self_serve_report') {
-    return 'T-BuyReportCTA'
-  }
+  // The free draft with the buy button underneath; the button alone while no document is ready.
+  if (documents?.some((d) => d.processing_status === 'ready')) return 'S1-Tier0Draft'
 
-  if (!documents?.some((d) => d.processing_status === 'ready')) {
-    return 'S1-Tier0DraftPending'
-  }
-
-  return 'S1-Tier0Draft'
+  return 'T-BuyReportCTA'
 }

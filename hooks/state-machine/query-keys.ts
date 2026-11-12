@@ -12,6 +12,7 @@ export const qk = {
   case: {
     base: (caseId: string) => ['case', caseId] as const,
     row: (caseId: string) => ['case', caseId, 'row'] as const,
+    intakeCompletion: (caseId: string) => ['case', caseId, 'intake-completion'] as const,
     eligibility: (caseId: string) => ['case', caseId, 'eligibility'] as const,
     extract: (caseId: string) => ['case', caseId, 'extract'] as const,
     validation: (caseId: string) => ['case', caseId, 'validation'] as const,
@@ -26,6 +27,10 @@ export const qk = {
     job: (caseId: string) => ['case', caseId, 'job'] as const,
     contactRequest: (caseId: string) => ['case', caseId, 'contact-request'] as const,
     tier2Pack: (caseId: string) => ['case', caseId, 'tier2-pack'] as const,
+    facts: (caseId: string, stage: string) => ['case', caseId, 'facts', stage] as const,
+    journey: (caseId: string) => ['case', caseId, 'journey'] as const,
+    evidenceSkipped: (caseId: string) => ['case', caseId, 'evidence-skipped'] as const,
+    recommendation: (caseId: string) => ['case', caseId, 'recommendation'] as const,
   },
   entitlement: (caseId: string) => ['entitlement', caseId] as const,
 } as const

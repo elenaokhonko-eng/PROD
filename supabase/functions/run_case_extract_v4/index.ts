@@ -1,6 +1,18 @@
 // supabase/functions/run_case_extract_v1/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  authorizeHarborEdgeRequest,
+  HarborEdgeAuthError,
+  verifyHarborEdgeRequest,
+} from "../_shared/edge-auth.ts";
+import { applyGapAnswers } from "../_shared/gap-answers.ts";
+import { safeError } from "../_shared/safe-error.ts";
+import { dailyBreaker, openAiUsage, OUTPUT_CAPS, recordModelUsage, type TokenUsage, usageEnvironment } from "../_shared/model-usage.ts";
+
+// Metering for this request (cost-controls spec §5 B6): set by the handler, used by every OpenAI call below.
+type MeterCall = (call: { model: string; usage: TokenUsage; latencyMs: number; httpStatus: number; outcome: "ok" | "error" }) => Promise<void>;
+let meterCall: MeterCall | null = null;
 /**
  * v2.1.3 changes (institution first-report + type-aware preference):
  * - Institution keyword set now prioritises FIRST REPORT phrases (receive/report/submitted/reference no)
@@ -30,7 +42,7 @@ function normalizePgError(err) {
   return {
     message: err?.message,
     code: err?.code,
-    details: err?.details,
+    // Postgres "details" quote the failing row (case content), so they are never logged or returned (item 6).
     hint: err?.hint,
     status: err?.status,
     statusText: err?.statusText
@@ -82,10 +94,11 @@ function classifyDocument(row) {
   const s = normalizeDocStatus(row.processing_status);
   if (s === "failed") return "failed";
   const hasContent = row.has_extraction_content === true;
-  const statusReady = s === "ready";
+  const legacyReadyStatuses = new Set(["ready", "processed", "completed"]);
+  const isLegacyReadyStatus = legacyReadyStatuses.has(s);
   const processedFlag = row.is_processed === true;
-  if (statusReady && processedFlag && hasContent) return "ready";
-  if (statusReady || processedFlag) return "not_ready_other";
+  if (isLegacyReadyStatus && processedFlag && hasContent) return "ready";
+  if (isLegacyReadyStatus || processedFlag) return "not_ready_other";
   if (s === "queued") return "queued";
   if (IN_FLIGHT_STATUSES.includes(s)) return "processing";
   if (s === "uploaded") return "uploaded";
@@ -273,13 +286,15 @@ function sanitizeToJsonObject(text) {
   return t.slice(first, last + 1);
 }
 async function callOpenAIResponses(openaiKey, body) {
+  const started = Date.now();
   const res = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       authorization: `Bearer ${openaiKey}`,
       "content-type": "application/json"
     },
-    body: JSON.stringify(body)
+    // Output cap (§5 B5): observed maximum + 30%.
+    body: JSON.stringify({ max_output_tokens: OUTPUT_CAPS.case_extraction, ...body })
   });
   const raw = await res.text().catch(()=>"");
   let payload = null;
@@ -288,7 +303,9 @@ async function callOpenAIResponses(openaiKey, body) {
   } catch  {
     payload = null;
   }
-  if (!res.ok) throw new Error(`OpenAI failed (${res.status}): ${payload ? JSON.stringify(payload) : raw}`);
+  if (meterCall) await meterCall({ model: body.model, usage: openAiUsage(payload), latencyMs: Date.now() - started, httpStatus: res.status, outcome: res.ok ? "ok" : "error" });
+  // The provider body can echo the input; keep the status and error type only (hardening item 6).
+  if (!res.ok) throw new Error(`OpenAI failed (${res.status}): ${payload?.error?.type ?? payload?.error?.code ?? "no error type"}`);
   if (!payload) throw new Error(`OpenAI failed: empty/invalid JSON response (${res.status})`);
   return payload;
 }
@@ -1096,10 +1113,13 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
 /* =========================================================
    MAIN
    ========================================================= */ serve(async (req)=>{
-  const request_id = crypto.randomUUID();
+  let request_id = "unverified";
   const { stage, marks, mark } = createStageMarker();
   try {
-    mark("01_env");
+    mark("01_edge_auth");
+    const verified = await verifyHarborEdgeRequest(req, "run_case_extract_v4");
+    request_id = verified.context.requestId;
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction");
@@ -1108,25 +1128,14 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
     if (!OPENAI_API_KEY) throw new Error("Missing GuideBuoy_EdgeFunction secret");
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    // Healthcheck
-    if (req.method === "GET") return jsonResp({
-      ok: true,
-      version: VERSION,
-      request_id
-    }, 200);
-    // Parse request
+    await authorizeHarborEdgeRequest(supabase, verified.context);
+
     mark("02_parse");
-    if (req.method !== "POST") {
-      return jsonResp({
-        ok: false,
-        version: VERSION,
-        request_id,
-        stage,
-        error: "POST only"
-      }, 405);
-    }
-    const body = await req.json().catch(()=>({}));
-    const case_id = body.case_id;
+    const body = verified.body;
+    const edge_context = verified.context;
+    const case_id = edge_context.caseId;
+    const usageEnv = usageEnvironment(Deno.env.toObject());
+    meterCall = (call) => recordModelUsage(supabase, usageEnv, { caller: "edge", purpose: "case_extraction", provider: "openai", caseId: case_id, ...call });
     // Explicit tri-state persistence: always write true/false on new extracts (never null).
     const skip_validation = body.skip_validation === true;
     const allow_partial_evidence = body.allow_partial_evidence === true;
@@ -1150,13 +1159,20 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     }).limit(1);
     ensureOk(intakeRes.data, intakeRes.error, "Fetch latest case_intake");
     const intake = intakeRes.data?.[0] ?? null;
-    // Latest narrative (optional)
-    mark("05_narrative");
-    const narrativeRes = await supabase.from("case_narratives").select("*").eq("case_id", case_id).order("created_at", {
+    // The user's own words only: the latest story revision and the latest answer per question. GuideBuoy-generated
+    // rows in case_narratives (the free draft) are never fed back in (design F3).
+    mark("05_user_inputs");
+    const storyRes = await supabase.from("case_story_revisions").select("revision, story_text").eq("case_id", case_id).order("revision", {
       ascending: false
     }).limit(1);
-    if (narrativeRes.error) console.log("[WARN] narrative fetch", JSON.stringify(normalizePgError(narrativeRes.error)));
-    const narrative = narrativeRes.data?.[0] ?? null;
+    ensureOk(storyRes.data, storyRes.error, "Fetch latest story revision");
+    const story = storyRes.data?.[0] ?? null;
+    const answersRes = await supabase.from("case_responses").select("question_key, response_value").eq("case_id", case_id);
+    ensureOk(answersRes.data, answersRes.error, "Fetch case answers");
+    const answers = Object.fromEntries((answersRes.data ?? []).filter((a)=>a.response_value != null && String(a.response_value).trim() !== "").map((a)=>[
+        a.question_key,
+        a.response_value
+      ]));
     // Document readiness preflight (before OpenAI + before extract insert)
     mark("05b_doc_readiness");
     const readinessDocs = await fetchDocsForReadiness(supabase, case_id);
@@ -1204,11 +1220,12 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     const incidentISO = parseIncidentISO(caseData);
     mark("06b_server_compute_start");
     const serverFacts = computeServerFacts(allEvidence, caseCur, claimAmt, incidentISO);
+    // Which facts were found, not their values: stage logs carry no case content (hardening item 6).
     mark("06b_server_compute_ok", {
-      institution_name_guess: serverFacts.institution_name_guess,
-      reported_loss: serverFacts.reported_loss,
-      reported_to_police_at: serverFacts.reported_to_police_at,
-      reported_to_institution_at: serverFacts.reported_to_institution_at
+      institution_name_found: Boolean(serverFacts.institution_name_guess),
+      reported_loss_found: serverFacts.reported_loss?.amount != null,
+      reported_to_police_at_found: Boolean(serverFacts.reported_to_police_at),
+      reported_to_institution_at_found: Boolean(serverFacts.reported_to_institution_at)
     });
     mark("06c_evidence_prompt_select_start");
     const evidenceForPrompt = selectEvidenceForPrompt(allEvidence);
@@ -1272,12 +1289,18 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     const inputText = [
       `CASE: ${JSON.stringify(caseData)}`,
       `INTAKE: ${JSON.stringify(intake)}`,
-      `NARRATIVE: ${JSON.stringify(narrative)}`,
+      `STORY: ${JSON.stringify(story)}`,
+      `ANSWERS: ${JSON.stringify(answers)}`,
       `EVIDENCE_DIGEST: ${JSON.stringify(evidenceForPrompt)}`
     ].join("\n\n");
     mark("08_openai_start", {
       input_len: inputText.length
     });
+    // Daily breaker (§5 B4): with today's model budget used up, nothing is sent; the caller retries later.
+    if ((await dailyBreaker(supabase, usageEnv, Deno.env.toObject())).state === "open") {
+      await recordModelUsage(supabase, usageEnv, { caller: "edge", purpose: "case_extraction", provider: "openai", model: EXTRACT_MODEL, outcome: "blocked", caseId: case_id });
+      return new Response(JSON.stringify({ ok: false, reason: "daily_limit" }), { status: 503, headers: { "content-type": "application/json" } });
+    }
     const ejRaw = await openaiExtract({
       openaiKey: OPENAI_API_KEY,
       model: EXTRACT_MODEL,
@@ -1288,7 +1311,7 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     mark("08_openai_ok");
     // Post-process + enforce server facts + insert extract_run
     mark("09_postprocess");
-    const ej = applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseData);
+    const ej = applyGapAnswers(applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseData), answers);
     // Required list (for case_extract_runs.missing_fields)
     const missing_fields = [];
     const requiredFields = [
@@ -1306,154 +1329,52 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
       ]
     ];
     for (const [k, v] of requiredFields)if (v === null || v === undefined) missing_fields.push(k);
-    mark("09_insert_extract_run_start");
-    const runIns = await supabase.from("case_extract_runs").insert({
-      case_id,
-      extract_json: ej,
-      missing_fields,
-      model_name: EXTRACT_MODEL,
-      prompt_version: VERSION,
-      intake_id: intake?.id ?? null,
-      // Persisted so reconcile RPCs can distinguish intentional skip (requires migration).
-      skip_validation,
-      ...readinessPersist
-    }).select("*").single();
-    const extract_run = ensureOk(runIns.data, runIns.error, "Insert case_extract_runs");
-    mark("09_insert_extract_run_ok", {
+    mark("09_commit_extract_start");
+    const evidence_docs_used_unique = Array.from(new Set(
+      (evidenceForPrompt ?? []).map((d)=>String(d.document_id)).filter(Boolean)
+    ));
+    const commitRes = await supabase.rpc("commit_extract_run_v1", {
+      p_actor_kind: edge_context.actorKind,
+      p_actor_id: edge_context.actorId,
+      p_job_id: edge_context.jobId,
+      p_case_id: case_id,
+      p_job_locked_at: edge_context.jobLockedAt,
+      p_extract: {
+        extract_json: ej,
+        missing_fields,
+        model_name: EXTRACT_MODEL,
+        prompt_version: VERSION,
+        intake_id: intake?.id ?? null,
+        skip_validation,
+        ...readinessPersist
+      }
+    });
+    if (commitRes.error || !commitRes.data) {
+      throw new Error(`Fenced extract commit failed: ${JSON.stringify(normalizePgError(commitRes.error))}`);
+    }
+    const extract_run = commitRes.data.extract_run;
+    const validation_run_id = commitRes.data.validation_run_id ?? null;
+    const validation_error = commitRes.data.validation_error ?? null;
+    mark("10_commit_extract_ok", {
       extract_run_id: extract_run.id,
+      validation_run_id,
+      validation_error,
       allow_partial_evidence,
       not_ready_document_count: readinessPersist.not_ready_document_count
     });
-    // Atomic RPC wrapper (NO schema prefix)
-    mark("10_rpc_start", {
-      skip_validation
-    });
-    const evidence_docs_used_unique = Array.from(new Set((evidenceForPrompt ?? []).map((d)=>String(d.document_id)).filter(Boolean)));
-    if (skip_validation) {
-      mark("10_rpc_skipped");
-      console.log("[extract_validation]", JSON.stringify({
-        case_id,
-        extract_run_id: extract_run.id,
-        validation_attempted: false,
-        validation_error: null,
-        skip_validation: true
-      }));
-      return jsonResp({
-        ok: true,
-        version: VERSION,
-        request_id,
-        stage,
-        extract_run,
-        extract_run_id: extract_run.id,
-        validation_run_id: null,
-        validation_attempted: false,
-        partial_success: false,
-        partial_evidence: allow_partial_evidence,
-        document_readiness: readinessPersist.evidence_snapshot.counts,
-        rpc_error: null,
-        evidence_docs_used: evidence_docs_used_unique,
-        server_computed: serverFacts,
-        debug_counts: {
-          all_unique_docs: allEvidence.length,
-          prompt_docs: evidenceForPrompt.length
-        },
-        warning: "Validation skipped (skip_validation=true)."
-      }, 200);
-    }
-    const rpcRes = await supabase.rpc("run_validation_v1", {
-      p_extract_run_id: extract_run.id
-    });
-    console.log("RPC RAW:", JSON.stringify({
-      status: rpcRes?.status,
-      statusText: rpcRes?.statusText,
-      data: rpcRes.data,
-      error: normalizePgError(rpcRes.error)
-    }));
-    if (rpcRes.error) {
-      const validation_error = normalizePgError(rpcRes.error);
-      mark("10_rpc_failed", {
-        rpc_error: validation_error
-      });
-      // Compatibility: keep HTTP 200 so existing callers that treat non-2xx as
-      // hard failure still receive extract_run_id. Explicit ok=false +
-      // partial_success surface the integrity gap for new callers / logs.
-      console.log("[extract_validation]", JSON.stringify({
-        case_id,
-        extract_run_id: extract_run.id,
-        validation_attempted: true,
-        validation_error
-      }));
-      return jsonResp({
-        ok: false,
-        partial_success: true,
-        version: VERSION,
-        request_id,
-        stage,
-        extract_run,
-        extract_run_id: extract_run.id,
-        validation_run_id: null,
-        validation_attempted: true,
-        error: "validation_failed_after_extract",
-        rpc_error: validation_error,
-        evidence_docs_used: evidence_docs_used_unique,
-        server_computed: serverFacts,
-        debug_counts: {
-          all_unique_docs: allEvidence.length,
-          prompt_docs: evidenceForPrompt.length
-        },
-        warning: "Extraction succeeded but validation RPC failed or timed out. Reconcile via reconcile_validation_for_extract."
-      }, 200);
-    }
-    if (!rpcRes.data) {
-      mark("10_rpc_failed", {
-        rpc_error: {
-          message: "RPC returned null validation_run_id"
-        }
-      });
-      console.log("[extract_validation]", JSON.stringify({
-        case_id,
-        extract_run_id: extract_run.id,
-        validation_attempted: true,
-        validation_error: {
-          message: "RPC returned null validation_run_id"
-        }
-      }));
-      return jsonResp({
-        ok: false,
-        partial_success: true,
-        version: VERSION,
-        request_id,
-        stage,
-        extract_run,
-        extract_run_id: extract_run.id,
-        validation_run_id: null,
-        validation_attempted: true,
-        error: "validation_failed_after_extract",
-        rpc_error: {
-          message: "RPC returned null validation_run_id"
-        },
-        evidence_docs_used: evidence_docs_used_unique,
-        server_computed: serverFacts,
-        debug_counts: {
-          all_unique_docs: allEvidence.length,
-          prompt_docs: evidenceForPrompt.length
-        },
-        warning: "Extraction succeeded but validation returned null. Reconcile via reconcile_validation_for_extract."
-      }, 200);
-    }
-    mark("10_rpc_ok", {
-      validation_run_id: rpcRes.data
-    });
+
+    const partial_success = !skip_validation && !!validation_error;
     console.log("[extract_validation]", JSON.stringify({
       case_id,
       extract_run_id: extract_run.id,
-      validation_attempted: true,
-      validation_run_id: rpcRes.data,
-      validation_error: null
+      validation_attempted: !skip_validation,
+      validation_run_id,
+      validation_error,
+      skip_validation
     }));
     return jsonResp({
-      ok: true,
-      partial_success: false,
+      ok: !partial_success,
+      partial_success,
       partial_evidence: allow_partial_evidence,
       document_readiness: readinessPersist.evidence_snapshot.counts,
       version: VERSION,
@@ -1461,19 +1382,24 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
       stage,
       extract_run,
       extract_run_id: extract_run.id,
-      validation_run_id: rpcRes.data,
-      validation_attempted: true,
-      rpc_error: null,
+      validation_run_id,
+      validation_attempted: !skip_validation,
+      rpc_error: validation_error,
       evidence_docs_used: evidence_docs_used_unique,
       server_computed: serverFacts,
       debug_counts: {
         all_unique_docs: allEvidence.length,
         prompt_docs: evidenceForPrompt.length
       },
-      debug_marks: marks
-    }, 200);
-  } catch (e) {
-    const details = normalizeError(e);
+      debug_marks: marks,
+      warning: partial_success
+        ? "Extraction succeeded but validation failed. Reconcile via reconcile_validation_for_extract."
+        : skip_validation
+          ? "Validation skipped (skip_validation=true)."
+          : null
+    }, 200);  } catch (e) {
+    // Name, code, status and a scrubbed message only: no stack, raw error, row details or model text (item 6).
+    const details = safeError(e);
     console.log("[ERROR]", JSON.stringify({
       request_id,
       version: VERSION,
@@ -1486,6 +1412,6 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
       request_id,
       stage,
       error: details
-    }, 500);
+    }, e instanceof HarborEdgeAuthError ? e.status : 500);
   }
 });

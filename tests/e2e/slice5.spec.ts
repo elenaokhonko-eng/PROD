@@ -1,16 +1,20 @@
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { createClient } from '@supabase/supabase-js'
-import { expect, test, type Page } from '@playwright/test'
+import { randomUUID } from 'node:crypto'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Page } from '@playwright/test'
+import { expect, test } from './fixtures/harbor-test'
+import { readReleaseFixtures } from '../release/release-fixtures'
+import {
+  cleanupDisposableRecords,
+  completeDisposableIntake,
+  createDisposableCase,
+  createDisposableGapCase,
+  createServiceClientFromEnvironment,
+  requireUuidScopedEvidencePath,
+  type DisposableCleanupScope,
+} from './helpers/disposable-records'
 
-const authStatePath = resolve(process.env.SLICE5_AUTH_STORAGE_STATE ?? 'tests/e2e/.auth/slice5.json')
-const hasAuthState = existsSync(authStatePath)
-
-const controlledCaseId =
-  process.env.SLICE5_CONTROLLED_CASE_ID ?? '9eafdc9e-9431-4ba1-ae28-b62fd4da9098'
-const uploadCaseId = process.env.SLICE5_UPLOAD_CASE_ID
-const gapCaseId = process.env.SLICE5_GAP_CASE_ID
-const readyTimeoutMs = Number(process.env.SLICE5_UPLOAD_READY_TIMEOUT_MS ?? 120_000)
+const fixtures = readReleaseFixtures()
+const readyTimeoutMs = Number(process.env.HARBOR_UPLOAD_READY_TIMEOUT_MS ?? 120_000)
 
 type UploadResponseBody = {
   evidence?: {
@@ -32,96 +36,182 @@ type ProcessResponseBody = {
 }
 
 test.describe('Slice 5 browser QA', () => {
-  test.skip(
-    !hasAuthState,
-    `Missing authenticated Clerk storage state. Run "pnpm.cmd run test:e2e:auth", sign in as the test case owner, then save ${authStatePath}.`,
-  )
-
   test('controlled missing-questions case shows fallback notice', async ({ page }) => {
-    await page.goto(`/app/case/${controlledCaseId}/dashboard`)
-
-    await expect(page.getByText('We need a bit more')).toBeVisible()
-    await expect(
-      page.getByText("We found missing information, but couldn't generate follow-up questions. Please try again."),
-    ).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
-  })
-
-  test('upload uses evidence row -> process route -> case document', async ({ page }) => {
-    test.skip(!uploadCaseId, 'Set SLICE5_UPLOAD_CASE_ID to a case currently showing the evidence upload step.')
-
-    await page.goto(`/app/case/${uploadCaseId}/dashboard`)
-    await expect(page.getByText('Upload supporting evidence')).toBeVisible()
-
-    const fileName = `slice5-upload-${Date.now()}.png`
-    const uploadResponsePromise = page.waitForResponse(
-      (response) => response.url().includes('/api/evidence/upload') && response.request().method() === 'POST',
-    )
-    const processResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/cases/${uploadCaseId}/evidence/process`) &&
-        response.request().method() === 'POST',
-    )
-
-    await page.locator('input[type="file"]').setInputFiles({
-      name: fileName,
-      mimeType: 'image/png',
-      buffer: tinyPng(),
+    const supabase = createServiceClientFromEnvironment()
+    const disposable = await createDisposableGapCase(supabase, {
+      ownerId: fixtures.users.userA.supabaseUuid,
+      summary: 'Disposable Slice 5 missing-questions fallback case',
+      includeQuestion: false,
     })
 
-    const uploadResponse = await uploadResponsePromise
-    expect(uploadResponse.ok(), await uploadResponse.text()).toBeTruthy()
-    const uploadJson = (await uploadResponse.json()) as UploadResponseBody
-    const evidenceId = uploadJson.evidence?.id
-    expect(evidenceId).toBeTruthy()
+    try {
+      await page.goto(`/app/case/${disposable.caseId}/dashboard`)
 
-    const processResponse = await processResponsePromise
-    expect(processResponse.ok(), await processResponse.text()).toBeTruthy()
-    const processJson = (await processResponse.json()) as ProcessResponseBody
-    expect(processJson.ok).toBeTruthy()
-
-    const result = processJson.results?.find((item) => item.evidence_id === evidenceId)
-    expect(result?.ok).toBeTruthy()
-    expect(result?.document_id).toBeTruthy()
-
-    await expect(page.getByText(fileName)).toBeVisible()
-    await expect(page.getByText('Ready').first()).toBeVisible({ timeout: readyTimeoutMs })
-
-    await assertSingleCaseDocumentIfConfigured(result?.document_id ?? null)
+      await expect(page.getByText('We need a bit more')).toBeVisible()
+      await expect(
+        page.getByText("We found missing information, but couldn't generate follow-up questions. Please try again."),
+      ).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
+    } finally {
+      await cleanupDisposableRecords(supabase, disposable)
+    }
   })
 
-  test('gap answer save sends concrete question_key and typed response_type', async ({ page }) => {
-    test.skip(!gapCaseId, 'Set SLICE5_GAP_CASE_ID to a case currently showing at least one gap question.')
+  test('upload uses evidence row -> process route -> case document', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium-1440', 'Mutating provider checks run once per release SHA.')
+    // The live lane's 60 s test limit would cut off the wait for processing below.
+    test.setTimeout(readyTimeoutMs + 60_000)
+    const supabase = createServiceClientFromEnvironment()
+    const disposable = await createDisposableCase(supabase, {
+      ownerId: fixtures.users.userA.supabaseUuid,
+      summary: 'Disposable Slice 5 upload processing case',
+    })
+    const cleanup: DisposableCleanupScope = { ...disposable }
+    cleanup.caseResponseIds = await completeDisposableIntake(supabase, disposable.caseId)
 
-    await page.goto(`/app/case/${gapCaseId}/dashboard`)
-    await expect(page.getByText('A few more details')).toBeVisible()
+    try {
+      await page.goto(`/app/case/${disposable.caseId}/dashboard`)
+      await expect(page.getByText('Upload supporting evidence')).toBeVisible()
 
-    await answerFirstVisibleGapQuestion(page)
+      const fileName = `${randomUUID()}-slice5-upload.png`
+      const uploadResponsePromise = page.waitForResponse(
+        (response) => response.url().includes('/api/evidence/upload') && response.request().method() === 'POST',
+      )
+      const processResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/cases/${disposable.caseId}/evidence/process`) &&
+          response.request().method() === 'POST',
+      )
 
-    const requestPromise = page.waitForRequest(
-      (request) =>
-        request.url().includes(`/api/cases/${gapCaseId}/responses`) &&
-        request.method() === 'PUT',
-    )
-    await page.getByRole('button', { name: 'Save answers' }).click()
+      await page.locator('input[type="file"]').setInputFiles({
+        name: fileName,
+        mimeType: 'image/png',
+        buffer: tinyPng(),
+      })
 
-    const request = await requestPromise
-    const body = request.postDataJSON() as {
-      responses?: Array<{
-        question_key?: unknown
-        response_type?: unknown
-        response_value?: unknown
-      }>
+      const uploadResponse = await uploadResponsePromise
+      expect(uploadResponse.ok(), await uploadResponse.text()).toBeTruthy()
+      const uploadJson = (await uploadResponse.json()) as UploadResponseBody
+      const evidenceId = uploadJson.evidence?.id
+      const storagePath = uploadJson.evidence?.file_path
+      expect(evidenceId).toBeTruthy()
+      expect(storagePath).toBeTruthy()
+      cleanup.evidenceIds = [evidenceId!]
+      cleanup.storagePaths = [requireUuidScopedEvidencePath(storagePath!, disposable.caseId)]
+
+      const processResponse = await processResponsePromise
+      expect(processResponse.ok(), await processResponse.text()).toBeTruthy()
+      const processJson = (await processResponse.json()) as ProcessResponseBody
+      expect(processJson.ok).toBeTruthy()
+
+      const result = processJson.results?.find((item) => item.evidence_id === evidenceId)
+      expect(result?.ok).toBeTruthy()
+      expect(result?.document_id).toBeTruthy()
+      const documentMutation = await assertSingleCaseDocument(supabase, disposable.caseId, result?.document_id ?? null)
+      cleanup.caseDocumentIds = [documentMutation.documentId]
+      cleanup.jobIds = documentMutation.jobIds
+
+      await expect(page.getByText(fileName)).toBeVisible()
+      await expect(page.getByText('Ready').first()).toBeVisible({ timeout: readyTimeoutMs })
+    } finally {
+      await cleanupDisposableRecords(supabase, cleanup)
     }
-    const firstResponse = body.responses?.[0]
+  })
 
-    expect(firstResponse).toBeDefined()
-    expect(typeof firstResponse?.question_key).toBe('string')
-    expect(firstResponse?.question_key).not.toBe('')
-    expect(firstResponse?.question_key).not.toBe('undefined')
-    expect(typeof firstResponse?.response_type).toBe('string')
-    expect(firstResponse?.response_type).not.toBe('')
-    expect(firstResponse?.response_value).toBeDefined()
+  test('gap answer save sends concrete question_key and typed response_type', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium-1440', 'Mutating provider checks run once per release SHA.')
+    const supabase = createServiceClientFromEnvironment()
+    const disposable = await createDisposableGapCase(supabase, {
+      ownerId: fixtures.users.userA.supabaseUuid,
+      summary: 'Disposable Slice 5 gap-answer case',
+    })
+    const cleanup: DisposableCleanupScope = { ...disposable }
+
+    try {
+      await page.goto(`/app/case/${disposable.caseId}/dashboard`)
+      await expect(page.getByText('A few more details', { exact: true })).toBeVisible()
+
+      await answerFirstVisibleGapQuestion(page)
+
+      const requestPromise = page.waitForRequest(
+        (request) =>
+          request.url().includes(`/api/cases/${disposable.caseId}/responses`) &&
+          request.method() === 'PUT',
+      )
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/cases/${disposable.caseId}/responses`) &&
+          response.request().method() === 'PUT',
+      )
+      await page.getByRole('button', { name: 'Save answers' }).click()
+
+      const request = await requestPromise
+      const body = request.postDataJSON() as {
+        responses?: Array<{
+          question_key?: unknown
+          response_type?: unknown
+          response_value?: unknown
+        }>
+      }
+      const firstResponse = body.responses?.[0]
+
+      expect(firstResponse).toBeDefined()
+      expect(typeof firstResponse?.question_key).toBe('string')
+      expect(firstResponse?.question_key).not.toBe('')
+      expect(firstResponse?.question_key).not.toBe('undefined')
+      expect(typeof firstResponse?.response_type).toBe('string')
+      expect(firstResponse?.response_type).not.toBe('')
+      expect(firstResponse?.response_value).toBeDefined()
+
+      const response = await responsePromise
+      expect(response.ok(), await response.text()).toBeTruthy()
+      const responseJson = (await response.json()) as { saved?: string[] }
+      cleanup.caseResponseIds = responseJson.saved ?? []
+    } finally {
+      await cleanupDisposableRecords(supabase, cleanup)
+    }
+  })
+})
+
+test.describe('Gap answers by type (demo 7 Nov)', () => {
+  test('a money answer is saved and the case moves on', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium-1440', 'Mutating provider checks run once per release SHA.')
+    const supabase = createServiceClientFromEnvironment()
+    const disposable = await createDisposableGapCase(supabase, {
+      ownerId: fixtures.users.userA.supabaseUuid,
+      summary: 'Disposable money gap-answer case',
+      answerType: 'money',
+    })
+    const cleanup: DisposableCleanupScope = { ...disposable }
+
+    try {
+      await page.goto(`/app/case/${disposable.caseId}/dashboard`)
+      await expect(page.getByText('A few more details', { exact: true })).toBeVisible()
+      await page.locator('form input[type="number"]').first().fill('9600')
+
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/cases/${disposable.caseId}/responses`) &&
+          response.request().method() === 'PUT',
+      )
+      await page.getByRole('button', { name: 'Save answers' }).click()
+      const response = await responsePromise
+      expect(response.ok(), await response.text()).toBeTruthy()
+      const saved = ((await response.json()) as { saved?: string[] }).saved ?? []
+      cleanup.caseResponseIds = saved
+
+      // The disposable case also starts with a journey answer; only the row this save wrote is checked.
+      expect(saved).toHaveLength(1)
+      const { data: rows, error } = await supabase
+        .from('case_responses')
+        .select('response_value, response_type')
+        .in('id', saved)
+      expect(error).toBeNull()
+      expect(rows).toEqual([{ response_value: '9600', response_type: 'number' }])
+      await expect(page.getByText("We couldn't save your answers.")).toHaveCount(0)
+    } finally {
+      await cleanupDisposableRecords(supabase, cleanup)
+    }
   })
 })
 
@@ -155,24 +245,20 @@ async function answerFirstVisibleGapQuestion(page: Page) {
   throw new Error('No supported visible gap-question control found.')
 }
 
-async function assertSingleCaseDocumentIfConfigured(documentId: string | null) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!documentId || !supabaseUrl || !serviceKey) return
-
-  const supabase = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
+async function assertSingleCaseDocument(supabase: SupabaseClient, caseId: string, documentId: string | null) {
+  expect(documentId, 'Process response must identify the registered case document').toBeTruthy()
 
   const { data: documentRow, error } = await supabase
     .from('case_documents')
-    .select('id, storage_bucket, storage_path')
+    .select('id, case_id, storage_bucket, storage_path')
     .eq('id', documentId)
     .single()
 
   expect(error).toBeNull()
-  expect(documentRow?.storage_bucket).toBeTruthy()
+  expect(documentRow?.case_id).toBe(caseId)
+  expect(documentRow?.storage_bucket).toBe('evidence')
   expect(documentRow?.storage_path).toBeTruthy()
+  requireUuidScopedEvidencePath(documentRow!.storage_path, caseId)
 
   const { count, error: countError } = await supabase
     .from('case_documents')
@@ -182,6 +268,17 @@ async function assertSingleCaseDocumentIfConfigured(documentId: string | null) {
 
   expect(countError).toBeNull()
   expect(count).toBe(1)
+
+  const { data: jobs, error: jobsError } = await supabase
+    .from('jobs')
+    .select('id')
+    .eq('document_id', documentRow!.id)
+  expect(jobsError).toBeNull()
+
+  return {
+    documentId: documentRow!.id as string,
+    jobIds: (jobs ?? []).map((job) => String(job.id)),
+  }
 }
 
 function tinyPng() {

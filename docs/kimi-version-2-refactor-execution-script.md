@@ -76,7 +76,7 @@ Manual/browser QA to request from Codex/Dance:
    - Expected card: `We need a bit more`
    - Expected copy: `We found missing information, but couldn't generate follow-up questions. Please try again.`
    - Expected button: `Try again`
-2. Upload one supported PDF/PNG/JPEG/DOCX:
+2. Upload one supported PDF/PNG/JPEG (DOCX remains gated pending its end-to-end fixture):
    - upload route returns `{ evidence }`
    - process route returns `results[].document_id`
    - exactly one `case_documents` row exists for the storage path
@@ -182,13 +182,13 @@ Tasks:
 4. Add the SGD 188 FIDReC Tier 2 pack offer with product key `fidrec_tier2_pack`.
 5. Keep the SGD 99 human consult as a separate offer with product key `human_consult_30m`. It is a human advice/direction call, not the automated pack. Do not implement call recording/transcription yet unless Masha provides the backend contract.
 6. Extend checkout creation to accept known product keys and Stripe price env vars:
-   - `self_serve_report` = Basic Case Pack, SGD 18, env `STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD`, price `price_1TsLZdFp6sSKMUXXz5xEbxrA`
+   - `self_serve_report` = FI Pack, SGD 18, env `STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD`, price `price_1TsLZdFp6sSKMUXXz5xEbxrA`
    - `fidrec_tier2_pack` = FIDREC Case Pack, SGD 188, env `STRIPE_PRICE_ID_FIDREC_TIER2_PACK_SGD`, price `price_1TsLY5Fp6sSKMUXXdHFwRsny`
    - `human_consult_30m` = Human in the Loop Consultation, SGD 99, env `STRIPE_PRICE_ID_HUMAN_CONSULT_30M_SGD`, price `price_1SLOYUFp6sSKMUXXsTXlLdcT`
    - Treat `STRIPE_PRICE_ID_SGD` as legacy/ambiguous. The old SGD 99 price ID has been repurposed for consultation and must not drive Tier 1.
 7. Add Stripe metadata discriminator for `product_key`, `case_id`, and `user_id`.
 8. Add webhook branches:
-   - `self_serve_report`: Basic Case Pack, enqueue Layer 2 job.
+   - `self_serve_report`: FI Pack, enqueue Layer 2 job.
    - `fidrec_tier2_pack`: persist purchase and set entitlement to `escalation_pack` / `allow_escalation_pack`; do not enqueue a Layer 2 job.
    - `human_consult_30m`: persist purchase/request for operations; do not enqueue a Layer 2 job.
 9. Use the existing FIDReC Tier-2 helpers:
@@ -219,7 +219,7 @@ Manual/browser QA to request from Codex/Dance:
 
 1. With a completed self-serve report, Layer 3 shows the Tier 2 pack and consult surface.
 2. `escalation_pack` entitlement shows Tier 2 ready, not buy-report.
-3. SGD 18 `self_serve_report` checkout uses the new Basic Case Pack price and still enqueues the Layer 2 job.
+3. SGD 18 `self_serve_report` checkout uses the FI Pack price and still enqueues the Layer 2 job.
 4. SGD 188 `fidrec_tier2_pack` checkout succeeds in Stripe test mode and persists entitlement state.
 5. SGD 99 `human_consult_30m` checkout succeeds in Stripe test mode and persists consult request/purchase state.
 6. Neither add-on enqueues the Layer 2 decision/report worker.

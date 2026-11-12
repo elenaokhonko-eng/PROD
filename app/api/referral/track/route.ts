@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth"
+import { createServiceClient } from "@/lib/supabase/service"
 import { trackServerEvent } from "@/lib/analytics/server"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const referralTrackSchema = z.object({
   referralCode: z.string().min(1, "referralCode is required"),
@@ -10,6 +12,9 @@ const referralTrackSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await getCurrentUser()
+    if (!currentUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
     let parsed
     try {
       parsed = referralTrackSchema.parse(await request.json())
@@ -21,8 +26,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { referralCode, newUserId } = parsed
+    if (newUserId !== currentUser.supabaseUuid) {
+      return NextResponse.json({ error: "Referral identity mismatch" }, { status: 403 })
+    }
 
-    const supabase = await createClient()
+    // Cross-profile lookup is intentionally service-side; the authenticated
+    // Supabase UUID above is the only accepted referred user.
+    const supabase = createServiceClient()
 
     // Find referrer by code
     const { data: referrerProfile } = await supabase
@@ -63,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("[v0] Referral tracking error:", error)
+    console.error("[v0] Referral tracking error:", safeErrorText(error))
     return NextResponse.json({ error: "Failed to track referral" }, { status: 500 })
   }
 }

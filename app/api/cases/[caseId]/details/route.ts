@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
 import { getCurrentUser } from "@/lib/auth"
-import { createClient } from "@/lib/supabase/server"
+import { createUserClient } from "@/lib/supabase/server"
 
 const updateCaseSchema = z
   .object({
@@ -21,7 +21,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { caseId } = await params
-  const supabase = await createClient()
+  const supabase = await createUserClient()
 
   const { data, error } = await supabase
     .from("cases")
@@ -48,14 +48,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const supabase = await createUserClient()
 
   const { data, error } = await supabase
     .from("cases")
     .update({ ...allowed, updated_at: new Date().toISOString() })
     .eq("id", caseId)
     .select()
-    .single()
+    .maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  // RLS hides cases the caller can't edit, so zero updated rows means not found (or not theirs); don't say which.
+  if (!data) return NextResponse.json({ error: "Case not found" }, { status: 404 })
   return NextResponse.json(data)
 }

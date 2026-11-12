@@ -1,9 +1,43 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  authorizeHarborEdgeRequest,
+  HarborEdgeAuthError,
+  verifyHarborEdgeRequest,
+} from "../_shared/edge-auth.ts";
+import { safeErrorText } from "../_shared/safe-error.ts";
+import { dailyBreaker, OUTPUT_CAPS, recordModelUsage, type UsageClient, usageEnvironment } from "../_shared/model-usage.ts";
+import {
+  assessSrf,
+  chatSummary,
+  FALLBACK_TITLE,
+  type EvidenceFinding,
+  evidenceListsText,
+  type FactKey,
+  factsYouConfirmed,
+  type Institution,
+  produceSummary,
+  ProviderFailure,
+  buildTier0Input,
+  documentedFacts,
+  TIER0_CHECKS,
+  tier0System,
+  reportItNowText,
+  type SnapshotFacts,
+  srfAssessmentText,
+  srfFactsFromSnapshot,
+} from "../_shared/facts/index.ts";
 
 const PROJECT_URL = Deno.env.get("GUIDEBUOY_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("GUIDEBUOY_SERVICE_ROLE_KEY");
 const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction");
+// OpenAI model IDs are lower case; the default keeps the model this function has always used.
+// Pinned to a dated snapshot so a provider-side model update cannot change behaviour unseen (hardening item 2);
+// the corpus (scripts/tier0-corpus) is re-run before this or the prompt changes.
+const TIER0_MODEL = (Deno.env.get("TIER0_MODEL") ?? "gpt-4o-mini-2024-07-18").trim().toLowerCase(); // = TIER0_DEFAULT_MODEL
+// Used straight away when the main model is rate-limited (cost-controls spec §5 B8).
+const TIER0_SECONDARY_MODEL = (Deno.env.get("TIER0_SECONDARY_MODEL") ?? "gpt-4.1-mini").trim().toLowerCase();
+const TIER0_BUDGET_MS = 90_000;
 
 type FidrecCheck = {
   institution_name_input: string | null;
@@ -40,12 +74,6 @@ type SrfSignals = {
   fidrec_match_note?: string | null;
 };
 
-type Tier0LLMResult = {
-  summary: string;
-  evidence_checklist?: string;
-  srf_signals?: SrfSignals;
-};
-
 type Tier0NormalizeInput = {
   case?: {
     institution_name?: unknown;
@@ -68,135 +96,206 @@ type Tier0NormalizeInput = {
 
 Deno.serve(async (req) => {
   try {
-    if (req.method !== "POST") {
-      return new Response("Method Not Allowed", { status: 405 });
-    }
+    const verified = await verifyHarborEdgeRequest(req, "bright-function");
     if (!PROJECT_URL) return new Response("Project URL Missing", { status: 500 });
     if (!SERVICE_ROLE_KEY) return new Response("Service Role Key Missing", { status: 500 });
     if (!OPENAI_API_KEY) return new Response("OpenAI API Key Missing", { status: 500 });
 
-    const body = await req.json();
-    const case_id = body.case_id as string | undefined;
+    const supabase = createClient(PROJECT_URL, SERVICE_ROLE_KEY);
+    await authorizeHarborEdgeRequest(supabase, verified.context);
+    const body = verified.body;
+    const case_id = verified.context.caseId ?? undefined;
     const prompt_version = (body.prompt_version ?? "v0.1") as string;
     const source_ref = `tier0:${prompt_version}`;
 
     if (!case_id) return new Response("Missing case_id", { status: 400 });
 
-    const supabase = createClient(PROJECT_URL, SERVICE_ROLE_KEY);
-
-    const { data: caseRow, error: caseErr } = await supabase
-      .from("cases")
-      .select(
-        "id, jurisdiction, institution_name, claim_amount, claim_currency, incident_date, incident_datetime, primary_narrative",
-      )
-      .eq("id", case_id)
-      .single();
-    if (caseErr) return new Response(`Case Error: ${caseErr.message}`, { status: 500 });
-
-    const { data: intakeRows, error: intakeErr } = await supabase
-      .from("case_intake")
-      .select("id, narrative_text, answers_json, language, created_at")
+    // The free evaluation is generated only from a confirmed fact snapshot (design C3): the latest "free" snapshot
+    // for this case, frozen after every relevant finding was resolved. The web route re-checks it is still current.
+    const fact_snapshot_id = typeof body.fact_snapshot_id === "string" ? body.fact_snapshot_id : null;
+    if (!fact_snapshot_id) return json({ ok: false, reason: "facts_unconfirmed", error: "Confirm your facts first" }, 409);
+    const { data: snapshot, error: snapshotErr } = await supabase
+      .from("case_fact_snapshots")
+      .select("id, facts")
       .eq("case_id", case_id)
+      .eq("stage", "free")
       .order("created_at", { ascending: false })
       .limit(1)
-      .range(0, 0);
-    if (intakeErr) return new Response(`Intake Error: ${intakeErr.message}`, { status: 500 });
-    const intake = intakeRows?.[0] ?? null;
-
-    const { data: timelineRows, error: timelineErr } = await supabase
-      .from("case_narratives")
-      .select("text_content, created_at")
-      .eq("case_id", case_id)
-      .eq("narrative_type", "timeline_raw")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .range(0, 0);
-    if (timelineErr) return new Response(`Timeline narrative Error: ${timelineErr.message}`, { status: 500 });
-    const timeline_raw = timelineRows?.[0]?.text_content ?? null;
-
-    const extractFacts = await getLatestExtractFacts(supabase, case_id);
-    const institutionForFidrec = extractFacts?.institution_name ?? caseRow.institution_name ?? null;
-    const fidrecCheck = await checkFidrecSubscription(supabase, institutionForFidrec);
-
-    const input = {
-      case: {
-        id: caseRow.id,
-        jurisdiction: caseRow.jurisdiction,
-        institution_name: extractFacts?.institution_name ?? caseRow.institution_name,
-        claim_amount: extractFacts?.claim_amount ?? caseRow.claim_amount,
-        claim_currency: extractFacts?.claim_currency ?? caseRow.claim_currency,
-        incident_date: extractFacts?.incident_date ?? caseRow.incident_date,
-        incident_datetime: caseRow.incident_datetime,
-      },
-      primary_narrative: caseRow.primary_narrative,
-      intake: intake
-        ? {
-            intake_id: intake.id,
-            narrative_text: intake.narrative_text,
-            answers_json: intake.answers_json,
-            language: intake.language ?? "en",
-          }
-        : null,
-      timeline_raw,
-      extract_facts: extractFacts,
-      fidrec_check: fidrecCheck,
-    };
-
-    const llm = await callOpenAITier0(input);
-
-    if (isValidSrfSignals(llm.srf_signals)) {
-      llm.srf_signals.missing_fields = normalizeMissingFields(llm.srf_signals.missing_fields, input);
-      llm.srf_signals.fidrec_subscription_possible = fidrecCheck.fidrec_subscription_possible;
-      llm.srf_signals.fidrec_match_note = buildFidrecMatchNote(fidrecCheck);
+      .maybeSingle();
+    if (snapshotErr) return json({ ok: false, error: "snapshot_unavailable", code: snapshotErr.code ?? null }, 500);
+    if (!snapshot || snapshot.id !== fact_snapshot_id) {
+      return json({ ok: false, reason: "facts_unconfirmed", error: "These facts are no longer the latest confirmed facts" }, 409);
     }
+    const facts = snapshot.facts as SnapshotFacts;
 
-    const lang = intake?.language ?? "en";
-    const intake_id = intake?.id ?? null;
+    // The user's own story, for the order of events only; confirmed facts always win.
+    const { data: storyRow, error: storyErr } = await supabase
+      .from("case_story_revisions")
+      .select("story_text")
+      .eq("case_id", case_id)
+      .order("revision", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (storyErr) return json({ ok: false, error: "story_unavailable", code: storyErr.code ?? null }, 500);
+
+    const { data: findings, error: findingsErr } = await supabase
+      .from("case_fact_findings")
+      .select("fact_key, finding_type, values, resolution")
+      .eq("case_id", case_id)
+      .is("invalidated_at", null);
+    if (findingsErr) return json({ ok: false, error: "findings_unavailable", code: findingsErr.code ?? null }, 500);
+
+    const institutions = (facts.institution_names?.value as Institution[] | null) ?? [];
+    const fidrecCheck = await checkFidrecSubscription(supabase, institutions[0]?.name ?? null);
+    // Input, prompt and checks are shared with the corpus (scripts/tier0-corpus), so it measures exactly this.
+    const input = buildTier0Input({ facts, findings: findings ?? [], storyText: storyRow?.story_text ?? null, fidrecCheck });
+    const checks = { ...TIER0_CHECKS, documented: documentedFacts(findings ?? []) };
+    // The evidence checklist shown is the server's (C2); the model writes only the summary. A checker rejection or a
+    // provider failure ends in the summary version, never in "failed" (summary-ladder.ts).
+    const user = `INPUT JSON:
+${JSON.stringify(input, null, 2)}`;
+    const deadline = Date.now() + TIER0_BUDGET_MS;
+    // Metering and the daily breaker (cost-controls spec §5 B4, B6): with today's budget used up, no model call is made
+    // and the person gets the summary version.
+    const env = Deno.env.toObject();
+    const usageEnv = usageEnvironment(env);
+    const usageClient = supabase as unknown as UsageClient;
+    const meter = { caller: "edge" as const, purpose: "summary", provider: "openai" as const, caseId: case_id };
+    const breaker = await dailyBreaker(usageClient, usageEnv, env);
+    const result = await produceSummary({
+      facts,
+      options: checks,
+      sanitize: sanitizeSummary,
+      generate: async (previousFailures) => {
+        if (breaker.state === "open") {
+          await recordModelUsage(usageClient, usageEnv, { ...meter, model: TIER0_MODEL, outcome: "blocked" });
+          throw new ProviderFailure("budget");
+        }
+        return chatSummary({
+          fetch,
+          apiKey: OPENAI_API_KEY,
+          model: TIER0_MODEL,
+          secondaryModel: TIER0_SECONDARY_MODEL,
+          maxTokens: OUTPUT_CAPS.summary,
+          system: tier0System(previousFailures),
+          user,
+          deadline,
+          onCall: (call) =>
+            recordModelUsage(usageClient, usageEnv, {
+              ...meter,
+              model: call.model,
+              usage: call.usage ?? undefined,
+              latencyMs: call.latencyMs,
+              httpStatus: call.httpStatus,
+              outcome: call.kind === "ok" ? "ok" : call.kind === "refusal" ? "refused" : "error",
+            }),
+        });
+      },
+    });
+    // Review log: IDs, check names and the release only, never the story or the generated text (hardening item 6).
+    const review = {
+      case_id,
+      fact_snapshot_id,
+      source: result.source,
+      fallback_reason: result.fallbackReason,
+      attempts: result.attempts,
+      fired_checks: result.firedChecks,
+      hard_checks: result.hardChecks,
+      model: TIER0_MODEL,
+      prompt_version,
+      release: typeof body.release === "string" ? body.release.slice(0, 40) : null,
+    };
+    if (result.source === "fallback") console.warn(`Tier-0 summary version used: ${JSON.stringify(review)}`);
+    const { error: reviewErr } = await supabase.from("analytics_events").insert({
+      event_name: result.source === "fallback" ? "free_evaluation_summary_version" : "free_evaluation_summary",
+      event_data: review,
+    });
+    if (reviewErr) console.error(`Tier-0 review log failed: ${reviewErr.code ?? "unknown"}`);
+
+    const lang = "en";
+    const intake_id = null;
 
     await upsertNarrative({
       supabase,
       case_id,
       narrative_type: "tier0_summary",
-      title: "Incident summary (Tier-0)",
-      text_content: sanitizeSummary(llm.summary ?? ""),
+      title: result.source === "fallback" ? FALLBACK_TITLE : "Free evaluation summary",
+      text_content: result.summary,
       source_ref,
       version: 1,
       language: lang,
       audience: "user",
       intake_id,
+      fact_snapshot_id,
     });
 
     await upsertNarrative({
       supabase,
       case_id,
       narrative_type: "tier0_evidence_checklist",
-      title: "Evidence checklist (Tier-0)",
-      text_content: llm.evidence_checklist ?? "",
+      title: "Evidence checklist",
+      // Two lists from the confirmed facts and their documents (C2), not the model's suggestions.
+      text_content: evidenceListsText(facts, (findings ?? []).map((f) => ({
+        factKey: f.fact_key as FactKey,
+        values: (f.values ?? []) as EvidenceFinding["values"],
+        resolution: f.resolution as EvidenceFinding["resolution"],
+      }))),
       source_ref,
       version: 1,
       language: lang,
       audience: "user",
       intake_id,
+      fact_snapshot_id,
     });
 
-    let srfWritten = false;
-    if (isValidSrfSignals(llm.srf_signals)) {
-      const srfText = renderTier0SrfSignal(llm.srf_signals);
+    await upsertNarrative({
+      supabase,
+      case_id,
+      narrative_type: "tier0_confirmed_facts",
+      title: "Facts you confirmed",
+      text_content: factsYouConfirmed(facts).map((f) => `${f.label}: ${f.text}`).join("\n"),
+      source_ref,
+      version: 1,
+      language: lang,
+      audience: "user",
+      intake_id,
+      fact_snapshot_id,
+    });
+
+    // Server-only SRF assessment from the confirmed facts and the cited rules; the model never produces one.
+    await upsertNarrative({
+      supabase,
+      case_id,
+      narrative_type: "tier0_srf_signal",
+      title: "How the rules may apply",
+      text_content: srfAssessmentText(assessSrf(srfFactsFromSnapshot(facts))),
+      source_ref,
+      version: 1,
+      language: lang,
+      audience: "user",
+      intake_id,
+      fact_snapshot_id,
+    });
+    const srfWritten = true;
+
+    // "Report it now" (C4) while the bank or the police have not been told; removed once both have.
+    const reportNow = reportItNowText(facts);
+    if (reportNow) {
       await upsertNarrative({
         supabase,
         case_id,
-        narrative_type: "tier0_srf_signal",
-        title: "SRF eligibility signal (Tier-0)",
-        text_content: srfText,
+        narrative_type: "tier0_report_now",
+        title: "Report it now",
+        text_content: reportNow,
         source_ref,
         version: 1,
         language: lang,
         audience: "user",
         intake_id,
+        fact_snapshot_id,
       });
-      srfWritten = true;
-    } else if (llm.srf_signals !== undefined) {
-      console.warn("Tier-0: srf_signals missing or malformed; skipping SRF narrative");
+    } else {
+      await supabase.from("case_narratives").delete().eq("case_id", case_id).eq("narrative_type", "tier0_report_now");
     }
 
     return json(
@@ -206,6 +305,7 @@ Deno.serve(async (req) => {
         source_ref,
         outputs: {
           summary: true,
+          summary_source: result.source,
           evidence_checklist: true,
           srf_signal: srfWritten,
         },
@@ -213,8 +313,10 @@ Deno.serve(async (req) => {
       200,
     );
   } catch (e) {
-    console.error(`Error: ${String(e)}`);
-    return json({ ok: false, error: String(e) }, 500);
+    // No case content in logs or responses (hardening item 6): name, code and a scrubbed message only.
+    console.error(`Tier-0 error: ${safeErrorText(e)}`);
+    if (e instanceof HarborEdgeAuthError) return json({ ok: false, error: e.message }, e.status);
+    return json({ ok: false, error: "internal_error" }, 500);
   }
 });
 
@@ -285,7 +387,7 @@ async function checkFidrecSubscription(
       .maybeSingle();
 
     if (exactErr) {
-      console.warn(`Tier-0: fidrec_eligible exact match failed: ${exactErr.message}`);
+      console.warn(`Tier-0: fidrec_eligible exact match failed: ${exactErr.code ?? "unknown"}`);
       return withInput({
         fidrec_subscription_possible: null,
         matched_institution_name: null,
@@ -315,7 +417,7 @@ async function checkFidrecSubscription(
     .select("institution_name, institution_name_normalized, aliases");
 
   if (listErr) {
-    console.warn(`Tier-0: fidrec_eligible alias list unavailable: ${listErr.message}`);
+    console.warn(`Tier-0: fidrec_eligible alias list unavailable: ${listErr.code ?? "unknown"}`);
     return withInput({
       fidrec_subscription_possible: false,
       matched_institution_name: null,
@@ -383,96 +485,6 @@ function parseExtractSpoofing(raw: unknown): Tier0ExtractFacts["spoofing_indicat
     status: typeof o.status === "string" ? o.status : null,
     type: typeof o.type === "string" ? o.type : null,
     basis,
-  };
-}
-
-async function getLatestExtractFacts(
-  supabase: SupabaseClient,
-  case_id: string,
-): Promise<Tier0ExtractFacts | null> {
-  const { data, error } = await supabase
-    .from("case_extract_runs")
-    .select("extract_json, prompt_version")
-    .eq("case_id", case_id)
-    .ilike("prompt_version", "%run_case_extract%")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.warn(`Tier-0: case_extract_runs fetch failed: ${error.message}`);
-    return null;
-  }
-  if (!data?.prompt_version || !String(data.prompt_version).includes("run_case_extract")) return null;
-  if (!data.extract_json || typeof data.extract_json !== "object") return null;
-
-  const ej = data.extract_json as Record<string, unknown>;
-
-  const cm = ej.case_meta;
-  let institution_name: string | null = null;
-  let claim_amount: number | null = null;
-  let claim_currency: string | null = null;
-  if (cm && typeof cm === "object") {
-    const meta = cm as Record<string, unknown>;
-    if (typeof meta.institution_name === "string") {
-      const t = meta.institution_name.trim();
-      institution_name = t.length > 0 ? t : null;
-    }
-    claim_amount = safeExtractNumber(meta.claim_amount);
-    claim_currency = normalizeExtractCurrency(meta.claim_currency);
-  }
-
-  let incident_date: string | null = null;
-  const idRaw = ej.incident_date;
-  if (typeof idRaw === "string") {
-    const s = idRaw.trim();
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) incident_date = s.slice(0, 10);
-    else if (s.length > 0) incident_date = s;
-  }
-
-  let incident_datetime: string | null = null;
-  const tl = ej.timeline;
-  if (tl && typeof tl === "object") {
-    const ia = (tl as Record<string, unknown>).incident_at;
-    if (typeof ia === "string" && ia.trim().length > 0) incident_datetime = ia.trim();
-  }
-  if (!incident_datetime && typeof ej.incident_datetime === "string" && ej.incident_datetime.trim().length > 0) {
-    incident_datetime = ej.incident_datetime.trim();
-  }
-
-  let channel: string | null = null;
-  let spoofing_indicator: Tier0ExtractFacts["spoofing_indicator"] = null;
-  const inc = ej.incident;
-  if (inc && typeof inc === "object") {
-    const iv = inc as Record<string, unknown>;
-    if (typeof iv.channel === "string") {
-      const c = iv.channel.trim();
-      channel = c.length > 0 ? c : null;
-    }
-    if (iv.spoofing_indicator !== undefined && iv.spoofing_indicator !== null) {
-      spoofing_indicator = parseExtractSpoofing(iv.spoofing_indicator);
-    }
-  }
-
-  let disputed_merchant: string | null = null;
-  const tx = ej.transaction;
-  if (tx && typeof tx === "object") {
-    const dm = (tx as Record<string, unknown>).disputed_merchant;
-    if (typeof dm === "string") {
-      const m = dm.trim();
-      disputed_merchant = m.length > 0 ? m : null;
-    }
-  }
-
-  return {
-    institution_name,
-    claim_amount,
-    claim_currency,
-    incident_date,
-    incident_datetime,
-    channel,
-    disputed_merchant,
-    spoofing_indicator,
   };
 }
 
@@ -599,8 +611,9 @@ async function upsertNarrative(args: {
   language: string;
   audience: string;
   intake_id: string | null;
+  fact_snapshot_id: string;
 }) {
-  const { supabase, case_id, narrative_type, title, text_content, source_ref, version, language, audience, intake_id } =
+  const { supabase, case_id, narrative_type, title, text_content, source_ref, version, language, audience, intake_id, fact_snapshot_id } =
     args;
   const upd = await supabase
     .from("case_narratives")
@@ -611,6 +624,7 @@ async function upsertNarrative(args: {
       audience,
       intake_id,
       version,
+      fact_snapshot_id,
     })
     .eq("case_id", case_id)
     .eq("narrative_type", narrative_type)
@@ -628,6 +642,7 @@ async function upsertNarrative(args: {
       language,
       audience,
       intake_id,
+      fact_snapshot_id,
     });
     if (ins.error) throw ins.error;
   }
@@ -764,86 +779,3 @@ function renderTier0SrfSignal(signals: SrfSignals): string {
   return lines.join("\n");
 }
 
-async function callOpenAITier0(input: unknown): Promise<Tier0LLMResult> {
-  const system = `You are generating a Tier-0 consumer dispute report: an early-stage, informational output for someone who may have experienced a scam or fraud. Help them structure what happened and give a preliminary, non-binding signal about whether the matter may relate to the Singapore Shared Responsibility Framework (SRF) or may warrant further review on an IMDA-related telco path. This is not a legal determination, not a final eligibility decision, and not compensation advice.
-
-GROUND RULES
-Use only facts explicitly present in the provided JSON. Do not infer, assume, invent facts, or introduce external knowledge (e.g. how scams usually work). If something is missing, write "not provided". Be neutral, factual, chronological, clear, and non-judgemental. Do not provide legal advice, do not determine liability, and do not state that the user is eligible or ineligible for compensation.
-
-FIDREC_CHECK (optional object in input JSON)
-The fidrec_check block is a soft, reference-list signal only. Do not guess FIDReC subscription from institution name familiarity alone. A positive list match may suggest relevance of a consumer financial dispute pathway; a non-match is not a final exclusion. A null or inconclusive result means unknown. Do not state that the user is or is not entitled to FIDReC or any scheme.
-
-SUMMARY HARD RULES
-Do not add personal circumstances, location, family context, emotions, or surrounding scene details unless explicitly stated in the input. Do not add inferred context such as where the user was, what device they used, or what they were doing at the time, unless the input explicitly says so. If a fact is not explicitly in the input, do not include it.
-
-MISSING_FIELDS HARD RULES
-Do not list a field as missing if it appears anywhere in the input JSON, including: case fields, intake narrative_text, intake answers_json, primary_narrative, and timeline_raw. Specifically, do not list institution_name, claim_amount, claim_currency, incident_date, or incident_datetime as missing when they are present in input.case (non-null and non-empty where applicable). Do not list any field as missing unless it would materially help clarify the SRF signal.
-
-OUTPUT
-Return STRICT JSON only, with this exact structure (no extra keys):
-{
-"summary": "string",
-"evidence_checklist": "string",
-"srf_signals": {
-"overall_fit": "likely | possible | unlikely",
-"reasoning": "string",
-"bank_path_relevant": true,
-"telco_path_relevant": false,
-"imda_relevant": false,
-"missing_fields": ["string"]
-}
-}
-
-SUMMARY
-Produce a clear, chronological summary covering: how the incident or contact started; what the user did; transactions or losses; and what happened afterward (e.g. reporting, bank contact). Do not add interpretation or judgement. Use "not provided" where key elements are missing.
-
-EVIDENCE CHECKLIST
-Suggest useful supporting evidence based only on gaps implied by the input. Valid examples include: bank transaction records, screenshots of messages, call logs, police report, bank correspondence. Do not suggest evidence unrelated to the scenario; do not assume documents exist if not mentioned.
-
-SRF SIGNALS (srf_signals object)
-The soft signal is directional only and must follow these rules in one pass:
-
-overall_fit: Use "likely" when facts clearly align with unauthorised transaction or scam-type scenarios; "possible" when facts are incomplete, ambiguous, or only partially aligned; "unlikely" when facts do not suggest a scam or SRF-relevant scenario. If unsure, use "possible".
-
-bank_path_relevant: true only if the input includes facts such as unauthorised transactions, phishing or credential compromise, account access issues, suspicious transfers, or delayed or failed bank response. Otherwise false.
-
-telco_path_relevant: Assess only from user-visible facts in the input. true only with explicit evidence of spoofed SMS sender ID, a message under a legitimate organisation sender name (e.g. bank/government ID), communication inside an existing legitimate SMS thread, or clear impersonation via sender identity (not message content alone). false if communication was from a normal number, or the scam was via WhatsApp, Telegram, voice call, or ordinary SMS without identity masking, or there is no visible sender-identity manipulation, or the case rests on social engineering alone. Do not assume spoofing unless stated. Do not infer telco failure from the mere existence of a call or message. Do not use facts the user could not know (e.g. internal telco data, whether a number was on a scam list).
-
-imda_relevant: true only if telco_path_relevant is true; otherwise false. Be conservative.
-
-missing_fields: List only genuinely missing information the user could reasonably supply (e.g. whether an SMS showed a sender name, whether a message appeared in an existing thread, whether a transaction was authorised, whether and when the bank was contacted). Exclude telco-internal data, regulatory conclusions, and speculative items. Apply the MISSING_FIELDS HARD RULES above. When suggesting missing information, prefer concise user-actionable wording for items the consumer can provide, and plain language for gaps that mainly need the bank's explanation, investigation, or records (still output a single missing_fields string array as specified).
-
-reasoning: Explain the classifications using only input facts; if uncertain, say what is missing.`;
-
-  const user = `INPUT JSON:\n${JSON.stringify(input, null, 2)}`;
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      temperature: 0.2,
-      response_format: {
-        type: "json_object",
-      },
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
-  });
-
-  if (!resp.ok) {
-    const err = await resp.text();
-    console.error(`OpenAI error ${resp.status}: ${err}`);
-    throw new Error(`OpenAI error ${resp.status}`);
-  }
-
-  const data = await resp.json();
-  const content = data?.choices?.[0]?.message?.content;
-  if (!content) throw new Error("OpenAI returned empty content");
-
-  return JSON.parse(content) as Tier0LLMResult;
-}

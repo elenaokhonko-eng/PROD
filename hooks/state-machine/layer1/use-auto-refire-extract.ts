@@ -94,6 +94,8 @@ export function useAutoRefireExtract({
         queryClient.invalidateQueries({ queryKey: qk.case.extract(id) }),
         queryClient.invalidateQueries({ queryKey: qk.case.validation(id) }),
         queryClient.invalidateQueries({ queryKey: qk.case.eligibility(id) }),
+        // A new validation can change whether the case is ready to buy.
+        queryClient.invalidateQueries({ queryKey: qk.entitlement(id) }),
       ])
     },
   })

@@ -23,7 +23,7 @@ export type CaseStrengthScore = 'low' | 'medium' | 'high'
 
 export interface CaseRow {
   id: string
-  /** FK → auth.users.id (Pattern C). Nullable only for legacy rows. */
+  /** FK → public.profiles.id (Pattern C). Nullable only for legacy rows. */
   user_id: string | null
   claim_type: CaseClaimType
   status: CaseStatus | null

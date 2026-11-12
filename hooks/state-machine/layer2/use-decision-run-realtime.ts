@@ -8,7 +8,11 @@ import type { CaseDecisionRunRow } from '@/lib/types/decision'
 
 export interface UseDecisionRunRealtimeOptions {
   enabled?: boolean
+  /** Poll while the paid pipeline is still producing it; Realtime is best-effort (D7). */
+  poll?: boolean
 }
+
+const PIPELINE_POLL_MS = 10_000
 
 function compareCreatedAtDesc(a: CaseDecisionRunRow, b: CaseDecisionRunRow): number {
   const aTs = Date.parse(a.created_at)
@@ -41,6 +45,7 @@ export function useDecisionRunRealtime(
       if (error) throw error
       return (data ?? null) as CaseDecisionRunRow | null
     },
+    refetchInterval: (query) => (options?.poll && !query.state.data ? PIPELINE_POLL_MS : false),
   })
 
   useEffect(() => {

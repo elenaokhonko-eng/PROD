@@ -3,8 +3,8 @@
 /**
  * Transition node `T-BuyReportCTA` (SM Diagram 2).
  *
- * CTA card shown on the Tier-0 draft screen once `run_report_selfserve` is
- * eligible. Pure presentational — clicking the button calls `onClick()`,
+ * CTA card shown on the Tier-0 draft screen once the capabilities API reports `report.purchaseReady`.
+ * Pure presentational — clicking the button calls `onClick()`,
  * which the driver wires to `useCreateCheckoutSession` (Slice 4B).
  */
 
@@ -14,18 +14,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 
 export interface BuyReportCTAProps {
-  /** Displayed price (MVP: SGD $49). Passed in so pricing can be
-   *  A/B tested server-side without touching this component. */
-  priceLabel?: string
+  /** Displayed price. The state-machine owner passes the authoritative catalogue amount. */
+  priceLabel: string
   isStartingCheckout?: boolean
   errorMessage?: string | null
+  disabled?: boolean
+  unavailableReason?: string
   onClick: () => void
 }
 
 export function BuyReportCTA({
-  priceLabel = 'SGD $49',
+  priceLabel,
   isStartingCheckout = false,
   errorMessage,
+  disabled = false,
+  unavailableReason,
   onClick,
 }: BuyReportCTAProps) {
   return (
@@ -35,21 +38,28 @@ export function BuyReportCTA({
           <ShieldCheck className="h-5 w-5" aria-hidden />
         </div>
         <div className="flex-1">
-          <CardTitle>Buy the full report</CardTitle>
+          <CardTitle>Get your Bank Pack</CardTitle>
           <CardDescription>
-            A structured complaint report drafted against Singapore&apos;s Shared Responsibility
-            Framework. Ready to send to the institution in minutes.
+            A structured complaint report organised against Singapore&apos;s Shared Responsibility
+            Framework, ready for you to review before sending.
           </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <ul className="ml-4 list-disc space-y-1 text-sm text-muted-foreground">
-          <li>Regulator-aware legal analysis of your case</li>
+          <li>Structured analysis of the issues in your case</li>
           <li>Evidence checklist and disputed transactions table</li>
           <li>Requested resolution drafted for you</li>
-          <li>Always the latest version — re-run for free when you add new evidence</li>
         </ul>
+        <p className="rounded-lg border bg-background/70 p-3 text-sm text-muted-foreground" role="note">
+          Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
+        </p>
 
+        {unavailableReason ? (
+          <p className="text-sm text-muted-foreground" role="status">
+            {unavailableReason}
+          </p>
+        ) : null}
         {errorMessage ? (
           <p className="text-sm text-destructive" role="alert">
             {errorMessage}
@@ -58,12 +68,14 @@ export function BuyReportCTA({
 
         <div className="flex items-center justify-between gap-3 pt-2">
           <div className="text-lg font-semibold">{priceLabel}</div>
-          <Button onClick={onClick} disabled={isStartingCheckout} size="lg">
+          <Button onClick={onClick} disabled={disabled || isStartingCheckout} size="lg">
             {isStartingCheckout ? (
               <StateMachineLoading size="inline" title="Redirecting..." />
+            ) : disabled ? (
+              'Checkout unavailable'
             ) : (
               <>
-                Buy full report
+                Get Bank Pack
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
               </>
             )}

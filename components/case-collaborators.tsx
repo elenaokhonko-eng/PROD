@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Users, Mail, Trash2, Loader2 } from "lucide-react"
+import { Users, Mail, Loader2 } from "lucide-react"
 
 interface CaseCollaboratorsProps {
   caseId: string
@@ -30,6 +30,12 @@ export default function CaseCollaborators({ caseId, isOwner }: CaseCollaborators
   const [inviteRole, setInviteRole] = useState("helper")
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
+  const [inviteStatus, setInviteStatus] = useState<{ kind: "success" | "error"; message: string } | null>(null)
+  const inviteStatusRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (inviteStatus) inviteStatusRef.current?.focus()
+  }, [inviteStatus])
 
   const fetchCollaborators = useCallback(async () => {
     try {
@@ -52,6 +58,7 @@ export default function CaseCollaborators({ caseId, isOwner }: CaseCollaborators
     if (!inviteEmail) return
 
     setIsSending(true)
+    setInviteStatus(null)
     try {
       const response = await fetch("/api/invitations/send", {
         method: "POST",
@@ -60,14 +67,14 @@ export default function CaseCollaborators({ caseId, isOwner }: CaseCollaborators
       })
 
       if (response.ok) {
-        alert("Invitation sent successfully!")
+        setInviteStatus({ kind: "success", message: "Invitation sent successfully." })
         setInviteEmail("")
       } else {
         const data = await response.json()
-        alert(data.error || "Failed to send invitation")
+        setInviteStatus({ kind: "error", message: data.error || "Failed to send invitation." })
       }
     } catch {
-      alert("An error occurred")
+      setInviteStatus({ kind: "error", message: "The invitation could not be sent. Check your connection and try again." })
     } finally {
       setIsSending(false)
     }
@@ -116,7 +123,17 @@ export default function CaseCollaborators({ caseId, isOwner }: CaseCollaborators
 
         {isOwner && (
           <div className="space-y-3 pt-4 border-t">
-            <Label htmlFor="invite-email">Invite Collaborator</Label>
+            {inviteStatus && (
+              <div
+                ref={inviteStatusRef}
+                role={inviteStatus.kind === "error" ? "alert" : "status"}
+                tabIndex={-1}
+                className={`rounded-lg border p-3 text-sm outline-none ${inviteStatus.kind === "error" ? "border-destructive/40 bg-harbor-error-tint" : "border-harbor-success/40 bg-harbor-success-tint"}`}
+              >
+                {inviteStatus.message}
+              </div>
+            )}
+            <Label htmlFor="invite-email">Invite collaborator</Label>
             <Input
               id="invite-email"
               type="email"
@@ -124,7 +141,9 @@ export default function CaseCollaborators({ caseId, isOwner }: CaseCollaborators
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
             />
+            <Label htmlFor="invite-role">Collaborator role</Label>
             <select
+              id="invite-role"
               value={inviteRole}
               onChange={(e) => setInviteRole(e.target.value)}
               className="w-full px-3 py-2 border rounded-md"

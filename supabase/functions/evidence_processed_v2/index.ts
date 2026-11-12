@@ -1,4 +1,22 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { safeErrorText } from "../_shared/safe-error.ts";
+import {
+  backoffMs,
+  dailyBreaker,
+  GEMINI_THINKING_BUDGET,
+  geminiUsage,
+  OUTPUT_CAPS,
+  recordModelUsage,
+  type UsageClient,
+  usageEnvironment,
+} from "../_shared/model-usage.ts";
+
+type GeminiAttempt = { status: number; body: unknown; latencyMs: number; willRetry: boolean };
+import {
+  authorizeHarborEdgeRequest,
+  HarborEdgeAuthError,
+  verifyHarborEdgeRequest,
+} from "../_shared/edge-auth.ts";
 // ==================== EVIDENCE TYPES (EXACTLY YOUR LIST) ====================
 const EVIDENCE_TYPES = [
   "PHISHING_EMAIL_COPY_OR_DESCRIPTION",
@@ -187,18 +205,6 @@ function sniffMime(bytes, filename, existingMime) {
   // Safe default
   return "image/jpeg";
 }
-async function markStatus(supabase, document_id, patch) {
-  const r = await supabase.from("case_documents").update(patch).eq("id", document_id);
-  if (r?.error) throw new Error(`Failed to update case_documents: ${r.error.message}`);
-}
-async function markFailed(supabase, document_id, err) {
-  const msg = String(err?.message ?? err ?? "unknown");
-  await supabase.from("case_documents").update({
-    processing_status: "failed",
-    processing_error: msg.slice(0, 2000),
-    is_processed: false
-  }).eq("id", document_id);
-}
 async function getExistingContentId(args) {
   const { supabase, document_id, model, prompt_version, pipeline_version } = args;
   const r = await supabase.from("case_documents_content").select("id").eq("document_id", document_id).eq("model", model).eq("prompt_version", prompt_version).eq("pipeline_version", pipeline_version).order("id", {
@@ -256,8 +262,11 @@ function evidenceDefinitionsBlock() {
 `.trim();
 }
 
-/** Default model for document classification. Override with secret `EVIDENCE_GEMINI_MODEL` after deploy. */
-const DEFAULT_EVIDENCE_GEMINI_MODEL = Deno.env.get("EVIDENCE_GEMINI_MODEL") ?? "gemini-2.5-flash";
+/**
+ * Default model for document classification. Override with secret `EVIDENCE_GEMINI_MODEL` after deploy.
+ * gemini-2.5-* returns 404 for API keys created after its retirement for new users.
+ */
+const DEFAULT_EVIDENCE_GEMINI_MODEL = Deno.env.get("EVIDENCE_GEMINI_MODEL") ?? "gemini-3.8-flash";
 
 function isRetryableGeminiError(status: number, bodyText: string): boolean {
   if (status === 429 || status === 503) return true;
@@ -280,14 +289,17 @@ async function geminiGenerateContentWithRetry(args: {
   requestBody: string;
   /** Total attempts = 1 + retries (default 3 retries → 4 attempts). */
   retries?: number;
-  initialDelayMs?: number;
+  /** Metering for each attempt (cost-controls spec §5 B6); never sees the document. */
+  onAttempt?: (attempt: GeminiAttempt) => Promise<void>;
 }) {
   const { endpoint, requestBody } = args;
   let attemptsLeft = (args.retries ?? 3) + 1;
-  let delayMs = args.initialDelayMs ?? 6500;
+  let attempt = 0;
 
   while (attemptsLeft > 0) {
     attemptsLeft--;
+    attempt++;
+    const started = Date.now();
     const resp = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -296,19 +308,25 @@ async function geminiGenerateContentWithRetry(args: {
     const rawErr = !resp.ok ? await resp.text().catch(() => "") : null;
 
     if (resp.ok) {
-      return resp.json();
+      const body = await resp.json();
+      await args.onAttempt?.({ status: resp.status, body, latencyMs: Date.now() - started, willRetry: false });
+      return body;
     }
 
-    if (attemptsLeft > 0 && isRetryableGeminiError(resp.status, rawErr ?? "")) {
+    const willRetry = attemptsLeft > 0 && isRetryableGeminiError(resp.status, rawErr ?? "");
+    await args.onAttempt?.({ status: resp.status, body: null, latencyMs: Date.now() - started, willRetry });
+    if (willRetry) {
+      // Truncated exponential backoff with jitter, honouring Retry-After (§5 B8).
+      const delayMs = backoffMs(attempt, resp.headers.get("retry-after"), 4_000, 30_000);
       console.warn(
-        `[evidence_processed_v2] Gemini overloaded (${resp.status}). Retrying in ${delayMs / 1000}s… (${attemptsLeft} attempt(s) left)`,
+        `[evidence_processed_v2] Gemini overloaded (${resp.status}). Retrying in ${Math.round(delayMs / 1000)}s… (${attemptsLeft} attempt(s) left)`,
       );
       await new Promise((r) => setTimeout(r, delayMs));
-      delayMs = Math.floor(delayMs * 1.5);
       continue;
     }
 
-    throw new Error(`Gemini failed: ${resp.status} ${rawErr ?? ""}`.trim());
+    // The provider body can echo the document; keep the status only (hardening item 6).
+    throw new Error(`Gemini failed: ${resp.status}`);
   }
 
   throw new Error("Gemini failed after retries");
@@ -366,10 +384,13 @@ File name: ${file_name}
     generationConfig: {
       temperature: 0.1,
       response_mime_type: "application/json",
+      // Output and thinking caps (§5 B5): thinking tokens are billed as output.
+      max_output_tokens: OUTPUT_CAPS.evidence,
+      thinking_config: { thinking_budget: GEMINI_THINKING_BUDGET.evidence },
     },
   });
 
-  const j = await geminiGenerateContentWithRetry({ endpoint, requestBody });
+  const j = await geminiGenerateContentWithRetry({ endpoint, requestBody, onAttempt: args.onAttempt });
   const rawOutput = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
   const parsed = safeParseGeminiJson(String(rawOutput));
   const rawText = String(parsed.raw_text ?? rawOutput);
@@ -381,30 +402,46 @@ File name: ${file_name}
 }
 // -------------------- Core Worker --------------------
 async function processOneDocument(args) {
-  const { supabase, document_id, requestId, geminiKey, force } = args;
-  // SETTINGS (keep your existing style). Model: flash-tier default; override via EVIDENCE_GEMINI_MODEL secret.
+  const {
+    supabase,
+    document_id,
+    case_id,
+    job_id,
+    job_lock_token,
+    requestId,
+    geminiKey,
+    force
+  } = args;
   const model = DEFAULT_EVIDENCE_GEMINI_MODEL;
   const prompt_version = "sota_v3_evidence_index_exact";
   const pipeline_version = "fanout_v3_evidence_index_exact";
   try {
-    log("DOC_START", {
-      requestId,
-      document_id,
-      force
+    const begin = await supabase.rpc("begin_evidence_processing_v1", {
+      p_job_id: job_id,
+      p_case_id: case_id,
+      p_job_locked_at: job_lock_token,
+      p_document_id: document_id,
+      p_request_id: requestId
     });
-    await markStatus(supabase, document_id, {
-      processing_status: "parsing",
-      processing_error: null,
-      is_processed: false
-    });
-    const docRes = await supabase.from("case_documents").select("id,case_id,document_type,mime_type,original_filename,filename,storage_bucket,storage_path").eq("id", document_id).single();
+    if (begin.error || begin.data !== true) {
+      throw new Error(`Failed to begin fenced evidence processing: ${begin.error?.message ?? "unknown"}`);
+    }
+
+    log("DOC_START", { requestId, document_id, force });
+    const docRes = await supabase.from("case_documents")
+      .select("id,case_id,document_type,mime_type,original_filename,filename,storage_bucket,storage_path")
+      .eq("id", document_id)
+      .eq("case_id", case_id)
+      .single();
     if (!docRes) throw new Error("Doc query returned undefined");
-    if (docRes.error || !docRes.data) throw new Error(`Doc not found: ${docRes.error?.message ?? document_id}`);
+    if (docRes.error || !docRes.data) {
+      throw new Error(`Doc not found: ${docRes.error?.message ?? document_id}`);
+    }
     const doc = docRes.data;
     if (!doc.storage_bucket || !doc.storage_path) {
       throw new Error("Missing storage_bucket/storage_path on case_documents row");
     }
-    // If content exists and force=false, reuse (skip Gemini)
+
     const existingContentId = await getExistingContentId({
       supabase,
       document_id,
@@ -412,97 +449,148 @@ async function processOneDocument(args) {
       prompt_version,
       pipeline_version
     });
-    let content_id;
     let parsed;
     let rawText;
     let mime_used = null;
     let gemini_ran = false;
     if (existingContentId && !force) {
-      const loaded = await loadContentRow({
-        supabase,
-        content_id: existingContentId
-      });
-      content_id = existingContentId;
+      const loaded = await loadContentRow({ supabase, content_id: existingContentId });
       parsed = loaded.parsed;
       rawText = loaded.rawText;
-      log("CONTENT_REUSED", {
-        document_id,
-        content_id
-      });
+      log("CONTENT_REUSED", { document_id, content_id: existingContentId });
     } else {
+      // Daily breaker (§5 B4): with today's model budget used up, the document is not sent; the job is retried later.
+      const env = Deno.env.toObject();
+      const usageEnv = usageEnvironment(env);
+      if ((await dailyBreaker(supabase as unknown as UsageClient, usageEnv, env)).state === "open") {
+        await recordModelUsage(supabase as unknown as UsageClient, usageEnv, { caller: "edge", purpose: "evidence", provider: "gemini", model, outcome: "blocked", caseId: doc.case_id });
+        throw new Error("model_budget_exceeded");
+      }
       const dlRes = await supabase.storage.from(doc.storage_bucket).download(doc.storage_path);
       if (!dlRes) throw new Error("Storage download returned undefined");
-      if (dlRes.error || !dlRes.data) throw new Error(`Download failed: ${dlRes.error?.message ?? "unknown"}`);
+      if (dlRes.error || !dlRes.data) {
+        throw new Error(`Download failed: ${dlRes.error?.message ?? "unknown"}`);
+      }
       const bytes = new Uint8Array(await dlRes.data.arrayBuffer());
-      const base64 = toBase64(bytes);
       const fileName = String(doc.original_filename ?? doc.filename ?? doc.storage_path ?? "");
       mime_used = sniffMime(bytes, fileName, doc.mime_type ?? null);
       const gem = await runGemini({
         geminiKey,
         model,
         mime_type: mime_used,
-        base64,
+        base64: toBase64(bytes),
         declared_document_type: doc.document_type ?? null,
-        file_name: fileName
+        file_name: fileName,
+        onAttempt: (a: GeminiAttempt) =>
+          recordModelUsage(supabase as unknown as UsageClient, usageEnvironment(Deno.env.toObject()), {
+            caller: "edge",
+            purpose: "evidence",
+            provider: "gemini",
+            model,
+            usage: a.body ? geminiUsage(a.body) : undefined,
+            latencyMs: a.latencyMs,
+            httpStatus: a.status,
+            outcome: a.status === 200 ? "ok" : a.willRetry ? "retry" : "error",
+            caseId: doc.case_id,
+          }),
       });
       parsed = gem.parsed;
       rawText = gem.rawText;
       gemini_ran = true;
-      // Enforce enum safety on the way in
-      parsed.predicted_document_type = normalizeEvidenceType(parsed.predicted_document_type);
-      // Store derived tier/duty alongside, so downstream analytics doesn't need to recompute
-      const predictedTmp = normalizeEvidenceType(parsed.predicted_document_type);
-      const tier_flags_tmp = computeTierFlags(predictedTmp);
-      const duty_category_tmp = mapToDutyCategory(predictedTmp);
-      const up = await supabase.from("case_documents_content").upsert([
-        {
-          document_id,
-          model,
-          prompt_version,
-          pipeline_version,
-          text_content: rawText,
-          content_json: {
-            ...parsed,
-            predicted_document_type: predictedTmp,
-            duty_category: duty_category_tmp,
-            tier_flags: tier_flags_tmp
-          },
-          parse_status: "success",
-          parse_errors: null
-        }
-      ], {
-        onConflict: "document_id,model,prompt_version,pipeline_version"
-      }).select("id").single();
-      if (!up) throw new Error("Content upsert returned undefined");
-      if (up.error || !up.data) throw new Error(`Failed to upsert content row: ${up.error?.message ?? "unknown"}`);
-      content_id = up.data.id;
-      log("CONTENT_UPSERTED", {
-        document_id,
-        content_id,
-        mime_used
-      });
     }
-    // Normalize predicted type ALWAYS (covers reuse path too)
+
     const predicted = normalizeEvidenceType(parsed.predicted_document_type);
+    parsed.predicted_document_type = predicted;
     const conf = typeof parsed.confidence === "number" ? parsed.confidence : null;
-    // Tier flags & duty mapping
     const tier_flags = computeTierFlags(predicted);
     const duty_category = mapToDutyCategory(predicted);
-    // Map declared type if legacy; preserves verification signal during migration
     const declaredMapped = mapDeclaredToEvidenceType(doc.document_type);
-    const declaredForCompare = declaredMapped ?? null;
-    const { decision, reason } = decideVerification(declaredForCompare, predicted, conf);
-    const verificationReason = declaredMapped ? `${reason} (declared mapped from '${String(doc.document_type)}' -> '${declaredMapped}')` : reason;
+    const { decision, reason } = decideVerification(declaredMapped ?? null, predicted, conf);
+    const verificationReason = declaredMapped
+      ? `${reason} (declared mapped from '${String(doc.document_type)}' -> '${declaredMapped}')`
+      : reason;
     const evidenceSpans = Array.isArray(parsed.evidence_spans) ? parsed.evidence_spans : [];
-    await markStatus(supabase, document_id, {
-      processing_status: "verifying",
-      processing_error: null
-    });
-    // VERIFICATIONS: required
-    const verIns = await supabase.from("case_document_verifications").insert([
-      {
-        document_id,
-        content_id,
+    const citations = evidenceSpans.map((item) => ({
+      quote: item?.quote ?? null,
+      page: item?.page ?? null
+    }));
+    const transactions = Array.isArray(parsed.transactions) ? parsed.transactions : [];
+    const chunks = chunkText(rawText, 1100).map((chunk, index) => ({
+      chunk_index: index,
+      chunk_text: chunk,
+      page_start: null,
+      page_end: null,
+      char_start: null,
+      char_end: null,
+      section_title: null,
+      chunk_type: "paragraph",
+      metadata: {
+        request_id: requestId,
+        created_at: new Date().toISOString(),
+        evidence_type: predicted,
+        duty_category,
+        tier_flags
+      }
+    }));
+
+    const contentPayload = existingContentId && !force ? null : {
+      model,
+      prompt_version,
+      pipeline_version,
+      text_content: rawText,
+      content_json: {
+        ...parsed,
+        predicted_document_type: predicted,
+        duty_category,
+        tier_flags
+      },
+      language: parsed.language ?? null,
+      page_count: parsed.page_count ?? null,
+      parse_status: "success",
+      parse_errors: null,
+      content_sha256: null
+    };
+    const summaryExtraction = {
+      extraction_type: "doc_summary_v3",
+      schema_version: "v1",
+      extracted_json: {
+        predicted_document_type: predicted,
+        confidence: conf,
+        declared_document_type: doc.document_type ?? null,
+        declared_document_type_mapped: declaredMapped,
+        verification_decision: decision,
+        verification_reason: verificationReason,
+        evidence_spans: citations,
+        has_transactions: transactions.length > 0,
+        duty_category,
+        tier_flags
+      },
+      extracted_text: parsed.notes ?? null,
+      confidence: conf,
+      citations,
+      model,
+      prompt_version: "extract_doc_summary_v3"
+    };
+    const transactionExtraction = transactions.length > 0 ? {
+      extraction_type: "transactions_v1",
+      schema_version: "v1",
+      extracted_json: { transactions, predicted_document_type: predicted },
+      extracted_text: null,
+      confidence: conf,
+      citations,
+      model,
+      prompt_version: "extract_transactions_v1"
+    } : null;
+
+    const commit = await supabase.rpc("commit_evidence_processing_v1", {
+      p_job_id: job_id,
+      p_case_id: case_id,
+      p_job_locked_at: job_lock_token,
+      p_document_id: document_id,
+      p_request_id: requestId,
+      p_existing_content_id: existingContentId && !force ? existingContentId : null,
+      p_content: contentPayload,
+      p_verification: {
         declared_document_type: doc.document_type,
         predicted_document_type: predicted,
         confidence: conf,
@@ -511,109 +599,21 @@ async function processOneDocument(args) {
         evidence_spans: evidenceSpans,
         model,
         prompt_version
+      },
+      p_chunks: chunks,
+      p_summary_extraction: summaryExtraction,
+      p_transactions_extraction: transactionExtraction,
+      p_document_patch: {
+        verified_document_type: predicted,
+        verification_status: decision,
+        verification_confidence: conf
       }
-    ]);
-    if (!verIns) throw new Error("Verification insert returned undefined");
-    if (verIns.error) throw new Error(`Verification insert failed: ${verIns.error.message}`);
-    // Chunking
-    await markStatus(supabase, document_id, {
-      processing_status: "chunking",
-      processing_error: null
     });
-    const chunks = chunkText(rawText, 1100);
-    if (chunks.length > 0) {
-      const chunkRes = await supabase.from("case_document_chunks").insert(chunks.map((chunk, i)=>({
-          content_id,
-          chunk_index: i,
-          chunk_text: chunk,
-          chunk_type: "paragraph",
-          metadata: {
-            request_id: requestId,
-            created_at: new Date().toISOString(),
-            evidence_type: predicted,
-            duty_category,
-            tier_flags
-          }
-        })));
-      if (!chunkRes) throw new Error("Chunk insert returned undefined");
-      if (chunkRes.error) throw new Error(`Chunk insert failed: ${chunkRes.error.message}`);
+    if (commit.error || !commit.data) {
+      throw new Error(`Fenced evidence commit failed: ${commit.error?.message ?? "no content id"}`);
     }
-    // Extractions
-    await markStatus(supabase, document_id, {
-      processing_status: "extracting",
-      processing_error: null
-    });
-    const citations = evidenceSpans.map((e)=>({
-        quote: e?.quote ?? null,
-        page: e?.page ?? null
-      }));
-    const transactions = Array.isArray(parsed.transactions) ? parsed.transactions : [];
-    // Summary extraction: stable keys + tier fields
-    const extUp = await supabase.from("case_document_extractions").upsert([
-      {
-        case_id: doc.case_id,
-        document_id,
-        content_id,
-        extraction_type: "doc_summary_v3",
-        schema_version: "v1",
-        extracted_json: {
-          predicted_document_type: predicted,
-          confidence: conf,
-          declared_document_type: doc.document_type ?? null,
-          declared_document_type_mapped: declaredMapped,
-          verification_decision: decision,
-          verification_reason: verificationReason,
-          evidence_spans: citations,
-          has_transactions: transactions.length > 0,
-          duty_category,
-          tier_flags
-        },
-        extracted_text: parsed.notes ?? null,
-        confidence: conf,
-        citations,
-        model,
-        prompt_version: "extract_doc_summary_v3"
-      }
-    ], {
-      onConflict: "document_id,extraction_type,schema_version"
-    });
-    if (!extUp) throw new Error("Extraction upsert returned undefined");
-    if (extUp.error) throw new Error(`Extraction upsert failed: ${extUp.error.message}`);
-    // Transactions extraction (optional)
-    if (transactions.length > 0) {
-      const txUp = await supabase.from("case_document_extractions").upsert([
-        {
-          case_id: doc.case_id,
-          document_id,
-          content_id,
-          extraction_type: "transactions_v1",
-          schema_version: "v1",
-          extracted_json: {
-            transactions,
-            predicted_document_type: predicted
-          },
-          extracted_text: null,
-          confidence: conf,
-          citations,
-          model,
-          prompt_version: "extract_transactions_v1"
-        }
-      ], {
-        onConflict: "document_id,extraction_type,schema_version"
-      });
-      if (!txUp) throw new Error("Transactions upsert returned undefined");
-      if (txUp.error) throw new Error(`Transactions upsert failed: ${txUp.error.message}`);
-    }
-    // Finalize
-    await markStatus(supabase, document_id, {
-      content_latest_id: content_id,
-      processing_status: "ready",
-      processing_error: null,
-      is_processed: true,
-      verified_document_type: predicted,
-      verification_status: decision,
-      verification_confidence: conf
-    });
+    const content_id = commit.data;
+
     log("DOC_DONE", {
       document_id,
       content_id,
@@ -636,190 +636,75 @@ async function processOneDocument(args) {
       chunks_created: chunks.length,
       transactions_extracted: transactions.length
     };
-  } catch (e) {
-    await markFailed(supabase, document_id, e);
-    throw e;
-  }
-}
-// -------------------- Serve --------------------
-Deno.serve(async (req)=>{
-  const requestId = crypto.randomUUID();
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const geminiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
-  if (!serviceKey || !supabaseUrl || !geminiKey) {
-    return new Response(JSON.stringify({
-      ok: false,
-      requestId,
-      error: "Missing env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY"
-    }), {
-      status: 500,
-      headers: {
-        "Content-Type": "application/json"
-      }
+  } catch (error) {
+    const failure = await supabase.rpc("fail_evidence_processing_v1", {
+      p_job_id: job_id,
+      p_case_id: case_id,
+      p_job_locked_at: job_lock_token,
+      p_document_id: document_id,
+      p_request_id: requestId,
+      p_error: safeErrorText(error)
     });
-  }
-  const supabase = createClient(supabaseUrl, serviceKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false
-    },
-    global: {
-      fetch
+    if (failure.error) {
+      log("FAILURE_STATUS_SKIPPED", { document_id, code: failure.error.code ?? null });
     }
-  });
+    throw error;
+  }
+}// -------------------- Serve --------------------
+Deno.serve(async (req)=>{
+  let requestId = "unverified";
   try {
-    let body;
-    try {
-      body = await req.json();
-    } catch  {
+    const verified = await verifyHarborEdgeRequest(req, "evidence_processed_v2");
+    requestId = verified.context.requestId;
+
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const geminiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
+    if (!serviceKey || !supabaseUrl || !geminiKey) {
       return new Response(JSON.stringify({
         ok: false,
         requestId,
-        error: "Invalid JSON body"
-      }), {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
+        error: "Missing env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY"
+      }), { status: 500, headers: { "Content-Type": "application/json" } });
     }
-    const document_id = body?.document_id ?? null;
-    const case_id = body?.case_id ?? null;
-    const force = body?.force === true;
-    const continueOnError = body?.continue_on_error !== false;
-    const maxDocs = Number.isFinite(body?.max_docs) ? Math.max(1, Math.min(500, Number(body.max_docs))) : 100;
-    // Optional: reprocess only error/failed docs
-    const reprocessErrorsOnly = body?.reprocess_errors_only === true;
-    if (document_id) {
-      log("SINGLE_START", {
-        requestId,
-        document_id,
-        force
-      });
-      const result = await processOneDocument({
-        supabase,
-        document_id,
-        requestId,
-        geminiKey,
-        force
-      });
-      return new Response(JSON.stringify({
-        ok: true,
-        requestId,
-        mode: "single",
-        result
-      }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
-    }
-    if (case_id) {
-      log("CASE_START", {
-        requestId,
-        case_id,
-        force,
-        maxDocs,
-        reprocessErrorsOnly
-      });
-      const list = await supabase.from("case_documents").select("id,processing_status,processing_error,is_processed,upload_date").eq("case_id", case_id).limit(maxDocs);
-      if (!list) throw new Error("Failed to list case documents: undefined response");
-      if (list.error) throw new Error(`Failed to list case documents: ${list.error.message}`);
-      const docs = Array.isArray(list.data) ? list.data : [];
-      docs.sort((a, b)=>{
-        const ad = a?.upload_date ? new Date(a.upload_date).getTime() : 0;
-        const bd = b?.upload_date ? new Date(b.upload_date).getTime() : 0;
-        if (ad !== bd) return ad - bd;
-        return String(a?.id ?? "").localeCompare(String(b?.id ?? ""));
-      });
-      const targets = docs.filter((d)=>{
-        const status = String(d?.processing_status ?? "");
-        const isProcessed = !!d?.is_processed;
-        const hasError = !!d?.processing_error;
-        const inFlight = [
-          "parsing",
-          "verifying",
-          "chunking",
-          "extracting"
-        ].includes(status);
-        // Keep your previous behaviour: do not touch in-flight docs here
-        if (inFlight) return false;
-        if (reprocessErrorsOnly) {
-          return status === "failed" || hasError;
-        }
-        if (!force && (status === "ready" || isProcessed)) return false;
-        return true;
-      });
-      const results = [];
-      for (const d of targets){
-        const docId = String(d.id);
-        try {
-          const r = await processOneDocument({
-            supabase,
-            document_id: docId,
-            requestId,
-            geminiKey,
-            force
-          });
-          results.push({
-            ok: true,
-            ...r
-          });
-        } catch (e) {
-          const msg = String(e?.message ?? e);
-          results.push({
-            ok: false,
-            document_id: docId,
-            error: msg
-          });
-          if (!continueOnError) break;
-        }
-      }
-      const failed = results.filter((r)=>r?.ok === false).length;
-      return new Response(JSON.stringify({
-        ok: failed === 0 || continueOnError,
-        requestId,
-        mode: "case",
-        case_id,
-        listed: docs.length,
-        selected: targets.length,
-        failed,
-        results
-      }), {
-        status: failed > 0 && !continueOnError ? 500 : 200,
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
-    }
-    return new Response(JSON.stringify({
-      ok: false,
-      requestId,
-      error: "Provide document_id or case_id"
-    }), {
-      status: 400,
-      headers: {
-        "Content-Type": "application/json"
-      }
+
+    const supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      global: { fetch }
     });
-  } catch (e) {
-    const msg = String(e?.message ?? e);
-    log("GLOBAL_ERROR", {
+    await authorizeHarborEdgeRequest(supabase, verified.context);
+
+    const body = verified.body;
+    const document_id = verified.context.documentId;
+    const case_id = verified.context.caseId;
+    const job_id = verified.context.jobId;
+    const job_lock_token = verified.context.jobLockedAt;
+    if (!document_id || !case_id || !job_id || !job_lock_token) {
+      throw new HarborEdgeAuthError("Evidence worker context is incomplete", 403);
+    }
+
+    const result = await processOneDocument({
+      supabase,
+      document_id,
+      case_id,
+      job_id,
+      job_lock_token,
       requestId,
-      msg
+      geminiKey,
+      force: body.force === true
     });
-    return new Response(JSON.stringify({
-      ok: false,
-      requestId,
-      error: msg
-    }), {
-      status: 500,
-      headers: {
-        "Content-Type": "application/json"
-      }
+    return new Response(JSON.stringify({ ok: true, requestId, mode: "single", result }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    // Name, code and a scrubbed message only: lease and readiness markers survive, case content does not.
+    const message = safeErrorText(error);
+    log("GLOBAL_ERROR", { requestId, message });
+    const status = error instanceof HarborEdgeAuthError ? error.status : 500;
+    return new Response(JSON.stringify({ ok: false, requestId, error: message }), {
+      status,
+      headers: { "Content-Type": "application/json" }
     });
   }
 });

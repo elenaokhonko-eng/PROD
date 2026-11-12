@@ -70,19 +70,17 @@ async function sendWithRetry(
 ): Promise<nodemailer.SentMessageInfo> {
   try {
     const result = await mailer.sendMail(options)
+    // Recipients and subjects (an invitation subject names the inviter) stay out of logs (hardening item 6).
     log.info("Email dispatched", {
-      to: Array.isArray(options.to) ? options.to.join(", ") : options.to,
-      subject: options.subject,
+      recipients: Array.isArray(options.to) ? options.to.length : 1,
       attempt,
       messageId: result.messageId,
-      envelopeTo: result.envelope?.to,
     })
     return result
   } catch (error) {
     const transportError = (typeof error === "object" && error !== null ? (error as TransportError) : {}) as TransportError
     const metadata = {
-      to: options.to,
-      subject: options.subject,
+      recipients: Array.isArray(options.to) ? options.to.length : 1,
       attempt,
       code: transportError.code,
       responseCode: transportError.responseCode,
@@ -109,16 +107,47 @@ export async function sendMail({
   subject,
   html,
   from,
+  replyTo,
 }: {
   to: string | string[]
   subject: string
   html: string
   from?: string
+  replyTo?: string
 }) {
+  // Staging (MAIL_TRANSPORT=sink-test-traffic): mail from test runs is recorded, not sent, so CI never uses the
+  // Mailtrap sandbox; a person testing staging by hand still gets real (sandbox) mail. CI proves SMTP delivery against
+  // its own Mailpit container (tests/integration/mail-mailpit.test.ts). Production refuses any sink (check-env-set).
+  if (mailSinkCaptures(to, subject, replyTo)) {
+    const messageId = `<sink-${crypto.randomUUID()}@guidebuoy.invalid>`
+    log.info("Email captured by sink", { recipients: Array.isArray(to) ? to.length : 1, messageId })
+    return { messageId, envelope: { to: Array.isArray(to) ? to : [to] }, accepted: Array.isArray(to) ? to : [to], rejected: [] }
+  }
   const mailer = getMailer()
   const defaultFromName = process.env.EMAIL_FROM_NAME || "GuideBuoy AI"
   const defaultFrom = process.env.EMAIL_FROM || "info@guidebuoyai.sg"
   const fromHeader = from || `${defaultFromName} <${defaultFrom}>`
 
-  return sendWithRetry(mailer, { from: fromHeader, to, subject, html })
+  return sendWithRetry(mailer, { from: fromHeader, to, subject, html, ...(replyTo ? { replyTo } : {}) })
+}
+
+// Test traffic: Clerk test accounts, reserved example domains, and the release and preview handshakes.
+const TEST_ADDRESS = /\+clerk_test@|@example\.(?:com|org|net|invalid)>?$/i
+const TEST_SUBJECT = /^Harbor (?:release|preview) handshake /
+
+export function isTestTraffic(to: string | string[], subject: string, replyTo?: string): boolean {
+  const addresses = [...(Array.isArray(to) ? to : [to]), ...(replyTo ? [replyTo] : [])]
+  return TEST_SUBJECT.test(subject) || addresses.some((a) => TEST_ADDRESS.test(a.trim()))
+}
+
+/** True when the message goes to the sink instead of SMTP. */
+export function mailSinkCaptures(
+  to: string | string[],
+  subject: string,
+  replyTo?: string,
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  if (env.MAIL_TRANSPORT === "sink") return true
+  if (env.MAIL_TRANSPORT === "sink-test-traffic") return isTestTraffic(to, subject, replyTo)
+  return false
 }

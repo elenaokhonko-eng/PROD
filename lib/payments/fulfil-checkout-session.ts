@@ -7,25 +7,17 @@ import {
 export type FulfilmentSideEffect =
   | { type: "enqueue_report_job" }
   | { type: "upsert_escalation_pack_entitlement" }
-  | { type: "create_consultation"; durationMinutes: number }
-  | { type: "none" }
 
 export function sideEffectsForFulfilment(
   fulfilment: ProductFulfilment,
-  product: ProductDefinition,
 ): FulfilmentSideEffect[] {
   switch (fulfilment) {
     case "self_serve_report_job":
       return [{ type: "enqueue_report_job" }]
     case "escalation_pack_entitlement":
       return [{ type: "upsert_escalation_pack_entitlement" }]
-    case "human_consult_allocation":
-      return [
-        {
-          type: "create_consultation",
-          durationMinutes: product.defaultDurationMinutes ?? 30,
-        },
-      ]
+    case "payment_record_only":
+      return []
     default: {
       const _exhaustive: never = fulfilment
       return _exhaustive
@@ -47,9 +39,12 @@ export function enqueuesReportJob(fulfilment: ProductFulfilment): boolean {
 export interface CheckoutSessionCompletedInput {
   eventId: string
   sessionId: string
+  mode: string | null
+  paymentStatus: string | null
   amountTotalCents: number | null
   currency: string | null
   paymentIntentId: string | null
+  clientReferenceId?: string | null
   metadata: Record<string, string | undefined> | null | undefined
 }
 
@@ -64,6 +59,10 @@ export interface PurchaseRow {
   case_id: string
   product_code: string
   payment_status: string
+  amount?: number | string
+  currency?: string
+  provider_checkout_session_id?: string | null
+  fulfilment_provider_event_id?: string | null
 }
 
 export interface WebhookLedgerRow {
@@ -90,9 +89,24 @@ export interface FulfilmentDeps {
       processed_at?: string
     },
   ) => Promise<void>
-  completeLegacyPayment: (paymentRowId: string) => Promise<void>
+  completeLegacyPayment: (args: {
+    paymentRowId: string
+    caseId: string
+    ownerUserId: string
+    amountSgd: number
+    currency: string
+    serviceType: string
+    paymentIntentId: string
+  }) => Promise<void>
   loadCase: (caseId: string) => Promise<CaseRow | null>
+  loadPurchase: (args: {
+    purchaseId: string
+    caseId: string
+    productCode: string
+    checkoutSessionId: string
+  }) => Promise<PurchaseRow | null>
   upsertPaidPurchase: (args: {
+    purchaseId: string
     caseId: string
     productCode: string
     amount: number
@@ -111,10 +125,6 @@ export interface FulfilmentDeps {
   upsertEscalationPackEntitlement: (args: {
     caseId: string
     purchaseRef: string
-  }) => Promise<void>
-  createConsultation: (args: {
-    purchaseId: string
-    durationMinutes: number
   }) => Promise<void>
   nowIso: () => string
 }
@@ -164,7 +174,7 @@ export async function fulfilCheckoutSessionCompleted(
 
   const caseId = input.metadata!.case_id!
   const paymentRowId = input.metadata!.payment_row_id ?? null
-  const casePurchaseIdMeta = input.metadata!.case_purchase_id ?? null
+  const casePurchaseIdMeta = input.metadata!.case_purchase_id!
 
   const ledger = await deps.recordWebhookEvent({
     providerEventId: input.eventId,
@@ -183,40 +193,78 @@ export async function fulfilCheckoutSessionCompleted(
     return { status: "duplicate" }
   }
 
-  if (paymentRowId) {
-    await deps.completeLegacyPayment(paymentRowId)
+  const fail = async (reason: string, purchase?: PurchaseRow): Promise<FulfilmentResult> => {
+    await deps.markLedger(ledger.id, {
+      processing_status: "failed",
+      error: reason,
+      case_purchase_id: purchase?.id,
+      case_id: purchase?.case_id,
+      processed_at: deps.nowIso(),
+    })
+    return { status: "failed", error: reason }
+  }
+
+  const expectedAmountCents = Math.round(product.amountSgd * 100)
+  if (input.mode !== "payment") {
+    return fail(`checkout mode must be payment, received ${input.mode ?? "missing"}`)
+  }
+  if (input.paymentStatus !== "paid") {
+    return fail(`checkout payment_status must be paid, received ${input.paymentStatus ?? "missing"}`)
+  }
+  if (!input.paymentIntentId) {
+    return fail("checkout payment_intent is required")
+  }
+  if (input.amountTotalCents !== expectedAmountCents) {
+    return fail(`checkout amount mismatch for ${product.checkoutKey}`)
+  }
+  if (input.currency?.toLowerCase() !== "sgd") {
+    return fail(`checkout currency mismatch for ${product.checkoutKey}`)
+  }
+  if (input.clientReferenceId && input.clientReferenceId !== casePurchaseIdMeta) {
+    return fail("checkout client_reference_id does not match case_purchase_id")
   }
 
   const caseRow = await deps.loadCase(caseId)
   if (!caseRow) {
-    const reason = `case ${caseId} not found`
-    await deps.markLedger(ledger.id, {
-      processing_status: "failed",
-      error: reason,
-      processed_at: deps.nowIso(),
-    })
-    return { status: "failed", error: reason }
+    return fail(`case ${caseId} not found`)
   }
   if (!caseRow.user_id) {
-    const reason = `case ${caseId} has null user_id`
-    await deps.markLedger(ledger.id, {
-      processing_status: "failed",
-      error: reason,
-      processed_at: deps.nowIso(),
-    })
-    return { status: "failed", error: reason }
+    return fail(`case ${caseId} has null user_id`)
+  }
+
+  const pendingPurchase = await deps.loadPurchase({
+    purchaseId: casePurchaseIdMeta,
+    caseId,
+    productCode: product.productCode,
+    checkoutSessionId: input.sessionId,
+  })
+  if (!pendingPurchase) {
+    return fail(`case purchase ${casePurchaseIdMeta} not found`)
+  }
+  if (
+    pendingPurchase.case_id !== caseId ||
+    pendingPurchase.product_code !== product.productCode ||
+    pendingPurchase.user_id !== caseRow.user_id ||
+    Number(pendingPurchase.amount) !== product.amountSgd ||
+    pendingPurchase.currency?.toUpperCase() !== "SGD" ||
+    (pendingPurchase.provider_checkout_session_id !== null &&
+      pendingPurchase.provider_checkout_session_id !== undefined &&
+      pendingPurchase.provider_checkout_session_id !== input.sessionId) ||
+    !["pending", "paid", "partially_refunded", "refunded", "disputed"].includes(
+      pendingPurchase.payment_status,
+    )
+  ) {
+    return fail("checkout does not match its canonical pending purchase", pendingPurchase)
   }
 
   // Ownership is always cases.user_id — never Stripe metadata.user_id.
-  const amount =
-    input.amountTotalCents != null
-      ? input.amountTotalCents / 100
-      : product.amountSgd
-  const currency = (input.currency ?? "sgd").toUpperCase()
+  const amount = product.amountSgd
+  const currency = "SGD"
 
   let purchase: PurchaseRow
   try {
     purchase = await deps.upsertPaidPurchase({
+      purchaseId: casePurchaseIdMeta,
       caseId,
       productCode: product.productCode,
       amount,
@@ -228,24 +276,17 @@ export async function fulfilCheckoutSessionCompleted(
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : "purchase upsert failed"
-    await deps.markLedger(ledger.id, {
-      processing_status: "failed",
-      error: message,
-      processed_at: deps.nowIso(),
-    })
-    return { status: "failed", error: message }
+    return fail(message)
   }
 
-  if (purchase.user_id !== caseRow.user_id) {
-    const reason = "purchase.user_id does not match cases.user_id"
-    await deps.markLedger(ledger.id, {
-      processing_status: "failed",
-      error: reason,
-      case_purchase_id: purchase.id,
-      case_id: purchase.case_id,
-      processed_at: deps.nowIso(),
-    })
-    return { status: "failed", error: reason }
+  if (
+    purchase.user_id !== caseRow.user_id ||
+    purchase.id !== casePurchaseIdMeta ||
+    purchase.case_id !== caseId ||
+    purchase.product_code !== product.productCode ||
+    purchase.provider_checkout_session_id !== input.sessionId
+  ) {
+    return fail("fulfilled purchase identity does not match checkout", purchase)
   }
 
   await deps.markLedger(ledger.id, {
@@ -255,7 +296,7 @@ export async function fulfilCheckoutSessionCompleted(
   })
 
   try {
-    for (const effect of sideEffectsForFulfilment(product.fulfilment, product)) {
+    for (const effect of sideEffectsForFulfilment(product.fulfilment)) {
       if (effect.type === "enqueue_report_job") {
         await deps.enqueueReportJob({
           caseId,
@@ -268,23 +309,23 @@ export async function fulfilCheckoutSessionCompleted(
           caseId,
           purchaseRef: input.sessionId,
         })
-      } else if (effect.type === "create_consultation") {
-        await deps.createConsultation({
-          purchaseId: purchase.id,
-          durationMinutes: effect.durationMinutes,
-        })
       }
+    }
+
+    if (paymentRowId) {
+      await deps.completeLegacyPayment({
+        paymentRowId,
+        caseId,
+        ownerUserId: caseRow.user_id,
+        amountSgd: product.amountSgd,
+        currency: "SGD",
+        serviceType: product.legacyServiceType,
+        paymentIntentId: input.paymentIntentId,
+      })
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "fulfilment failed"
-    await deps.markLedger(ledger.id, {
-      processing_status: "failed",
-      error: message,
-      case_purchase_id: purchase.id,
-      case_id: purchase.case_id,
-      processed_at: deps.nowIso(),
-    })
-    return { status: "failed", error: message }
+    return fail(message, purchase)
   }
 
   await deps.markLedger(ledger.id, {

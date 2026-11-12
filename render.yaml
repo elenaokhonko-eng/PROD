@@ -5,6 +5,7 @@ services:
     plan: standard
     buildCommand: pnpm install && pnpm build
     startCommand: pnpm start
+    # Render injects RENDER_GIT_COMMIT; deployment identity is never configured here.
     envVars:
       - key: NODE_ENV
         value: production
@@ -18,9 +19,19 @@ services:
         sync: false
       - key: NEXT_PUBLIC_SITE_URL
         sync: false
+      - key: HARBOR_DEPLOYMENT_ENVIRONMENT
+        sync: false
+      - key: CHECKOUT_REDIRECT_ORIGIN
+        sync: false
+      - key: HARBOR_PRODUCTION_APP_ORIGIN
+        sync: false
       - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
         sync: false
       - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_WEBHOOK_SIGNING_SECRET
+        sync: false
+      - key: EDGE_PROXY_HMAC_SECRET
         sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
@@ -36,6 +47,14 @@ services:
         sync: false
       - key: WORKER_SECRET
         generateValue: true
+      - key: GOOGLE_GENERATIVE_AI_API_KEY
+        sync: false
+      - key: GOOGLE_GENERATIVE_AI_MODEL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
@@ -43,6 +62,10 @@ services:
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASS
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_REQUIRE_TLS
         sync: false
       - key: EMAIL_FROM
         sync: false
@@ -59,6 +82,7 @@ services:
     plan: standard
     buildCommand: pnpm install
     startCommand: pnpm run worker
+    # Render injects RENDER_GIT_COMMIT; deployment identity is never configured here.
     envVars:
       - key: NODE_ENV
         value: production
@@ -67,6 +91,8 @@ services:
       - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: EDGE_PROXY_HMAC_SECRET
         sync: false
       - key: NEXT_PUBLIC_APP_URL
         sync: false

@@ -1,5 +1,3 @@
-import { trackClientEvent } from "@/lib/analytics/client"
-
 export interface RouterSession {
   id: string
   session_token: string
@@ -16,11 +14,79 @@ export interface RouterSession {
   converted_to_user_id?: string
   converted_to_case_id?: string | null
   converted_at?: string | null
-  status?: "ACTIVE" | "CONVERTED" | "EXPIRED"
+  status?: "ACTIVE" | "CONVERTED" | "IMPORTED" | "EXPIRED"
 }
 
+export type RouterSessionUpdate = Pick<
+  RouterSession,
+  | "dispute_narrative"
+  | "voice_transcript"
+  | "audio_file_url"
+  | "classification_result"
+  | "clarifying_questions"
+  | "user_responses"
+  | "eligibility_assessment"
+  | "recommended_path"
+>
+
 const ROUTER_SESSION_TOKEN_KEY = "router_session_token"
+const ROUTER_SESSION_INTENT_KEY = "router_session_creation_intent"
 const CONVERTED_ROUTER_SESSION_TOKEN_KEY = "converted_router_session_token"
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+let createRouterSessionPromise: Promise<RouterSession> | null = null
+let createRouterSessionGeneration = 0
+let routerSessionIntentMemory: string | null = null
+let routerSessionReplacement: { observedToken: string; request: Promise<RouterSession> } | null = null
+
+function invalidateRouterSessionCreation(): void {
+  createRouterSessionGeneration += 1
+  createRouterSessionPromise = null
+  routerSessionReplacement = null
+}
+
+function generateCreationIntent(): string {
+  return crypto.randomUUID()
+}
+
+function getOrCreateRouterSessionIntent(): string {
+  if (typeof window !== "undefined") {
+    try {
+      const existing = localStorage.getItem(ROUTER_SESSION_INTENT_KEY)
+      if (existing && UUID_PATTERN.test(existing)) {
+        routerSessionIntentMemory = existing
+        return existing
+      }
+    } catch {
+      // Continue with an in-memory intent when storage is unavailable.
+    }
+  }
+  if (routerSessionIntentMemory) return routerSessionIntentMemory
+  const intent = generateCreationIntent()
+  routerSessionIntentMemory = intent
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(ROUTER_SESSION_INTENT_KEY, intent)
+    } catch {
+      // The in-memory intent still protects retries during this page lifetime.
+    }
+  }
+  return intent
+}
+
+export function rotateRouterSessionIntent(): string {
+  invalidateRouterSessionCreation()
+  const intent = generateCreationIntent()
+  routerSessionIntentMemory = intent
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(ROUTER_SESSION_INTENT_KEY, intent)
+    } catch {
+      // The new intent remains valid for this page lifetime.
+    }
+  }
+  return intent
+}
 
 export function generateSessionToken(): string {
   return `router_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
@@ -37,6 +103,7 @@ export function setSessionToken(token: string): void {
 }
 
 export function clearSessionToken(): void {
+  invalidateRouterSessionCreation()
   if (typeof window === "undefined") return
   localStorage.removeItem(ROUTER_SESSION_TOKEN_KEY)
 }
@@ -125,24 +192,55 @@ export function consumeConvertedRouterSessionToken(): string | null {
   return token
 }
 
-export async function createRouterSession(): Promise<RouterSession | null> {
-  try {
-    const res = await fetch("/api/router/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    })
-    if (!res.ok) {
-      const text = await res.text()
-      console.error("[v0] Error creating router session:", res.status, text)
-      return null
-    }
-    const { session } = (await res.json()) as { session: RouterSession }
-    setSessionToken(session.session_token)
-    return session
-  } catch (error) {
-    console.error("[v0] Error creating router session:", error)
-    return null
+export function createRouterSession(): Promise<RouterSession> {
+  if (createRouterSessionPromise) return createRouterSessionPromise
+
+  const generation = createRouterSessionGeneration
+  const intent = getOrCreateRouterSessionIntent()
+  const request = createRouterSessionRequest(intent, generation)
+  createRouterSessionPromise = request
+  const clearRequest = () => {
+    if (createRouterSessionPromise === request) createRouterSessionPromise = null
   }
+  void request.then(clearRequest, clearRequest)
+  return request
+}
+
+export function replaceRouterSessionIfCurrent(observedToken: string): Promise<RouterSession | null> {
+  if (routerSessionReplacement?.observedToken === observedToken) {
+    return routerSessionReplacement.request
+  }
+  if (getSessionToken() !== observedToken) return Promise.resolve(null)
+
+  // Claim the observed token synchronously before another initializer can rotate the intent.
+  clearSessionToken()
+  rotateRouterSessionIntent()
+  const request = createRouterSession()
+  const replacement = { observedToken, request }
+  routerSessionReplacement = replacement
+  const clearReplacement = () => {
+    if (routerSessionReplacement === replacement) routerSessionReplacement = null
+  }
+  void request.then(clearReplacement, clearReplacement)
+  return request
+}
+
+async function createRouterSessionRequest(intent: string, generation: number): Promise<RouterSession> {
+  const res = await fetch("/api/router/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ intent }),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    console.error("[v0] Error creating router session:", res.status, text)
+    throw new Error("Failed to create router session")
+  }
+  const { session } = (await res.json()) as { session: RouterSession }
+  if (generation === createRouterSessionGeneration && intent === getOrCreateRouterSessionIntent()) {
+    setSessionToken(session.session_token)
+  }
+  return session
 }
 
 export async function getRouterSession(sessionToken: string): Promise<RouterSession | null> {
@@ -168,7 +266,7 @@ export async function getRouterSession(sessionToken: string): Promise<RouterSess
 
 export async function updateRouterSession(
   sessionToken: string,
-  updates: Partial<RouterSession>,
+  updates: RouterSessionUpdate,
 ): Promise<RouterSession | null> {
   try {
     const res = await fetch("/api/router/session", {
@@ -186,54 +284,5 @@ export async function updateRouterSession(
   } catch (error) {
     console.error("[v0] Error updating router session:", error)
     return null
-  }
-}
-
-export async function convertRouterSessionToUser(
-  sessionToken: string,
-  userId: string,
-): Promise<{ success: boolean; sessionData?: RouterSession }> {
-  try {
-    const res = await fetch("/api/router/session", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        session_token: sessionToken,
-        updates: {
-          converted_to_user_id: userId,
-          converted_at: new Date().toISOString(),
-        },
-      }),
-    })
-
-    if (!res.ok) {
-      const text = await res.text()
-      console.error("[v0] Error converting router session:", res.status, text)
-      return { success: false }
-    }
-
-    const { session: data } = (await res.json()) as { session: RouterSession }
-
-    if (typeof window !== "undefined") {
-      persistConvertedRouterSessionToken(sessionToken)
-    }
-
-    await trackClientEvent({
-      eventName: "router_conversion_complete",
-      userId: userId,
-      sessionId: sessionToken,
-      eventData: {
-        session_id: data.id,
-        recommended_path: data.recommended_path,
-        eligibility_score: data.eligibility_assessment?.eligibility_score,
-      },
-      pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
-      userAgent: typeof window !== "undefined" ? navigator.userAgent : undefined,
-    })
-
-    return { success: true, sessionData: data }
-  } catch (error) {
-    console.error("[v0] Conversion error:", error)
-    return { success: false }
   }
 }

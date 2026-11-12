@@ -30,17 +30,17 @@ export function PaymentSuccessLanding({
   isConfirming = true,
 }: PaymentSuccessLandingProps) {
   return (
-    <Card className="mx-auto max-w-md border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/20">
+    <Card className="mx-auto max-w-md border-harbor-success/40 bg-harbor-success-tint">
       <CardHeader className="flex flex-row items-start gap-3">
-        <div className="mt-1 rounded-full bg-emerald-100 p-2 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+        <div className="mt-1 rounded-full bg-harbor-success/10 p-2 text-harbor-success">
           <CheckCircle2 className="h-6 w-6" aria-hidden />
         </div>
         <div className="flex-1">
-          <CardTitle>Payment received</CardTitle>
+          <CardTitle>{isConfirming ? 'Confirming payment' : 'Payment confirmed'}</CardTitle>
           <CardDescription>
             {isConfirming
-              ? "We're setting up your full report. This usually takes a few seconds."
-              : 'Your report is being generated. We\'ll take you there now.'}
+              ? 'GuideBuoy is checking the server-recorded payment and access status. You can leave this page and return to the case.'
+              : 'Your server-recorded access is ready. Continue to the report.'}
           </CardDescription>
         </div>
       </CardHeader>

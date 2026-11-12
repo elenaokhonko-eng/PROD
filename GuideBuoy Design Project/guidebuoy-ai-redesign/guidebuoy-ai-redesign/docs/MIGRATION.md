@@ -91,7 +91,7 @@ Sections 9–17 with these v3 amendments:
 
 - same tokens.css palette and the same three modes (selector lives in the
   authenticated case shell header too — see stitch-brief-v3 § modes);
-- plan badge names: **Free / Bank Pack / FIDReC Pack**;
+- plan badge names: **User Pack / FI Pack / FIDReC Pack**;
 - all processing/progress UI uses step labels, never fake percentages;
 - errors use Muted Terracotta + fix-it copy, never red alarms.
 

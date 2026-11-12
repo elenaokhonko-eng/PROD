@@ -1,21 +1,31 @@
 import { NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai"
+import { getGeminiModel } from "@/lib/server/ai/models"
+import { safeErrorText } from "@/lib/server/safe-error"
+import { cappedConfig, meteredGenerate } from "@/lib/server/ai/gemini-metered"
+import { preSignInModelPaused, GEMINI_THINKING_BUDGET, OUTPUT_CAPS } from "@/lib/server/model-usage"
+import { limitResponse, MAX_AUDIO_BYTES, preSignInLimit } from "@/lib/server/usage-limits"
 
-const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-if (!API_KEY) {
-  throw new Error("GOOGLE_GENERATIVE_AI_API_KEY environment variable not set.")
-}
+const UNAVAILABLE = "Voice transcription isn't available right now. Please type your story instead."
 
-const genAI = new GoogleGenerativeAI(API_KEY)
-const modelName = "gemini-2.5-pro"
+// Same model setting as the router.
+const modelName = getGeminiModel()
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return Buffer.from(buffer).toString("base64")
 }
 
 export async function POST(req: NextRequest) {
-  console.log("Transcription request received (using @google/generative-ai)")
+  // Reachable before sign-in: limited per IP, audio capped, output capped (cost-controls B2).
+  const limited = preSignInLimit(req)
+  if (limited) return limitResponse(limited)
   try {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) {
+      return NextResponse.json({ error: "Transcription service is unavailable" }, { status: 503 })
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey)
     const formData = await req.formData()
     const file = formData.get("audio") as File | null
 
@@ -24,13 +34,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No audio file uploaded" }, { status: 400 })
     }
 
-    console.log(`Received file: ${file.name}, size: ${file.size}, type: ${file.type}`)
+    if (file.size > MAX_AUDIO_BYTES) {
+      return NextResponse.json(
+        { error: "That recording is too long. Please keep voice notes to about 3 minutes, or type your story." },
+        { status: 413 },
+      )
+    }
+    if (await preSignInModelPaused()) {
+      return NextResponse.json({ error: UNAVAILABLE }, { status: 503 })
+    }
 
     const audioBuffer = await file.arrayBuffer()
     const audioBase64 = arrayBufferToBase64(audioBuffer)
 
     const model = genAI.getGenerativeModel({
       model: modelName,
+      generationConfig: cappedConfig({}, OUTPUT_CAPS.transcription, GEMINI_THINKING_BUDGET.transcription),
       safetySettings: [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -48,9 +67,7 @@ export async function POST(req: NextRequest) {
 
     const textPart = { text: "Transcribe the following audio recording:" }
 
-    console.log(`Calling Gemini (${modelName}) for transcription via Google SDK...`)
-
-    const result = await model.generateContent([textPart, audioPart])
+    const result = await meteredGenerate(model, [textPart, audioPart], { purpose: "transcription", modelName })
     const response = result.response
     const transcription =
       response.text() ??
@@ -58,26 +75,23 @@ export async function POST(req: NextRequest) {
       ""
 
     if (!transcription) {
-      console.warn("Transcription result from Gemini was empty. Full response:", JSON.stringify(response, null, 2))
-    } else {
-      console.log("Transcription successful via Google SDK.")
+      console.warn("Transcription result from Gemini was empty", { finishReason: response.candidates?.[0]?.finishReason ?? null })
     }
 
     return NextResponse.json({ transcription })
   } catch (error) {
-    console.error("[v0] Gemini transcription error (Google SDK):", error)
+    console.error("[v0] Gemini transcription error (Google SDK):", safeErrorText(error))
     if (
       typeof error === "object" &&
       error !== null &&
       "response" in error &&
       typeof (error as { response?: { data?: unknown } }).response === "object"
     ) {
-      const responseData = (error as { response?: { data?: unknown } }).response?.data
-      if (responseData) {
-        console.error("Error details:", JSON.stringify(responseData, null, 2))
+      // The provider body can echo the input; log only that there was one (hardening item 6).
+      if ((error as { response?: { data?: unknown } }).response?.data) {
+        console.error("Error details: provider returned an error body")
       }
     }
-    const message = error instanceof Error ? error.message : "Failed to transcribe audio"
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: UNAVAILABLE }, { status: 500 })
   }
 }

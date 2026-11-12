@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
 import { rateLimit, keyFrom } from "@/lib/rate-limit"
+import { safeErrorText } from "@/lib/server/safe-error"
+import { limitResponse, preSignInLimit } from "@/lib/server/usage-limits"
 
 const analyzeSchema = z.object({
   session_token: z.string().min(1, "session_token is required"),
@@ -16,6 +18,10 @@ export async function POST(request: NextRequest) {
     if (!rl.ok) {
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
     }
+    // Reachable before sign-in and it starts model calls: limited per IP per hour here, with the client's address
+    // (the inner classify/questions requests come from this server) (cost-controls B2).
+    const limited = preSignInLimit(request)
+    if (limited) return limitResponse(limited)
 
     let parsed
     try {
@@ -71,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
   } catch (err) {
-    console.error("/api/triage/analyze error:", err)
+    console.error("/api/triage/analyze error:", safeErrorText(err))
     return NextResponse.json({ error: "Internal error" }, { status: 500 })
   }
 }

@@ -37,7 +37,7 @@ Validated on linked Supabase (2026-06-02):
 ## 2. Layer 1 Smoke
 
 - Fresh signup creates user-owned `cases` and `case_intake` rows through the user-scoped Supabase client.
-- Upload a PDF/PNG/JPEG/DOCX. Confirm `POST /api/evidence/upload` creates an `evidence` row, then `POST /api/cases/:caseId/evidence/process` registers exactly one `case_documents` row and queues processing.
+- Upload a PDF/PNG/JPEG. Confirm `POST /api/evidence/upload` creates an `evidence` row, then `POST /api/cases/:caseId/evidence/process` registers exactly one `case_documents` row and queues processing. DOCX remains gated until its end-to-end fixture passes.
 - Confirm unsupported file types are rejected client-side before upload.
 - Confirm `case_documents.processing_status` progresses through Realtime, not polling.
 - Answer a gap question. Confirm a new extract run is appended and validation refreshes.
@@ -55,7 +55,7 @@ Validated on linked Supabase (2026-06-02):
 - Worker report calls intentionally omit `user_id` for now because `reports.user_id` still references `auth.users(id)` while Clerk Pattern C case ownership uses `cases.user_id = public_metadata.supabase_uuid`; the report function supports null `user_id` and report ownership is case-scoped.
 
 - Stripe test checkout upgrades `case_entitlements.plan` to `self_serve_report`.
-- Tier 1 checkout must use the new **Basic Case Pack** Stripe price at SGD 18 via `STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD=price_1TsLZdFp6sSKMUXXz5xEbxrA`; the old SGD 99 price `price_1SLOYUFp6sSKMUXXsTXlLdcT` is now reserved for `human_consult_30m`.
+- Tier 1 checkout must use the **FI Pack** Stripe price at SGD 18 via `STRIPE_PRICE_ID_SELF_SERVE_REPORT_SGD=price_1TsLZdFp6sSKMUXXz5xEbxrA`; the old SGD 99 price `price_1SLOYUFp6sSKMUXXsTXlLdcT` is now reserved for `human_consult_30m`.
 - Webhook inserts a queued `jobs` row and returns quickly; it must not call decision/report edge routes directly.
 - Render worker progresses job status and calls decision/report through `/api/edge/*`.
 - Realtime advances the UI from decision running to report drafting to report ready.
@@ -77,7 +77,7 @@ Use Tier 2 case `688154e7-9cda-47ef-9cff-a27581766c3a` once Masha confirms the h
 
 - Confirm a completed Tier 1 report case shows the Layer 3 / Tier 2 surface, not the Layer 1 -> Layer 2 buy-report prompt.
 - Confirm `case_entitlements.plan = escalation_pack` or `features.allow_escalation_pack = true` is treated as Tier 2 ready.
-- Confirm `POST /api/payments/create-checkout-session` accepts product key `self_serve_report`, uses the SGD 18 Basic Case Pack price, and writes Stripe metadata containing `case_id`, `user_id`, and `product_key`.
+- Confirm `POST /api/payments/create-checkout-session` accepts product key `self_serve_report`, uses the SGD 18 FI Pack price, and writes Stripe metadata containing `case_id`, `user_id`, and `product_key`.
 - Confirm `POST /api/payments/create-checkout-session` accepts product key `fidrec_tier2_pack`, uses the SGD 188 FIDREC Case Pack price, and writes Stripe metadata containing `case_id`, `user_id`, and `product_key`.
 - Confirm the Stripe webhook for `fidrec_tier2_pack` upgrades entitlement to `escalation_pack` / `allow_escalation_pack`, returns quickly, and does not insert a `jobs` row.
 - Confirm `GET /api/fidrec/tier2/case-pack-json?caseId=...` requires ownership and Tier 2 entitlement, then returns `submission_pack.executive_summary.narrative` and non-empty `submission_pack.chronology_of_events`.

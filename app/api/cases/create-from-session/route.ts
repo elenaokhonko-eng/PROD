@@ -1,168 +1,68 @@
 import { NextResponse } from "next/server"
+import { z } from "zod"
 
 import { trackServerEvent } from "@/lib/analytics/server"
 import { getCurrentUser } from "@/lib/auth"
-import { createServiceClient } from "@/lib/supabase/service"
+import { createUserClient } from "@/lib/supabase/server"
+
+const requestSchema = z
+  .object({
+    token: z.string().min(1).max(512),
+  })
+  .strict()
+
+function conversionStatus(message: string): number {
+  if (message.includes("router_session_not_found")) return 404
+  if (message.includes("router_session_owner_mismatch")) return 403
+  if (message.includes("router_session_expired")) return 410
+  if (message.includes("router_session_profile_missing")) return 409
+  if (message.includes("router_session_inconsistent")) return 409
+  return 500
+}
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
-
-  const { token } = await request.json()
-  if (!token) {
-    return NextResponse.json({ error: "Session token is required" }, { status: 400 })
-  }
-
-  const supabaseService = createServiceClient()
-
-  // Fetch session regardless of prior status/user, then reconcile ownership.
-  const { data: rawSession, error: sessionError } = await supabaseService
-    .from("router_sessions")
-    .select("*")
-    .eq("session_token", token)
-    .maybeSingle()
-
-  if (sessionError) {
-    console.error(`[Create Case] Error fetching router session ${token}:`, sessionError)
-    return NextResponse.json({ error: "Database error" }, { status: 500 })
-  }
-
-  if (!rawSession) {
-    console.warn(`[Create Case] No router session found for token ${token}`)
-    return NextResponse.json({ error: "No convertible session found" }, { status: 404 })
-  }
-
-  const sessionUserId = rawSession.converted_to_user_id
-  const activeUserId = user?.supabaseUuid ?? sessionUserId
-
-  if (!activeUserId) {
-    console.warn(`[Create Case] No active user for session ${token}`)
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // If already imported with a case, re-link ownership and return existing case
-  if (rawSession.status === "IMPORTED" && rawSession.converted_to_case_id) {
-    // Fix ownership if profile ID changed (e.g. migration edge case)
-    if (activeUserId && rawSession.converted_to_user_id !== activeUserId) {
-      await supabaseService
-        .from("cases")
-        .update({ user_id: activeUserId })
-        .eq("id", rawSession.converted_to_case_id)
-      await supabaseService
-        .from("router_sessions")
-        .update({ converted_to_user_id: activeUserId })
-        .eq("id", rawSession.id)
-      console.info(
-        `[Create Case] Re-linked case ${rawSession.converted_to_case_id} from ${rawSession.converted_to_user_id} to ${activeUserId}`,
-      )
+  let parsed
+  try {
+    parsed = requestSchema.parse(await request.json())
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: "Invalid request body", details: error.flatten() }, { status: 400 })
     }
-    return NextResponse.json({
-      success: true,
-      caseId: rawSession.converted_to_case_id,
-      message: "Session was already imported",
-    })
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
   }
 
-  if (rawSession.converted_to_user_id && rawSession.converted_to_user_id !== activeUserId) {
-    console.warn(
-      `[Create Case] Session ${token} already linked to another user ${rawSession.converted_to_user_id}. Current user: ${activeUserId}`,
+  const supabase = await createUserClient()
+  const { data: caseId, error } = await supabase.rpc("convert_router_session_to_case_v1", {
+    p_session_token: parsed.token,
+  })
+
+  if (error || !caseId) {
+    const status = conversionStatus(error?.message ?? "")
+    return NextResponse.json(
+      { error: status === 500 ? "Failed to convert router session" : "Router session cannot be converted" },
+      { status },
     )
-    return NextResponse.json({ error: "Session already linked to another user" }, { status: 403 })
-  }
-
-  // Attach session to this user if not already.
-  if (!rawSession.converted_to_user_id) {
-    const { error: claimError } = await supabaseService
-      .from("router_sessions")
-      .update({
-        converted_to_user_id: activeUserId,
-        status: "CONVERTED",
-        converted_at: new Date().toISOString(),
-      })
-      .eq("session_token", token)
-
-    if (claimError) {
-      console.error(`[Create Case] Failed to claim session ${token} for user ${activeUserId}:`, claimError)
-      return NextResponse.json({ error: "Failed to claim session" }, { status: 500 })
-    }
-  }
-
-  const routerSession = {
-    ...rawSession,
-    converted_to_user_id: activeUserId,
-    status: "CONVERTED",
-  }
-
-  const claimType =
-    (routerSession.classification_result as { claimType?: string } | null)?.claimType || "Scam"
-
-  const normalizeClaimType = (subtype: string | null | undefined) => {
-    const value = (subtype || "").toLowerCase().trim()
-    if (value.includes("fraud") || value.includes("scam")) return "phishing_scam"
-    if (value.includes("mis-sold") || value.includes("missold") || value.includes("mis sold")) return "mis_sold_product"
-    if (value.includes("insurance")) return "denied_insurance"
-    // Default to a valid value that passes the DB check constraint
-    return "phishing_scam"
-  }
-
-  // Ensure profile exists for FK constraints
-  const { error: profileUpsertError } = await supabaseService.from("profiles").upsert(
-    {
-      id: activeUserId,
-      email: null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "id" },
-  )
-  if (profileUpsertError) {
-    console.error(`[Create Case] Failed to upsert profile for user ${activeUserId}:`, profileUpsertError)
-    return NextResponse.json({ error: "Failed to prepare user profile" }, { status: 500 })
-  }
-
-  const { data: newCase, error: caseError } = await supabaseService
-    .from("cases")
-    .insert({
-      user_id: activeUserId,
-      claim_type: normalizeClaimType(claimType),
-      case_summary: routerSession.dispute_narrative ?? null,
-      status: "draft",
-    })
-    .select("id")
-    .single()
-
-  if (caseError) {
-    console.error(`[Create Case] Error creating new case for user ${activeUserId}:`, caseError)
-    return NextResponse.json({ error: "Failed to create case" }, { status: 500 })
-  }
-
-  const { error: updateError } = await supabaseService
-    .from("router_sessions")
-    .update({
-      status: "IMPORTED",
-      converted_to_case_id: newCase.id,
-    })
-    .eq("id", routerSession.id)
-
-  if (updateError) {
-    console.warn(`[Create Case] Failed to mark session ${routerSession.id} as imported:`, updateError)
   }
 
   try {
     await trackServerEvent({
       eventName: "router_conversion_imported",
-      userId: activeUserId,
-      sessionId: routerSession.session_token,
-      eventData: {
-        case_id: newCase.id,
-        recommended_path: routerSession.recommended_path,
-      },
+      userId: user.supabaseUuid,
+      sessionId: null,
+      eventData: { case_id: caseId },
     })
-  } catch (err) {
-    console.warn("[Create Case] Failed to log analytics for router conversion:", err)
+  } catch {
+    // Analytics failure must not turn a committed conversion into a client error.
   }
 
   return NextResponse.json({
     success: true,
-    caseId: newCase.id,
+    caseId,
     message: "Case created from session",
   })
 }
