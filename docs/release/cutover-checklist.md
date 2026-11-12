@@ -38,8 +38,9 @@ Backend API (`PATCH /v1/instance`); the dashboard doesn't show them.
 - [x] Google key `prod-render-server` restricted to the production Render outbound IPs; `prod-edge-functions` stays
       API-restricted only.
 - [x] Admin role seeded for Elena's production account after her first production sign-in (migration procedure 4).
-- [ ] Clerk Production legal consent is on (Elena confirmed, 10 Nov) with `https://guidebuoyai.sg/terms` and
-      `https://guidebuoyai.sg/privacy`; disposable-domain and sub-address blocking are on.
+- [x] Clerk Production legal consent is on (Elena confirmed, 10 Nov) with `https://guidebuoyai.sg/terms` and
+      `https://guidebuoyai.sg/privacy`; disposable-domain and sub-address blocking are on. (Read from Clerk's public
+      environment settings, 13 Nov.)
 - [x] Console limits in place (Elena): OpenAI hard limit, Supabase spend cap, SPF/DKIM/DMARC, Cloudflare SSL mode
       and rate-limit rule, 2-step verification. Google PROD budget, quotas and key API restrictions are done (11 Nov);
       raise the Gemini quotas to 60 requests and 250,000 input tokens a minute before launch. Cost alerts go to
@@ -49,8 +50,8 @@ Backend API (`PATCH /v1/instance`); the dashboard doesn't show them.
 
 - [x] Move `guidebuoyai.sg` and `www.guidebuoyai.sg` from the maintenance service to the production web service;
       certificates issued; `www` redirects to the apex.
-- [ ] Set `HARBOR_ALLOWED_HOSTS=guidebuoyai.sg,www.guidebuoyai.sg` on the production web service and redeploy.
-      `pnpm check:env-set` passes for production. (Variable set and live, 12 Nov; `check:env-set` not yet re-run with it.)
+- [x] Set `HARBOR_ALLOWED_HOSTS=guidebuoyai.sg,www.guidebuoyai.sg` on the production web service and redeploy.
+      `pnpm check:env-set` passes for production (13 Nov: 0 failed, 0 pending; 3 known warnings).
 - [x] `https://<production service>.onrender.com/` answers 404; `/api/health/release` still answers there.
 - [x] `/api/health/client-address` (worker secret) on `guidebuoyai.sg` resolves the caller's own address, not a
       Cloudflare edge.
