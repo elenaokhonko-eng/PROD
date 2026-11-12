@@ -68,8 +68,10 @@ Backend API (`PATCH /v1/instance`); the dashboard doesn't show them.
 
 ## After
 
-- [ ] Arm the production canary (`CANARY_ENABLED`, `docs/runbooks/production-canary.md`).
-- [ ] Rotate production secrets as the cost-controls spec says and record the date.
+- [ ] Arm the production canary (`CANARY_ENABLED`, `docs/runbooks/production-canary.md`). Not yet (Elena, 13 Nov):
+      waits until the GitHub Actions minutes are sorted; daily-only would use about 250 minutes a month.
+- [ ] Rotate production secrets as the cost-controls spec says and record the date. First rotation on 12 December
+      (Elena, 13 Nov): the cutover rotation is skipped because the keys never left the env file and the consoles.
 - [x] Keep the maintenance service suspended, not deleted, for 7 days as the rollback.
 - [ ] Week one: daily look at the cost page, the fallback rate and alerts; the 429 alert in particular.
 - [ ] First change after launch: one floating WhatsApp button on every page, public, sign-in and case pages
