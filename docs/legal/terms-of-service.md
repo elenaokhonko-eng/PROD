@@ -1,14 +1,14 @@
 ---
 title: Terms of Service
-version: "2.1"
+version: "2.2"
 effective: "{{effective}}"
-replaces: "2.0 (12 November 2026)"
+replaces: "2.1 (14 November 2026)"
 contact: info@guidebuoyai.sg
 ---
 
 # Terms of Service
 
-**Version 2.1 · Effective {{effective}} · Replaces version 2.0 of 12 November 2026**
+**Version 2.2 · Effective {{effective}} · Replaces version 2.1 of 14 November 2026**
 
 These terms are a contract between you and GuideBuoy AI SG Pte Ltd ("GuideBuoy", "we", "us"), a company registered in Singapore (UEN 202545875C) at 51 Goldhill Plaza #07-10/11, Singapore 308900, for your use of guidebuoyai.sg and the GuideBuoy service. By creating an account or using the service you agree to them. If you don't agree, please don't use the service.
 
@@ -16,7 +16,7 @@ These terms are a contract between you and GuideBuoy AI SG Pte Ltd ("GuideBuoy",
 
 1.1 GuideBuoy helps you organise the facts of a complaint or dispute, check them for consistency, and prepare documents you can use with a financial institution, FIDReC or another body. It currently covers scam and fraud disputes with banks and payment providers in Singapore.
 
-1.2 The service is for people aged 18 or over who are resident in Singapore and are acting for themselves. A helper option for family members and carers is planned but not yet available.
+1.2 The service is for people aged 18 or over who are resident in Singapore and are acting for themselves. Using an AI assistant you have connected under clause 5.5 counts as acting for yourself. A helper option for family members and carers is planned but not yet available.
 
 ## 2. What GuideBuoy is not
 
@@ -32,7 +32,7 @@ These terms are a contract between you and GuideBuoy AI SG Pte Ltd ("GuideBuoy",
 
 ## 3. Your account
 
-3.1 You need an account to save a case. Sign-in is provided by Clerk, using an email code, a password or a Google account. Keep your login details private, and tell us at info@guidebuoyai.sg at once if you think someone else has used your account.
+3.1 You need an account to save a case. Sign-in is provided by Clerk, using an email code, a password or a Google account. Keep your login details private and don't give them to an AI assistant; to let an assistant help, connect it under clause 5.5. Tell us at info@guidebuoyai.sg at once if you think someone else has used your account.
 
 3.2 You are responsible for everything done through your account. We may suspend or close an account that breaks these terms, after giving notice where we reasonably can.
 
@@ -42,7 +42,7 @@ These terms are a contract between you and GuideBuoy AI SG Pte Ltd ("GuideBuoy",
 
 4.2 You confirm that you have the right to share your content with us. Bank letters, statements and police reports often contain other people's personal data. Share only what your case needs, and block out identity numbers that are not needed.
 
-4.3 **Accuracy matters.** GuideBuoy's guidance depends on the facts you confirm. Where your story, your answers and your documents disagree, we will ask you to choose the correct version. Outputs built on incorrect or incomplete facts may be wrong, and we are not responsible for that.
+4.3 **Accuracy matters.** GuideBuoy's guidance depends on the facts you confirm (clause 5.7). Where your story, your answers and your documents disagree, we will ask you to choose the correct version. Outputs built on incorrect or incomplete facts may be wrong, and we are not responsible for that.
 
 4.4 You may download your outputs for your own use in your own dispute. Please don't resell them or present them as having been prepared by a lawyer or by GuideBuoy staff.
 
@@ -53,6 +53,16 @@ These terms are a contract between you and GuideBuoy AI SG Pte Ltd ("GuideBuoy",
 5.2 **Public pages.** Search engines, AI assistants and other automated tools may read the public pages of guidebuoyai.sg, and the text versions of those pages that we publish for them, and may use that content as our robots.txt file permits. They must follow the limits in that file and must not load the site in a way that disrupts it. This permission does not cover any page that needs sign-in, and it does not transfer ownership of our content (clause 8).
 
 5.3 **Public tools.** We may offer tools that anyone, including an AI assistant, can use without an account, such as a deadline calculator. They give general information only, on the same basis as clause 2. We may limit how often they are used, and may change or withdraw them.
+
+5.4 **Accounts are for people.** Only a person may create an account and accept these terms. An AI assistant or other automated tool must not create an account, accept these terms or make a payment for you. Don't give your login details to an AI assistant or to anyone else (clause 3.1).
+
+5.5 **Connecting an AI assistant to your account.** Where we offer a way to connect an AI assistant to your account, you may authorise an assistant you have chosen to help prepare your case: for example to add your story, your answers and your documents, and to read your drafts and outputs. You give this permission yourself, while signed in. We show you what the assistant will be able to do, and you can withdraw the permission at any time. Using a connected assistant in this way counts as acting for yourself under clause 1.2.
+
+5.6 **You remain responsible.** What a connected assistant does in your account is treated as done by you (clause 3.2). You choose the assistant and what it may see. Its provider handles your content under its own terms and privacy policy, not ours, and we are not responsible for what the assistant or its provider does with it.
+
+5.7 **Only you can confirm and generate.** Before we generate a free evaluation, a Bank dispute pack or a FIDReC escalation pack, you must personally review every fact and document in your case, including anything an assistant prepared or entered, and confirm in the service that you have done so and that they are true and complete to the best of your knowledge. Generation starts only after that, and only you may start it. An AI assistant or other automated tool must not give this confirmation or start generation, and you must not let it do so. We rely on your confirmation (clauses 2.2 and 4.3).
+
+5.8 **What we may do.** We may limit, suspend or block automated access, including an assistant you have connected, where we reasonably think this is needed to protect you, other users or the service, or where this clause is not being followed.
 
 ## 6. Products, prices and payment
 

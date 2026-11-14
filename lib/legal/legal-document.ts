@@ -83,6 +83,13 @@ export function parseLegalDocument(source: string, effective = legalEffectiveDat
   return { meta: parseMeta(match[1]), blocks }
 }
 
+// Each document may take effect on its own day: LEGAL_EFFECTIVE_DATE_TERMS or LEGAL_EFFECTIVE_DATE_PRIVACY overrides
+// the shared LEGAL_EFFECTIVE_DATE for that document only (Terms v2.2 followed Privacy v2.1, 14 Nov 2026).
+export function documentEffectiveDate(name: keyof typeof LEGAL_FILES, env: Record<string, string | undefined> = process.env): string {
+  const own = env[`LEGAL_EFFECTIVE_DATE_${name.toUpperCase()}`]?.trim()
+  return legalEffectiveDate(own ? { ...env, LEGAL_EFFECTIVE_DATE: own } : env)
+}
+
 export function loadLegalDocument(name: keyof typeof LEGAL_FILES): LegalDocument {
-  return parseLegalDocument(readFileSync(join(process.cwd(), LEGAL_FILES[name]), 'utf8'))
+  return parseLegalDocument(readFileSync(join(process.cwd(), LEGAL_FILES[name]), 'utf8'), documentEffectiveDate(name))
 }
