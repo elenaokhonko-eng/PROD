@@ -7,6 +7,7 @@ import { FileText, Loader2, Mic, Pause, Play, Square, Trash2, WifiOff } from 'lu
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { trackClientEvent } from '@/lib/analytics/client'
+import { trackFunnel } from '@/lib/analytics/funnel'
 import { ACCOUNT_NOTICE, SUBMIT_STORY } from '@/lib/harbor/cta'
 import { persistPendingNarrative, readPendingNarrative } from '@/components/landing/hero-capture'
 
@@ -138,6 +139,7 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
             throw new Error(data.error || 'The recording could not be transcribed.')
           }
           setNarrative(data.transcription)
+          trackFunnel('story_started')
         } catch (recordingError) {
           if ((recordingError as Error).name !== 'AbortError') {
             setError((recordingError as Error).message || 'The recording could not be transcribed. You can still type your story.')
@@ -194,6 +196,7 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
     setIsProcessing(true)
     try {
       persistPendingNarrative({ narrative: narrative.trim(), transcript: inputMethod === 'voice' ? narrative.trim() : undefined })
+      trackFunnel('story_submitted')
       await trackClientEvent({
         eventName: 'story_submitted',
         sessionId: null,
@@ -283,7 +286,10 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
         <Textarea
           id="story"
           value={narrative}
-          onChange={(event) => setNarrative(event.target.value)}
+          onChange={(event) => {
+            setNarrative(event.target.value)
+            trackFunnel('story_started')
+          }}
           rows={5}
           aria-describedby="story-include story-privacy"
           placeholder={STORY_PLACEHOLDER}

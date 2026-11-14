@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { SignUp } from '@clerk/nextjs'
 import { NO_CARD_LINE } from '@/lib/harbor/cta'
 import { SAFETY_NOTICE_SHORT } from '@/lib/safety-notice'
+import { FunnelStep } from '@/components/analytics/funnel-step'
 
 // Brief W1 §F and §L3: plain wording, email code or Google only, its own title (noindex comes from the root layout).
 export const metadata: Metadata = { title: { absolute: 'Create your account · GuideBuoy' } }
@@ -22,6 +23,7 @@ export default function SignUpPage() {
           {NO_CARD_LINE} {SAFETY_NOTICE_SHORT}
         </p>
       </div>
+      <FunnelStep event="signup_reached" />
     </div>
   )
 }

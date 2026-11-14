@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(13);
 
 -- Catalog rules: each query lists the offenders, so a failure names them.
 select is_empty(
@@ -91,6 +91,28 @@ select is_empty(
 select ok(
   not has_column_privilege('authenticated', 'public.consultation_reviews', 'reviewer_notes', 'select'),
   'authenticated cannot read consultation_reviews.reviewer_notes'
+);
+
+-- Analytics 2 (brief W1 §N): the funnel table holds no personal fields and is closed to the Data API.
+select is_empty(
+  $$
+    select column_name::text
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'funnel_events'
+      and column_name not in (
+        'id', 'created_at', 'event', 'anon_session_id', 'path', 'referrer_host',
+        'utm_source', 'utm_medium', 'utm_campaign', 'device_class', 'environment'
+      )
+  $$,
+  'funnel_events has no column beyond the approved anonymous fields'
+);
+
+select ok(
+  not has_table_privilege('anon', 'public.funnel_events', 'select')
+    and not has_table_privilege('authenticated', 'public.funnel_events', 'select')
+    and not has_table_privilege('authenticated', 'public.funnel_events', 'insert'),
+  'funnel_events is closed to anon and authenticated'
 );
 
 -- Case-scoped read on the tier-2 analysis tables.

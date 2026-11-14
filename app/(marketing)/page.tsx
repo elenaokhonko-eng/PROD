@@ -13,6 +13,7 @@ import { NO_CARD_LINE } from '@/lib/harbor/cta'
 import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
 import { TrustRow } from '@/components/harbor/trust-row'
 import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
+import { FunnelStep } from '@/components/analytics/funnel-step'
 
 export const metadata: Metadata = {
   title: { absolute: 'Scammed in Singapore? Free scam and bank dispute evaluation · GuideBuoy' },
@@ -142,6 +143,7 @@ export default function HomePage() {
         </div>
       </section>
       <StickyStartBar />
+      <FunnelStep event="home_viewed" />
     </main>
   )
 }
