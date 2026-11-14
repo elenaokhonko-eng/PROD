@@ -78,7 +78,7 @@ export default function HomePage() {
               width={640}
               height={640}
               priority
-              className="gb-decorative aspect-square rounded-[2rem] object-cover shadow-harbor"
+              className="gb-decorative aspect-square rounded-[2rem] object-cover"
             />
           </div>
         </div>
