@@ -1,4 +1,4 @@
-import { AGENT_LINK_HEADER, INDEXABLE_ROUTES } from './lib/seo/public-routes.mjs'
+import { AGENT_LINK_HEADER, CRAWL_FILE_CACHE_CONTROL, CRAWL_FILE_PATHS, INDEXABLE_ROUTES } from './lib/seo/public-routes.mjs'
 
 // Security headers on every response (Elena, 9 Nov). The CSP only restricts framing, <base> and plugins; a full script
 // policy needs testing against Clerk first. HSTS has no preload: preloading is hard to undo.
@@ -27,6 +27,7 @@ const nextConfig = {
     return [
       { source: '/:path*', headers: securityHeaders },
       ...INDEXABLE_ROUTES.map((source) => ({ source, headers: [{ key: 'Link', value: AGENT_LINK_HEADER }] })),
+      ...CRAWL_FILE_PATHS.map((source) => ({ source, headers: [{ key: 'Cache-Control', value: CRAWL_FILE_CACHE_CONTROL }] })),
     ]
   },
   async redirects() {
