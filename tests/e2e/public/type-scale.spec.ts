@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
 const PAGES = ['/', '/how-it-works', '/pricing', '/product', '/about', '/faq', '/resources', '/marketplace']
 
 for (const path of PAGES) {
-  test(`${path}: type scale`, async ({ page }, testInfo) => {
+  test(`${path}: type scale`, async ({ page }) => {
     await page.goto(path, { waitUntil: 'load' })
     const result = await page.evaluate(() => {
       const visible = (el: Element) => el.getClientRects().length > 0 && !el.closest('.sr-only')
@@ -30,6 +30,8 @@ for (const path of PAGES) {
     })
     expect(result.share, 'share of 14 px text').toBeLessThan(1 / 3)
     expect(result.smallBody, 'body copy below 16 px').toEqual([])
-    expect(result.h1).toBe(testInfo.project.name.includes('390') ? 36 : 52)
+    // §V1: 36 px on phones, 48 px on tablets, 52 px on desktops.
+    const width = page.viewportSize()!.width
+    expect(result.h1).toBe(width < 640 ? 36 : width < 1024 ? 48 : 52)
   })
 }

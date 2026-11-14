@@ -96,10 +96,8 @@ export function trackFunnel(event: FunnelEvent): void {
     if (storage?.getItem(SENT_PREFIX + event)) return
     storage?.setItem(SENT_PREFIX + event, '1')
     const body = JSON.stringify({ event, anon_session_id: tabId(storage), path: window.location.pathname.slice(0, 200), ...rememberFirstTouch() })
-    const blob = new Blob([body], { type: 'application/json' })
-    if (!navigator.sendBeacon?.(FUNNEL_ENDPOINT, blob)) {
-      void fetch(FUNNEL_ENDPOINT, { method: 'POST', body, headers: { 'Content-Type': 'application/json' }, keepalive: true }).catch(() => {})
-    }
+    // keepalive lets the step finish after the page moves on (story submitted → sign-up).
+    void fetch(FUNNEL_ENDPOINT, { method: 'POST', body, headers: { 'Content-Type': 'application/json' }, keepalive: true }).catch(() => {})
   } catch {
     // Analytics never gets in the visitor's way.
   }
