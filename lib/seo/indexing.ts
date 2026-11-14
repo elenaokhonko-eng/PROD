@@ -4,56 +4,49 @@ import type { Metadata } from 'next'
 // inherits NOINDEX from the root layout and must opt in here to be crawled.
 export const SITE_ORIGIN = 'https://guidebuoyai.sg'
 
-export const INDEXABLE_ROUTES = [
-  '/',
-  '/how-it-works',
-  '/pricing',
-  '/product',
-  '/about',
-  '/marketplace',
-  '/faq',
-  '/resources',
-  '/privacy',
-  '/terms',
-] as const
+export { INDEXABLE_ROUTES } from './public-routes.mjs'
 
 export const INDEX: Metadata['robots'] = { index: true, follow: true }
 export const NOINDEX: Metadata['robots'] = { index: false, follow: false }
 
 // Private areas, closed to every crawler.
-const PRIVATE_PATHS = ['/app', '/onboarding', '/sign-in', '/sign-up', '/api']
+export const PRIVATE_PATHS = ['/app', '/onboarding', '/sign-in', '/sign-up', '/api'] as const
 
-// AI crawlers named explicitly so their rules are visible (Cloudflare AI Crawl Control, RFC 9309 groups). Decision
-// D1 (Elena, 13 Nov): search, training and user-triggered crawlers are all allowed on public pages.
+// AI crawlers named explicitly so their rules are visible (Addendum A §A1, Cloudflare AI Crawl Control).
+// Claude-Web is kept beyond the addendum's list because Cloudflare's AI-rules check names it.
 export const AI_CRAWLERS = [
-  'GPTBot',
   'OAI-SearchBot',
   'ChatGPT-User',
-  'ClaudeBot',
+  'GPTBot',
   'Claude-SearchBot',
   'Claude-User',
+  'ClaudeBot',
   'Claude-Web',
-  'Google-Extended',
-  'Applebot-Extended',
   'PerplexityBot',
   'Perplexity-User',
+  'Google-Extended',
+  'Applebot-Extended',
+  'Amazonbot',
   'CCBot',
   'Bytespider',
-  'Amazonbot',
   'meta-externalagent',
+  'DuckAssistBot',
 ] as const
 
-const rules = ['Allow: /', ...PRIVATE_PATHS.map((path) => `Disallow: ${path}`)]
+// Decision D1 (Elena, 13 Nov): search, AI answers and AI training are all allowed on public pages.
+export const CONTENT_SIGNAL = 'Content-Signal: search=yes, ai-input=yes, ai-train=yes'
 
-// Brief W1 §L1, plus one group for the named AI crawlers with the same rules (a crawler that matches a named group
-// ignores the * group, so the rules are repeated there).
+// Both groups are built from the same lines: a crawler that matches a named group ignores the * group, so every
+// Disallow must be repeated there (Addendum A §A1).
+const groupRules = [CONTENT_SIGNAL, 'Allow: /', ...PRIVATE_PATHS.map((path) => `Disallow: ${path}`)]
+
 export const ROBOTS_TXT =
   [
     'User-agent: *',
-    ...rules,
+    ...groupRules,
     '',
     ...AI_CRAWLERS.map((agent) => `User-agent: ${agent}`),
-    ...rules,
+    ...groupRules,
     '',
     `Sitemap: ${SITE_ORIGIN}/sitemap.xml`,
   ].join('\n') + '\n'

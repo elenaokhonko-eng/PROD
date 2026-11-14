@@ -19,6 +19,8 @@ test('only the public marketing pages are indexable, each with its own canonical
     if (indexable.has(path)) {
       expect(robotsMeta(html), path).toBe('index, follow')
       expect(canonical(html), path).toBe(`${SITE_ORIGIN}${path === '/' ? '' : path}`)
+      // Addendum A §A4: agents find the machine-readable summary from any public page.
+      expect(response.headers()['link'], path).toContain('</llms.txt>; rel="describedby"; type="text/plain"')
     } else {
       expect(robotsMeta(html), path).toBe('noindex, nofollow')
       expect(canonical(html), `${path} must not point search engines at another page`).toBeNull()

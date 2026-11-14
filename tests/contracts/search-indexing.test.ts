@@ -26,12 +26,17 @@ test('pages are noindex by default and only marketing pages opt in', () => {
   }
 })
 
-test('robots.txt keeps brief W1 §L1 and names the AI crawlers with the same rules', () => {
+test('robots.txt matches Addendum A §A1: content signals, the AI crawlers and identical rules in both groups', () => {
   const groups = ROBOTS_TXT.trimEnd().split('\n\n')
-  const briefRules = 'Allow: /\nDisallow: /app\nDisallow: /onboarding\nDisallow: /sign-in\nDisallow: /sign-up\nDisallow: /api'
+  const briefRules =
+    'Content-Signal: search=yes, ai-input=yes, ai-train=yes\nAllow: /\nDisallow: /app\nDisallow: /onboarding\nDisallow: /sign-in\nDisallow: /sign-up\nDisallow: /api'
   assert.equal(groups[0], `User-agent: *\n${briefRules}`)
-  // Cloudflare's AI-rules check names these four; D1 allows every AI crawler on public pages.
-  for (const agent of ['GPTBot', 'OAI-SearchBot', 'Claude-Web', 'Google-Extended']) {
+  // The addendum's list, plus Claude-Web, which Cloudflare's AI-rules check names. D1 allows them all on public pages.
+  for (const agent of [
+    'OAI-SearchBot', 'ChatGPT-User', 'GPTBot', 'Claude-SearchBot', 'Claude-User', 'ClaudeBot', 'Claude-Web',
+    'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Applebot-Extended', 'Amazonbot', 'CCBot', 'Bytespider',
+    'meta-externalagent', 'DuckAssistBot',
+  ]) {
     assert.ok(AI_CRAWLERS.includes(agent as (typeof AI_CRAWLERS)[number]), agent)
   }
   assert.equal(groups[1], `${AI_CRAWLERS.map((a) => `User-agent: ${a}`).join('\n')}\n${briefRules}`)

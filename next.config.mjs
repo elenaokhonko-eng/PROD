@@ -1,3 +1,5 @@
+import { AGENT_LINK_HEADER, INDEXABLE_ROUTES } from './lib/seo/public-routes.mjs'
+
 // Security headers on every response (Elena, 9 Nov). The CSP only restricts framing, <base> and plugins; a full script
 // policy needs testing against Clerk first. HSTS has no preload: preloading is hard to undo.
 export const securityHeaders = [
@@ -22,7 +24,10 @@ const nextConfig = {
   // Retired routes. Declared here rather than with redirect() in a page, because Next 14.2 serves a prerendered
   // page's cached redirect as a 307 without its Location header.
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }]
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      ...INDEXABLE_ROUTES.map((source) => ({ source, headers: [{ key: 'Link', value: AGENT_LINK_HEADER }] })),
+    ]
   },
   async redirects() {
     return [
