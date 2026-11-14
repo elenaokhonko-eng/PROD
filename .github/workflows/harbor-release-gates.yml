@@ -73,6 +73,14 @@ jobs:
         run: pnpm build
       - name: No server secret in the client bundle
         run: pnpm exec tsx scripts/check-client-bundle.mts
+      # Addendum S4: no secret in the bundle or public/, no public source maps, and no secret in lines a pull request adds.
+      - name: Secret scan (bundle, public folder, new lines)
+        run: |
+          pnpm exec tsx scripts/scan-secrets.ts bundle public
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --no-tags --depth=200 origin "${{ github.base_ref }}"
+            pnpm exec tsx scripts/scan-secrets.ts diff "origin/${{ github.base_ref }}"
+          fi
       - name: State-machine rules
         run: pnpm check:sm
       - name: Release and contract tests

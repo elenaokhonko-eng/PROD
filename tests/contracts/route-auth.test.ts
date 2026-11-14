@@ -20,6 +20,7 @@ const PUBLIC: Record<string, string> = {
   'router/session': 'pre-sign-in triage session; links to the account when signed in',
   'transcribe': 'pre-sign-in voice input; limited per IP, audio capped at 3 MB',
   'triage/analyze': 'pre-sign-in triage; limited per IP',
+  '[...unknown]': 'answers every unknown API address with a JSON 404 and does nothing else (Addendum S2)',
 }
 
 function routes(dir = 'app/api'): string[] {

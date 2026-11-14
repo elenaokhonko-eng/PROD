@@ -1,6 +1,7 @@
 import { clerkMiddleware } from '@clerk/nextjs/server'
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
 import { allowedHosts, hostAllowed } from '@/lib/host-allowlist'
+import { isProbe } from '@/lib/security/probe-paths'
 
 const blockedPathPatterns: RegExp[] = [
   /\.env/i,
@@ -24,9 +25,24 @@ const withClerk = hasClerkConfig
     })
   : null
 
+// Brief W1 Addendum S2: scanner probes get a tiny 404 before anything else runs. No cookies, never cached, and the
+// query string is never logged.
+const probeResponse = () =>
+  new NextResponse('Not found', { status: 404, headers: { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' } })
+
+// The path as the client sent it, still percent-encoded (nextUrl.pathname may decode %2F and friends).
+function rawPathAndUri(url: string): { path: string; uri: string } {
+  const afterHost = url.replace(/^[a-z]+:\/\/[^/]+/i, '') || '/'
+  const query = afterHost.indexOf('?')
+  return { path: query === -1 ? afterHost : afterHost.slice(0, query), uri: afterHost }
+}
+
 export default function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl
   const userAgent = request.headers.get('user-agent') ?? ''
+
+  const raw = rawPathAndUri(request.url)
+  if (isProbe(raw.path, raw.uri) || isProbe(pathname)) return probeResponse()
 
   if (!hostAllowed(request.headers.get('host'), pathname, ALLOWED_HOSTS)) {
     return new NextResponse('Not found', { status: 404 })
@@ -36,7 +52,7 @@ export default function middleware(request: NextRequest, event: NextFetchEvent) 
     blockedPathPatterns.some((pattern) => pattern.test(pathname)) ||
     blockedUserAgents.some((pattern) => pattern.test(userAgent))
   ) {
-    return new NextResponse('Not found', { status: 404 })
+    return probeResponse()
   }
 
   if (
@@ -63,5 +79,9 @@ export const config = {
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',
+    // Scanner probes for JavaScript files that the static-file rule above would otherwise skip (Addendum S2).
+    '/__env.js',
+    '/credentials.js',
+    '/next.config.js',
   ],
 }

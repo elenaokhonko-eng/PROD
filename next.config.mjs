@@ -14,6 +14,8 @@ export const securityHeaders = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Addendum S5: no "X-Powered-By: Next.js" header.
+  poweredByHeader: false,
   images: {
     unoptimized: true,
   },
