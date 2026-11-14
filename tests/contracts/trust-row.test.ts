@@ -8,7 +8,8 @@ import { ACCOUNT_NOTICE } from '../../lib/harbor/cta'
 const row = readFileSync('components/harbor/trust-row.tsx', 'utf8')
 
 test('the four trust items are the approved wording', () => {
-  assert.match(row, /'We never ask for your bank login, PIN or OTP\.'/)
+  assert.match(row, /text: SAFETY_NOTICE_SHORT/)
+  assert.match(readFileSync('lib/safety-notice.ts', 'utf8'), /SAFETY_NOTICE_SHORT = "We never ask for your bank login, PIN or OTP\."/)
   assert.match(row, /'Fixed prices\. No success fee\.'/)
   assert.match(row, /'Private to your account\. We never share your case with any bank or authority unless the law requires it\.'/)
   assert.match(row, /Singapore company, UEN \{COMPANY_UEN\}\./)

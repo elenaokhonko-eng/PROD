@@ -22,12 +22,15 @@ test('faq exposes stateful explorer and keeps contact workflow disabled', async 
   await allCategory.click()
   await expect(allCategory).toHaveAttribute('aria-pressed', 'true')
 
+  // Brief W1 §F: the Singpass question is gone; search still finds and opens an answer.
   await search.fill('Singpass')
-  await expect.poll(async () => search.inputValue()).toBe('Singpass')
-  const singpassQuestion = page.getByRole('button', { name: 'Is Singpass available?' })
-  await expect(singpassQuestion).toBeVisible()
-  await singpassQuestion.click()
-  await expect(page.getByText(/Singpass sign-in is not currently available\./)).toBeVisible()
+  await expect(page.getByRole('button', { name: /Singpass/ })).toHaveCount(0)
+  await search.fill('legal advice')
+  await expect.poll(async () => search.inputValue()).toBe('legal advice')
+  const reviewQuestion = page.getByRole('button', { name: 'Is this legal advice? Does a person review it?' })
+  await expect(reviewQuestion).toBeVisible()
+  await reviewQuestion.click()
+  await expect(page.getByText(/GuideBuoy is automated and is not legal advice/)).toBeVisible()
 
   // Finding D5: no form; contact is by email.
   await expect(page.getByRole('link', { name: 'info@guidebuoyai.sg' }).first()).toHaveAttribute('href', 'mailto:info@guidebuoyai.sg')

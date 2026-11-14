@@ -18,7 +18,7 @@ Use short, factual, non-blaming sentences. Do not name internal tiers, functions
 | Checkout pending | **Confirming your payment.** Your case remains available while we check the latest payment status. Do not pay again unless checkout tells you to. |
 | Cancellation | **Checkout was not completed.** Your case is unchanged. |
 | Reporting disclaimer | **GuideBuoy helps organise information. It does not decide your case or provide legal advice.** |
-| Singpass option | **Singpass sign-in is not currently available.** The disabled option does not authenticate the user. |
+| Sign-up and sign-in | Sign-up: **Save your case** · **Create a free account to keep your story private and get your evaluation.** · under the form **Free. No card needed. We never ask for your bank login, PIN or OTP.** Sign-in: **Welcome back.** · **Sign in to continue your case.** No Singpass option and no “authenticated case workspace” (brief W1 §F, approved by Elena 14 Nov 2026). |
 | Data deletion | **Request data deletion.** Explain that a request is reviewed and that lawful security, accounting, and legal-retention exceptions may apply. After the canonical API creates a durable request, show **Request received**, its server reference, and returned status; do not fabricate any of them. |
 | Automated outputs | **Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).** Show this on every material output and checkout surface inside the app and in every download. Public marketing pages do not repeat it; they carry “What GuideBuoy is” once instead (brief W1 §B3, Elena 14 Nov 2026). |
 | What GuideBuoy is (public pages) | **What GuideBuoy is.** A guided way to prepare your own case. It is automated and is not legal advice; you check everything before you send it. If you would like a person to go through it with you, a 30-minute consultation is S$99. **Email to book** (info@guidebuoyai.sg). Once per public page that sells or explains the product: Home after the product cards, Pricing, How it works, About, FAQ, Product. On public pages “has not been reviewed by a person” appears 0 times and “S$99” at most twice. |
@@ -51,7 +51,7 @@ Only **verified** rows can be published as declarative claims. **Qualified copy*
 | Trust row above the story box | qualified copy | “We never ask for your bank login, PIN or OTP.” · “Fixed prices. No success fee.” · “Private to your account. We never share your case with any bank or authority unless the law requires it.” (Elena’s wording (b), 14 Nov; matches Privacy Policy §3, including its disclosure-required-by-law sentence) · “Singapore company, UEN 202545875C. Check on ACRA BizFile” (links out; no embed). Brief W1 §B1, approved by Elena 14 Nov 2026. |
 | Before sign-up | verified | “Next you’ll create a free account, so your case is saved privately.” (brief W1 §B2, approved by Elena 14 Nov 2026). |
 | Stripe checkout handoff | qualified copy | “You’ll continue to our payment provider to complete checkout.” |
-| Singpass login | qualified copy | Disabled provider option: “Singpass sign-in is not currently available.” It has no sign-in or request-access action. |
+| Singpass login | retired | Removed from sign-in, sign-up and the FAQ (brief W1 §F, Elena 14 Nov 2026). Do not mention Singpass until it is offered. |
 | PDPA practice | not publishable | Applicable PDPA obligations are a frozen requirement, but public wording needs legal/compliance owner approval of a current control mapping. Never imply certification or endorsement. |
 | Encrypted data storage | not publishable | A scoped statement needs evidence of covered database/storage, backups, exports, transit controls, processors, and legal/access exceptions. Do not claim absolute confidentiality or security. |
 | MAS guidance | not publishable | Applicable MAS guidance is a frozen requirement; public wording needs legal/compliance approval. `PDPA ✦ MAS` can only be a reviewed non-certification informational heading. |
@@ -70,7 +70,7 @@ Only **verified** rows can be published as declarative claims. **Qualified copy*
 |---|---|
 | Retired high-price case-pack label | “FIDReC case pack — S$188” |
 | Recurring-billing assertion | Omit until lifecycle and checkout are approved. |
-| Identity-provider readiness | “Singpass sign-in is not currently available.” |
+| Identity-provider readiness | No mention of providers that are not offered (Singpass removed 14 Nov 2026). |
 | Automatic complete deletion | “Request data deletion.” The durable request/receipt API—not the browser—supplies “Request received,” reference, and status. |
 | Compliance/certification badge | Omit until legal/compliance approves a scoped public statement; never imply certification or endorsement. |
 | Human-review, specialist follow-up, or response commitment | “Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).” “Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.” |

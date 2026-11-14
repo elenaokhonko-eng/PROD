@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Building2, Copy, LockKeyhole, ReceiptText, ShieldCheck } from 'lucide-react'
+import { SAFETY_NOTICE_SHORT } from '@/lib/safety-notice'
 
 // Brief W1 §B1: four promises directly above the story box, where a person who was just deceived online decides
 // whether to type their story here. Item 3 uses Elena's wording (b) of 14 Nov, which matches Privacy Policy §3.
@@ -9,7 +10,7 @@ export const COMPANY_UEN = '202545875C'
 export const BIZFILE_URL = 'https://www.bizfile.gov.sg/'
 
 export const TRUST_ITEMS = [
-  { icon: ShieldCheck, text: 'We never ask for your bank login, PIN or OTP.' },
+  { icon: ShieldCheck, text: SAFETY_NOTICE_SHORT },
   { icon: ReceiptText, text: 'Fixed prices. No success fee.' },
   { icon: LockKeyhole, text: 'Private to your account. We never share your case with any bank or authority unless the law requires it.' },
 ] as const

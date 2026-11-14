@@ -29,7 +29,6 @@ Routes below are current application routes. Do not create browser-only business
 | Get my free evaluation (story form submit) | Begin local narrative; then `/sign-up` or `/sign-in` | None | Offline: retain draft and explain sign-in needs connection. |
 | Type my story / Record my story | A1 capture mode | Browser support for recording | Mic denial/unavailable: stay in type mode with explanation. |
 | Continue to sign in / Create account | Provider flow at `/sign-in` / `/sign-up` | Pending narrative optional | Auth error remains in provider UI; draft is retained locally. |
-| Singpass sign-in is not currently available | No action | None | Disabled provider option with that accessible reason; never attempts authentication or implies launch timing. |
 | Continue / Next question / Save answer | Router or case gap API action | Current client validation + server accepted state | Keep answer, show inline error/retry. |
 | Resume story / Start fresh | Restore or clear *local* pending narrative | Local narrative exists | Start fresh requires confirmation; never clears a created case. |
 | Add evidence / Choose files / Use camera | Case evidence upload action | Authenticated case; accepted type | Reject unsupported type before upload; per-file retry/replace. |

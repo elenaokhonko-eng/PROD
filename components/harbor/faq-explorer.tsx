@@ -13,7 +13,6 @@ const faqGroups = [
     items: [
       ['Who can use GuideBuoy?', 'GuideBuoy helps people organise information about scams, fraud, unauthorised transactions and disputes. The complaint-path check is informational; the relevant organisation decides what it accepts.'],
       ['Do I need an account before telling my story?', 'No. Your draft stays in this browser until you sign in. It does not become a case until sign-in and case setup succeed.'],
-      ['Is Singpass available?', 'Singpass sign-in is not currently available. Use an available method shown by the sign-in provider.'],
       ['What if forms are hard for me?', 'You can type or record your story. A recording is sent for transcription after you stop it, and the transcript remains editable.'],
     ],
   },
@@ -79,7 +78,7 @@ export function FAQExplorer() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="min-h-11 pl-10"
-            placeholder="For example: Singpass or report"
+            placeholder="For example: refund or FIDReC"
           />
         </div>
         <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="FAQ category">
