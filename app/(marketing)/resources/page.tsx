@@ -31,7 +31,7 @@ export default function ResourcesPage() {
         </aside>
 
         <section className="mt-10" aria-labelledby="directory-title">
-          <h2 id="directory-title" className="text-3xl font-semibold text-harbor-deep">External information and reporting</h2>
+          <h2 id="directory-title" className="text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">External information and reporting</h2>
           <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
             Links open websites operated by the named organisations. GuideBuoy is not affiliated with or endorsed by them.
           </p>

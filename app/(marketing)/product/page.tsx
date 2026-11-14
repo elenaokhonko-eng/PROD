@@ -44,7 +44,7 @@ export default function ProductPage() {
         <div className="gb-container grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.75fr)]">
           <div className="gb-readable">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Live report preview</p>
-            <h2 id="preview-title" className="mt-3 text-3xl font-semibold text-harbor-primary-active">
+            <h2 id="preview-title" className="mt-3 text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-primary-active">
               A structure you can review before using
             </h2>
             <p className="mt-4 leading-7 text-muted-foreground">

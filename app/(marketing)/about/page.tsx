@@ -28,14 +28,14 @@ export default function AboutPage() {
           <Compass className="size-28 text-primary" aria-hidden="true" />
         </div>
         <div>
-          <h2 className="text-3xl font-semibold text-harbor-deep">Tell us once.</h2>
+          <h2 className="text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">Tell us once.</h2>
           <p className="mt-4 leading-8 text-muted-foreground">GuideBuoy turns what happened to you into one clear, checked record, and shows you the right next step, whether that&apos;s your bank, the police or FIDReC. You stay in control of every fact and every document you share.</p>
         </div>
       </MarketingSection>
 
       <section className="border-y bg-card py-12 sm:py-16" aria-labelledby="principles-title">
         <div className="gb-container">
-          <h2 id="principles-title" className="text-3xl font-semibold text-harbor-deep">What we are — and what we are not</h2>
+          <h2 id="principles-title" className="text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">What we are — and what we are not</h2>
           <div className="mt-8 grid gap-5 md:grid-cols-3">
             {principles.map(({ icon: Icon, title, text }) => (
               <article key={title} className="rounded-2xl border bg-background p-6">
@@ -49,7 +49,7 @@ export default function AboutPage() {
       </section>
 
       <MarketingSection>
-        <h2 className="text-3xl font-semibold text-harbor-deep">Responsible use</h2>
+        <h2 className="text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">Responsible use</h2>
         <p className="mt-4 max-w-3xl leading-8 text-muted-foreground">
           GuideBuoy structures information for review. Your case information may indicate a next step. Check the official requirements before acting.
         </p>

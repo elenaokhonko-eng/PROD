@@ -34,8 +34,8 @@ export default function MarketplacePage() {
             <article key={title} className="gb-card p-4 sm:p-6">
               <Icon className="size-7 text-primary" aria-hidden="true" />
               <h2 className="mt-4 text-xl font-semibold">{title}</h2>
-              <p className="mt-2 leading-7 text-muted-foreground">Planned—not currently available through GuideBuoy.</p>
-              <Button type="button" variant="outline" className="mt-5 w-full" disabled aria-describedby={`${title.replaceAll(' ', '-').toLowerCase()}-reason`}>
+              <p className="mt-2 leading-7 text-foreground">Planned—not currently available through GuideBuoy.</p>
+              <Button type="button" variant="outline" className="mt-5 w-full text-base" disabled aria-describedby={`${title.replaceAll(' ', '-').toLowerCase()}-reason`}>
                 View help resources
               </Button>
               <p id={`${title.replaceAll(' ', '-').toLowerCase()}-reason`} className="mt-2 text-sm text-muted-foreground">

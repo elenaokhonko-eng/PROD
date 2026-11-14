@@ -19,7 +19,7 @@ export function WaitingTracker() {
           <li key={title} className="rounded-xl border bg-card p-4">
             <span className="text-sm font-semibold text-primary">Step {index + 1}</span>
             <span className="mt-2 block font-semibold">{title}</span>
-            <span className="mt-1 block text-sm leading-6 text-muted-foreground">{description}</span>
+            <span className="mt-1 block text-base leading-7 text-foreground">{description}</span>
           </li>
         ))}
       </ol>

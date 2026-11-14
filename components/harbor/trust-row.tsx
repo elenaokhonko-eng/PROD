@@ -30,12 +30,12 @@ export function TrustRow() {
   return (
     <ul aria-label="What GuideBuoy promises" className="grid gap-3 sm:grid-cols-2">
       {TRUST_ITEMS.map(({ icon: Icon, text }) => (
-        <li key={text} className="flex items-start gap-3 rounded-control bg-harbor-surface-subtle p-3 text-sm leading-6 text-foreground">
+        <li key={text} className="flex items-start gap-3 rounded-control bg-harbor-surface-subtle p-3 text-base leading-7 text-foreground">
           <Icon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
           <span>{text}</span>
         </li>
       ))}
-      <li className="flex items-start gap-3 rounded-control bg-harbor-surface-subtle p-3 text-sm leading-6 text-foreground">
+      <li className="flex items-start gap-3 rounded-control bg-harbor-surface-subtle p-3 text-base leading-7 text-foreground">
         <Building2 className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
         <span>
           Singapore company, UEN {COMPANY_UEN}.{' '}

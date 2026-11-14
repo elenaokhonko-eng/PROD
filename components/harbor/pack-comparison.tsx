@@ -51,16 +51,16 @@ export function PackComparison({ headingLevel = 'h2' }: { headingLevel?: 'h2' | 
           {pack.paid && !paidStages.enabled && (
             <p className="mt-2 text-sm font-semibold text-harbor-blue">Coming shortly</p>
           )}
-          <p className="mt-3 min-h-14 leading-6 text-muted-foreground">{pack.description}</p>
+          <p className="mt-3 min-h-14 leading-7 text-foreground">{pack.description}</p>
           <ul className="mt-6 flex-1 space-y-3">
             {pack.features.map((feature) => (
-              <li key={feature} className="flex gap-3 text-sm leading-6">
-                <Check className="mt-1 size-4 shrink-0 text-harbor-sage" aria-hidden="true" />
+              <li key={feature} className="flex gap-3 text-base leading-7">
+                <Check className="mt-1.5 size-4 shrink-0 text-harbor-sage" aria-hidden="true" />
                 <span>{feature}</span>
               </li>
             ))}
           </ul>
-          <Button asChild variant={index === 0 ? 'default' : 'outline'} className="mt-7 w-full">
+          <Button asChild variant={index === 0 ? 'default' : 'outline'} className="mt-7 w-full text-base font-semibold">
             <Link href={STORY_ANCHOR}>{START_EVALUATION}</Link>
           </Button>
         </article>

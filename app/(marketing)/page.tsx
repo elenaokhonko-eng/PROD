@@ -93,7 +93,7 @@ export default function HomePage() {
       </section>
 
       <section className="gb-container py-10 sm:py-14" aria-labelledby="options-title">
-        <h2 id="options-title" className="text-center text-3xl font-semibold text-harbor-deep">
+        <h2 id="options-title" className="text-center text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">
           Three ways we can help
         </h2>
         <div className="mt-9">
@@ -105,7 +105,7 @@ export default function HomePage() {
 
       <section className="border-y bg-card py-12 sm:py-16" aria-labelledby="reasons-title">
         <div className="gb-container">
-          <h2 id="reasons-title" className="text-center text-3xl font-semibold text-harbor-deep">
+          <h2 id="reasons-title" className="text-center text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">
             A calmer way to move forward
           </h2>
           <div className="mt-9 grid gap-5 md:grid-cols-3">
@@ -121,7 +121,7 @@ export default function HomePage() {
       </section>
 
       <section className="gb-container py-12 text-center sm:py-16" aria-labelledby="journey-title">
-        <h2 id="journey-title" className="text-3xl font-semibold text-harbor-deep">The journey in one glance</h2>
+        <h2 id="journey-title" className="text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">The journey in one glance</h2>
         <p className="mx-auto mt-5 max-w-4xl text-lg leading-8 text-muted-foreground">
           Tell your story → Add supporting material → Answer focused questions → Review your draft → Choose your next step → See further options where offered.
         </p>

@@ -35,7 +35,7 @@ export default function HowItWorksPage() {
       </MarketingSection>
       <section className="border-y bg-card py-12 sm:py-16" aria-labelledby="paths-title">
         <div className="gb-container">
-          <h2 id="paths-title" className="text-3xl font-semibold text-harbor-deep">Complaint paths in plain words</h2>
+          <h2 id="paths-title" className="text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">Complaint paths in plain words</h2>
           <div className="mt-6 flex flex-wrap gap-3">
             <PathwayChip>Bank or financial institution</PathwayChip>
             <PathwayChip tone="formal">FIDReC</PathwayChip>

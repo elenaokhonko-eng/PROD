@@ -311,13 +311,13 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
       {/* V4: the worked example (finding B1, Elena 7 Nov) moves out of the placeholder, word for word. */}
       <details className="mt-4">
         <summary className="min-h-11 cursor-pointer py-2 font-medium">See an example</summary>
-        <blockquote className="mt-2 border-l-2 border-primary/40 pl-4 text-sm leading-6 text-muted-foreground">{STORY_EXAMPLE}</blockquote>
+        <blockquote className="mt-2 border-l-2 border-primary/40 pl-4 text-base leading-7 text-foreground">{STORY_EXAMPLE}</blockquote>
       </details>
 
       {/* Finding B2: one instruction. §C: collapsed on phones, open on wider screens. */}
       <details ref={guidanceRef} className="mt-2">
         <summary className="min-h-11 cursor-pointer py-2 font-medium">What should I include?</summary>
-        <ul id="story-include" className="list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
+        <ul id="story-include" className="list-disc space-y-1 pl-5 text-base leading-7 text-foreground">
           <li>What happened, step by step, with dates and times</li>
           <li>How the scammer first contacted you, and who they pretended to be</li>
           <li>Whether you entered or shared any login, password, one-time code or token, and how</li>
