@@ -5,6 +5,7 @@ import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-p
 import { PackComparison } from '@/components/harbor/pack-comparison'
 import { Button } from '@/components/ui/button'
 import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
+import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 
 export const metadata: Metadata = {
   title: 'Pricing',
@@ -30,11 +31,11 @@ export default function PricingPage() {
                 <li>GuideBuoy is not a law firm and does not provide legal advice.</li>
                 <li>Banks, FIDReC and authorities make their own decisions.</li>
                 <li>When the paid packs are available, you&apos;ll pay through our payment provider&apos;s secure checkout. The price and contents are shown before you pay.</li>
-                <li>Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).</li>
               </ul>
             </div>
           </div>
         </aside>
+        <WhatGuideBuoyIs className="mt-9" />
         <div className="mt-9 flex flex-wrap justify-center gap-3">
           <StartEvaluationButton />
           <Button asChild variant="outline"><Link href="/how-it-works">See how it works</Link></Button>

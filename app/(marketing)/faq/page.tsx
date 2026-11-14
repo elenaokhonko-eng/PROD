@@ -2,6 +2,7 @@
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { ContactCard } from '@/components/harbor/contact-disclosure'
 import { FAQExplorer } from '@/components/harbor/faq-explorer'
+import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 
 export const metadata: Metadata = {
   title: 'FAQ and contact',
@@ -18,6 +19,7 @@ export default function FAQPage() {
     >
       <MarketingSection className="max-w-4xl">
         <FAQExplorer />
+        <WhatGuideBuoyIs className="mt-12" />
         <div className="mt-12"><ContactCard /></div>
       </MarketingSection>
     </MarketingPage>

@@ -7,7 +7,7 @@ import { START_EVALUATION, STORY_ANCHOR } from '@/lib/harbor/cta'
 
 // Three separate options (spec section 6), not a sequence: the free evaluation, the bank dispute pack before a
 // final reply, and the FIDReC escalation pack after one. In stage 1 the paid packs show "Coming shortly" (D1: no
-// dates). Each card says what it does (C6) and offers a human review (D2).
+// dates). Each card says what it does (C6); the page around the cards carries the "What GuideBuoy is" block (W1 §B3).
 const packs = [
   {
     name: 'Free evaluation',
@@ -60,12 +60,6 @@ export function PackComparison({ headingLevel = 'h2' }: { headingLevel?: 'h2' | 
               </li>
             ))}
           </ul>
-          <p className="mt-6 text-sm leading-6 text-muted-foreground">
-            Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
-          </p>
-          <p className="mt-3 rounded-control bg-harbor-surface-subtle p-3 text-sm font-medium">
-            Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.
-          </p>
           <Button asChild variant={index === 0 ? 'default' : 'outline'} className="mt-7 w-full">
             <Link href={STORY_ANCHOR}>{START_EVALUATION}</Link>
           </Button>

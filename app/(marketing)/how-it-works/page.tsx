@@ -6,6 +6,7 @@ import { PathwayChip } from '@/components/harbor/pathway-chip'
 import { WaitingTracker } from '@/components/harbor/waiting-tracker'
 import { Button } from '@/components/ui/button'
 import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
+import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 
 export const metadata: Metadata = {
   title: 'How it works',
@@ -47,6 +48,7 @@ export default function HowItWorksPage() {
       </section>
       <MarketingSection>
         <WaitingTracker />
+        <WhatGuideBuoyIs className="mt-9" />
         <div className="mt-9 flex flex-wrap justify-center gap-3">
           <StartEvaluationButton />
           <Button asChild variant="outline"><Link href="/faq">Read the FAQ</Link></Button>

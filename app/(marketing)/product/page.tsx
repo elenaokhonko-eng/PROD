@@ -6,6 +6,7 @@ import { StepJourney } from '@/components/harbor/step-journey'
 import { Button } from '@/components/ui/button'
 import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
 import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
+import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 
 export const metadata: Metadata = {
   title: 'Product',
@@ -69,14 +70,12 @@ export default function ProductPage() {
             <h2 id="boundary-title" className="mt-3 text-xl font-semibold">Free and paid boundary</h2>
             <p className="mt-3 leading-7">Start, save a case, add evidence, answer questions and review the available free draft without paying.</p>
             <p className="mt-3 leading-7"><strong>Full report — {fullReportPrice}.</strong> It is offered only when GuideBuoy confirms that your case is eligible.</p>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
-            </p>
           </aside>
         </div>
       </section>
 
       <MarketingSection className="text-center">
+        <WhatGuideBuoyIs className="mb-9 text-left" />
         <div className="flex flex-wrap justify-center gap-3">
           <StartEvaluationButton />
           <Button asChild variant="outline"><Link href="/how-it-works">See how it works</Link></Button>

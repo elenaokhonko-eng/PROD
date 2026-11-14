@@ -11,6 +11,7 @@ import { paidStagesState } from '@/lib/billing/paid-stages'
 import { NO_CARD_LINE } from '@/lib/harbor/cta'
 import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
 import { TrustRow } from '@/components/harbor/trust-row'
+import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 
 export const metadata: Metadata = {
   title: "Singapore's Complaint Helper",
@@ -98,6 +99,8 @@ export default function HomePage() {
         <div className="mt-9">
           <PackComparison headingLevel="h3" />
         </div>
+        {/* Brief W1 §B3: once per page, after the product cards. */}
+        <WhatGuideBuoyIs className="mt-9" />
       </section>
 
       <section className="border-y bg-card py-12 sm:py-16" aria-labelledby="reasons-title">

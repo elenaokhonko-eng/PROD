@@ -21,7 +21,8 @@ const faqGroups = [
     title: 'Your report',
     items: [
       ['What does GuideBuoy produce?', 'GuideBuoy organises the information available in your case into a draft or report. Missing and uncertain details may remain visible.'],
-      ['Are outputs reviewed by a person?', 'Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).'],
+      // Brief W1 §J wording; the full FAQ set replaces this list in Batch 2.
+      ['Is this legal advice? Does a person review it?', 'No. GuideBuoy is automated and is not legal advice; you check everything before you send it. A 30-minute consultation with a person is available for S$99.'],
       ['Can I correct an output?', 'Review generated information carefully. Add or correct case information through the actions available in your workspace.'],
       ['Does a pathway signal decide my case?', 'No. GuideBuoy helps organise information. It does not decide your case or provide legal advice.'],
     ],
@@ -32,7 +33,6 @@ const faqGroups = [
       ['Is it free to start?', 'Start organising for free. Tell your story, add supporting material, and receive a draft when your case is ready.'],
       ['What does the full report cost?', 'Two full reports are available: the Bank dispute pack (S$18) and the FIDReC escalation pack (S$188). Prices and contents are shown before any checkout.'],
       ['What does the FIDReC case pack cost?', 'FIDReC case pack — S$188. It is available after a completed report, where offered. Review the scope before checkout.'],
-      ['Is human consultation included?', 'It is a separate service. Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.'],
     ],
   },
   {
