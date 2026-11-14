@@ -2,6 +2,7 @@ import { clerkMiddleware } from '@clerk/nextjs/server'
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
 import { allowedHosts, hostAllowed } from '@/lib/host-allowlist'
 import { isProbe } from '@/lib/security/probe-paths'
+import { ORIGIN_AUTH_HEADER, originAllowed } from '@/lib/security/origin-check'
 
 const blockedPathPatterns: RegExp[] = [
   /\.env/i,
@@ -43,6 +44,11 @@ export default function middleware(request: NextRequest, event: NextFetchEvent) 
 
   const raw = rawPathAndUri(request.url)
   if (isProbe(raw.path, raw.uri) || isProbe(pathname)) return probeResponse()
+
+  // Addendum S3.2: refuse requests that did not come through Cloudflare (on once ORIGIN_AUTH_SECRET is set).
+  if (!originAllowed(pathname, request.headers.get(ORIGIN_AUTH_HEADER), process.env.ORIGIN_AUTH_SECRET)) {
+    return probeResponse()
+  }
 
   if (!hostAllowed(request.headers.get('host'), pathname, ALLOWED_HOSTS)) {
     return new NextResponse('Not found', { status: 404 })

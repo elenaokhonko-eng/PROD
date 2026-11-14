@@ -109,6 +109,7 @@ export const optionalKeys = [
   "SUPABASE_PRODUCTION_DB_URL",
   // The Terms and Privacy Policy effective date, set at cutover (Elena, 9 Nov).
   "LEGAL_EFFECTIVE_DATE",
+  "ORIGIN_AUTH_SECRET",
   "LEGAL_EFFECTIVE_DATE_TERMS",
   "LEGAL_EFFECTIVE_DATE_PRIVACY",
   // Hosts production answers on (lib/host-allowlist.ts), set at cutover.
@@ -415,6 +416,9 @@ export function checkEnvironmentSet(
     try { legalEffectiveDate({ LEGAL_EFFECTIVE_DATE: value, HARBOR_DEPLOYMENT_ENVIRONMENT: "production" }) } catch { ok = false }
     add(ok ? "PASS" : "FAIL", `${key} is a date`, ok ? undefined : "use YYYY-MM-DD")
   }
+  // Addendum S3.2: the shared secret Cloudflare sends; unset means the origin check is off.
+  const originSecret = get("ORIGIN_AUTH_SECRET")
+  if (originSecret) add(originSecret.length >= 32 ? "PASS" : "FAIL", "ORIGIN_AUTH_SECRET is at least 32 characters")
   if (!isStaging && get("EMAIL_FROM")) {
     add(/@guidebuoyai\.sg>?$/i.test(get("EMAIL_FROM")) ? "PASS" : "WARN", "production EMAIL_FROM uses the verified guidebuoyai.sg domain")
   }
