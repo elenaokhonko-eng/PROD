@@ -4,3 +4,5 @@ export const START_EVALUATION = 'Start my free evaluation'
 export const SUBMIT_STORY = 'Get my free evaluation'
 export const STORY_ANCHOR = '/#tell-your-story'
 export const NO_CARD_LINE = 'Free. No card needed.'
+// Brief W1 §B2: under the story form, before the sign-up step.
+export const ACCOUNT_NOTICE = 'Next you’ll create a free account, so your case is saved privately.'

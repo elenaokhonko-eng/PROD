@@ -6,7 +6,7 @@ import { FileText, Loader2, Mic, Pause, Play, Square, Trash2, WifiOff } from 'lu
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { trackClientEvent } from '@/lib/analytics/client'
-import { SUBMIT_STORY } from '@/lib/harbor/cta'
+import { ACCOUNT_NOTICE, SUBMIT_STORY } from '@/lib/harbor/cta'
 import { persistPendingNarrative, readPendingNarrative } from '@/components/landing/hero-capture'
 
 function formatTime(seconds: number) {
@@ -273,7 +273,7 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
           className="min-h-72 resize-y bg-card text-base leading-7 placeholder:text-sm placeholder:leading-6 sm:min-h-80"
         />
         <p id="story-privacy" className="mt-3 rounded-lg bg-harbor-sage-tint px-3 py-2 text-sm leading-6">
-          An unfinished story is kept in this browser tab, so reloading the page or signing in won’t lose it. It is deleted when you close the tab. Voice is sent for transcription when you stop recording.
+          Your draft stays in this browser tab until you sign in. It is deleted when you close the tab. Voice is sent for transcription when you stop recording.
         </p>
       </div>
 
@@ -301,6 +301,8 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
         {isProcessing && <Loader2 className="animate-spin" aria-hidden="true" />}
         {isProcessing ? 'Saving your story…' : SUBMIT_STORY}
       </Button>
+      {/* Brief W1 §B2: no surprise sign-in wall after a painful story. */}
+      <p className="mt-3 text-center text-sm leading-6 text-muted-foreground">{ACCOUNT_NOTICE}</p>
     </section>
   )
 }

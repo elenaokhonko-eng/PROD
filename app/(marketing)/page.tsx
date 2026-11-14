@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { paidStagesState } from '@/lib/billing/paid-stages'
 import { NO_CARD_LINE } from '@/lib/harbor/cta'
 import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
+import { TrustRow } from '@/components/harbor/trust-row'
 
 export const metadata: Metadata = {
   title: "Singapore's Complaint Helper",
@@ -83,7 +84,9 @@ export default function HomePage() {
       </section>
 
       <section className="gb-container -mt-1 py-10 sm:py-14">
-        <div id="tell-your-story" className="mx-auto max-w-3xl scroll-mt-24">
+        <div id="tell-your-story" className="mx-auto flex max-w-3xl scroll-mt-24 flex-col gap-4">
+          {/* Brief W1 §B1: the promises sit directly above the box where the visitor is asked to trust us. */}
+          <TrustRow />
           <NarrativeCapture />
         </div>
       </section>
