@@ -7,16 +7,10 @@ import { CRAWL_FILE_CACHE_CONTROL, CRAWL_FILE_PATHS, INDEXABLE_ROUTES, pageLinkH
 test('every response carries the security headers', async () => {
   const rules = await nextConfig.headers!()
   // The security headers apply to every path; the only other rules add the agent Link header, with the page's own
-  // markdown copy, and Vary: Accept to the public pages (Addendum A §A4, Addendum M §M3).
+  // markdown copy, to the public pages (Addendum A §A4).
   assert.deepEqual(rules, [
     { source: '/:path*', headers: securityHeaders },
-    ...INDEXABLE_ROUTES.map((source) => ({
-      source,
-      headers: [
-        { key: 'Link', value: pageLinkHeader(source) },
-        { key: 'Vary', value: 'Accept' },
-      ],
-    })),
+    ...INDEXABLE_ROUTES.map((source) => ({ source, headers: [{ key: 'Link', value: pageLinkHeader(source) }] })),
     // Crawl files carry their own 1-hour cache so Cloudflare does not hold them for 4 hours.
     ...CRAWL_FILE_PATHS.map((source) => ({ source, headers: [{ key: 'Cache-Control', value: CRAWL_FILE_CACHE_CONTROL }] })),
   ])

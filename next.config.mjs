@@ -28,15 +28,10 @@ const nextConfig = {
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
-      // Addendum A §A4 and Addendum M §M3: llms.txt and the page's own markdown copy; the same address serves markdown
-      // when the Accept header asks for it.
-      ...INDEXABLE_ROUTES.map((source) => ({
-        source,
-        headers: [
-          { key: 'Link', value: pageLinkHeader(source) },
-          { key: 'Vary', value: 'Accept' },
-        ],
-      })),
+      // Addendum A §A4: llms.txt and the page's own markdown copy. No Vary here: Next.js sets its own Vary on pages and
+      // replaces this one (checked 14 Nov). The markdown responses carry Vary: Accept, and Cloudflare does not cache the
+      // HTML pages (cf-cache-status DYNAMIC), so the shared address is safe.
+      ...INDEXABLE_ROUTES.map((source) => ({ source, headers: [{ key: 'Link', value: pageLinkHeader(source) }] })),
       ...CRAWL_FILE_PATHS.map((source) => ({ source, headers: [{ key: 'Cache-Control', value: CRAWL_FILE_CACHE_CONTROL }] })),
     ]
   },
