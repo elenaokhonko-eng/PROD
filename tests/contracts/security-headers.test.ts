@@ -1,11 +1,17 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import nextConfig, { securityHeaders } from '../../next.config.mjs'
+import { AGENT_LINK_HEADER, INDEXABLE_ROUTES } from '../../lib/seo/public-routes.mjs'
 
 // Elena, 9 Nov: HSTS, no framing, a referrer policy and nosniff on every response.
 test('every response carries the security headers', async () => {
   const rules = await nextConfig.headers!()
-  assert.deepEqual(rules, [{ source: '/:path*', headers: securityHeaders }])
+  // The security headers apply to every path; the only other rules add the agent Link header to the public pages
+  // (Addendum A §A4).
+  assert.deepEqual(rules, [
+    { source: '/:path*', headers: securityHeaders },
+    ...INDEXABLE_ROUTES.map((source) => ({ source, headers: [{ key: 'Link', value: AGENT_LINK_HEADER }] })),
+  ])
   const header = (key: string) => securityHeaders.find((h) => h.key === key)?.value
   assert.match(header('Strict-Transport-Security')!, /^max-age=31536000; includeSubDomains$/)
   assert.equal(header('X-Frame-Options'), 'DENY')
