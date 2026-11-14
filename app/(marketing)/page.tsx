@@ -4,7 +4,12 @@ import Link from 'next/link'
 import { ArrowRight, FileCheck2, LockKeyhole, Repeat2 } from 'lucide-react'
 import { NarrativeCapture } from '@/components/landing/narrative-capture'
 import { PackComparison } from '@/components/harbor/pack-comparison'
+import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
+import { StickyStartBar } from '@/components/harbor/sticky-start-bar'
 import { Button } from '@/components/ui/button'
+import { paidStagesState } from '@/lib/billing/paid-stages'
+import { NO_CARD_LINE } from '@/lib/harbor/cta'
+import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
 
 export const metadata: Metadata = {
   title: "Singapore's Complaint Helper",
@@ -20,7 +25,7 @@ const reasons = [
   },
   {
     icon: FileCheck2,
-    title: 'Start organising for free.',
+    title: NO_CARD_LINE,
     text: 'Tell your story, add supporting material, and receive a draft when your case is ready.',
   },
   {
@@ -30,27 +35,41 @@ const reasons = [
   },
 ] as const
 
+// Brief W1 §A1: the second sub-line follows the paid-stages switch; prices come from the catalogue (copy ledger row 5).
+function packLine(live: boolean) {
+  const bank = PRODUCT_CATALOGUE.self_serve_report.amountSgd
+  const fidrec = PRODUCT_CATALOGUE.fidrec_tier2_pack.amountSgd
+  return live
+    ? `When you’re ready: a complaint pack for your bank (S$${bank}) or a full case pack for FIDReC (S$${fidrec}).`
+    : `Coming shortly: a complaint pack for your bank (S$${bank}) and a full case pack for FIDReC (S$${fidrec}).`
+}
+
 export default function HomePage() {
+  const { enabled: packsLive } = paidStagesState()
   return (
     <main id="main-content" tabIndex={-1} className="flex-1">
       <section className="hero-gradient border-b py-10 sm:py-16">
         <div className="gb-container grid items-center gap-10 lg:grid-cols-[1fr_0.86fr]">
           <div className="min-w-0">
-            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">GuideBuoy AI</p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-harbor-deep sm:text-5xl lg:text-6xl">
-              Tell us once. We&apos;ll help you carry it from here.
-            </h1>
-            <p className="mt-6 text-lg leading-8 text-muted-foreground">
-              If you&apos;ve been scammed, or you&apos;re stuck in a dispute with your bank, your e-wallet or payment app, or your mobile operator, you&apos;re in the right place, and we&apos;re here to help. GuideBuoy helps turn what happened into one clear, organised record.
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
+              For scam and bank-dispute victims in Singapore
             </p>
-            <p className="mt-4 text-sm font-medium">Not legal advice — a calm, structured way to get your facts in order.</p>
-            <Button asChild variant="link" className="mt-4 h-auto min-h-11 whitespace-normal px-0 text-left">
-              <Link href="/router">
-                Not sure where to start? Check my complaint path <ArrowRight aria-hidden="true" />
-              </Link>
-            </Button>
+            {/* Addendum V §V1: 36 px phone, 48 px tablet, 52 px desktop, line-height 1.1. */}
+            <h1 className="mt-3 text-[2.25rem] leading-[1.1] font-semibold tracking-tight text-balance text-harbor-deep sm:text-5xl sm:leading-[1.1] lg:text-[3.25rem]">
+              Scammed? Find out where you stand, and what to do next.
+            </h1>
+            <p className="mt-5 max-w-[65ch] text-lg leading-8 text-foreground lg:text-xl">
+              Tell GuideBuoy what happened, once. You get a free evaluation: your facts in order, how Singapore&apos;s scam
+              rules may apply to your case, and your next step.
+            </p>
+            <p className="mt-3 max-w-[65ch] text-base leading-7 text-foreground">{packLine(packsLive)}</p>
+            <div className="mt-6 flex flex-col items-start gap-2">
+              <StartEvaluationButton />
+              <p className="text-sm text-muted-foreground">{NO_CARD_LINE}</p>
+            </div>
           </div>
-          <div className="gb-illo gb-avatar mx-auto max-w-sm">
+          {/* §A2: on phones the mascot no longer sits between the hero and the story box. */}
+          <div className="gb-illo gb-avatar mx-auto hidden max-w-[16rem] lg:block">
             <Image
               src="/assets/harbor/lumi-buoy.jpg"
               alt="GuideBuoy’s avatar"
@@ -104,6 +123,18 @@ export default function HomePage() {
           <Link href="/how-it-works">See exactly how it works <ArrowRight aria-hidden="true" /></Link>
         </Button>
       </section>
+
+      {/* §A4: closing band. */}
+      <section className="border-t bg-card py-12 sm:py-16" aria-labelledby="closing-title">
+        <div className="gb-container flex flex-col items-center gap-3 text-center">
+          <h2 id="closing-title" className="text-[1.75rem] font-semibold text-harbor-deep sm:text-[2rem]">
+            Find out where you stand
+          </h2>
+          <StartEvaluationButton className="mt-2" />
+          <p className="text-sm text-muted-foreground">{NO_CARD_LINE}</p>
+        </div>
+      </section>
+      <StickyStartBar />
     </main>
   )
 }

@@ -36,7 +36,7 @@ test.describe('fresh free account', () => {
       await expect(page.getByText(/^- SRF: the Shared Responsibility Framework/m).first()).toBeVisible()
 
       await expect(page.getByRole('heading', { name: 'Your next steps' })).toBeVisible({ timeout: 60_000 })
-      await expect(page.getByText('Available shortly', { exact: true }).first()).toBeVisible()
+      await expect(page.getByText('Coming shortly', { exact: true }).first()).toBeVisible()
       await expect(page.getByRole('button', { name: /Get Bank Pack/i })).toHaveCount(0)
       await page.getByRole('button', { name: 'Email me when it’s available' }).first().click()
       await expect(page.getByText(/^Thank you\. We’ll email /)).toBeVisible()

@@ -8,11 +8,12 @@ Use short, factual, non-blaming sentences. Do not name internal tiers, functions
 
 | Surface | Publishable copy |
 |---|---|
-| Free preparation | **Start organising for free.** Tell your story, add supporting material, and receive a draft when your case is ready. |
+| Free preparation | **Start my free evaluation** (every link or button to the story box) and **Get my free evaluation** (the story form's submit button), with **Free. No card needed.** (brief W1 §A1–A3, approved by Elena 14 Nov 2026). |
+| Home first screen | Line above the headline: **For scam and bank-dispute victims in Singapore.** Headline: **Scammed? Find out where you stand, and what to do next.** Sub-line: **Tell GuideBuoy what happened, once. You get a free evaluation: your facts in order, how Singapore's scam rules may apply to your case, and your next step.** Above the story box: **Tell us once. We'll help you carry it from here.** (brief W1 §A1, approved by Elena 14 Nov 2026). |
 | Free evaluation | **Free evaluation.** Understand where you stand and your options, free. |
 | Bank dispute pack | **Bank dispute pack — S$18.** Haven’t sent your bank a full written complaint yet, or not sure yours was complete? Prepare one with your evidence. |
 | FIDReC escalation pack | **FIDReC escalation pack — S$188.** Received your bank’s final reply and disagree? Prepare a complete, neutral case pack for FIDReC. (Separate from the bank dispute pack; neither requires the other.) |
-| Stage 2 packs during stage 1 | **Available from [date].** **Email me when it’s available.** The date comes from `PAID_STAGES_AVAILABLE_FROM`; shown only while `PAID_STAGES_ENABLED` is not `true`. |
+| Stage 2 packs during stage 1 | **Coming shortly** on pack cards and badges; on the home page **Coming shortly: a complaint pack for your bank (S$18) and a full case pack for FIDReC (S$188).** Shown only while `PAID_STAGES_ENABLED` is not `true`; prices come from the catalogue. When live: **When you're ready: a complaint pack for your bank (S$18) or a full case pack for FIDReC (S$188).** |
 | S$8 / S$12 regeneration | Do not expose a purchasable offer yet. The frozen target is customer-level FI regeneration at S$8/month and FI/FIDReC regeneration at S$12/month; neither subscription may create a case-pack entitlement. Public exposure is blocked until the lifecycle policy, live Stripe configuration, eligibility enforcement, and tests are approved. |
 | Checkout pending | **Confirming your payment.** Your case remains available while we check the latest payment status. Do not pay again unless checkout tells you to. |
 | Cancellation | **Checkout was not completed.** Your case is unchanged. |
@@ -39,10 +40,10 @@ Only **verified** rows can be published as declarative claims. **Qualified copy*
 
 | Topic | Status | Approved wording or required action |
 |---|---|---|
-| Free preparation availability | verified | “Start organising for free.” |
+| Free preparation availability | verified | “Start my free evaluation”, “Get my free evaluation”, “Free. No card needed.” (Elena, 14 Nov 2026). “Start organising for free” is retired. |
 | Bank dispute pack price | verified | “Bank dispute pack — S$18.” |
 | FIDReC escalation pack price | verified | “FIDReC escalation pack — S$188.” |
-| Paid packs available from a date (stage 1) | qualified copy | “Available from [date]” with “Email me when it’s available”. An exception to the rule against timing claims for unavailable services, approved by Elena on 2026-11-05 for the staged go-live; the date must be the configured stage 2 date. |
+| Paid packs coming shortly (stage 1) | qualified copy | “Coming shortly”, with no date. An exception to the rule against timing claims for unavailable services, approved by Elena on 2026-11-14 (replacing “Available from [date]” of 2026-11-05 and the unrecorded “Available shortly”). Shown only while `PAID_STAGES_ENABLED` is not `true`. |
 | S$8 / S$12 regeneration | not publishable | The S$8/S$12 scope is frozen, but subscription checkout and public offer copy are blocked until lifecycle policy, live Stripe configuration, eligibility enforcement, and tests are approved. |
 | Product does not decide outcomes / not legal advice | verified | Use the reporting disclaimer above. |
 | Pre-sign-in story storage | qualified copy | “Your draft stays in this browser until you sign in.” It does not become a case until sign-in succeeds. |

@@ -25,11 +25,11 @@ Routes below are current application routes. Do not create browser-only business
 
 | Visible label | Production action/route | Prerequisite | Failure/disabled behaviour |
 |---|---|---|---|
-| Start organising for free / Start free | Begin local narrative; then `/sign-up` or `/sign-in` | None | Offline: retain draft and explain sign-in needs connection. |
+| Start my free evaluation (header, hero, closing band, phone sticky bar, pack cards, pricing, how it works, resources) | `/#tell-your-story` | None | — |
+| Get my free evaluation (story form submit) | Begin local narrative; then `/sign-up` or `/sign-in` | None | Offline: retain draft and explain sign-in needs connection. |
 | Type my story / Record my story | A1 capture mode | Browser support for recording | Mic denial/unavailable: stay in type mode with explanation. |
 | Continue to sign in / Create account | Provider flow at `/sign-in` / `/sign-up` | Pending narrative optional | Auth error remains in provider UI; draft is retained locally. |
 | Singpass sign-in is not currently available | No action | None | Disabled provider option with that accessible reason; never attempts authentication or implies launch timing. |
-| Check my complaint path | `/router` | None | Router offline: disable submit, preserve text. |
 | Continue / Next question / Save answer | Router or case gap API action | Current client validation + server accepted state | Keep answer, show inline error/retry. |
 | Resume story / Start fresh | Restore or clear *local* pending narrative | Local narrative exists | Start fresh requires confirmation; never clears a created case. |
 | Add evidence / Choose files / Use camera | Case evidence upload action | Authenticated case; accepted type | Reject unsupported type before upload; per-file retry/replace. |
@@ -37,7 +37,7 @@ Routes below are current application routes. Do not create browser-only business
 | Generate free draft / Refresh draft | Server-defined draft action | Returned readiness: ready document + no blocking gaps | Disabled with next missing requirement; no inferred readiness. |
 | Edit story / Add evidence | `/app/case/[id]/dashboard` task state | Case access | Retain report version; show update available after changes. |
 | View full report / Back to case | `/app/case/[id]/dashboard` report/case state | Returned report/case availability | Empty/error screen gives safe return. |
-| Get full report — S$18 (bank dispute pack) | `/app/case/[id]/checkout` | Paid stages on (`PAID_STAGES_ENABLED`), case access, API eligibility, catalogue availability | Stage 1: not shown; the next-steps card shows “Available from [date]”. Checkout returns 409 `product_not_available`. |
+| Get full report — S$18 (bank dispute pack) | `/app/case/[id]/checkout` | Paid stages on (`PAID_STAGES_ENABLED`), case access, API eligibility, catalogue availability | Stage 1: not shown; the next-steps card shows “Coming shortly”. Checkout returns 409 `product_not_available`. |
 | Buy FIDReC escalation pack — S$188 | Checkout action from report/help surface | Paid stages on, API entitlement/catalogue availability | Stage 1: as above. Disabled unless server offers it; no manual eligibility. |
 | Email me when it’s available | `POST /api/waitlist` (service-role write, account email) | Signed in; paid stages off | Error keeps the button and shows a retry message. |
 | Confirm and continue to your free evaluation | `POST /api/cases/[id]/facts/snapshot`, then `POST /api/edge/tier0` | No open findings; answers consistent; no document processing | Disabled with what is left to answer; 409 `facts_unconfirmed` sends the user back to their facts. |

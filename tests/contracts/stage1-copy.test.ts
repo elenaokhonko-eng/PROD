@@ -34,7 +34,7 @@ test('D2: consultation is offered by email, never "not currently available"', ()
   assert.deepEqual(offenders(/consultation[^'"`]{0,40}not currently available/i), [])
 })
 
-test('D1: paid packs say "Available shortly", never a date', () => {
+test('D1: paid packs say "Coming shortly" (Elena, 14 Nov), never a date', () => {
   assert.deepEqual(offenders(/Available from/), [])
 })
 

@@ -5,6 +5,7 @@ import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-p
 import { StepJourney } from '@/components/harbor/step-journey'
 import { Button } from '@/components/ui/button'
 import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
+import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
 
 export const metadata: Metadata = {
   title: 'Product',
@@ -77,7 +78,7 @@ export default function ProductPage() {
 
       <MarketingSection className="text-center">
         <div className="flex flex-wrap justify-center gap-3">
-          <Button asChild><Link href="/">Start organising — free</Link></Button>
+          <StartEvaluationButton />
           <Button asChild variant="outline"><Link href="/how-it-works">See how it works</Link></Button>
           <Button asChild variant="ghost"><Link href="/pricing">View pricing</Link></Button>
         </div>

@@ -4,6 +4,7 @@ import { PhoneCall, Siren } from 'lucide-react'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { ResourceDirectory } from '@/components/harbor/resource-directory'
 import { Button } from '@/components/ui/button'
+import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
 
 export const metadata: Metadata = {
   title: 'Singapore complaint resources',
@@ -44,7 +45,7 @@ export default function ResourcesPage() {
 
         <div className="mt-10 rounded-2xl bg-harbor-sage-tint p-6 text-center">
           <p className="leading-7">GuideBuoy summarises and organises. Official sources remain authoritative.</p>
-          <Button asChild className="mt-5"><Link href="/">Start your free report</Link></Button>
+          <StartEvaluationButton className="mt-5" />
         </div>
       </MarketingSection>
     </MarketingPage>

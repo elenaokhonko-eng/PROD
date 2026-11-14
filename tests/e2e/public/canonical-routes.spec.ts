@@ -42,21 +42,22 @@ test('public plan CTAs use canonical routes and avoid retired consultation links
     {
       path: '/',
       links: [
-        { name: /Check my complaint path/, href: '/router' },
+        // Brief W1 §A1–A3: the primary button leads to the story box; the /router link is gone.
+        { name: 'Start my free evaluation', href: '/#tell-your-story' },
         { name: /See exactly how it works/, href: '/how-it-works' },
       ],
     },
     {
       path: '/pricing',
       links: [
-        { name: 'Start free', href: '/' },
+        { name: 'Start my free evaluation', href: '/#tell-your-story' },
         { name: 'See how it works', href: '/how-it-works' },
       ],
     },
     {
       path: '/how-it-works',
       links: [
-        { name: 'Start organising — free', href: '/' },
+        { name: 'Start my free evaluation', href: '/#tell-your-story' },
         { name: 'Read the FAQ', href: '/faq' },
       ],
     },
@@ -67,10 +68,13 @@ test('public plan CTAs use canonical routes and avoid retired consultation links
 
     const main = page.locator('main')
     for (const link of links) {
-      await expect(main.getByRole('link', { name: link.name, exact: true })).toHaveAttribute('href', link.href)
+      // The start button can appear more than once on a page (hero and closing band); each must point the same way.
+      const matches = main.getByRole('link', { name: link.name, exact: true })
+      expect(await matches.count(), String(link.name)).toBeGreaterThan(0)
+      for (const match of await matches.all()) await expect(match).toHaveAttribute('href', link.href)
     }
     if (path === '/') {
-      await expect(page.getByRole('button', { name: 'Start organising — free' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Get my free evaluation' })).toBeVisible()
     }
     await expect(page.locator('a[href*="consultation"]')).toHaveCount(0)
     await expect(page.locator('a[href*="/api/payments/create-checkout"]')).toHaveCount(0)

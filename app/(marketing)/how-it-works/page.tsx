@@ -5,6 +5,7 @@ import { StepJourney } from '@/components/harbor/step-journey'
 import { PathwayChip } from '@/components/harbor/pathway-chip'
 import { WaitingTracker } from '@/components/harbor/waiting-tracker'
 import { Button } from '@/components/ui/button'
+import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
 
 export const metadata: Metadata = {
   title: 'How it works',
@@ -47,7 +48,7 @@ export default function HowItWorksPage() {
       <MarketingSection>
         <WaitingTracker />
         <div className="mt-9 flex flex-wrap justify-center gap-3">
-          <Button asChild><Link href="/">Start organising — free</Link></Button>
+          <StartEvaluationButton />
           <Button asChild variant="outline"><Link href="/faq">Read the FAQ</Link></Button>
         </div>
       </MarketingSection>

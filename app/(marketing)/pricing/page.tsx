@@ -4,6 +4,7 @@ import { Info } from 'lucide-react'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { PackComparison } from '@/components/harbor/pack-comparison'
 import { Button } from '@/components/ui/button'
+import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
 
 export const metadata: Metadata = {
   title: 'Pricing',
@@ -35,7 +36,7 @@ export default function PricingPage() {
           </div>
         </aside>
         <div className="mt-9 flex flex-wrap justify-center gap-3">
-          <Button asChild><Link href="/">Start free</Link></Button>
+          <StartEvaluationButton />
           <Button asChild variant="outline"><Link href="/how-it-works">See how it works</Link></Button>
         </div>
       </MarketingSection>

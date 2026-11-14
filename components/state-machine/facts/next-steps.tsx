@@ -2,7 +2,7 @@
 
 /**
  * After the free evaluation: the recommended next step (design 6.1) and the two paid options. In stage 1 both paid
- * options show "Available shortly" (finding D1: no dates) with an "Email me when it's available" button instead of
+ * options show "Coming shortly" (finding D1: no dates) with an "Email me when it's available" button instead of
  * a buy button.
  */
 
@@ -125,7 +125,7 @@ export function NextSteps({ caseId, priceLabels }: { caseId: string; priceLabels
               <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <CardTitle>{PRODUCT_TITLES[card.product]} · {card.price}</CardTitle>
-                  {!paidStages.enabled && <Badge variant="secondary">Available shortly</Badge>}
+                  {!paidStages.enabled && <Badge variant="secondary">Coming shortly</Badge>}
                 </div>
                 <CardDescription>{card.description}</CardDescription>
               </CardHeader>

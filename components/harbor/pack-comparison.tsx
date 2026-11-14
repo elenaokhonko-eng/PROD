@@ -3,9 +3,10 @@ import { Check } from 'lucide-react'
 import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
 import { paidStagesState } from '@/lib/billing/paid-stages'
 import { Button } from '@/components/ui/button'
+import { START_EVALUATION, STORY_ANCHOR } from '@/lib/harbor/cta'
 
 // Three separate options (spec section 6), not a sequence: the free evaluation, the bank dispute pack before a
-// final reply, and the FIDReC escalation pack after one. In stage 1 the paid packs show "Available shortly" (D1: no
+// final reply, and the FIDReC escalation pack after one. In stage 1 the paid packs show "Coming shortly" (D1: no
 // dates). Each card says what it does (C6) and offers a human review (D2).
 const packs = [
   {
@@ -48,7 +49,7 @@ export function PackComparison({ headingLevel = 'h2' }: { headingLevel?: 'h2' | 
           </Heading>
           <p className="mt-3 text-3xl font-semibold">{pack.price}</p>
           {pack.paid && !paidStages.enabled && (
-            <p className="mt-2 text-sm font-semibold text-harbor-blue">Available shortly</p>
+            <p className="mt-2 text-sm font-semibold text-harbor-blue">Coming shortly</p>
           )}
           <p className="mt-3 min-h-14 leading-6 text-muted-foreground">{pack.description}</p>
           <ul className="mt-6 flex-1 space-y-3">
@@ -66,9 +67,7 @@ export function PackComparison({ headingLevel = 'h2' }: { headingLevel?: 'h2' | 
             Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.
           </p>
           <Button asChild variant={index === 0 ? 'default' : 'outline'} className="mt-7 w-full">
-            <Link href="/#tell-your-story">
-              {index === 0 ? 'Start free — no card required' : 'Start with the free evaluation'}
-            </Link>
+            <Link href={STORY_ANCHOR}>{START_EVALUATION}</Link>
           </Button>
         </article>
       ))}

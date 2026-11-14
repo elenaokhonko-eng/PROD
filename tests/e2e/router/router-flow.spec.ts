@@ -22,7 +22,7 @@ test('typed story is preserved locally and hands off to sign-up onboarding', asy
   const story = capture.getByRole('textbox', { name: 'Your story' })
   await story.fill(narrative)
   await expect.poll(async () => story.inputValue()).toBe(narrative)
-  await capture.getByRole('button', { name: /Start organising/ }).click()
+  await capture.getByRole('button', { name: 'Get my free evaluation' }).click()
 
   await expect(page).toHaveURL(handoffUrlMatches)
   expect(api.createdSessions).toBe(1)
@@ -78,7 +78,7 @@ test('voice story is transcribed and follows the same auth handoff', async ({ pa
     return
   }
 
-  await capture.getByRole('button', { name: /Start organising/ }).click()
+  await capture.getByRole('button', { name: 'Get my free evaluation' }).click()
   await expect(page).toHaveURL(handoffUrlMatches)
 })
 
@@ -109,7 +109,7 @@ test('offline mode blocks auth handoff and keeps the local draft', async ({ page
   await installRouterApi(page)
   await page.goto('/router', { waitUntil: 'domcontentloaded' })
 
-  const submit = page.getByRole('button', { name: 'Start organising — free' })
+  const submit = page.getByRole('button', { name: 'Get my free evaluation' })
   await expect(page.getByText('You’re offline. Your unfinished story stays in this browser tab and can be submitted after you reconnect, as long as the tab stays open.')).toBeVisible()
   await expect(submit).toBeDisabled()
 

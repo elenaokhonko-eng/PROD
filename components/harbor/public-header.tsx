@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { ModeSwitcher } from '@/components/harbor/mode-switcher'
+import { START_EVALUATION, STORY_ANCHOR } from '@/lib/harbor/cta'
 import { cn } from '@/lib/utils'
 
 export function PublicHeader() {
@@ -42,7 +43,8 @@ export function PublicHeader() {
             height={36}
             className="size-9 rounded-full object-cover"
           />
-          <span>GuideBuoy AI</span>
+          {/* Brief W1 §A2: on narrow phones the name gives way to the start button; screen readers still hear it. */}
+          <span className="sr-only min-[420px]:not-sr-only">GuideBuoy AI</span>
         </Link>
 
         <nav aria-label="Primary navigation" className="ml-auto hidden items-center lg:flex">
@@ -63,8 +65,8 @@ export function PublicHeader() {
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
             <Link href={account.href}>{account.label}</Link>
           </Button>
-          <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link href="/#tell-your-story">Start free</Link>
+          <Button asChild size="sm">
+            <Link href={STORY_ANCHOR}>{START_EVALUATION}</Link>
           </Button>
           <Dialog open={drawerOpen} onOpenChange={setDrawerOpen}>
             <DialogTrigger asChild>
@@ -94,7 +96,7 @@ export function PublicHeader() {
               <div className="mt-6 border-t pt-6">
                 <div className="grid gap-2">
                   <Button asChild className="w-full" onClick={() => setDrawerOpen(false)}>
-                    <Link href="/#tell-your-story">Start organising — free</Link>
+                    <Link href={STORY_ANCHOR}>{START_EVALUATION}</Link>
                   </Button>
                   <Button asChild variant="outline" className="w-full" onClick={() => setDrawerOpen(false)}>
                     <Link href={account.href}>{account.label}</Link>

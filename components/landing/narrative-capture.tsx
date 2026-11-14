@@ -6,6 +6,7 @@ import { FileText, Loader2, Mic, Pause, Play, Square, Trash2, WifiOff } from 'lu
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { trackClientEvent } from '@/lib/analytics/client'
+import { SUBMIT_STORY } from '@/lib/harbor/cta'
 import { persistPendingNarrative, readPendingNarrative } from '@/components/landing/hero-capture'
 
 function formatTime(seconds: number) {
@@ -196,7 +197,9 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
 
   return (
     <section className="gb-card p-5 sm:p-7" aria-labelledby="capture-title" aria-busy={isProcessing || isTranscribing}>
-      <h2 id="capture-title" className="text-2xl font-semibold text-harbor-deep">
+      {/* Brief W1 §A1: the old headline now introduces the story box, where the visitor does exactly that. */}
+      <p className="text-sm font-semibold text-primary">Tell us once. We&apos;ll help you carry it from here.</p>
+      <h2 id="capture-title" className="mt-1 text-2xl font-semibold text-harbor-deep">
         Tell GuideBuoy what happened — in your own words.
       </h2>
       <p className="mt-2 leading-6 text-muted-foreground">There is no wrong way to begin. You can edit your words before continuing.</p>
@@ -296,7 +299,7 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
 
       <Button type="button" size="lg" className="mt-5 w-full" disabled={isProcessing || isTranscribing || isRecording || !isOnline} onClick={() => void submitNarrative()}>
         {isProcessing && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {isProcessing ? 'Saving your story…' : 'Start organising — free'}
+        {isProcessing ? 'Saving your story…' : SUBMIT_STORY}
       </Button>
     </section>
   )
