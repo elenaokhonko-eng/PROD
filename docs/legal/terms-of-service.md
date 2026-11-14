@@ -1,14 +1,14 @@
 ---
 title: Terms of Service
-version: "2.0"
+version: "2.1"
 effective: "{{effective}}"
-replaces: "1.0 (20 March 2026)"
+replaces: "2.0 (12 November 2026)"
 contact: info@guidebuoyai.sg
 ---
 
 # Terms of Service
 
-**Version 2.0 · Effective {{effective}} · Replaces version 1.0 of 20 March 2026**
+**Version 2.1 · Effective {{effective}} · Replaces version 2.0 of 12 November 2026**
 
 These terms are a contract between you and GuideBuoy AI SG Pte Ltd ("GuideBuoy", "we", "us"), a company registered in Singapore (UEN 202545875C) at 51 Goldhill Plaza #07-10/11, Singapore 308900, for your use of guidebuoyai.sg and the GuideBuoy service. By creating an account or using the service you agree to them. If you don't agree, please don't use the service.
 
@@ -46,9 +46,13 @@ These terms are a contract between you and GuideBuoy AI SG Pte Ltd ("GuideBuoy",
 
 4.4 You may download your outputs for your own use in your own dispute. Please don't resell them or present them as having been prepared by a lawyer or by GuideBuoy staff.
 
-## 5. Acceptable use
+## 5. Acceptable use, automated access and AI assistants
 
-You agree not to: use the service for any unlawful purpose or to make a claim you know to be false; upload malicious code or content you have no right to share; try to access other users' cases or our systems without permission; copy, scrape or reverse-engineer the service; or use automated tools to access it except as we allow in writing.
+5.1 **What you agree not to do.** You agree not to: use the service for any unlawful purpose or to make a claim you know to be false; upload malicious code or content you have no right to share; try to access other users' cases or our systems without permission; copy or reverse-engineer the service's software, templates or designs; or use automated tools to access the service except as this clause allows.
+
+5.2 **Public pages.** Search engines, AI assistants and other automated tools may read the public pages of guidebuoyai.sg, and the text versions of those pages that we publish for them, and may use that content as our robots.txt file permits. They must follow the limits in that file and must not load the site in a way that disrupts it. This permission does not cover any page that needs sign-in, and it does not transfer ownership of our content (clause 8).
+
+5.3 **Public tools.** We may offer tools that anyone, including an AI assistant, can use without an account, such as a deadline calculator. They give general information only, on the same basis as clause 2. We may limit how often they are used, and may change or withdraw them.
 
 ## 6. Products, prices and payment
 
