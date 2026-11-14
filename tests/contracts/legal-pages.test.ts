@@ -13,7 +13,7 @@ import {
   type LegalBlock,
 } from '../../lib/legal/legal-document'
 
-// Finding F: the Terms and the Privacy Policy are shown exactly as written in docs/legal, version 2.0.
+// Finding F: the Terms and the Privacy Policy are shown exactly as written in docs/legal, version 2.1 (Elena, 14 Nov).
 
 const words = (text: string) => text.split(/\s+/).filter(Boolean)
 const inlineText = (inlines: Inline[]) => inlines.map((inline) => inline.text).join('')
@@ -53,7 +53,7 @@ for (const name of Object.keys(LEGAL_FILES) as Array<keyof typeof LEGAL_FILES>) 
 
   test(`F: the ${name} header is the single source of its title, version and effective date`, () => {
     const { meta, blocks } = loadLegalDocument(name)
-    assert.equal(meta.version, '2.0')
+    assert.equal(meta.version, '2.1')
     assert.equal(meta.contact, 'info@guidebuoyai.sg')
     assert.deepEqual(blocks[0], { kind: 'heading', level: 1, text: meta.title })
     const replaces = meta.replaces.replace(/^(\S+) \((.*)\)$/, '$1 of $2')
