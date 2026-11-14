@@ -10,6 +10,7 @@ import { QueryProvider } from "@/components/providers/query-provider"
 import { RealtimeProvider } from "@/components/providers/realtime-provider"
 import { ErrorBoundary } from "@/components/providers/error-boundary"
 import { ThemeProvider } from "@/components/theme-provider"
+import { NOINDEX } from "@/lib/seo/indexing"
 
 export const metadata: Metadata = {
   title: {
@@ -19,7 +20,8 @@ export const metadata: Metadata = {
   description:
     "Organise your story, supporting material and next-step information in one complaint workspace.",
   metadataBase: new URL("https://guidebuoyai.sg"),
-  alternates: { canonical: "/" },
+  // No site-wide canonical: each indexable page sets its own. Pages are noindex unless they opt in (lib/seo/indexing).
+  robots: NOINDEX,
   openGraph: {
     title: "GuideBuoy AI — Singapore's Complaint Helper",
     description:
@@ -42,7 +44,7 @@ const sensoryInit = `try{var m=localStorage.getItem("gb-sensory-mode");document.
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-sensory="steady" suppressHydrationWarning>
+    <html lang="en-SG" data-sensory="steady" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: sensoryInit }} />
       </head>

@@ -1,6 +1,10 @@
-﻿import type { ReactNode } from 'react'
+﻿import type { Metadata } from 'next'
+import type { ReactNode } from 'react'
 import { PublicHeader } from '@/components/harbor/public-header'
 import { PublicFooter } from '@/components/harbor/public-footer'
+import { INDEX } from '@/lib/seo/indexing'
+
+export const metadata: Metadata = { robots: INDEX }
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
