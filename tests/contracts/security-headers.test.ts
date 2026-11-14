@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import nextConfig, { securityHeaders } from '../../next.config.mjs'
-import { AGENT_LINK_HEADER, INDEXABLE_ROUTES } from '../../lib/seo/public-routes.mjs'
+import { AGENT_LINK_HEADER, CRAWL_FILE_CACHE_CONTROL, CRAWL_FILE_PATHS, INDEXABLE_ROUTES } from '../../lib/seo/public-routes.mjs'
 
 // Elena, 9 Nov: HSTS, no framing, a referrer policy and nosniff on every response.
 test('every response carries the security headers', async () => {
@@ -11,7 +11,10 @@ test('every response carries the security headers', async () => {
   assert.deepEqual(rules, [
     { source: '/:path*', headers: securityHeaders },
     ...INDEXABLE_ROUTES.map((source) => ({ source, headers: [{ key: 'Link', value: AGENT_LINK_HEADER }] })),
+    // Crawl files carry their own 1-hour cache so Cloudflare does not hold them for 4 hours.
+    ...CRAWL_FILE_PATHS.map((source) => ({ source, headers: [{ key: 'Cache-Control', value: CRAWL_FILE_CACHE_CONTROL }] })),
   ])
+  assert.equal(CRAWL_FILE_CACHE_CONTROL, 'public, max-age=3600')
   const header = (key: string) => securityHeaders.find((h) => h.key === key)?.value
   assert.match(header('Strict-Transport-Security')!, /^max-age=31536000; includeSubDomains$/)
   assert.equal(header('X-Frame-Options'), 'DENY')
