@@ -223,7 +223,8 @@ describe('Harbor UI functionality contract', () => {
       'app/(auth)/sign-in/[[...sign-in]]/page.tsx',
       'app/(auth)/sign-up/[[...sign-up]]/page.tsx',
     ]) {
-      assert.ok(readSource(path).includes('Singpass sign-in is not currently available.'))
+      // Brief W1 §F (Elena, 14 Nov): the disabled Singpass block is removed, as is the internal "case workspace" wording.
+      assert.doesNotMatch(readSource(path), /Singpass|authenticated case workspace/)
     }
 
     assert.ok(

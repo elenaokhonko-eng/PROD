@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { PublicHeader } from '@/components/harbor/public-header'
 import { PublicFooter } from '@/components/harbor/public-footer'
 import { INDEX } from '@/lib/seo/indexing'
+import { FunnelStep } from '@/components/analytics/funnel-step'
 
 export const metadata: Metadata = { robots: INDEX }
 
@@ -18,6 +19,8 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
       <PublicHeader />
       {children}
       <PublicFooter />
+      {/* Analytics 2: where the visitor first came from, kept for this tab only. */}
+      <FunnelStep />
     </div>
   )
 }

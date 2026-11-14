@@ -28,7 +28,7 @@ These terms are a contract between you and GuideBuoy AI SG Pte Ltd ("GuideBuoy",
 
 2.4 GuideBuoy is not affiliated with, endorsed by or acting for the Monetary Authority of Singapore (MAS), FIDReC, the Singapore Police Force, ScamShield, any bank or any other body we mention. References to them are for your information only.
 
-2.5 Singpass sign-in is not available. Some features are only shown when your case meets the conditions for them.
+2.5 Singpass sign-in is planned to be supported at a later stage. Some features are only shown when your case meets the conditions for them.
 
 ## 3. Your account
 

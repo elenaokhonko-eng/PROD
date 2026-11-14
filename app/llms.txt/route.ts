@@ -1,10 +1,16 @@
 import { paidStagesState } from '@/lib/billing/paid-stages'
 import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
 import { SITE_ORIGIN } from '@/lib/seo/indexing'
+import { readMarkdownManifest } from '@/lib/seo/markdown-files'
+import { MARKDOWN_COPIES } from '@/lib/seo/public-routes.mjs'
+
+// Reads the markdown copies the build wrote after the pages were prerendered.
+export const dynamic = 'force-dynamic'
 
 // Brief W1 §L8: a plain-text summary for AI assistants, built from the same sources as the pages. No claims beyond
 // the site.
-export function GET() {
+export async function GET() {
+  const manifest = await readMarkdownManifest()
   const paidLive = paidStagesState().enabled
   const pack = (name: string, amount: number, what: string) =>
     `- ${name}, S$${amount}, one-off${paidLive ? '' : ' (coming shortly)'}: ${what}`
@@ -27,14 +33,15 @@ export function GET() {
     '',
     'No one can promise you will get your money back. Your bank decides first, and FIDReC can review the bank\u2019s decision.',
     '',
+    // Addendum M §M5: each page's markdown copy, with one line on what it covers.
     '## Pages',
     '',
-    `- [How it works](${SITE_ORIGIN}/how-it-works)`,
-    `- [Pricing](${SITE_ORIGIN}/pricing)`,
-    `- [FAQ](${SITE_ORIGIN}/faq)`,
-    `- [Resources](${SITE_ORIGIN}/resources)`,
-    `- [Terms](${SITE_ORIGIN}/terms)`,
-    `- [Privacy](${SITE_ORIGIN}/privacy)`,
+    ...MARKDOWN_COPIES.map((copy) => {
+      const description = manifest.find((entry) => entry.name === copy.name)?.description
+      return `- [${copy.label}](${SITE_ORIGIN}/${copy.name}.md)${description ? `: ${description}` : ''}`
+    }),
+    '',
+    `All pages in one file: ${SITE_ORIGIN}/llms-full.txt`,
     '',
   ].join('\n')
   return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })

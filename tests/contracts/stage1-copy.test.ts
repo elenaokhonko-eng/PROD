@@ -34,7 +34,7 @@ test('D2: consultation is offered by email, never "not currently available"', ()
   assert.deepEqual(offenders(/consultation[^'"`]{0,40}not currently available/i), [])
 })
 
-test('D1: paid packs say "Available shortly", never a date', () => {
+test('D1: paid packs say "Coming shortly" (Elena, 14 Nov), never a date', () => {
   assert.deepEqual(offenders(/Available from/), [])
 })
 
@@ -68,7 +68,11 @@ test('D3 / Terms 2.2: every output, on screen and in every download, shows the a
 
 test('B1/E1 (Elena, 7 Nov): the story box shows the worked example; the about page uses "Tell us once", not the buoy metaphor', () => {
   const capture = readFileSync('components/landing/narrative-capture.tsx', 'utf8')
-  assert.match(capture, /placeholder="For example: On 12 March 2026, at about 9 pm, I received an email that looked like it came from my bank\./)
+  // Addendum V §V4 (Elena, 14 Nov): the same worked example, shown as text under the box; the placeholder is one line.
+  assert.match(capture, /STORY_EXAMPLE =\s*"For example: On 12 March 2026, at about 9 pm, I received an email that looked like it came from my bank\./)
+  assert.match(capture, /<blockquote[^>]*>\{STORY_EXAMPLE\}<\/blockquote>/)
+  assert.match(capture, /STORY_PLACEHOLDER = 'Start anywhere\. You can edit it before you continue\.'/)
+  assert.match(capture, /placeholder=\{STORY_PLACEHOLDER\}/)
   assert.match(capture, /In total about S\$9,800 was taken from my savings account and S\$3,100 charged to my credit card\./)
   const about = readFileSync('app/(marketing)/about/page.tsx', 'utf8')
   assert.match(about, /Tell us once\./)

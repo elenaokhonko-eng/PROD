@@ -22,12 +22,15 @@ test('faq exposes stateful explorer and keeps contact workflow disabled', async 
   await allCategory.click()
   await expect(allCategory).toHaveAttribute('aria-pressed', 'true')
 
+  // Brief W1 §F: the Singpass question is gone; search still finds and opens an answer.
   await search.fill('Singpass')
-  await expect.poll(async () => search.inputValue()).toBe('Singpass')
-  const singpassQuestion = page.getByRole('button', { name: 'Is Singpass available?' })
-  await expect(singpassQuestion).toBeVisible()
-  await singpassQuestion.click()
-  await expect(page.getByText(/Singpass sign-in is not currently available\./)).toBeVisible()
+  await expect(page.getByRole('button', { name: /Singpass/ })).toHaveCount(0)
+  await search.fill('legal advice')
+  await expect.poll(async () => search.inputValue()).toBe('legal advice')
+  const reviewQuestion = page.getByRole('button', { name: 'Is this legal advice? Does a person review it?' })
+  await expect(reviewQuestion).toBeVisible()
+  await reviewQuestion.click()
+  await expect(page.getByText(/GuideBuoy is automated and is not legal advice/)).toBeVisible()
 
   // Finding D5: no form; contact is by email.
   await expect(page.getByRole('link', { name: 'info@guidebuoyai.sg' }).first()).toHaveAttribute('href', 'mailto:info@guidebuoyai.sg')
@@ -105,8 +108,9 @@ test('pricing and marketplace preserve disabled-service Harbor contract copy', a
   await expect(page.getByRole('heading', { level: 1, name: 'Free to start. Paid only when you choose more.' })).toBeVisible()
   await expect(page.getByText(/^S\$18$/)).toBeVisible()
   await expect(page.getByText(/^S\$188$/)).toBeVisible()
-  // Finding D2: offered on each of the three cards.
-  await expect(page.getByText('Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.')).toHaveCount(3)
+  // Brief W1 §B3 (replacing finding D2's line on each card): the consultation is offered once, in "What GuideBuoy is".
+  await expect(page.getByRole('complementary', { name: 'What GuideBuoy is' })).toHaveCount(1)
+  await expect(page.getByRole('complementary', { name: 'What GuideBuoy is' })).toContainText('a 30-minute consultation is S$99')
 
   await page.goto('/marketplace', { waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('heading', { level: 1, name: 'Help categories being considered.' })).toBeVisible()

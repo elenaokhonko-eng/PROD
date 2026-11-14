@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { SAFETY_NOTICE } from '@/lib/safety-notice'
 
 // Signed-in case pages leave out WhatsApp: human support there is not approved (slice 7).
+// Brief W1 §K renames the public line only; in-app screens keep their wording under W1.
 export function PublicFooter({ whatsApp = true }: { whatsApp?: boolean }) {
   return (
     <footer className="mt-auto border-t bg-card" aria-labelledby="footer-heading">
@@ -12,7 +13,7 @@ export function PublicFooter({ whatsApp = true }: { whatsApp?: boolean }) {
           </h2>
           <p>UEN 202545875C</p>
           <p>51 Goldhill Plaza #07-10/11, Singapore 308900</p>
-          <p>DID +65 9072 7915 · Main +65 6690 9262</p>
+          <p>{whatsApp ? 'Mobile / WhatsApp' : 'DID'} +65 9072 7915 · Main +65 6690 9262</p>
           <p className="font-medium text-foreground">{SAFETY_NOTICE}</p>
         </div>
         <div className="space-y-5 md:text-right">

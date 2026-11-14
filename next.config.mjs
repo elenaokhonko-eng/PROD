@@ -1,4 +1,4 @@
-import { AGENT_LINK_HEADER, CRAWL_FILE_CACHE_CONTROL, CRAWL_FILE_PATHS, INDEXABLE_ROUTES } from './lib/seo/public-routes.mjs'
+import { CRAWL_FILE_CACHE_CONTROL, CRAWL_FILE_PATHS, INDEXABLE_ROUTES, pageLinkHeader } from './lib/seo/public-routes.mjs'
 
 // Security headers on every response (Elena, 9 Nov). The CSP only restricts framing, <base> and plugins; a full script
 // policy needs testing against Clerk first. HSTS has no preload: preloading is hard to undo.
@@ -28,7 +28,10 @@ const nextConfig = {
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
-      ...INDEXABLE_ROUTES.map((source) => ({ source, headers: [{ key: 'Link', value: AGENT_LINK_HEADER }] })),
+      // Addendum A §A4: llms.txt and the page's own markdown copy. No Vary here: Next.js sets its own Vary on pages and
+      // replaces this one (checked 14 Nov). The markdown responses carry Vary: Accept, and Cloudflare does not cache the
+      // HTML pages (cf-cache-status DYNAMIC), so the shared address is safe.
+      ...INDEXABLE_ROUTES.map((source) => ({ source, headers: [{ key: 'Link', value: pageLinkHeader(source) }] })),
       ...CRAWL_FILE_PATHS.map((source) => ({ source, headers: [{ key: 'Cache-Control', value: CRAWL_FILE_CACHE_CONTROL }] })),
     ]
   },

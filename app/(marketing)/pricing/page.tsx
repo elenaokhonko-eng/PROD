@@ -1,14 +1,17 @@
 ﻿import type { Metadata } from 'next'
+import { pageAlternates } from '@/lib/seo/indexing'
 import Link from 'next/link'
 import { Info } from 'lucide-react'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { PackComparison } from '@/components/harbor/pack-comparison'
 import { Button } from '@/components/ui/button'
+import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
+import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 
 export const metadata: Metadata = {
-  title: 'Pricing',
-  description: 'Start GuideBuoy for free and see each optional one-off pack price before checkout.',
-  alternates: { canonical: '/pricing' },
+  title: { absolute: 'GuideBuoy pricing: free evaluation, S$18 bank pack, S$188 FIDReC pack' },
+  description: 'One-off prices, shown before you pay. Start free; choose a pack only if you need one.',
+  alternates: pageAlternates('/pricing'),
 }
 
 export default function PricingPage() {
@@ -29,13 +32,13 @@ export default function PricingPage() {
                 <li>GuideBuoy is not a law firm and does not provide legal advice.</li>
                 <li>Banks, FIDReC and authorities make their own decisions.</li>
                 <li>When the paid packs are available, you&apos;ll pay through our payment provider&apos;s secure checkout. The price and contents are shown before you pay.</li>
-                <li>Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).</li>
               </ul>
             </div>
           </div>
         </aside>
+        <WhatGuideBuoyIs className="mt-9" />
         <div className="mt-9 flex flex-wrap justify-center gap-3">
-          <Button asChild><Link href="/">Start free</Link></Button>
+          <StartEvaluationButton />
           <Button asChild variant="outline"><Link href="/how-it-works">See how it works</Link></Button>
         </div>
       </MarketingSection>

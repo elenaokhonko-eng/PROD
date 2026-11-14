@@ -14,8 +14,8 @@ import { NOINDEX } from "@/lib/seo/indexing"
 
 export const metadata: Metadata = {
   title: {
-    default: "GuideBuoy AI — Singapore's Complaint Helper",
-    template: "%s | GuideBuoy AI",
+    default: "GuideBuoy AI",
+    template: "%s · GuideBuoy",
   },
   description:
     "Organise your story, supporting material and next-step information in one complaint workspace.",
@@ -23,17 +23,17 @@ export const metadata: Metadata = {
   // No site-wide canonical: each indexable page sets its own. Pages are noindex unless they opt in (lib/seo/indexing).
   robots: NOINDEX,
   openGraph: {
-    title: "GuideBuoy AI — Singapore's Complaint Helper",
+    title: "Scammed in Singapore? Free scam and bank dispute evaluation · GuideBuoy",
     description:
-      "Organise your story, supporting material and next-step information in one complaint workspace.",
+      "Tell GuideBuoy what happened and get a free evaluation: your facts in order, how Singapore's scam rules may apply, and your next step with your bank or FIDReC.",
     url: "https://guidebuoyai.sg",
     siteName: "GuideBuoy AI",
     images: [{ url: "/assets/harbor/lumi-buoy.jpg", alt: "GuideBuoy’s avatar" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "GuideBuoy AI — Singapore's Complaint Helper",
-    description: "Tell your story once and organise the facts for your next complaint step.",
+    title: "Scammed in Singapore? Free scam and bank dispute evaluation · GuideBuoy",
+    description: "Tell GuideBuoy what happened and get a free evaluation: your facts in order, how Singapore's scam rules may apply, and your next step with your bank or FIDReC.",
     images: ["/assets/harbor/lumi-buoy.jpg"],
   },
 }

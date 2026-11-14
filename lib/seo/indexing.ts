@@ -4,7 +4,15 @@ import type { Metadata } from 'next'
 // inherits NOINDEX from the root layout and must opt in here to be crawled.
 export const SITE_ORIGIN = 'https://guidebuoyai.sg'
 
+import { markdownPath } from './public-routes.mjs'
+
 export { INDEXABLE_ROUTES } from './public-routes.mjs'
+
+// Addendum M §M5: an indexable page's canonical address and its markdown copy, for the page's metadata.
+export const pageAlternates = (route: string): Metadata['alternates'] => ({
+  canonical: route,
+  types: { 'text/markdown': markdownPath(route) },
+})
 
 export const INDEX: Metadata['robots'] = { index: true, follow: true }
 export const NOINDEX: Metadata['robots'] = { index: false, follow: false }

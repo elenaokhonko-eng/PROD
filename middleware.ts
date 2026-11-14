@@ -3,6 +3,13 @@ import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server
 import { allowedHosts, hostAllowed } from '@/lib/host-allowlist'
 import { isProbe } from '@/lib/security/probe-paths'
 import { ORIGIN_AUTH_HEADER, originAllowed } from '@/lib/security/origin-check'
+import {
+  MARKDOWN_REWRITE_HEADER,
+  MARKDOWN_ROUTE_PREFIX,
+  markdownNameForPath,
+  markdownNameForRoute,
+  prefersMarkdown,
+} from '@/lib/seo/markdown'
 
 const blockedPathPatterns: RegExp[] = [
   /\.env/i,
@@ -59,6 +66,19 @@ export default function middleware(request: NextRequest, event: NextFetchEvent) 
     blockedUserAgents.some((pattern) => pattern.test(userAgent))
   ) {
     return probeResponse()
+  }
+
+  // Addendum M §M3: a page's markdown copy, at its ".md" address or when the Accept header asks for markdown. The choice
+  // depends only on the address and the Accept header, never on who is asking.
+  if (pathname.startsWith(MARKDOWN_ROUTE_PREFIX)) return new NextResponse('Not found', { status: 404 })
+  const wantsCopy = request.method === 'GET' || request.method === 'HEAD'
+  const markdownName = wantsCopy
+    ? markdownNameForPath(pathname) ?? (prefersMarkdown(request.headers.get('accept')) ? markdownNameForRoute(pathname) : null)
+    : null
+  if (markdownName) {
+    const headers = new Headers(request.headers)
+    headers.set(MARKDOWN_REWRITE_HEADER, '1')
+    return NextResponse.rewrite(new URL(`${MARKDOWN_ROUTE_PREFIX}${markdownName}`, request.url), { request: { headers } })
   }
 
   if (

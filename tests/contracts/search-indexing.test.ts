@@ -19,7 +19,8 @@ test('pages are noindex by default and only marketing pages opt in', () => {
     const route = routes.find((r) => r.path === path)
     assert.ok(route, `indexable route ${path} has a page`)
     assert.ok(route.marketing, `${path} is indexable but sits outside the marketing layout`)
-    assert.match(source(route.file), new RegExp(`canonical: '${path}'`), `${path} sets its own canonical`)
+    // pageAlternates sets the page's own canonical and its markdown copy (Addendum M §M5).
+    assert.match(source(route.file), new RegExp(`alternates: pageAlternates\\('${path}'\\)`), `${path} sets its own canonical`)
   }
   for (const route of routes.filter((r) => r.marketing && !INDEXABLE_ROUTES.includes(routePath(r)))) {
     assert.match(source(route.file), /robots: NOINDEX/, `${route.path} is a marketing page that is not listed as indexable`)

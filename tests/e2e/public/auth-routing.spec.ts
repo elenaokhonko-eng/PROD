@@ -2,9 +2,10 @@ import { expect, test } from '@playwright/test'
 import { readHarborAuthMode } from '../config'
 import { expectNoHorizontalOverflow, monitorClientErrors } from '../helpers/page-quality'
 
+// Brief W1 §F: plain wording, no Singpass, a way back to the site.
 const authPages = [
-  { path: '/sign-in', heading: 'Welcome back.' },
-  { path: '/sign-up', heading: 'Create your case account.' },
+  { path: '/sign-in', heading: 'Welcome back.', subline: 'Sign in to continue your case.' },
+  { path: '/sign-up', heading: 'Save your case', subline: 'Create a free account to keep your story private and get your evaluation.' },
 ]
 
 for (const route of authPages) {
@@ -22,9 +23,14 @@ for (const route of authPages) {
       await expect(page.locator('.cl-rootBox')).toHaveCount(0)
     }
 
-    const singpassCopy = 'Singpass sign-in is not currently available.'
-    await expect(page.getByText(singpassCopy)).toHaveCount(2)
-    await expect(page.getByRole('button', { name: singpassCopy })).toBeDisabled()
+    await expect(page.getByText(route.subline)).toBeVisible()
+    await expect(page.getByText(/Singpass/)).toHaveCount(0)
+    await expect(page.getByText(/authenticated case workspace/)).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'GuideBuoy AI' })).toHaveAttribute('href', '/')
+    await expect(page.locator('main')).toHaveCount(1)
+    if (route.path === '/sign-up') {
+      await expect(page.getByText('Free. No card needed. We never ask for your bank login, PIN or OTP.')).toBeVisible()
+    }
 
     await expectNoHorizontalOverflow(page)
     errors.assertNone()

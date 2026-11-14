@@ -19,6 +19,7 @@ const PUBLIC: Record<string, string> = {
   'router/questions': 'pre-sign-in triage; model call limited per IP and by the daily breaker',
   'router/session': 'pre-sign-in triage session; links to the account when signed in',
   'transcribe': 'pre-sign-in voice input; limited per IP, audio capped at 3 MB',
+  'funnel': 'pre-sign-in journey steps (Analytics 2); limited per IP in memory, listed steps and channel fields only',
   'triage/analyze': 'pre-sign-in triage; limited per IP',
   'health/live': 'liveness for Render health checks; returns {ok:true} and reads nothing (Addendum S3.2)',
   'health/origin': 'says whether the Cloudflare origin header matched (missing/match/mismatch), never any value (Addendum S3.2)',

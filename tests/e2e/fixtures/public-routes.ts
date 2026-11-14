@@ -5,11 +5,11 @@ export type PublicRoute = {
 }
 
 export const marketingRoutes: PublicRoute[] = [
-  { path: '/', landmark: /Tell us once\./ },
+  { path: '/', landmark: /Scammed\? Find out where you stand, and what to do next\./ },
   { path: '/about', landmark: /The burden should sit on the system/ },
   { path: '/faq', landmark: 'Honest answers for a stressful moment.' },
   { path: '/privacy', landmark: 'Privacy Policy' },
-  { path: '/resources', landmark: 'Start with the free evaluation right now if the scam just happened.' },
+  { path: '/resources', landmark: 'Scam just happened? Call your bank first.' },
   { path: '/terms', landmark: 'Terms of Service' },
   { path: '/marketplace', landmark: 'Help categories being considered.' },
   { path: '/marketplace/volunteers', expectedPath: '/marketplace', landmark: 'Help categories being considered.' },

@@ -17,6 +17,7 @@ import {
   rotateRouterSessionIntent,
 } from "@/lib/router-session"
 import { trackClientEvent } from "@/lib/analytics/client"
+import { savedFirstTouch, trackFunnel } from "@/lib/analytics/funnel"
 
 const BOOTSTRAP_IDEMPOTENCY_KEY = "gb_bootstrap_idempotency_key"
 const BOOTSTRAP_REQUEST_FINGERPRINT = "gb_bootstrap_request_fingerprint"
@@ -130,6 +131,17 @@ export default function OnboardingPage() {
           eventData: { case_id: data.case_id },
           pageUrl: window.location.href,
         })
+        // Analytics 2: the step itself carries no case id; the case keeps only the channel it came from.
+        trackFunnel("case_created")
+        const firstTouch = savedFirstTouch()
+        if (firstTouch) {
+          void fetch(`/api/cases/${data.case_id}/first-touch`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(firstTouch),
+            keepalive: true,
+          }).catch(() => {})
+        }
         router.replace(`/app/case/${data.case_id}/dashboard`)
       } catch (bootstrapError) {
         if (controller.signal.aborted) return

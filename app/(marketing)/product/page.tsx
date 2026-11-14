@@ -1,15 +1,19 @@
 ﻿import type { Metadata } from 'next'
+import { pageAlternates } from '@/lib/seo/indexing'
 import Link from 'next/link'
 import { FileCheck2, LockKeyhole } from 'lucide-react'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { StepJourney } from '@/components/harbor/step-journey'
 import { Button } from '@/components/ui/button'
+import { paidStagesState } from '@/lib/billing/paid-stages'
 import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
+import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
+import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 
 export const metadata: Metadata = {
   title: 'Product',
   description: 'See how GuideBuoy organises your story, evidence, questions and report in one calm case workspace.',
-  alternates: { canonical: '/product' },
+  alternates: pageAlternates('/product'),
 }
 
 const steps = [
@@ -17,12 +21,15 @@ const steps = [
   { title: 'Save your case', description: 'Sign in to keep your story and continue in a private case workspace.' },
   { title: 'Add evidence', description: 'Upload available documents through the guided evidence area.' },
   { title: 'Fill the gaps', description: 'Answer focused questions generated from the information available in your case.' },
-  { title: 'Review the free draft', description: 'Check the organised story, evidence status and next-step information.' },
-  { title: 'Choose whether to upgrade', description: 'If GuideBuoy confirms you’re eligible, you can choose a one-off full report.' },
+  { title: 'Review your free evaluation', description: 'Check the organised story, evidence status and next-step information.' },
+  // Brief W1 §K: the old "full report" wording goes; this step reuses the How it works copy.
+  { title: 'Choose a separate pack if you need one', description: 'A bank dispute pack before your bank’s final reply, or a FIDReC escalation pack after it. Each is separate; neither requires the other.' },
 ] as const
 
 export default function ProductPage() {
-  const fullReportPrice = `S$${PRODUCT_CATALOGUE.self_serve_report.amountSgd}`
+  const { enabled: packsLive } = paidStagesState()
+  const bankPrice = `S$${PRODUCT_CATALOGUE.self_serve_report.amountSgd}`
+  const fidrecPrice = `S$${PRODUCT_CATALOGUE.fidrec_tier2_pack.amountSgd}`
 
   return (
     <MarketingPage
@@ -38,7 +45,7 @@ export default function ProductPage() {
         <div className="gb-container grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.75fr)]">
           <div className="gb-readable">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Live report preview</p>
-            <h2 id="preview-title" className="mt-3 text-3xl font-semibold text-harbor-primary-active">
+            <h2 id="preview-title" className="mt-3 text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-primary-active">
               A structure you can review before using
             </h2>
             <p className="mt-4 leading-7 text-muted-foreground">
@@ -66,18 +73,16 @@ export default function ProductPage() {
           <aside className="rounded-card border bg-harbor-warning-subtle p-4 sm:p-6" aria-labelledby="boundary-title">
             <LockKeyhole className="size-6 text-harbor-warning" aria-hidden="true" />
             <h2 id="boundary-title" className="mt-3 text-xl font-semibold">Free and paid boundary</h2>
-            <p className="mt-3 leading-7">Start, save a case, add evidence, answer questions and review the available free draft without paying.</p>
-            <p className="mt-3 leading-7"><strong>Full report — {fullReportPrice}.</strong> It is offered only when GuideBuoy confirms that your case is eligible.</p>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
-            </p>
+            <p className="mt-3 leading-7">Start, save a case, add evidence, answer questions and review your free evaluation without paying.</p>
+            <p className="mt-3 leading-7"><strong>Bank dispute pack — {bankPrice}. FIDReC escalation pack — {fidrecPrice}.</strong> Each is separate; neither requires the other.{packsLive ? '' : ' Coming shortly.'}</p>
           </aside>
         </div>
       </section>
 
       <MarketingSection className="text-center">
+        <WhatGuideBuoyIs className="mb-9 text-left" />
         <div className="flex flex-wrap justify-center gap-3">
-          <Button asChild><Link href="/">Start organising — free</Link></Button>
+          <StartEvaluationButton />
           <Button asChild variant="outline"><Link href="/how-it-works">See how it works</Link></Button>
           <Button asChild variant="ghost"><Link href="/pricing">View pricing</Link></Button>
         </div>

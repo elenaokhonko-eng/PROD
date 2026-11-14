@@ -1,21 +1,23 @@
 ﻿import type { Metadata } from 'next'
+import { pageAlternates } from '@/lib/seo/indexing'
 import Link from 'next/link'
 import { PhoneCall, Siren } from 'lucide-react'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { ResourceDirectory } from '@/components/harbor/resource-directory'
 import { Button } from '@/components/ui/button'
+import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
 
 export const metadata: Metadata = {
-  title: 'Singapore complaint resources',
-  description: 'Official Singapore scam, Police, banking dispute, FIDReC and personal-data resources gathered for a stressful moment.',
-  alternates: { canonical: '/resources' },
+  title: { absolute: 'Scam just happened? Who to call in Singapore · GuideBuoy' },
+  description: 'Bank fraud hotlines, ScamShield, police reporting and official guidance, in the order to use them.',
+  alternates: pageAlternates('/resources'),
 }
 
 export default function ResourcesPage() {
   return (
     <MarketingPage
       eyebrow="Official Singapore help"
-      title="Start with the free evaluation right now if the scam just happened."
+      title="Scam just happened? Call your bank first."
       intro="GuideBuoy organises links to official sources. The authorities publish the rules and make decisions."
     >
       <MarketingSection>
@@ -30,7 +32,7 @@ export default function ResourcesPage() {
         </aside>
 
         <section className="mt-10" aria-labelledby="directory-title">
-          <h2 id="directory-title" className="text-3xl font-semibold text-harbor-deep">External information and reporting</h2>
+          <h2 id="directory-title" className="text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">External information and reporting</h2>
           <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
             Links open websites operated by the named organisations. GuideBuoy is not affiliated with or endorsed by them.
           </p>
@@ -44,7 +46,7 @@ export default function ResourcesPage() {
 
         <div className="mt-10 rounded-2xl bg-harbor-sage-tint p-6 text-center">
           <p className="leading-7">GuideBuoy summarises and organises. Official sources remain authoritative.</p>
-          <Button asChild className="mt-5"><Link href="/">Start your free report</Link></Button>
+          <StartEvaluationButton className="mt-5" />
         </div>
       </MarketingSection>
     </MarketingPage>
