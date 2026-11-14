@@ -1,4 +1,5 @@
 ﻿import type { Metadata } from 'next'
+import { pageAlternates } from '@/lib/seo/indexing'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, FileCheck2, LockKeyhole, Repeat2 } from 'lucide-react'
@@ -16,7 +17,7 @@ import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 export const metadata: Metadata = {
   title: { absolute: 'Scammed in Singapore? Free scam and bank dispute evaluation · GuideBuoy' },
   description: "Tell GuideBuoy what happened and get a free evaluation: your facts in order, how Singapore's scam rules may apply, and your next step with your bank or FIDReC.",
-  alternates: { canonical: '/' },
+  alternates: pageAlternates('/'),
 }
 
 const reasons = [

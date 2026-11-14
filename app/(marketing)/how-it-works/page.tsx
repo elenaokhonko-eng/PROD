@@ -1,4 +1,5 @@
 ﻿import type { Metadata } from 'next'
+import { pageAlternates } from '@/lib/seo/indexing'
 import Link from 'next/link'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { StepJourney } from '@/components/harbor/step-journey'
@@ -11,7 +12,7 @@ import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 export const metadata: Metadata = {
   title: { absolute: 'How GuideBuoy prepares your scam or bank dispute, step by step' },
   description: 'From your story to a checked record and a suggested next step in six steps. Free to start, no card.',
-  alternates: { canonical: '/how-it-works' },
+  alternates: pageAlternates('/how-it-works'),
 }
 
 const steps = [

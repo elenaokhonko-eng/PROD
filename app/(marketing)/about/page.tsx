@@ -1,4 +1,5 @@
 ﻿import type { Metadata } from 'next'
+import { pageAlternates } from '@/lib/seo/indexing'
 import { Building2, Compass, Eye, Scale } from 'lucide-react'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { ContactCard } from '@/components/harbor/contact-disclosure'
@@ -7,7 +8,7 @@ import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 export const metadata: Metadata = {
   title: { absolute: 'About GuideBuoy AI SG Pte Ltd: who we are and why we built it' },
   description: 'A Singapore company helping people who represent themselves prepare scam and financial disputes.',
-  alternates: { canonical: '/about' },
+  alternates: pageAlternates('/about'),
 }
 
 const principles = [

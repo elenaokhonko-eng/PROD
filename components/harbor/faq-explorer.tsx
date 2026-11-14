@@ -112,7 +112,8 @@ export function FAQExplorer({ packsLive = false }: { packsLive?: boolean }) {
                 {group.items.map(([question, answer], itemIndex) => (
                   <AccordionItem key={question} value={`${groupIndex}-${itemIndex}`} className="rounded-card border bg-card px-4">
                     <AccordionTrigger className="min-h-14 text-left text-base">{question}</AccordionTrigger>
-                    <AccordionContent className="pr-4 leading-7 text-muted-foreground sm:pr-8">
+                    {/* forceMount keeps every answer in the server HTML (brief W1 §J), so the page's markdown copy has them too. */}
+                    <AccordionContent forceMount className="pr-4 text-base leading-7 text-foreground sm:pr-8">
                       {!packsLive && PACK_QUESTIONS.has(question) ? `${answer} Coming shortly.` : answer}
                     </AccordionContent>
                   </AccordionItem>

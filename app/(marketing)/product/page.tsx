@@ -1,4 +1,5 @@
 ﻿import type { Metadata } from 'next'
+import { pageAlternates } from '@/lib/seo/indexing'
 import Link from 'next/link'
 import { FileCheck2, LockKeyhole } from 'lucide-react'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
@@ -12,7 +13,7 @@ import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 export const metadata: Metadata = {
   title: 'Product',
   description: 'See how GuideBuoy organises your story, evidence, questions and report in one calm case workspace.',
-  alternates: { canonical: '/product' },
+  alternates: pageAlternates('/product'),
 }
 
 const steps = [

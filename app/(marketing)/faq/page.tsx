@@ -1,4 +1,5 @@
 ﻿import type { Metadata } from 'next'
+import { pageAlternates } from '@/lib/seo/indexing'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { ContactCard } from '@/components/harbor/contact-disclosure'
 import { FAQExplorer } from '@/components/harbor/faq-explorer'
@@ -8,7 +9,7 @@ import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 export const metadata: Metadata = {
   title: { absolute: 'Scam and bank dispute questions answered · GuideBuoy FAQ' },
   description: 'Plain answers on getting money back after a scam, bank complaints, FIDReC, costs, privacy and how GuideBuoy works.',
-  alternates: { canonical: '/faq' },
+  alternates: pageAlternates('/faq'),
 }
 
 export default function FAQPage() {

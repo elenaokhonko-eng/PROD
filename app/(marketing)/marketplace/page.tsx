@@ -1,4 +1,5 @@
 ﻿import type { Metadata } from 'next'
+import { pageAlternates } from '@/lib/seo/indexing'
 import { HeartHandshake, Scale, UsersRound } from 'lucide-react'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { Button } from '@/components/ui/button'
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button'
 export const metadata: Metadata = {
   title: 'Future help categories',
   description: 'See the help categories GuideBuoy may support in future. These services are not currently available through GuideBuoy.',
-  alternates: { canonical: '/marketplace' },
+  alternates: pageAlternates('/marketplace'),
 }
 
 const supportTypes = [

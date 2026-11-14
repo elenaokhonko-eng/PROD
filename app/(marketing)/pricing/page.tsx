@@ -1,4 +1,5 @@
 ﻿import type { Metadata } from 'next'
+import { pageAlternates } from '@/lib/seo/indexing'
 import Link from 'next/link'
 import { Info } from 'lucide-react'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
@@ -10,7 +11,7 @@ import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 export const metadata: Metadata = {
   title: { absolute: 'GuideBuoy pricing: free evaluation, S$18 bank pack, S$188 FIDReC pack' },
   description: 'One-off prices, shown before you pay. Start free; choose a pack only if you need one.',
-  alternates: { canonical: '/pricing' },
+  alternates: pageAlternates('/pricing'),
 }
 
 export default function PricingPage() {
