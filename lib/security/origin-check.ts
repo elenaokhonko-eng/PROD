@@ -4,6 +4,10 @@
 // (ORIGIN_AUTH_SECRET), never in the repo. Unset means off, so the check can be switched on after Cloudflare sends it.
 //
 // /api/health/* stays exempt: Render's health check and the release checks call the service directly.
+//
+// ORIGIN_AUTH_MODE=report lets every request through and only reports, at /api/health/origin, whether the header
+// arrived and matched. Switch on with report first; enforce once that says "match" (lesson of 14 Nov: a header that
+// did not match took every page to 404 for three minutes).
 
 export const ORIGIN_AUTH_HEADER = 'x-guidebuoy-origin'
 
@@ -14,9 +18,25 @@ function constantTimeEqual(a: string, b: string): boolean {
   return difference === 0
 }
 
-export function originAllowed(pathname: string, headerValue: string | null, secret: string | undefined): boolean {
+export type OriginStatus = 'off' | 'missing' | 'match' | 'match-after-trim' | 'mismatch'
+
+// Says only whether the header matched, never anything about either value.
+export function originStatus(headerValue: string | null, secret: string | undefined): OriginStatus {
   const expected = secret?.trim()
-  if (!expected) return true
+  if (!expected) return 'off'
+  if (headerValue === null || headerValue === '') return 'missing'
+  if (constantTimeEqual(headerValue, expected)) return 'match'
+  return constantTimeEqual(headerValue.trim(), expected) ? 'match-after-trim' : 'mismatch'
+}
+
+export function originAllowed(
+  pathname: string,
+  headerValue: string | null,
+  secret: string | undefined,
+  mode?: string,
+): boolean {
+  const expected = secret?.trim()
+  if (!expected || mode?.trim() === 'report') return true
   if (pathname === '/api/health' || pathname.startsWith('/api/health/')) return true
   return headerValue !== null && constantTimeEqual(headerValue, expected)
 }

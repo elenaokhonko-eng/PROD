@@ -110,6 +110,8 @@ export const optionalKeys = [
   // The Terms and Privacy Policy effective date, set at cutover (Elena, 9 Nov).
   "LEGAL_EFFECTIVE_DATE",
   "ORIGIN_AUTH_SECRET",
+  // "report" while switching the origin check on (lib/security/origin-check.ts); unset means enforce.
+  "ORIGIN_AUTH_MODE",
   "LEGAL_EFFECTIVE_DATE_TERMS",
   "LEGAL_EFFECTIVE_DATE_PRIVACY",
   // Hosts production answers on (lib/host-allowlist.ts), set at cutover.

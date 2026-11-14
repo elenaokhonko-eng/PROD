@@ -21,6 +21,7 @@ const PUBLIC: Record<string, string> = {
   'transcribe': 'pre-sign-in voice input; limited per IP, audio capped at 3 MB',
   'triage/analyze': 'pre-sign-in triage; limited per IP',
   'health/live': 'liveness for Render health checks; returns {ok:true} and reads nothing (Addendum S3.2)',
+  'health/origin': 'says whether the Cloudflare origin header matched (missing/match/mismatch), never any value (Addendum S3.2)',
   '[...unknown]': 'answers every unknown API address with a JSON 404 and does nothing else (Addendum S2)',
 }
 

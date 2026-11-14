@@ -52,3 +52,19 @@ reaches crawlers within the hour. Icons may keep long caches; give them a new fi
 - Managed robots.txt: off. The app serves robots.txt.
 - Block AI bots: off. AI Crawl Control: every crawler set to Allow (decision D1).
 - SSL mode Full (strict), Always Use HTTPS, the rate-limit rule.
+
+## Switching on the origin check (Addendum S3.2)
+
+Cloudflare adds `x-guidebuoy-origin` to every request it forwards; the app refuses requests without the matching value
+once `ORIGIN_AUTH_SECRET` is set on the production web service. A wrong or missing header takes every page to 404 (14 Nov
+2026: about three minutes, rolled back by deleting the variable), so switch it on in two steps:
+
+1. On Render set `ORIGIN_AUTH_MODE=report` **and** `ORIGIN_AUTH_SECRET`, then redeploy. Nothing is refused yet.
+2. Open `https://guidebuoyai.sg/api/health/origin`. It answers `{"origin": ..., "mode": "report"}`:
+   - `match`: the header arrives and matches. Delete `ORIGIN_AUTH_MODE`, redeploy, and check pages answer 200.
+   - `missing`: Cloudflare is not adding the header. Check the rule is a request header rule, set static, deployed.
+   - `match-after-trim`: the value in Cloudflare has a space or line break around it. Re-paste it.
+   - `mismatch`: Cloudflare and Render hold different values. Copy the value again from the env file.
+
+The status page says only one of these words, never any part of either value. The secret lives only in
+`.env.production.local`, Cloudflare and Render. Do not enable it on staging: staging is not behind Cloudflare.

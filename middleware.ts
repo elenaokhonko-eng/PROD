@@ -46,7 +46,7 @@ export default function middleware(request: NextRequest, event: NextFetchEvent) 
   if (isProbe(raw.path, raw.uri) || isProbe(pathname)) return probeResponse()
 
   // Addendum S3.2: refuse requests that did not come through Cloudflare (on once ORIGIN_AUTH_SECRET is set).
-  if (!originAllowed(pathname, request.headers.get(ORIGIN_AUTH_HEADER), process.env.ORIGIN_AUTH_SECRET)) {
+  if (!originAllowed(pathname, request.headers.get(ORIGIN_AUTH_HEADER), process.env.ORIGIN_AUTH_SECRET, process.env.ORIGIN_AUTH_MODE)) {
     return probeResponse()
   }
 
