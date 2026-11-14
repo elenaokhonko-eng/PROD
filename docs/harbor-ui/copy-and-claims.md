@@ -51,11 +51,13 @@ Only **verified** rows can be published as declarative claims. **Qualified copy*
 | Trust row above the story box | qualified copy | “We never ask for your bank login, PIN or OTP.” · “Fixed prices. No success fee.” · “Private to your account. We never share your case with any bank or authority unless the law requires it.” (Elena’s wording (b), 14 Nov; matches Privacy Policy §3, including its disclosure-required-by-law sentence) · “Singapore company, UEN 202545875C. Check on ACRA BizFile” (links out; no embed). Brief W1 §B1, approved by Elena 14 Nov 2026. |
 | Before sign-up | verified | “Next you’ll create a free account, so your case is saved privately.” (brief W1 §B2, approved by Elena 14 Nov 2026). |
 | Stripe checkout handoff | qualified copy | “You’ll continue to our payment provider to complete checkout.” |
+| Retired public wording | retired | “Start organising”, “Singpass”, “pathway signal”, “Complaint Helper”, “free draft”, “free report”, “Report Hub”, “Full report”, “durable request”, “authenticated case workspace”, “DID +65” do not appear on public pages (brief W1 §K; checked by `tests/e2e/public/text-and-titles.spec.ts`). Use “free evaluation”, “Bank dispute pack”, “FIDReC escalation pack”, “suggested next step” and “Mobile / WhatsApp”. The Terms and Privacy Policy change only through legal review. |
 | Singpass login | retired | Removed from sign-in, sign-up and the FAQ (brief W1 §F, Elena 14 Nov 2026). Do not mention Singpass until it is offered. |
 | PDPA practice | not publishable | Applicable PDPA obligations are a frozen requirement, but public wording needs legal/compliance owner approval of a current control mapping. Never imply certification or endorsement. |
 | Encrypted data storage | not publishable | A scoped statement needs evidence of covered database/storage, backups, exports, transit controls, processors, and legal/access exceptions. Do not claim absolute confidentiality or security. |
 | MAS guidance | not publishable | Applicable MAS guidance is a frozen requirement; public wording needs legal/compliance approval. `PDPA ✦ MAS` can only be a reviewed non-certification informational heading. |
 | Data deletion | qualified copy | “Request data deletion.” The production flow must create a durable request and receipt and show “Request received,” its server reference, returned status, identity/review steps, and lawful-retention exceptions. Email-only submission cannot support those statements. |
+| Export and deletion (public FAQ) | qualified copy | “Yes. You can download your outputs from your case. To delete a case or your account, email info@guidebuoyai.sg; we confirm and delete it, apart from records the law requires us to keep.” (brief W1 §J, 14 Nov 2026). Public pages only; in-app deletion copy keeps the row above. |
 | Automated outputs / human consultation | qualified copy | “Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).” “Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.” Do not imply credentials, availability, advice outcome, or fulfilment timing. |
 | Help-resource directory / warm handovers | qualified copy | “Planned—not currently available through GuideBuoy.” List categories only as inactive placeholders; do not imply a live referral, partnership, endorsement, or handover. |
 | Partner, regulator, authority, or platform relationship | not publishable | Do not display logos or state affiliation, support, acceptance, or reuse by FIDReC, MAS, IMDA, SPF, ScamShield, banks, or partners. |
@@ -68,7 +70,7 @@ Only **verified** rows can be published as declarative claims. **Qualified copy*
 
 | Retired claim category | Replacement |
 |---|---|
-| Retired high-price case-pack label | “FIDReC case pack — S$188” |
+| Retired high-price case-pack label | “FIDReC escalation pack — S$188” (brief W1 §K; “FIDReC case pack” is retired). |
 | Recurring-billing assertion | Omit until lifecycle and checkout are approved. |
 | Identity-provider readiness | No mention of providers that are not offered (Singpass removed 14 Nov 2026). |
 | Automatic complete deletion | “Request data deletion.” The durable request/receipt API—not the browser—supplies “Request received,” reference, and status. |

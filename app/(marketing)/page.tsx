@@ -14,8 +14,8 @@ import { TrustRow } from '@/components/harbor/trust-row'
 import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 
 export const metadata: Metadata = {
-  title: "Singapore's Complaint Helper",
-  description: 'Tell your story once. GuideBuoy helps organise the facts, evidence and next steps for a complaint.',
+  title: { absolute: 'Scammed in Singapore? Free scam and bank dispute evaluation · GuideBuoy' },
+  description: "Tell GuideBuoy what happened and get a free evaluation: your facts in order, how Singapore's scam rules may apply, and your next step with your bank or FIDReC.",
   alternates: { canonical: '/' },
 }
 

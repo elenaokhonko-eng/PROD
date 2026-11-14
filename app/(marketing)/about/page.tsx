@@ -5,8 +5,8 @@ import { ContactCard } from '@/components/harbor/contact-disclosure'
 import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 
 export const metadata: Metadata = {
-  title: 'About',
-  description: "Why GuideBuoy AI is building Singapore's calm complaint helper and how GuideBuoy supports — rather than decides — your case.",
+  title: { absolute: 'About GuideBuoy AI SG Pte Ltd: who we are and why we built it' },
+  description: 'A Singapore company helping people who represent themselves prepare scam and financial disputes.',
   alternates: { canonical: '/about' },
 }
 

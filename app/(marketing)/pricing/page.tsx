@@ -8,8 +8,8 @@ import { StartEvaluationButton } from '@/components/harbor/start-evaluation-butt
 import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 
 export const metadata: Metadata = {
-  title: 'Pricing',
-  description: 'Start GuideBuoy for free and see each optional one-off pack price before checkout.',
+  title: { absolute: 'GuideBuoy pricing: free evaluation, S$18 bank pack, S$188 FIDReC pack' },
+  description: 'One-off prices, shown before you pay. Start free; choose a pack only if you need one.',
   alternates: { canonical: '/pricing' },
 }
 

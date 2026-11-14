@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
 
 export const metadata: Metadata = {
-  title: 'Singapore complaint resources',
-  description: 'Official Singapore scam, Police, banking dispute, FIDReC and personal-data resources gathered for a stressful moment.',
+  title: { absolute: 'Scam just happened? Who to call in Singapore · GuideBuoy' },
+  description: 'Bank fraud hotlines, ScamShield, police reporting and official guidance, in the order to use them.',
   alternates: { canonical: '/resources' },
 }
 
@@ -16,7 +16,7 @@ export default function ResourcesPage() {
   return (
     <MarketingPage
       eyebrow="Official Singapore help"
-      title="Start with the free evaluation right now if the scam just happened."
+      title="Scam just happened? Call your bank first."
       intro="GuideBuoy organises links to official sources. The authorities publish the rules and make decisions."
     >
       <MarketingSection>

@@ -23,30 +23,34 @@ const faqGroups = [
       // Brief W1 §J wording; the full FAQ set replaces this list in Batch 2.
       ['Is this legal advice? Does a person review it?', 'No. GuideBuoy is automated and is not legal advice; you check everything before you send it. A 30-minute consultation with a person is available for S$99.'],
       ['Can I correct an output?', 'Review generated information carefully. Add or correct case information through the actions available in your workspace.'],
-      ['Does a pathway signal decide my case?', 'No. GuideBuoy helps organise information. It does not decide your case or provide legal advice.'],
+      ['Does the suggested next step decide my case?', 'No. GuideBuoy helps organise information. It does not decide your case or provide legal advice.'],
     ],
   },
   {
     title: 'Products and pricing',
     items: [
-      ['Is it free to start?', 'Start organising for free. Tell your story, add supporting material, and receive a draft when your case is ready.'],
-      ['What does the full report cost?', 'Two full reports are available: the Bank dispute pack (S$18) and the FIDReC escalation pack (S$188). Prices and contents are shown before any checkout.'],
-      ['What does the FIDReC case pack cost?', 'FIDReC case pack — S$188. It is available after a completed report, where offered. Review the scope before checkout.'],
+      // Brief W1 §J wording for the entries §K retires.
+      ['What is the free evaluation?', 'GuideBuoy puts your facts in order, asks you to settle anything that conflicts between your story, your answers and your documents, shows how the rules may apply and suggests a next step. It is free.'],
+      ['What is the Bank dispute pack?', 'A concise, formal complaint to your bank with your key facts and evidence. S$18, one-off.'],
+      ['What is the FIDReC escalation pack?', 'A comprehensive case pack for FIDReC’s process, with every material fact, the arguments on both sides and your evidence index. S$188, one-off. You do not need the bank pack first.'],
+      ['What does it cost?', 'The evaluation is free. The Bank dispute pack is S$18 and the FIDReC escalation pack is S$188, each a one-off price shown before you pay. No GST is added.'],
     ],
   },
   {
     title: 'Privacy and control',
     items: [
       ['Who can see my case?', 'Access requires a signed-in account and is limited by the case permissions enforced by the service. Use care when choosing what to upload or share.'],
-      ['Can I export my information?', 'A signed-in user can request the available account export from Settings.'],
-      ['Can I delete my information?', 'Request data deletion. A request must be reviewed, and lawful security, accounting and legal-retention exceptions may apply. The control remains unavailable until a durable request and receipt service is present.'],
+      ['Can I export or delete my information?', 'Yes. You can download your outputs from your case. To delete a case or your account, email info@guidebuoyai.sg; we confirm and delete it, apart from records the law requires us to keep.'],
     ],
   },
 ] as const
 
 type Category = 'All' | (typeof faqGroups)[number]['title']
 
-export function FAQExplorer() {
+// Brief W1 §J: while the packs are not live, their answers say so (Elena's wording: "Coming shortly").
+const PACK_QUESTIONS: ReadonlySet<string> = new Set(['What is the Bank dispute pack?', 'What is the FIDReC escalation pack?'])
+
+export function FAQExplorer({ packsLive = false }: { packsLive?: boolean }) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<Category>('All')
   const normalisedQuery = query.trim().toLocaleLowerCase()
@@ -108,7 +112,9 @@ export function FAQExplorer() {
                 {group.items.map(([question, answer], itemIndex) => (
                   <AccordionItem key={question} value={`${groupIndex}-${itemIndex}`} className="rounded-card border bg-card px-4">
                     <AccordionTrigger className="min-h-14 text-left text-base">{question}</AccordionTrigger>
-                    <AccordionContent className="pr-4 leading-7 text-muted-foreground sm:pr-8">{answer}</AccordionContent>
+                    <AccordionContent className="pr-4 leading-7 text-muted-foreground sm:pr-8">
+                      {!packsLive && PACK_QUESTIONS.has(question) ? `${answer} Coming shortly.` : answer}
+                    </AccordionContent>
                   </AccordionItem>
                 ))}
               </Accordion>
