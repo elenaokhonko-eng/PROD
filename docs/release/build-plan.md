@@ -24,8 +24,8 @@ Progress is reported as items done against items planned.
 | # | Track | Contents | Gate | Status |
 |---|---|---|---|---|
 | 1 | Crawl files | robots.txt, sitemap, llms.txt, icons, noindex default, canonical fix | Elena merge | **Live 14 Nov** (PR #8) |
-| 2 | Addendum A Phase 1, part 1 | Content signals; `describedby` Link header | Elena merge | PR #9 |
-| 3 | Addendum A Phase 1, part 2 | Addendum M markdown copies and `Accept: text/markdown` negotiation (with `x-markdown-tokens`); `alternate` Link header; `llms.txt` lists the copies; `llms-full.txt`; `/auth.md` and the agent skill with its index (texts approved 14 Nov) | Elena merge | Next |
+| 2 | Addendum A Phase 1, part 1 | Content signals; `describedby` Link header | Elena merge | **Live 14 Nov** (PR #9); robots.txt reached crawlers once Cloudflare's 4-hour cached copy expired |
+| 3 | Addendum A Phase 1, part 2 | `Cache-Control: public, max-age=3600` on every crawl and discovery file; Addendum M markdown copies and `Accept: text/markdown` negotiation (with `x-markdown-tokens`); `alternate` Link header; `llms.txt` lists the copies; `llms-full.txt`; `/auth.md` and the agent skill with its index (texts approved 14 Nov) | Elena merge | Next |
 | 4 | W1 Batch 1 (P0) | First screen and phone button; one CTA label; trust row (wording b); "What GuideBuoy is"; phone story form; sign-up without Singpass; text fixes; titles (L3); type scale (V1) and story box (V4); copy ledger and test updates; all public baselines re-taken | G-W1 staging review | After 3 |
 | 5 | Analytics 2 (W1 §N) | New `funnel_events` table; seven journey steps plus the before-sign-up steps (started typing, submitted, reached sign-up, case created) linked by a per-tab random id; journey times as totals (median, slowest quarter); Analytics 1 and its tracker unchanged | Migration through the hashed procedure | With 4 |
 | 6 | Stage 2 step 0 | Upload after the evaluation, facts re-checked and a new evaluation offered; voice and text add up; one date format; refused starts and checkouts logged; no default institution in the FIDReC narrative | — | After 4 |
@@ -44,6 +44,20 @@ public API: generating it needs an account and the owner's confirmation. It come
 - **Phase 3:** a connected assistant prepares the case through `case:write`, and `get_case_status` reports
   `awaiting_owner_review`. The owner reviews, confirms and starts the free evaluation in the browser.
   `get_output` then lets the assistant read it.
+
+## Terms of Service v2.1 (held)
+
+Built on branch `web/terms-2-1`, not published (Elena, 14 Nov). Clause 5.1 to 5.3 of Annex T replace clause 5;
+`/terms` keeps v2.0 with a notice and switches by itself on the effective date. It waits for the Privacy Policy
+changes Elena is preparing, so both can go out with one notice. Before sending a notice, count the account holders on
+production: on 14 Nov there were 2 profiles (both Elena's) and 1 other Clerk sign-up with no profile or case.
+
+## Lessons for releases
+
+- Cloudflare caches `.txt` and `.xml` for 4 hours unless the app sets `Cache-Control`. Every crawl and discovery
+  file sets a 1-hour cache itself. Runbook: `docs/runbooks/web-release-and-cloudflare.md`; skill:
+  `.claude/skills/cloudflare-release`.
+- Check a release one minute after Render reports `live`; the old instance answers briefly.
 
 ## Running items from go-live
 
