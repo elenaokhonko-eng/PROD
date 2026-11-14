@@ -109,6 +109,8 @@ export const optionalKeys = [
   "SUPABASE_PRODUCTION_DB_URL",
   // The Terms and Privacy Policy effective date, set at cutover (Elena, 9 Nov).
   "LEGAL_EFFECTIVE_DATE",
+  "LEGAL_EFFECTIVE_DATE_TERMS",
+  "LEGAL_EFFECTIVE_DATE_PRIVACY",
   // Hosts production answers on (lib/host-allowlist.ts), set at cutover.
   "HARBOR_ALLOWED_HOSTS",
 ] as const
@@ -404,6 +406,14 @@ export function checkEnvironmentSet(
     add(ok ? "PASS" : "FAIL", "LEGAL_EFFECTIVE_DATE is a date", ok ? undefined : "use YYYY-MM-DD")
   } else if (!isStaging) {
     add("PENDING", "LEGAL_EFFECTIVE_DATE set before the first production build", "the cutover day; the legal pages will not build without it")
+  }
+  // Optional per-document dates override the shared one (a Terms update on a different day from the Privacy Policy).
+  for (const key of ["LEGAL_EFFECTIVE_DATE_TERMS", "LEGAL_EFFECTIVE_DATE_PRIVACY"]) {
+    const value = get(key)
+    if (!value) continue
+    let ok = true
+    try { legalEffectiveDate({ LEGAL_EFFECTIVE_DATE: value, HARBOR_DEPLOYMENT_ENVIRONMENT: "production" }) } catch { ok = false }
+    add(ok ? "PASS" : "FAIL", `${key} is a date`, ok ? undefined : "use YYYY-MM-DD")
   }
   if (!isStaging && get("EMAIL_FROM")) {
     add(/@guidebuoyai\.sg>?$/i.test(get("EMAIL_FROM")) ? "PASS" : "WARN", "production EMAIL_FROM uses the verified guidebuoyai.sg domain")
