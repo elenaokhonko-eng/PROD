@@ -374,6 +374,12 @@ export function checkEnvironmentSet(
   }
   const generated = generatedSecretKeys.map(get).filter(Boolean)
   add(new Set(generated).size === generated.length ? "PASS" : "FAIL", "generated secrets are distinct from each other")
+  // Cost-controls spec A2 (week one): production's Render Gemini key is restricted to Render's addresses, and Edge
+  // Functions have no fixed address, so the Edge key (GEMINI_API_KEY) must be a different key. Staging keys carry no IP
+  // restriction, so there a shared key is only a warning.
+  if (get("GEMINI_API_KEY") && get("GOOGLE_GENERATIVE_AI_API_KEY")) {
+    add(get("GEMINI_API_KEY") === get("GOOGLE_GENERATIVE_AI_API_KEY") ? (isStaging ? "WARN" : "FAIL") : "PASS", "the Edge and Render Gemini keys are different keys", "GEMINI_API_KEY vs GOOGLE_GENERATIVE_AI_API_KEY")
+  }
 
   // Email.
   const smtpHost = get("SMTP_HOST").toLowerCase()

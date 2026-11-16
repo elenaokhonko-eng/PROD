@@ -3,10 +3,12 @@ import { ArrowRight, FolderOpen, Plus } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { getCurrentUser } from '@/lib/auth'
+import { linkNewAccount } from '@/lib/server/current-user'
 import { createUserClient } from '@/lib/supabase/server'
 
 export default async function CasesPage() {
-  const user = await getCurrentUser()
+  // A new account that is not linked yet is linked here, not sent back to sign-in (smoke test, 12 Nov).
+  const user = (await getCurrentUser()) ?? (await linkNewAccount())
   if (!user) redirect('/sign-in')
 
   const supabase = await createUserClient()

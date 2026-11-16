@@ -2,6 +2,7 @@
 // limits are counted in the database, so they survive deploys and hold across instances; per-IP limits are in memory
 // (one web instance). Every number can be raised per environment with a USAGE_LIMIT_* variable; defaults are the spec's.
 import { NextResponse } from "next/server"
+import { logger } from "@/lib/logger"
 import { keyFrom, rateLimit } from "@/lib/rate-limit"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -27,6 +28,8 @@ export const LIMIT_MESSAGE = "You've reached today's limit. Please try again tom
 export const HOURLY_LIMIT_MESSAGE = "You've reached the limit for now. Please try again in an hour, or email info@guidebuoyai.sg."
 
 export function limitResponse(message = LIMIT_MESSAGE) {
+  // Every limit refusal leaves a line in the logs (cutover checklist, week one: R-02).
+  logger.warn("request refused", { reason: "usage_limit", window: message === HOURLY_LIMIT_MESSAGE ? "hour" : "day", status: 429 })
   return NextResponse.json({ error: message, reason: "usage_limit" }, { status: 429 })
 }
 

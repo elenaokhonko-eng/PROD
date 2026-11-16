@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { auth } from '@clerk/nextjs/server'
 import { getCurrentUser } from '@/lib/auth'
-import { provisionClerkProfileWithRuntimeDependencies } from '@/lib/server/clerk-profile-provisioner'
+import { linkNewAccount } from '@/lib/server/current-user'
+import { invalidFields, logRefusal } from '@/lib/server/refusal-log'
 import { createUserClient } from '@/lib/supabase/server'
 import { HOURLY_LIMIT_MESSAGE, limitResponse, overCaseLimit, overIpModelLimit } from '@/lib/server/usage-limits'
 
@@ -14,40 +14,27 @@ const BootstrapBody = z.object({
   title: z.string().max(200).optional(),
 })
 
-// A brand-new account can reach this before Clerk's user.created webhook has linked it to its profile, so its token has
-// no supabase_uuid yet and the case could not start (G3b re-check, 11 Nov). Link it here; provisioning is idempotent, so
-// racing the webhook is harmless.
-async function currentUserLinkingNewAccount() {
-  const user = await getCurrentUser()
-  if (user) return user
-  const { userId } = await auth()
-  if (!userId) return null
-  try {
-    await provisionClerkProfileWithRuntimeDependencies(userId)
-  } catch (error) {
-    console.warn('[bootstrap] New account could not be linked yet', { name: (error as Error)?.name })
-    return null
-  }
-  return getCurrentUser()
-}
-
 export async function POST(req: Request) {
-  const user = await currentUserLinkingNewAccount()
+  const user = (await getCurrentUser()) ?? (await linkNewAccount())
   if (!user) {
+    logRefusal('case_start', 'unauthorized', 401)
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const parsed = BootstrapBody.safeParse(await req.json())
   if (!parsed.success) {
+    logRefusal('case_start', 'invalid_body', 400, { fields: invalidFields(parsed.error) })
     return NextResponse.json({ error: 'invalid_body', details: parsed.error.flatten() }, { status: 400 })
   }
   const { narrative, transcript, claim_type } = parsed.data
   const idempotencyKey = req.headers.get('idempotency-key')?.trim()
   if (!idempotencyKey || idempotencyKey.length > 200) {
+    logRefusal('case_start', 'valid_idempotency_key_required', 400)
     return NextResponse.json({ error: 'valid_idempotency_key_required' }, { status: 400 })
   }
 
   // A new case starts model work: limited per account per day and per IP per hour (cost-controls §5 B1).
+  // limitResponse logs its own refusals.
   if (await overCaseLimit(user.supabaseUuid)) return limitResponse()
   if (overIpModelLimit(req)) return limitResponse(HOURLY_LIMIT_MESSAGE)
 
@@ -68,6 +55,7 @@ export async function POST(req: Request) {
   })
 
   if (error || !caseId) {
+    logRefusal('case_start', 'case_bootstrap_failed', 500, { code: error?.code ?? null })
     return NextResponse.json({ error: 'case_bootstrap_failed' }, { status: 500 })
   }
 

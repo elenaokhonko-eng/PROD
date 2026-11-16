@@ -13,6 +13,7 @@ import {
 } from "@/lib/payments/product-catalogue"
 import { loadReportPurchaseReadiness } from "@/lib/billing/report-purchase-readiness"
 import { paidStagesAvailableFrom, paidStagesEnabled } from "@/lib/billing/paid-stages"
+import { invalidFields, logRefusal } from "@/lib/server/refusal-log"
 import { safeErrorText } from "@/lib/server/safe-error"
 
 export type ProductKey = CheckoutProductKey
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.json()
     if (rawBody && typeof rawBody === "object" && "user_id" in (rawBody as object)) {
+      logRefusal("checkout", "body_user_id", 400)
       return NextResponse.json(
         { error: "Request body must not include user_id" },
         { status: 400 },
@@ -53,18 +55,22 @@ export async function POST(request: NextRequest) {
       parsed = checkoutSchema.parse(rawBody)
     } catch (err) {
       if (err instanceof z.ZodError) {
+        logRefusal("checkout", "invalid_body", 400, { fields: invalidFields(err) })
         return NextResponse.json({ error: "Invalid request body", details: err.flatten() }, { status: 400 })
       }
+      logRefusal("checkout", "invalid_body", 400)
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
     }
 
     const { caseId, productKey } = parsed
     const product = PRODUCT_CATALOGUE[productKey]
     if (!product.checkoutEnabled) {
+      logRefusal("checkout", "checkout_disabled", 409, { productKey, caseId })
       return NextResponse.json({ error: "Product is not currently available" }, { status: 409 })
     }
     // Stage 1 (free evaluation only): both paid products are refused until stage 2 is switched on.
     if (!paidStagesEnabled()) {
+      logRefusal("checkout", "product_not_available", 409, { productKey, caseId })
       return NextResponse.json(
         { error: "Product is not available yet", reason: "product_not_available", availableFrom: paidStagesAvailableFrom() },
         { status: 409 },
@@ -74,12 +80,14 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get("authorization")
     const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null
     if (!bearer) {
+      logRefusal("checkout", "missing_bearer_token", 401, { productKey, caseId })
       return NextResponse.json({ error: "Missing bearer token" }, { status: 401 })
     }
 
     const payload = decodeJwtPayload(bearer)
     const supabaseUuid = typeof payload?.supabase_uuid === "string" ? payload.supabase_uuid : null
     if (!supabaseUuid) {
+      logRefusal("checkout", "token_without_profile", 401, { productKey, caseId })
       return NextResponse.json({ error: "Invalid token: missing supabase_uuid claim" }, { status: 401 })
     }
 
@@ -101,12 +109,15 @@ export async function POST(request: NextRequest) {
       .eq("id", caseId)
       .single()
     if (caseError || !caseData) {
+      logRefusal("checkout", "case_not_found", 404, { productKey, caseId })
       return NextResponse.json({ error: "Case not found" }, { status: 404 })
     }
     if (!caseData.user_id) {
+      logRefusal("checkout", "case_owner_missing", 409, { productKey, caseId })
       return NextResponse.json({ error: "Case owner is missing" }, { status: 409 })
     }
     if (caseData.user_id !== supabaseUuid) {
+      logRefusal("checkout", "case_not_owned", 404, { productKey, caseId })
       return NextResponse.json({ error: "Case not found" }, { status: 404 })
     }
 
@@ -122,6 +133,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Failed to create purchase record" }, { status: 500 })
       }
       if (!readiness.ready) {
+        logRefusal("checkout", readiness.blockedReason ?? "not_ready", 409, { productKey, caseId })
         return NextResponse.json({ error: "Purchase is not eligible", reason: readiness.blockedReason }, { status: 409 })
       }
     }
@@ -151,6 +163,7 @@ export async function POST(request: NextRequest) {
         reservationError?.message.includes("requires reconciliation") ||
         reservationError?.message.includes("active purchase")
       ) {
+        logRefusal("checkout", "reservation_refused", 409, { productKey, caseId, code: reservationError?.code ?? null })
         return NextResponse.json({ error: "Purchase is not eligible" }, { status: 409 })
       }
       console.error("[payments] Failed to reserve checkout purchase", safeErrorText(reservationError))
@@ -179,6 +192,7 @@ export async function POST(request: NextRequest) {
 
       if (reconciliationError || !reconciliation) {
         console.error("[payments] Established purchase reconciliation is required", safeErrorText(reconciliationError))
+        logRefusal("checkout", "reconciliation_required", 409, { productKey, caseId })
         return NextResponse.json(
           {
             error: "Purchase fulfilment is pending reconciliation",
@@ -294,6 +308,7 @@ export async function POST(request: NextRequest) {
       )
     }
     if (result.status === "closed") {
+      logRefusal("checkout", "session_closed", 409, { productKey, caseId })
       return NextResponse.json({ error: "Checkout session is no longer open" }, { status: 409 })
     }
 
