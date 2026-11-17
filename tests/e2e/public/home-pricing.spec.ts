@@ -70,6 +70,8 @@ for (const viewport of [
 for (const path of ['/', '/pricing']) {
   for (const mode of ['light', 'dark', 'quiet'] as const) {
     test(`text contrast on ${path} in ${mode} mode`, async ({ page }) => {
+      // Buttons fade between themes; with reduced motion the switch is instant, so the check reads the settled colours.
+      await page.emulateMedia({ reducedMotion: 'reduce' })
       await page.goto(path, { waitUntil: 'networkidle' })
       await page.evaluate((m) => {
         if (m === 'dark') document.documentElement.setAttribute('data-theme', 'dark')
