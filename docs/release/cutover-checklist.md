@@ -77,14 +77,17 @@ Backend API (`PATCH /v1/instance`); the dashboard doesn't show them.
 - [ ] First change after launch: one floating WhatsApp button on every page, public, sign-in and case pages
       (Elena monitors the number, 10 Nov). It replaces the footer link and changes the Slice 7 rule and its test; the
       public visual baselines are re-rendered by CI and approved by Elena.
-- [ ] Week one: voice and pasted story text add to each other and never replace; one date format in the evaluation
+- [x] Week one: voice and pasted story text add to each other and never replace; one date format in the evaluation
       summary; log refused case starts so a failure like R-02 shows in the logs; a time limit on every CI job (a stalled
       browser install ran 52 minutes on 11 Nov); `check:env-set` fails when the Render and Edge Gemini keys are the
       same key; the worker's SMTP settings in `render.yaml`; indexes for the 11 unindexed foreign keys the advisor lists.
-- [ ] Week one, from the smoke test: the account button on every page, public pages included, signed in or out; an
-      upload area on the facts page so documents can be added after the free evaluation (facts re-checked, a new
-      evaluation offered); My cases links a not-yet-linked account on the spot, as starting a case already does,
-      instead of sending a signed-in person back to sign-in.
+      Done in the Stage 1 fixes release (16 Nov). The Gemini check fails in production and warns in staging, where the
+      two keys are still the same key and carry no IP restriction.
+- [x] Week one, from the smoke test: the account button on every page, public pages included, signed in or out;
+      My cases links a not-yet-linked account on the spot, as starting a case already does, instead of sending a
+      signed-in person back to sign-in. Done in the Stage 1 fixes release (16 Nov).
+- [ ] From the smoke test: an upload area on the facts page so documents can be added after the free evaluation
+      (facts re-checked, a new evaluation offered). Stage 2 milestone 0.
 - [ ] Week two: a Gemini-to-OpenAI fallback on 429 and 5xx for document reading and transcription, recorded in
       `model_usage`; Gemini as the primary model where it is cheaper; Gemini embeddings (re-embedding the regulatory
       clauses, and matching the vector dimension in a migration); a separate Google project for document processing

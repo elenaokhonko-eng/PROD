@@ -31,9 +31,12 @@ test('a fact check stands down right after it starts unless it is the first one 
 })
 
 test('starting a case links a brand-new account before treating it as signed out (G3b re-check, 11 Nov)', () => {
+  // The linking moved to lib/server/current-user.ts (week one, 16 Nov) so My cases uses it too.
+  assert.match(readFileSync('lib/server/current-user.ts', 'utf8'), /provisionClerkProfileWithRuntimeDependencies\(userId\)/)
   const source = readFileSync('app/api/cases/bootstrap/route.ts', 'utf8')
-  assert.match(source, /provisionClerkProfileWithRuntimeDependencies\(userId\)/)
-  assert.match(source, /const user = await currentUserLinkingNewAccount\(\)/)
+  assert.match(source, /const user = \(await getCurrentUser\(\)\) \?\? \(await linkNewAccount\(\)\)/)
+  // Smoke test, 12 Nov: My cases links the account on the spot instead of sending a signed-in person to sign-in.
+  assert.match(readFileSync('app/(case)/app/page.tsx', 'utf8'), /const user = \(await getCurrentUser\(\)\) \?\? \(await linkNewAccount\(\)\)/)
 })
 
 test('internal gap reasons are never shown under a question (G3b re-check, 11 Nov)', () => {

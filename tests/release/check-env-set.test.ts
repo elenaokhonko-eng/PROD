@@ -178,6 +178,18 @@ test("short HMAC secrets and service-role keys in NEXT_PUBLIC_* fail", () => {
   assert.ok(failed.includes("no secrets in NEXT_PUBLIC_*"))
 })
 
+test("the Edge Gemini key must not be the Render Gemini key (week one)", () => {
+  const values = productionValues()
+  values.GEMINI_API_KEY = values.GOOGLE_GENERATIVE_AI_API_KEY
+  const failed = failures(checkEnvironmentSet("production", file(values)))
+  assert.ok(failed.includes("the Edge and Render Gemini keys are different keys"))
+  assert.ok(!failures(checkEnvironmentSet("production", file(productionValues()))).includes("the Edge and Render Gemini keys are different keys"))
+  const staging = stagingValues()
+  staging.GEMINI_API_KEY = staging.GOOGLE_GENERATIVE_AI_API_KEY
+  const finding = checkEnvironmentSet("staging", file(staging)).find((f) => f.check === "the Edge and Render Gemini keys are different keys")
+  assert.equal(finding?.status, "WARN")
+})
+
 test("generated secrets must differ between environments", () => {
   const production = productionValues()
   production.WORKER_SECRET = stagingValues().WORKER_SECRET

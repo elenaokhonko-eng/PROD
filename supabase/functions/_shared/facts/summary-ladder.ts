@@ -7,7 +7,7 @@
 //      facts, with no model text. The job is logged for review with IDs and check names only.
 // Only infrastructure errors (database, auth) still fail the request.
 
-import { factLabel, formatFactValue } from "./display.ts";
+import { factLabel, formatFactValue, harmoniseDates } from "./display.ts";
 import { backoffMs, openAiUsage, type TokenUsage } from "../model-usage.ts";
 import type { FactKey } from "./keys.ts";
 import {
@@ -78,7 +78,7 @@ export async function produceSummary({ facts, options, generate, sanitize = (s) 
       failures = validateOutput([summary], facts, options);
     }
     if (!failures.length) {
-      return { summary, source: "model", attempts: attempt, fallbackReason: null, firedChecks, hardChecks: [] };
+      return { summary: harmoniseDates(summary), source: "model", attempts: attempt, fallbackReason: null, firedChecks, hardChecks: [] };
     }
     lastFailures = failures;
     previous = describeFailures(failures);

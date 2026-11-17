@@ -103,3 +103,22 @@ services:
           type: web
           name: guidebuoy-nextjs
           envVarKey: WORKER_SECRET
+      # The worker sends the hourly cost alerts (cost-controls spec §6 C2) through lib/mail (cutover checklist, week one).
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_REQUIRE_TLS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_FROM_NAME
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false

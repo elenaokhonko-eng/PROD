@@ -22,6 +22,7 @@ import {
 import { FACT_LABELS } from "./keys.ts";
 import { normaliseInstitution } from "./institutions.ts";
 import { normaliseDate, normaliseMoney, normaliseYesNo } from "./normalise.ts";
+import { DATE_PATTERN } from "./validate-output.ts";
 
 const CHANNEL_TEXT: Record<PhishingChannel, string> = {
   phone_call: "Phone call",
@@ -82,6 +83,13 @@ function formatDate(iso: string | null): string | null {
   const [y, m, d] = iso.split("-").map(Number);
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return `${d} ${months[m - 1]} ${y}`;
+}
+
+// Cutover checklist, week one: the model's summary writes dates in whatever form it likes; every date in it is
+// rewritten in the facts list's form ("3 Oct 2026"), so the evaluation uses one date format. A date that does not
+// parse is left as written.
+export function harmoniseDates(text: string): string {
+  return text.replace(DATE_PATTERN, (match) => formatDate(normaliseDate(match)) ?? match);
 }
 
 export function formatMoney(money: Money): string {

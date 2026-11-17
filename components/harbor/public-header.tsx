@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { AccountButton } from '@/components/harbor/account-button'
 import { ModeSwitcher } from '@/components/harbor/mode-switcher'
 import { START_EVALUATION, STORY_ANCHOR } from '@/lib/harbor/cta'
 import { cn } from '@/lib/utils'
@@ -61,13 +62,17 @@ export function PublicHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1 lg:ml-2">
-          <ModeSwitcher />
+          {/* A signed-in phone header has the account button too; the display settings move into the menu to make room. */}
+          <div className={cn('shrink-0', isSignedIn && 'hidden sm:block')}>
+            <ModeSwitcher />
+          </div>
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
             <Link href={account.href}>{account.label}</Link>
           </Button>
           <Button asChild size="sm">
             <Link href={STORY_ANCHOR}>{START_EVALUATION}</Link>
           </Button>
+          <AccountButton />
           <Dialog open={drawerOpen} onOpenChange={setDrawerOpen}>
             <DialogTrigger asChild>
               <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open navigation menu">
@@ -102,6 +107,12 @@ export function PublicHeader() {
                     <Link href={account.href}>{account.label}</Link>
                   </Button>
                 </div>
+                {isSignedIn && (
+                  <div className="mt-4 flex items-center justify-between gap-2 sm:hidden">
+                    <span className="text-sm font-medium">Display and sensory settings</span>
+                    <ModeSwitcher />
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>

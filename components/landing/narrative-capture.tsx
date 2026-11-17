@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { trackClientEvent } from '@/lib/analytics/client'
 import { trackFunnel } from '@/lib/analytics/funnel'
 import { ACCOUNT_NOTICE, SUBMIT_STORY } from '@/lib/harbor/cta'
+import { appendToStory } from '@/lib/story-text'
 import { persistPendingNarrative, readPendingNarrative } from '@/components/landing/hero-capture'
 
 // Brief W1 Addendum V §V4: a one-line placeholder; the worked example (finding B1, synthetic) is shown below the box.
@@ -138,7 +139,7 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
           if (!response.ok || !data.transcription) {
             throw new Error(data.error || 'The recording could not be transcribed.')
           }
-          setNarrative(data.transcription)
+          setNarrative((current) => appendToStory(current, data.transcription))
           trackFunnel('story_started')
         } catch (recordingError) {
           if ((recordingError as Error).name !== 'AbortError') {

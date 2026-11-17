@@ -3,15 +3,13 @@
 import type { ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { UserButton, useUser } from '@clerk/nextjs'
 import { FolderOpen, Settings } from 'lucide-react'
+import { AccountButton } from '@/components/harbor/account-button'
 import { ModeSwitcher } from '@/components/harbor/mode-switcher'
 import { ReportProblem } from '@/components/harbor/report-problem'
 import { PublicFooter } from '@/components/harbor/public-footer'
 
 export function CaseShell({ children }: { children: ReactNode }) {
-  const { isLoaded, isSignedIn } = useUser()
-
   return (
     <div className="min-h-screen bg-background">
       <a
@@ -43,11 +41,7 @@ export function CaseShell({ children }: { children: ReactNode }) {
               <span className="hidden sm:inline">Settings</span>
             </Link>
             <ModeSwitcher />
-            {isLoaded && isSignedIn && (
-              <div className="flex size-11 items-center justify-center">
-                <UserButton />
-              </div>
-            )}
+            <AccountButton />
           </nav>
         </div>
       </header>

@@ -1,9 +1,25 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(13);
+select plan(14);
 
 -- Catalog rules: each query lists the offenders, so a failure names them.
+-- Week one (12 Nov): every public foreign key has an index that starts with its columns.
+select is_empty(
+  $$
+    select c.conrelid::regclass::text || ':' || c.conname
+    from pg_constraint c
+    where c.contype = 'f' and c.connamespace = 'public'::regnamespace
+      and not exists (
+        select 1 from pg_index i
+        where i.indrelid = c.conrelid
+          and (i.indkey::int2[])[0:array_length(c.conkey, 1) - 1] @> c.conkey
+          and (i.indkey::int2[])[0:array_length(c.conkey, 1) - 1] <@ c.conkey
+      )
+  $$,
+  'every public foreign key has an index'
+);
+
 select is_empty(
   $$
     select c.relname::text

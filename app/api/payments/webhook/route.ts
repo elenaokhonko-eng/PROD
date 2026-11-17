@@ -68,6 +68,13 @@ async function reconcilePaymentLifecycleEvents(
 }
 
 export async function POST(request: NextRequest) {
+  // An unsigned request is refused before anything else, so it gets 400 even where Stripe is not configured yet
+  // (production while paid stages are off had answered 500).
+  const signature = request.headers.get("stripe-signature")
+  if (!signature) {
+    return new NextResponse("Missing stripe-signature header", { status: 400 })
+  }
+
   const stripeSecret = process.env.STRIPE_SECRET_KEY
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
   if (!stripeSecret || !webhookSecret) {
@@ -75,11 +82,6 @@ export async function POST(request: NextRequest) {
   }
 
   const stripe = new Stripe(stripeSecret, { apiVersion: "2024-06-20" })
-
-  const signature = request.headers.get("stripe-signature")
-  if (!signature) {
-    return new NextResponse("Missing stripe-signature header", { status: 400 })
-  }
 
   const buf = await request.arrayBuffer()
   const rawBody = Buffer.from(buf).toString("utf8")
