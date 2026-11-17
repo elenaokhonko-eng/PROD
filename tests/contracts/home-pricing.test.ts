@@ -99,6 +99,7 @@ test('§E4: Pricing has the start button in its header, the GST line and a refun
   assert.match(pricing, /\{REFUNDS_LINE\}\{' '\}\s*<Link href="\/terms#section-6"[^>]*>Terms, clause 6\.4<\/Link>/)
   assert.doesNotMatch(pricing, /not a law firm/, 'the repeated notice is gone; the What GuideBuoy is block says it')
   assert.match(pricing, /<WhatGuideBuoyIs /)
+  assert.doesNotMatch(pricing, /\bintro=/, 'Elena, 18 Nov: no intro; the comparison line says it once')
   assert.match(readFileSync('components/harbor/legal-document.tsx', 'utf8'), /id=\{sectionAnchor\(block\.text\)\}/)
   assert.match(readFileSync('docs/legal/terms-of-service.md', 'utf8'), /^## 6\. /m)
 })

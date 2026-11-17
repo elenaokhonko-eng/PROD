@@ -21,7 +21,6 @@ export default function PricingPage() {
     <MarketingPage
       eyebrow="Clear, one-off prices"
       title="Free to start. Paid only when you choose more."
-      intro="Each option builds a more detailed record: the free evaluation organises and assesses your case, the bank pack turns it into a formal complaint, and the FIDReC pack is a complete case pack for FIDReC’s process. No pack guarantees an outcome."
       action={
         <>
           <StartEvaluationButton />
