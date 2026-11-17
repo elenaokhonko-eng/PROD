@@ -26,6 +26,11 @@ function Text({ inlines }: { inlines: Inline[] }) {
   )
 }
 
+function sectionAnchor(text: string): string | undefined {
+  const number = /^(\d+)\.\s/.exec(text)?.[1]
+  return number ? `section-${number}` : undefined
+}
+
 // Renders a document from docs/legal word for word. The page title is the document's own "# " heading, which the
 // header's title must match (tests/contracts/legal-pages.test.ts).
 export function LegalDocumentPage({ document }: { document: LegalDocument }) {
@@ -36,7 +41,8 @@ export function LegalDocumentPage({ document }: { document: LegalDocument }) {
           switch (block.kind) {
             case 'heading':
               return block.level === 1 ? null : (
-                <h2 key={i} className="pt-4 text-xl font-medium">
+                // A numbered section gets an anchor ("6. Products…" → #section-6) so other pages can link to a clause.
+                <h2 key={i} id={sectionAnchor(block.text)} className="scroll-mt-24 pt-4 text-xl font-medium">
                   {block.text}
                 </h2>
               )

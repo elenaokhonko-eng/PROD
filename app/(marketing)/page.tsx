@@ -1,13 +1,13 @@
 ﻿import type { Metadata } from 'next'
 import { pageAlternates } from '@/lib/seo/indexing'
 import Image from 'next/image'
-import Link from 'next/link'
-import { ArrowRight, FileCheck2, LockKeyhole, Repeat2 } from 'lucide-react'
+import { FileCheck2, LockKeyhole, Repeat2 } from 'lucide-react'
 import { NarrativeCapture } from '@/components/landing/narrative-capture'
+import { EmergencyStrip } from '@/components/harbor/emergency-strip'
 import { PackComparison } from '@/components/harbor/pack-comparison'
+import { RouteStrip } from '@/components/harbor/route-strip'
 import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
 import { StickyStartBar } from '@/components/harbor/sticky-start-bar'
-import { Button } from '@/components/ui/button'
 import { paidStagesState } from '@/lib/billing/paid-stages'
 import { NO_CARD_LINE } from '@/lib/harbor/cta'
 import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
@@ -52,6 +52,8 @@ export default function HomePage() {
   const { enabled: packsLive } = paidStagesState()
   return (
     <main id="main-content" tabIndex={-1} className="flex-1">
+      {/* Brief W1 §D1: above the hero; dismissible; not sticky. */}
+      <EmergencyStrip />
       <section className="hero-gradient border-b py-10 sm:py-16">
         <div className="gb-container grid items-center gap-10 lg:grid-cols-[1fr_0.86fr]">
           <div className="min-w-0">
@@ -86,13 +88,18 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="gb-container -mt-1 py-10 sm:py-14">
-        <div id="tell-your-story" className="mx-auto flex max-w-3xl scroll-mt-24 flex-col gap-4">
-          {/* Brief W1 §B1: the promises sit directly above the box where the visitor is asked to trust us. */}
-          <TrustRow />
-          <NarrativeCapture />
-        </div>
-      </section>
+      {/* Brief W1 §D2: the route strip comes before the story box on desktop and after it on phones. One copy, placed in
+          phone order, so on phones what is read and tabbed matches what is seen. */}
+      <div className="flex flex-col">
+        <section className="gb-container -mt-1 py-10 sm:py-14">
+          <div id="tell-your-story" className="mx-auto flex max-w-3xl scroll-mt-24 flex-col gap-4">
+            {/* Brief W1 §B1: the promises sit directly above the box where the visitor is asked to trust us. */}
+            <TrustRow />
+            <NarrativeCapture />
+          </div>
+        </section>
+        <RouteStrip className="lg:order-first" />
+      </div>
 
       <section className="gb-container py-10 sm:py-14" aria-labelledby="options-title">
         <h2 id="options-title" className="text-center text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">
@@ -105,7 +112,8 @@ export default function HomePage() {
         <WhatGuideBuoyIs className="mt-9" />
       </section>
 
-      <section className="border-y bg-card py-12 sm:py-16" aria-labelledby="reasons-title">
+      {/* Addendum V §V2, V7: sections are set apart by background and spacing, not rules. */}
+      <section className="bg-harbor-surface-subtle py-12 sm:py-16" aria-labelledby="reasons-title">
         <div className="gb-container">
           <h2 id="reasons-title" className="text-center text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">
             A calmer way to move forward
@@ -122,18 +130,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="gb-container py-12 text-center sm:py-16" aria-labelledby="journey-title">
-        <h2 id="journey-title" className="text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">The journey in one glance</h2>
-        <p className="mx-auto mt-5 max-w-4xl text-lg leading-8 text-muted-foreground">
-          Tell your story → Add supporting material → Answer focused questions → Review your draft → Choose your next step → See further options where offered.
-        </p>
-        <Button asChild variant="outline" className="mt-7">
-          <Link href="/how-it-works">See exactly how it works <ArrowRight aria-hidden="true" /></Link>
-        </Button>
-      </section>
-
-      {/* §A4: closing band. */}
-      <section className="border-t bg-card py-12 sm:py-16" aria-labelledby="closing-title">
+      {/* §A4: closing band. Addendum V §V6: the route strip replaces "The journey in one glance". */}
+      <section className="bg-card py-12 sm:py-16" aria-labelledby="closing-title">
         <div className="gb-container flex flex-col items-center gap-3 text-center">
           <h2 id="closing-title" className="text-[1.75rem] font-semibold text-harbor-deep sm:text-[2rem]">
             Find out where you stand
