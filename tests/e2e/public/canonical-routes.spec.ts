@@ -31,7 +31,9 @@ test('/product permanently redirects to How it works, which carries the report o
   await page.goto('/product', { waitUntil: 'domcontentloaded' })
   expect(new URL(page.url()).pathname).toBe('/how-it-works')
   await expect(page.getByRole('heading', { level: 2, name: 'A structure you can review before using' })).toBeVisible()
-  await expect(page.locator('a[href="/pricing"]:visible').first()).toBeVisible()
+  for (const section of ['Summary', 'Chronology', 'Transactions', 'Evidence', 'Open questions', 'Limitations']) {
+    await expect(page.getByText(section, { exact: true })).toBeVisible()
+  }
 })
 
 test('public plan CTAs use canonical routes and avoid retired consultation links', async ({ page }) => {

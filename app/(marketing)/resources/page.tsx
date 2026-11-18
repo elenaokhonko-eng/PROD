@@ -55,7 +55,7 @@ export default function ResourcesPage() {
                   <PhoneCall className="size-4" aria-hidden="true" />
                   {line.phone}
                 </a>
-                <p className="text-sm leading-6 text-muted-foreground">{line.label}</p>
+                <p className="leading-7 text-muted-foreground">{line.label}</p>
                 <a href={line.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-auto inline-flex min-h-11 items-center pt-2 text-sm underline underline-offset-4">
                   Source: {line.bank} website<span className="sr-only"> (opens in a new tab)</span>
                 </a>
