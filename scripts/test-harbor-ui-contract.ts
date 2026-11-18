@@ -35,8 +35,7 @@ const settingsSource = readSource('app/(case)/app/settings/_components/settings-
 const stateMachineSource = readSource('hooks/state-machine/use-state-machine.ts')
 const paymentStatusSource = readSource('hooks/state-machine/transition/use-payment-status.ts')
 const paymentLandingSource = readSource('components/state-machine/transition/payment-success-landing.tsx')
-const resourceDirectorySource = readSource('components/harbor/resource-directory.tsx')
-const resourceRouteSource = readSource('app/api/resources/route.ts')
+const resourcesPageSource = readSource('app/(marketing)/resources/page.tsx')
 const jobStatusRouteSource = readSource('app/api/cases/[caseId]/job-status/route.ts')
 const jobStatusHookSource = readSource('hooks/state-machine/layer2/use-job-status.ts')
 
@@ -255,17 +254,12 @@ describe('Harbor UI functionality contract', () => {
     assert.doesNotMatch(middleware, /!process\.env\.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY\)[\s\S]*return NextResponse\.next\(\)/)
   })
 
-  it('keeps resources provider-backed, retryable, and explicitly unavailable', () => {
-    assert.match(resourceDirectorySource, /fetch\('\/api\/resources'/)
-    assert.match(resourceDirectorySource, /status: 'loading'/)
-    assert.match(resourceDirectorySource, /status: 'error'/)
-    assert.match(resourceDirectorySource, /setRequestVersion/)
-    assert.match(resourceDirectorySource, /filteredResources/)
-    assert.match(resourceDirectorySource, /No official resources are available\./)
-    assert.match(resourceDirectorySource, /No resources match this filter\./)
-    assert.match(resourceRouteSource, /code: 'resources_unavailable'/)
-    assert.match(resourceRouteSource, /status: 503/)
-    assert.doesNotMatch(resourceRouteSource, /resources\s*:\s*\[/)
+  // Brief W1 §I replaces the client-loaded directory: the page is server-rendered from lib/resources/official-help.ts.
+  it('renders resources on the server from the checked official list', () => {
+    assert.doesNotMatch(resourcesPageSource, /^﻿?['"]use client['"]/)
+    assert.doesNotMatch(resourcesPageSource, /fetch\(/)
+    assert.match(resourcesPageSource, /from '@\/lib\/resources\/official-help'/)
+    assert.equal(existsSync(join(ROOT, 'app/api/resources/route.ts')), false)
     assert.equal(existsSync(join(ROOT, 'app/api/contact/route.ts')), false)
   })
   it('publishes exactly 61 synthetic fixtures behind a production guard', () => {

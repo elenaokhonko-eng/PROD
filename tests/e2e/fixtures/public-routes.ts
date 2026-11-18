@@ -14,7 +14,7 @@ export const marketingRoutes: PublicRoute[] = [
   { path: '/marketplace', landmark: 'Help categories being considered.' },
   { path: '/marketplace/volunteers', expectedPath: '/marketplace', landmark: 'Help categories being considered.' },
   { path: '/coming-soon', expectedPath: '/marketplace', landmark: 'Help categories being considered.' },
-  { path: '/product', landmark: 'One calm place to organise what happened.' },
+  { path: '/product', expectedPath: '/how-it-works', landmark: /From something went wrong to here.s my organised case\./ },
   { path: '/pricing', landmark: 'Free to start. Paid only when you choose more.' },
   { path: '/how-it-works', landmark: /From something went wrong to here.s my organised case\./ },
 ]

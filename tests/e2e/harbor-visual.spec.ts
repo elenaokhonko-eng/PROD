@@ -5,7 +5,7 @@ const PUBLIC_ROUTES = [
   { name: 'home', path: '/', markers: ['Tell us once', 'A calmer way to move forward'] },
   { name: 'how-it-works', path: '/how-it-works', markers: ['Six calm steps', 'From something went wrong'] },
   { name: 'pricing', path: '/pricing', markers: ['Free to start. Paid only when you choose more.', 'Clear, one-off prices'] },
-  { name: 'resources', path: '/resources', markers: ['Our verified resources directory is under development.'] },
+  { name: 'resources', path: '/resources', markers: ['Scam just happened? Call your bank first.', 'Bank fraud hotlines'] },
   { name: 'marketplace', path: '/marketplace', markers: ['Future help directory', 'Planned—not currently available through GuideBuoy.'] },
   { name: 'about', path: '/about', markers: ['Why GuideBuoy exists', 'The burden should sit on the system'] },
   { name: 'faq', path: '/faq', markers: ['FAQ and contact', 'Honest answers for a stressful moment.'] },

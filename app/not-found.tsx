@@ -15,6 +15,11 @@ export default function NotFound() {
         <Button asChild className="mt-7 min-h-11">
           <Link href="/">Return home</Link>
         </Button>
+        {/* Brief W1 §I: links to Home, How it works and FAQ. */}
+        <nav aria-label="Helpful pages" className="mt-4 flex flex-wrap justify-center gap-x-5 text-sm">
+          <Link href="/how-it-works" className="inline-flex min-h-11 items-center underline underline-offset-4">How it works</Link>
+          <Link href="/faq" className="inline-flex min-h-11 items-center underline underline-offset-4">FAQ</Link>
+        </nav>
       </section>
     </main>
   )

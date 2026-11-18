@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { expectNoHorizontalOverflow, monitorClientErrors } from '../helpers/page-quality'
+import { BANK_HOTLINES, OFFICIAL_SOURCES } from '../../../lib/resources/official-help'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/analytics/track**', (route) =>
@@ -45,62 +46,25 @@ test('faq exposes stateful explorer and keeps contact workflow disabled', async 
   errors.assertNoHydrationErrors()
 })
 
-// Finding D5: while the directory is unavailable the page says it is under development, offers no retry and shows
-// no substitute resources.
-test('resources page says the directory is under development when the API is down', async ({ page }) => {
-  let requestCount = 0
-  await page.route('**/api/resources**', (route) => {
-    requestCount += 1
-    return route.fulfill({
-      status: 503,
-      contentType: 'application/json',
-      body: JSON.stringify({ error: 'resources_unavailable' }),
-    })
-  })
+// Brief W1 §I: the Resources list is in the server HTML, so it works without JavaScript; every hotline is a phone link.
+test('resources page lists every checked hotline and official source without JavaScript', async ({ browser, request }) => {
+  const html = await (await request.get('/resources')).text()
+  for (const line of BANK_HOTLINES) {
+    expect(html, line.bank).toContain(line.bank)
+    expect(html, line.bank).toContain(`href="tel:${line.tel}"`)
+  }
+  for (const source of OFFICIAL_SOURCES) expect(html, source.title).toContain(source.link.href)
 
-  await page.goto('/resources', { waitUntil: 'domcontentloaded' })
-
-  await expect(page.getByRole('heading', { name: 'Our verified resources directory is under development.' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0)
-  await expect(page.getByRole('link', { name: 'Visit official website' })).toHaveCount(0)
-  expect(requestCount).toBe(1)
-})
-
-test('resources page renders loading and ready/filter states when API responds', async ({ page }) => {
-  // Hold the response until the loading state has been seen, so slow hydration cannot skip it.
-  let releaseResponse: () => void = () => {}
-  const responseReleased = new Promise<void>((resolve) => { releaseResponse = resolve })
-  await page.route('**/api/resources**', async (route) => {
-    await responseReleased
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        resources: [
-          {
-            id: 'scamshield',
-            name: 'ScamShield',
-            summary: 'Scam guidance and support resources in Singapore.',
-            category: 'Scam support',
-            url: 'https://www.scamshield.gov.sg/',
-          },
-        ],
-      }),
-    })
-  })
-
-  await page.goto('/resources', { waitUntil: 'domcontentloaded' })
-  await expect(page.getByRole('heading', { name: 'Loading official resources…' })).toBeVisible()
-  releaseResponse()
-  await expect(page.getByRole('heading', { name: 'Official resource directory' })).toBeVisible()
-
-  const filter = page.getByLabel('Filter verified resources')
-  await filter.fill('not-a-real-provider')
-  await expect(page.getByText('No resources match this filter.')).toBeVisible()
-
-  await filter.fill('ScamShield')
-  await expect(page.getByRole('heading', { level: 3, name: 'ScamShield' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Visit official website' })).toHaveAttribute('href', 'https://www.scamshield.gov.sg/')
+  const context = await browser.newContext({ javaScriptEnabled: false })
+  const page = await context.newPage()
+  await page.goto('/resources')
+  await expect(page.getByTestId('bank-hotlines').locator(':scope > li')).toHaveCount(BANK_HOTLINES.length)
+  await expect(page.getByRole('heading', { level: 2, name: 'Bank fraud hotlines' })).toBeVisible()
+  for (const title of ['ScamShield', 'Police report', 'MoneySense', 'FIDReC', 'MAS']) {
+    await expect(page.getByRole('heading', { level: 2, name: title, exact: true })).toBeVisible()
+  }
+  await expect(page.getByText('Last checked 18 Nov 2026.')).toBeVisible()
+  await context.close()
 })
 
 test('pricing and marketplace preserve disabled-service Harbor contract copy', async ({ page }) => {

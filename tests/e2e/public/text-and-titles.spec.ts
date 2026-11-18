@@ -20,7 +20,7 @@ const RETIRED = [
   'DID +65',
 ]
 
-const PAGES = ['/', '/how-it-works', '/pricing', '/product', '/about', '/faq', '/resources', '/marketplace', '/sign-in', '/sign-up']
+const PAGES = ['/', '/how-it-works', '/pricing', '/about', '/faq', '/resources', '/marketplace', '/sign-in', '/sign-up']
 
 for (const path of PAGES) {
   test(`${path}: none of the retired wording, in the text or the head`, async ({ page }) => {

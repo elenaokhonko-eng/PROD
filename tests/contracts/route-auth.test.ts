@@ -13,7 +13,6 @@ const GUARD =
   /\bauth\(\)|getCurrentUser\(|currentUser\(|factsCaseAccess\(|resolveRequestSupabaseUuid\(|assertCaseAccess\(|proxyEdgeFunction\(|handleClerkWebhook\(|constructEvent\(|timingSafeEqual\(|headers: \{ Authorization: `Bearer \$\{bearer\}` \}/
 
 const PUBLIC: Record<string, string> = {
-  'resources': 'static public resource list',
   'router/assess': 'pre-sign-in triage; rules only, limited per IP',
   'router/classify': 'pre-sign-in triage; model call limited per IP and by the daily breaker',
   'router/questions': 'pre-sign-in triage; model call limited per IP and by the daily breaker',

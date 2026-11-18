@@ -49,10 +49,6 @@ test.beforeEach(async ({ page }) => {
 
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session }) })
   })
-
-  await page.route('**/api/resources**', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ resources: [] }) }),
-  )
 })
 
 for (const route of [...marketingRoutes, ...routerStaticRoutes]) {

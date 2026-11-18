@@ -13,7 +13,6 @@ const routes = [
   '/marketplace',
   '/marketplace/volunteers',
   '/coming-soon',
-  '/product',
   '/sign-in',
   '/sign-up',
   '/router',
@@ -29,13 +28,6 @@ test.beforeEach(async ({ page }) => {
 
   await page.route('**/api/analytics/track**', (route) =>
     route.fulfill({ status: 202, contentType: 'application/json', body: '{}' }),
-  )
-  await page.route('**/api/resources', (route) =>
-    route.fulfill({
-      status: 503,
-      contentType: 'application/json',
-      body: JSON.stringify({ error: 'Official resources are not currently available' }),
-    }),
   )
   await page.route('**/api/router/session**', (route) =>
     route.fulfill({
@@ -80,7 +72,9 @@ for (const path of routes) {
 
 async function settleRoute(page: Page, path: (typeof routes)[number]) {
   if (path === '/resources') {
-    await expect(page.getByRole('heading', { level: 2, name: 'Our verified resources directory is under development.' })).toBeVisible()
+    // Brief W1 §I: the list is server-rendered; the last section confirms the whole page is there.
+    await expect(page.getByRole('heading', { level: 2, name: 'Bank fraud hotlines' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'MAS', exact: true })).toBeVisible()
     return
   }
 

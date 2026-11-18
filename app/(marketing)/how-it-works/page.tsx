@@ -2,8 +2,8 @@
 import { pageAlternates } from '@/lib/seo/indexing'
 import Link from 'next/link'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
+import { FileCheck2 } from 'lucide-react'
 import { StepJourney } from '@/components/harbor/step-journey'
-import { PathwayChip } from '@/components/harbor/pathway-chip'
 import { WaitingTracker } from '@/components/harbor/waiting-tracker'
 import { Button } from '@/components/ui/button'
 import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
@@ -32,19 +32,38 @@ export default function HowItWorksPage() {
       intro="GuideBuoy keeps the information you add to your case workspace so you can review your story, evidence and next steps together."
     >
       <MarketingSection>
-        <StepJourney steps={steps} />
+        {/* Brief W1 §I: a primary button after step 4 as well as at the end. */}
+        <StepJourney steps={steps} actionAfterStep={4} action={<StartEvaluationButton />} />
+        <p className="mt-6 max-w-3xl leading-7 text-muted-foreground">A suggested next step is informational, not a decision. The relevant organisation or authority decides what happens next.</p>
       </MarketingSection>
-      <section className="border-y bg-card py-12 sm:py-16" aria-labelledby="paths-title">
-        <div className="gb-container">
-          <h2 id="paths-title" className="text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">Complaint paths in plain words</h2>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <PathwayChip>Bank or financial institution</PathwayChip>
-            <PathwayChip tone="formal">FIDReC</PathwayChip>
-            <PathwayChip>IMDA or telco</PathwayChip>
-            <PathwayChip tone="formal">Police and ScamShield</PathwayChip>
-            <PathwayChip tone="waiting">Crypto or overseas platform</PathwayChip>
+      {/* Brief W1 §I: the report outline from the retired /product page, word for word. The "Complaint paths" row is
+          removed (Elena, 18 Nov). */}
+      <section className="bg-harbor-surface py-12 sm:py-16" aria-labelledby="preview-title">
+        <div className="gb-container gb-readable">
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Live report preview</p>
+          <h2 id="preview-title" className="mt-3 text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-primary-active">
+            A structure you can review before using
+          </h2>
+          <p className="mt-4 leading-7 text-muted-foreground">
+            Report sections are assembled from the information in your case. Missing or uncertain details remain visible rather than being guessed.
+          </p>
+          <div className="mt-6 rounded-card border bg-background p-4 sm:p-6">
+            <div className="flex items-center gap-3 border-b pb-4">
+              <FileCheck2 className="size-6 text-harbor-info" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Complaint report</p>
+                <p className="text-sm text-muted-foreground">Preview structure</p>
+              </div>
+            </div>
+            <ol className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+              {['Summary', 'Chronology', 'Transactions', 'Evidence', 'Open questions', 'Limitations'].map((section, index) => (
+                <li key={section} className="flex min-h-11 items-center gap-3 rounded-control bg-harbor-surface-subtle px-3">
+                  <span className="tabular-nums text-muted-foreground">{index + 1}</span>
+                  <span className="font-medium">{section}</span>
+                </li>
+              ))}
+            </ol>
           </div>
-          <p className="mt-6 max-w-3xl leading-7 text-muted-foreground">A suggested next step is informational, not a decision. The relevant organisation or authority decides what happens next.</p>
         </div>
       </section>
       <MarketingSection>

@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/analytics/track**', (route) => route.fulfill({ status: 202, contentType: 'application/json', body: '{}' }))
 })
 
-const WITH_BLOCK = ['/', '/pricing', '/how-it-works', '/about', '/faq', '/product']
+const WITH_BLOCK = ['/', '/pricing', '/how-it-works', '/about', '/faq']
 const PUBLIC_PAGES = [...WITH_BLOCK, '/resources', '/marketplace']
 
 for (const path of PUBLIC_PAGES) {

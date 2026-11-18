@@ -45,10 +45,7 @@ export default function MarketplacePage() {
             </article>
           ))}
         </div>
-        <aside className="mt-8 rounded-card border bg-harbor-surface-subtle p-4 sm:p-6" aria-label="Human consultation availability">
-          <h2 className="text-xl font-semibold">Consultation</h2>
-          <p className="mt-2 leading-7 text-muted-foreground">Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.</p>
-        </aside>
+        {/* Brief W1 §I: no consultation card here; it contradicted "Not currently available" above. */}
       </MarketingSection>
     </MarketingPage>
   )
