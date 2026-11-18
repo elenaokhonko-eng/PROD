@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/analytics/track**', (route) => route.fulfill({ status: 202, contentType: 'application/json', body: '{}' }))
 })
 
-const PAGES = ['/', '/how-it-works', '/pricing', '/product', '/about', '/faq', '/resources', '/marketplace']
+const PAGES = ['/', '/how-it-works', '/pricing', '/about', '/faq', '/resources', '/marketplace']
 
 for (const path of PAGES) {
   test(`${path}: type scale`, async ({ page }) => {

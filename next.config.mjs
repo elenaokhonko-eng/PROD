@@ -39,6 +39,8 @@ const nextConfig = {
     return [
       { source: '/coming-soon', destination: '/marketplace', permanent: false },
       { source: '/marketplace/volunteers', destination: '/marketplace', permanent: false },
+      // Brief W1 §I: the product page duplicated How it works; its report outline moved there.
+      { source: '/product', destination: '/how-it-works', permanent: true },
     ]
   },
 }

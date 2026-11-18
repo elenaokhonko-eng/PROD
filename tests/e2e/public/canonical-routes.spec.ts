@@ -22,19 +22,16 @@ for (const path of ['/pricing', '/how-it-works']) {
   })
 }
 
-test('/product serves canonical product content and routes to pricing', async ({ page, request }) => {
+// Brief W1 §I: /product is retired with a permanent redirect; its report outline is on How it works.
+test('/product permanently redirects to How it works, which carries the report outline', async ({ page, request }) => {
   const response = await request.get('/product', { maxRedirects: 0 })
-  expect(response.status(), await response.text()).toBe(200)
-  expect(response.headers().location).toBeUndefined()
+  expect(response.status()).toBe(308)
+  expect(response.headers().location).toBe('/how-it-works')
 
   await page.goto('/product', { waitUntil: 'domcontentloaded' })
-  expect(new URL(page.url()).pathname).toBe('/product')
-  await expect(page.getByRole('heading', { level: 1, name: 'One calm place to organise what happened.' })).toBeVisible()
-
-  const pricingLinks = await page.locator('a[href="/pricing"]:visible').count()
-  const howItWorksLinks = await page.locator('a[href="/how-it-works"]:visible').count()
-  expect(pricingLinks).toBeGreaterThan(0)
-  expect(howItWorksLinks).toBeGreaterThan(0)
+  expect(new URL(page.url()).pathname).toBe('/how-it-works')
+  await expect(page.getByRole('heading', { level: 2, name: 'A structure you can review before using' })).toBeVisible()
+  await expect(page.locator('a[href="/pricing"]:visible').first()).toBeVisible()
 })
 
 test('public plan CTAs use canonical routes and avoid retired consultation links', async ({ page }) => {

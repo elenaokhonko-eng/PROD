@@ -13,7 +13,6 @@ const routes = [
   '/marketplace',
   '/marketplace/volunteers',
   '/coming-soon',
-  '/product',
   '/sign-in',
   '/sign-up',
   '/router',
