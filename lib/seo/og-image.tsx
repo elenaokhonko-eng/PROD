@@ -1,6 +1,10 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { ImageResponse } from 'next/og'
+// scripts/render-og-images.tsx runs this under tsx, which compiles JSX to React.createElement.
+import * as React from 'react'
+
+void React
 
 // Brief W1 §L6: a 1200 × 630 link-preview image per page, with the page's headline on the Harbor background and the
 // small mascot. No text smaller than 40 px. Built when the page is built; nothing is fetched at request time.

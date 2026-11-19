@@ -26,7 +26,7 @@ export function indexNowKey(dir = 'public'): string {
 export function routesForChangedFiles(files: readonly string[]): string[] {
   const routes = new Set<string>()
   for (const file of files.map((f) => f.replace(/\\/g, '/'))) {
-    const page = file.match(/^app\/\(marketing\)\/(?:([^/]+)\/)?(?:page|opengraph-image)\.tsx$/)
+    const page = file.match(/^app\/\(marketing\)\/(?:([^/]+)\/)?(?:page\.tsx|opengraph-image\.png)$/)
     if (page) {
       routes.add(page[1] ? `/${page[1]}` : '/')
     } else if (file === 'docs/legal/terms-of-service.md') {

@@ -4,6 +4,7 @@ import test from 'node:test'
 import { FOUNDER_NOTE, visibleTeam, type TeamMember } from '../../lib/content/team'
 import { MARKDOWN_COPIES } from '../../lib/seo/public-routes.mjs'
 import { indexNowKey, routesForChangedFiles, submission } from '../../scripts/indexnow-submit'
+import { OG_PAGES } from '../../scripts/render-og-images'
 
 // Brief W1 §G, §L6, §L8 (Release 4).
 
@@ -47,13 +48,16 @@ test('§L6: every indexable page has its own preview and preview image', () => {
   for (const [route, dir] of Object.entries(PAGE_FILES)) {
     const page = readFileSync(`app/(marketing)/${dir}page.tsx`, 'utf8')
     assert.match(page, new RegExp(`\\.\\.\\.pagePreview\\('${route.replace('/', '\\/')}', `), route)
-    const image = `app/(marketing)/${dir}opengraph-image.tsx`
+    // Static images rendered by scripts/render-og-images.tsx (next/og cannot run on Windows in Next 14).
+    const image = `app/(marketing)/${dir}opengraph-image.png`
     assert.ok(existsSync(image), image)
-    const source = readFileSync(image, 'utf8')
-    assert.match(source, /export const size = \{ width: 1200, height: 630 \}/, image)
-    const headline = source.match(/export const alt = '(.*)'/)?.[1]
-    assert.ok(headline && (page.includes(headline) || /^(Terms of Service|Privacy Policy)$/.test(headline)), `${image}: the page's own headline`)
+    const png = readFileSync(image)
+    assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 630], image)
+    const headline = readFileSync(`app/(marketing)/${dir}opengraph-image.alt.txt`, 'utf8')
+    assert.equal(headline, OG_PAGES[dir], `${image}: rendered from the script's headline`)
+    assert.ok(page.includes(headline) || /^(Terms of Service|Privacy Policy)$/.test(headline), `${image}: the page's own headline`)
   }
+  assert.deepEqual(Object.keys(OG_PAGES).sort(), Object.values(PAGE_FILES).sort())
   assert.doesNotMatch(readFileSync('app/layout.tsx', 'utf8'), /lumi-buoy\.jpg/, 'no square avatar as the site-wide preview')
   assert.match(readFileSync('lib/seo/og-image.tsx', 'utf8'), /fontSize: 40/)
   assert.doesNotMatch(readFileSync('lib/seo/og-image.tsx', 'utf8'), /fontSize: ([0-3]\d|\d)\b/, 'no text below 40 px')
