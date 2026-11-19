@@ -139,10 +139,15 @@ function squash(text: string): string {
   return text.toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim();
 }
 
+// A quote may join lines of the source with ";" or "…" (gpt-6-luna does, 20 Nov 2026). It counts only when every part
+// is in the source word for word, so nothing the source does not say gets through.
 function quoted(sourceText: string, item: unknown): string | null {
   const quote = (item as { quote?: unknown } | null)?.quote;
   if (typeof quote !== "string" || !quote.trim()) return null;
-  return squash(sourceText).includes(squash(quote)) ? quote.trim().slice(0, 300) : null;
+  const source = squash(sourceText);
+  const parts = quote.split(/\s*(?:;|…|\.\.\.)\s*/).map(squash).filter((part) => part.length > 0);
+  const found = source.includes(squash(quote)) || (parts.length > 1 && parts.every((part) => part.length >= 3 && source.includes(part)));
+  return found ? quote.trim().slice(0, 300) : null;
 }
 
 function oneOf<T extends string>(allowed: readonly T[], value: unknown): T | null {
