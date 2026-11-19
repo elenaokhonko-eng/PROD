@@ -48,13 +48,15 @@ const stateCaseNames = {
   layer1DraftPending: 'state-layer1-draft-pending',
   layer1FreeDraft: 'state-layer1-free-draft',
   transitionBuyReport: 'state-transition-buy-report',
-  layer2Running: 'state-layer2-running',
-  layer2Drafting: 'state-layer2-drafting',
+  layer2ConfirmBankFacts: 'state-layer2-confirm-bank-facts',
   layer2Ready: 'state-layer2-ready',
-  layer2Failed: 'state-layer2-failed',
   layer3Unavailable: 'state-layer3-unavailable',
   layer3Tier2: 'state-layer3-tier2',
 } as const satisfies Record<keyof StateCases, string>
+
+// Stage 2 retired these states (a paid bank case is on the confirm step until its pack exists); their synthetic cases
+// are removed on the next seed.
+const retiredStateCaseNames = ['state-layer2-running', 'state-layer2-drafting', 'state-layer2-failed'] as const
 
 const releaseCaseNames = {
   ownedA: 'owned-user-a',
@@ -359,18 +361,11 @@ async function main() {
       await seeder.tier0Narrative(id)
       await seeder.caseEntitlement(id, 'free')
     })
-    await add('layer2Running', (id) => seeder.caseEntitlement(id, 'self_serve_report'))
-    await add('layer2Drafting', async (id) => {
-      await seeder.caseEntitlement(id, 'self_serve_report')
-      await seeder.decision(id)
-    })
+    for (const name of retiredStateCaseNames) await seeder.resetCase(seedUuid(name))
+    await add('layer2ConfirmBankFacts', (id) => seeder.caseEntitlement(id, 'self_serve_report'))
     await add('layer2Ready', async (id) => {
       await seeder.caseEntitlement(id, 'self_serve_report')
       await seeder.completedReport(id, userA)
-    })
-    await add('layer2Failed', async (id) => {
-      await seeder.caseEntitlement(id, 'self_serve_report')
-      await seeder.failedReportJob(id, userA)
     })
     await add('layer3Unavailable', async (id) => {
       await seeder.caseEntitlement(id, 'self_serve_report')
