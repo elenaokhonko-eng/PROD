@@ -29,7 +29,9 @@ export function isProbe(path: string, uri: string = path): boolean {
   return (
     (path.includes('/.') && !path.startsWith('/.well-known/')) ||
     path.includes('.env') ||
-    path.includes('..') ||
+    // "../", not "..": Next.js names a catch-all route's script after its folder, e.g. "[[...sign-in]]", and blocking
+    // ".." stopped sign-in and sign-up loading on production (19 Nov). "/.." is already caught by "/." above.
+    path.includes('../') ||
     uri.toLowerCase().includes('%2e%2e') ||
     lowerPath.includes('%2f') ||
     lowerPath.includes('%5c') ||
@@ -47,7 +49,7 @@ const quoted = (values: Iterable<string>) => [...values].map((value) => `"${valu
 export const CLOUDFLARE_PROBE_RULE = [
   '(http.request.uri.path contains "/." and not starts_with(http.request.uri.path, "/.well-known/"))',
   'or (http.request.uri.path contains ".env")',
-  'or (http.request.uri.path contains "..")',
+  'or (http.request.uri.path contains "../")',
   'or (lower(http.request.uri) contains "%2e%2e")',
   'or (lower(http.request.uri.path) contains "%2f")',
   'or (lower(http.request.uri.path) contains "%5c")',

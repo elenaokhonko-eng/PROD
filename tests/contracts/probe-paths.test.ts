@@ -29,9 +29,23 @@ function appRoutes(): string[] {
   return [...walk('app', 'page.tsx'), ...walk('app', 'route.ts')].map(toUrl)
 }
 
+// The script path Next.js builds for every page in a dynamic or catch-all folder, e.g.
+// /_next/static/chunks/app/(auth)/sign-in/[[...sign-in]]/page-<hash>.js, raw and percent-encoded. Sign-in and sign-up
+// were blocked on production by a ".." term on 19 Nov because these paths were never checked.
+function dynamicPageChunks(): string[] {
+  return walk('app', 'page.tsx')
+    .map((path) => relative('app', path).split(sep).slice(0, -1).join('/'))
+    .filter((dir) => dir.includes('['))
+    .flatMap((dir) => {
+      const raw = `/_next/static/chunks/app/${dir}/page-0123456789abcdef.js`
+      return [raw, raw.replace(/\[/g, '%5B').replace(/\]/g, '%5D')]
+    })
+}
+
 
 const RUNTIME_PATHS = [
   '/_next/static/chunks/app/(marketing)/page-0123456789abcdef.js',
+  ...dynamicPageChunks(),
   '/_next/static/chunks/webpack-0123456789abcdef.js',
   '/_next/static/css/0123456789abcdef.css',
   '/_next/static/media/inter-latin.0123.woff2',
@@ -80,6 +94,11 @@ test('no real or planned route is blocked', () => {
   assert.deepEqual(routes.filter((path) => isProbe(path)), [])
   // A redirect back from Clerk or Stripe carries an encoded address in the query string, which must stay allowed.
   assert.equal(isProbe('/sign-in', '/sign-in?redirect_url=https%3A%2F%2Fguidebuoyai.sg%2Fapp'), false)
+  // The catch-all scripts are in the list above; path traversal stays blocked in every spelling.
+  assert.ok(dynamicPageChunks().some((path) => path.includes('%5B%5B...sign-in%5D%5D')))
+  for (const traversal of ['/../etc/passwd', '/a/../../etc/passwd', '/a/..%2f..%2fetc', '/%2e%2e/etc', '/a/..%5cwin.ini', '/a../b']) {
+    assert.equal(isProbe(traversal), true, traversal)
+  }
 })
 
 test('the Cloudflare rule is generated from the same lists and keeps the brief\'s exceptions', () => {
