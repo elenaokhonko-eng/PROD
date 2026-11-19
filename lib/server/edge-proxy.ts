@@ -18,6 +18,7 @@ import {
   DECISION_FN,
   EVIDENCE_FN,
   EXTRACT_FN,
+  FIDREC_PACK_FN,
   REPORT_FN,
   TIER0_FN,
 } from '@/lib/edge-functions'
@@ -158,8 +159,8 @@ function buildForwardBody(
       ...workerBinding,
     }
   }
-  if (fnName === TIER0_FN || fnName === BANK_PACK_FN) {
-    // The confirmed fact snapshot the free evaluation or bank pack is generated from (checked by its route).
+  if (fnName === TIER0_FN || fnName === BANK_PACK_FN || fnName === FIDREC_PACK_FN) {
+    // The confirmed fact snapshot the free evaluation or a paid pack is generated from (checked by its route).
     const snapshotId = typeof body.fact_snapshot_id === 'string' && UUID_PATTERN.test(body.fact_snapshot_id)
       ? body.fact_snapshot_id
       : null
@@ -209,7 +210,7 @@ export async function proxyEdgeFunction({
   let workerJobType: string | null = null
 
   if (isWorkerRequest) {
-    if (fnName === TIER0_FN || fnName === BANK_PACK_FN) {
+    if (fnName === TIER0_FN || fnName === BANK_PACK_FN || fnName === FIDREC_PACK_FN) {
       return NextResponse.json({ error: 'Workers cannot invoke this function' }, { status: 403 })
     }
     const workerAuthorization = await verifyWorkerJob(body)

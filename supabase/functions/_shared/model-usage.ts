@@ -184,6 +184,8 @@ export const OUTPUT_CAPS = {
   summary: 800,
   // The bank pack's prose: up to 900 words of JSON (20 Nov 2026).
   bank_pack: 1_600,
+  // The FIDReC pack's prose and arguments: up to 1,600 words of JSON.
+  fidrec_pack: 3_000,
   case_extraction: 400,
   evidence: 8_192,
   transcription: 2_000,

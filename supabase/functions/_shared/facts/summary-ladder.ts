@@ -79,10 +79,13 @@ export interface CheckedLadderInput<T> {
   texts: (output: T) => string[];
   fallback: (facts: SnapshotFacts) => T;
   sanitize?: (text: string) => string;
+  /** Checks on the structure the text checks can't see (the FIDReC pack's evidence IDs); failing ones regenerate too. */
+  extraChecks?: (output: T) => OutputFailure[];
 }
 
 export async function produceChecked<T>(input: CheckedLadderInput<T>): Promise<CheckedResult<T>> {
-  const { facts, options, generate, mapText, texts, sanitize = (s) => s } = input;
+  const { facts, options, generate, mapText, texts, sanitize = (s) => s, extraChecks = () => [] } = input;
+  const check = (output: T) => [...validateOutput(texts(output), facts, options), ...extraChecks(output)];
   const firedChecks: OutputCheck[][] = [];
   let previous: string | null = null;
   let lastFailures: OutputFailure[] = [];
@@ -102,12 +105,12 @@ export async function produceChecked<T>(input: CheckedLadderInput<T>): Promise<C
       if (!(error instanceof ProviderFailure)) throw error;
       return fallback(attempt, error.kind, []);
     }
-    let failures = validateOutput(texts(output), facts, options);
+    let failures = check(output);
     firedChecks.push(failures.map((f) => f.check));
     if (failures.length) {
       const found = failures;
       output = mapText(output, (text) => repair(text, found, facts, options));
-      failures = validateOutput(texts(output), facts, options);
+      failures = check(output);
     }
     if (!failures.length) {
       return { output: mapText(output, harmoniseDates), source: "model", attempts: attempt, fallbackReason: null, firedChecks, hardChecks: [] };
