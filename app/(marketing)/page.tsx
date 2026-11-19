@@ -1,5 +1,5 @@
 ﻿import type { Metadata } from 'next'
-import { pageAlternates } from '@/lib/seo/indexing'
+import { pageAlternates, pagePreview } from '@/lib/seo/indexing'
 import Image from 'next/image'
 import { FileCheck2, LockKeyhole, Repeat2 } from 'lucide-react'
 import { NarrativeCapture } from '@/components/landing/narrative-capture'
@@ -14,11 +14,14 @@ import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
 import { TrustRow } from '@/components/harbor/trust-row'
 import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 import { FunnelStep } from '@/components/analytics/funnel-step'
+import { JsonLd } from '@/components/seo/json-ld'
+import { webApplicationJsonLd } from '@/lib/seo/structured-data'
 
 export const metadata: Metadata = {
   title: { absolute: 'Scammed in Singapore? Free scam and bank dispute evaluation · GuideBuoy' },
   description: "Tell GuideBuoy what happened and get a free evaluation: your facts in order, how Singapore's scam rules may apply, and your next step with your bank or FIDReC.",
   alternates: pageAlternates('/'),
+  ...pagePreview('/', 'Scammed in Singapore? Free scam and bank dispute evaluation · GuideBuoy', "Tell GuideBuoy what happened and get a free evaluation: your facts in order, how Singapore's scam rules may apply, and your next step with your bank or FIDReC."),
 }
 
 const reasons = [
@@ -52,6 +55,8 @@ export default function HomePage() {
   const { enabled: packsLive } = paidStagesState()
   return (
     <main id="main-content" tabIndex={-1} className="flex-1">
+      {/* Brief W1 §L5: the three offers, availability following the pack state. */}
+      <JsonLd data={webApplicationJsonLd(packsLive)} />
       {/* Brief W1 §D1: above the hero; dismissible; not sticky. */}
       <EmergencyStrip />
       <section className="hero-gradient border-b py-10 sm:py-16">

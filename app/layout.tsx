@@ -28,13 +28,12 @@ export const metadata: Metadata = {
       "Tell GuideBuoy what happened and get a free evaluation: your facts in order, how Singapore's scam rules may apply, and your next step with your bank or FIDReC.",
     url: "https://guidebuoyai.sg",
     siteName: "GuideBuoy AI",
-    images: [{ url: "/assets/harbor/lumi-buoy.jpg", alt: "GuideBuoy’s avatar" }],
+    // Brief W1 §L6: each public page has its own 1200 × 630 preview image (opengraph-image.tsx), so none is set here.
   },
   twitter: {
     card: "summary_large_image",
     title: "Scammed in Singapore? Free scam and bank dispute evaluation · GuideBuoy",
     description: "Tell GuideBuoy what happened and get a free evaluation: your facts in order, how Singapore's scam rules may apply, and your next step with your bank or FIDReC.",
-    images: ["/assets/harbor/lumi-buoy.jpg"],
   },
 }
 

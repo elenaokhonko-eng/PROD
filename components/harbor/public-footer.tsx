@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { COMPANY } from '@/lib/harbor/company'
 import { SAFETY_NOTICE } from '@/lib/safety-notice'
 
 // Signed-in case pages leave out WhatsApp: human support there is not approved (slice 7).
@@ -9,11 +10,11 @@ export function PublicFooter({ whatsApp = true }: { whatsApp?: boolean }) {
       <div className="gb-container grid gap-8 py-10 md:grid-cols-[1.3fr_1fr]">
         <div className="space-y-2 text-sm leading-6 text-muted-foreground">
           <h2 id="footer-heading" className="font-semibold text-foreground">
-            GuideBuoy AI SG Pte Ltd
+            {COMPANY.legalName}
           </h2>
-          <p>UEN 202545875C</p>
-          <p>51 Goldhill Plaza #07-10/11, Singapore 308900</p>
-          <p>{whatsApp ? 'Mobile / WhatsApp' : 'DID'} +65 9072 7915 · Main +65 6690 9262</p>
+          <p>UEN {COMPANY.uen}</p>
+          <p>{COMPANY.address.display}</p>
+          <p>{whatsApp ? 'Mobile / WhatsApp' : 'DID'} {COMPANY.mobile.display} · Main {COMPANY.main.display}</p>
           <p className="font-medium text-foreground">{SAFETY_NOTICE}</p>
         </div>
         <div className="space-y-5 md:text-right">

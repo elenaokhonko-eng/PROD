@@ -1,5 +1,5 @@
 ﻿import type { Metadata } from 'next'
-import { pageAlternates } from '@/lib/seo/indexing'
+import { pageAlternates, pagePreview } from '@/lib/seo/indexing'
 import Link from 'next/link'
 import { Info } from 'lucide-react'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
@@ -9,11 +9,15 @@ import { StartEvaluationButton } from '@/components/harbor/start-evaluation-butt
 import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 import { NO_CARD_LINE } from '@/lib/harbor/cta'
 import { GST_LINE, REFUNDS_LINE } from '@/lib/harbor/packs'
+import { paidStagesState } from '@/lib/billing/paid-stages'
+import { JsonLd } from '@/components/seo/json-ld'
+import { webApplicationJsonLd } from '@/lib/seo/structured-data'
 
 export const metadata: Metadata = {
   title: { absolute: 'GuideBuoy pricing: free evaluation, S$18 bank pack, S$188 FIDReC pack' },
   description: 'One-off prices, shown before you pay. Start free; choose a pack only if you need one.',
   alternates: pageAlternates('/pricing'),
+  ...pagePreview('/pricing', 'GuideBuoy pricing: free evaluation, S$18 bank pack, S$188 FIDReC pack', 'One-off prices, shown before you pay. Start free; choose a pack only if you need one.'),
 }
 
 export default function PricingPage() {
@@ -28,6 +32,8 @@ export default function PricingPage() {
         </>
       }
     >
+      {/* Brief W1 §L5: the three offers, availability following the pack state. */}
+      <JsonLd data={webApplicationJsonLd(paidStagesState().enabled)} />
       <MarketingSection>
         <PackComparison />
         <aside className="mt-8 rounded-card border bg-harbor-teal-tint p-4 sm:p-6" aria-labelledby="fine-print-title">

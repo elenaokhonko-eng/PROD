@@ -1,5 +1,5 @@
 ﻿import type { Metadata } from 'next'
-import { pageAlternates } from '@/lib/seo/indexing'
+import { pageAlternates, pagePreview } from '@/lib/seo/indexing'
 import { ExternalLink, PhoneCall, Siren } from 'lucide-react'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   title: { absolute: 'Scam just happened? Who to call in Singapore · GuideBuoy' },
   description: 'Bank fraud hotlines, ScamShield, police reporting and official guidance, in the order to use them.',
   alternates: pageAlternates('/resources'),
+  ...pagePreview('/resources', 'Scam just happened? Who to call in Singapore · GuideBuoy', 'Bank fraud hotlines, ScamShield, police reporting and official guidance, in the order to use them.'),
 }
 
 export default function ResourcesPage() {
