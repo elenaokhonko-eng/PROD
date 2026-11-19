@@ -3,11 +3,13 @@ import { getCurrentUser } from "@/lib/auth"
 import {
   buildCaseCapabilityBillingResponse,
   type CaseEntitlementCapabilityRow,
+  type PackReadinessInput,
   type CasePurchaseCapabilityRow,
 } from "@/lib/billing/case-capabilities"
-import { loadReportPurchaseReadiness, type ReportPurchaseReadiness } from "@/lib/billing/report-purchase-readiness"
-import { paidStagesState } from "@/lib/billing/paid-stages"
+import { loadProductReadiness } from "@/lib/billing/product-readiness"
+import { bankPackEnabled, paidStagesState } from "@/lib/billing/paid-stages"
 import { createUserClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/service"
 
 export const dynamic = "force-dynamic"
 
@@ -53,9 +55,15 @@ export async function GET(
     return NextResponse.json({ error: "Failed to load case capabilities" }, { status: 500 })
   }
 
-  let reportPurchase: ReportPurchaseReadiness
+  // The case was read with the viewer's own client above, so the viewer can see it; readiness needs the service role.
+  let readiness: PackReadinessInput
   try {
-    reportPurchase = await loadReportPurchaseReadiness(supabase, caseId)
+    const service = createServiceClient()
+    const [report, fidrecPack] = await Promise.all([
+      loadProductReadiness(service, caseId, "self_serve_report"),
+      loadProductReadiness(service, caseId, "fidrec_tier2_pack"),
+    ])
+    readiness = { report, fidrecPack }
   } catch {
     return NextResponse.json({ error: "Failed to load case capabilities" }, { status: 500 })
   }
@@ -66,8 +74,9 @@ export async function GET(
       entitlement: entitlementResult.data as CaseEntitlementCapabilityRow | null,
       purchases: (purchasesResult.data ?? []) as CasePurchaseCapabilityRow[],
       canPurchase,
-      reportPurchase,
+      readiness,
       paidStages: paidStagesState(),
+      bankPackEnabled: bankPackEnabled(),
     }),
     { headers: { "Cache-Control": "no-store" } },
   )

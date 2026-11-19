@@ -1,4 +1,4 @@
-import type { ReportPurchaseBlock, ReportPurchaseReadiness } from "@/lib/billing/report-purchase-readiness"
+import type { ProductReadiness, ProductReadinessReason } from "@/lib/billing/product-readiness"
 import { PRODUCT_CATALOGUE } from "@/lib/payments/product-catalogue"
 
 export type CasePurchaseStatus =
@@ -23,6 +23,18 @@ export interface CaseEntitlementCapabilityRow {
   purchased_at: string | null
 }
 
+/**
+ * One state per pack (design C2). "unavailable" carries the reason: a readiness reason
+ * (lib/billing/product-readiness.ts), or product_not_available when paid stages or the pack are switched off or the
+ * viewer can't buy for this case.
+ */
+export type PackState = "owned" | "available" | "checkout_in_progress" | "reconciling" | "unavailable"
+
+export interface PackReadinessInput {
+  report: ProductReadiness
+  fidrecPack: ProductReadiness
+}
+
 export interface CaseCapabilityBillingResponse {
   version: 1
   caseId: string
@@ -39,9 +51,11 @@ export interface CaseCapabilityBillingResponse {
       canCheckout: boolean
       checkoutInProgress: boolean
       reconciliationRequired: boolean
-      // Free draft and validation are in place (see lib/billing/report-purchase-readiness.ts).
+      // The stage 2 buying rules allow it (lib/billing/product-readiness.ts).
       purchaseReady: boolean
-      purchaseBlockedReason: ReportPurchaseBlock | null
+      purchaseBlockedReason: ProductReadinessReason | null
+      state: PackState
+      reason: ProductReadinessReason | null
     }
     fidrecPack: {
       entitled: boolean
@@ -49,7 +63,12 @@ export interface CaseCapabilityBillingResponse {
       canCheckout: boolean
       checkoutInProgress: boolean
       reconciliationRequired: boolean
-      requiresReportEntitlement: true
+      purchaseReady: boolean
+      purchaseBlockedReason: ProductReadinessReason | null
+      /** fidrec_too_early only: the first day it can be bought. */
+      opensOn: string | null
+      state: PackState
+      reason: ProductReadinessReason | null
     }
     regeneration: {
       availability: "policy_blocked"
@@ -93,6 +112,22 @@ const ESTABLISHED_PURCHASE_STATUSES = new Set<CasePurchaseStatus>([
   "disputed",
 ])
 
+function packState(pack: {
+  entitled: boolean
+  reconciliationRequired: boolean
+  checkoutInProgress: boolean
+  canCheckout: boolean
+  blockedReason: ProductReadinessReason | null
+}): { state: PackState; reason: ProductReadinessReason | null } {
+  if (pack.entitled) return { state: "owned", reason: null }
+  if (pack.reconciliationRequired) return { state: "reconciling", reason: null }
+  if (pack.checkoutInProgress) return { state: "checkout_in_progress", reason: null }
+  if (pack.canCheckout) return { state: "available", reason: null }
+  return { state: "unavailable", reason: pack.blockedReason ?? "product_not_available" }
+}
+
+const UNKNOWN_READINESS: ProductReadiness = { ready: false, reason: null }
+
 function purchasesForProduct(rows: CasePurchaseCapabilityRow[], productCode: string) {
   return rows.filter((row) => row.product_code === productCode)
 }
@@ -126,20 +161,22 @@ export function buildCaseCapabilityBillingResponse(input: {
   entitlement: CaseEntitlementCapabilityRow | null
   purchases: CasePurchaseCapabilityRow[]
   canPurchase?: boolean
-  // Omitted means unknown: the report can't be bought.
-  reportPurchase?: ReportPurchaseReadiness
+  // Omitted means unknown: neither pack can be bought.
+  readiness?: PackReadinessInput
   // Stage 1 launches without payments (lib/billing/paid-stages.ts). Omitted means enabled (pure callers, tests).
   paidStages?: { enabled: boolean; availableFrom: string | null }
+  // The bank pack's own switch (BANK_PACK_ENABLED). Omitted means enabled (pure callers, tests).
+  bankPackEnabled?: boolean
   generatedAt?: string
 }): CaseCapabilityBillingResponse {
   const paidStages = input.paidStages ?? { enabled: true, availableFrom: null }
   const canPurchase = (input.canPurchase ?? true) && paidStages.enabled
-  const reportPurchase = input.reportPurchase ?? { ready: false, blockedReason: null }
+  const reportReadiness = input.readiness?.report ?? UNKNOWN_READINESS
+  const fidrecReadiness = input.readiness?.fidrecPack ?? UNKNOWN_READINESS
   const features = input.entitlement?.features ?? {}
+  // Each pack is its own entitlement (migration 20261120120000): the FIDReC plan doesn't include the bank pack.
   const reportEntitled =
-    input.entitlement?.plan === "self_serve_report" ||
-    input.entitlement?.plan === "escalation_pack" ||
-    isTrue(features.allow_self_serve_report)
+    input.entitlement?.plan === "self_serve_report" || isTrue(features.allow_self_serve_report)
   const fidrecEntitled =
     input.entitlement?.plan === "escalation_pack" || isTrue(features.allow_escalation_pack)
   const reportCheckoutInProgress = hasPurchaseStatus(
@@ -163,6 +200,23 @@ export function buildCaseCapabilityBillingResponse(input: {
     (status) => ESTABLISHED_PURCHASE_STATUSES.has(status),
   )
 
+  const bankPackOn = input.bankPackEnabled ?? true
+  const reportCanCheckout =
+    canPurchase &&
+    bankPackOn &&
+    PRODUCT_CATALOGUE.self_serve_report.checkoutEnabled &&
+    reportReadiness.ready &&
+    !reportEntitled &&
+    !reportPurchaseEstablished
+  const fidrecCanCheckout =
+    canPurchase &&
+    PRODUCT_CATALOGUE.fidrec_tier2_pack.checkoutEnabled &&
+    fidrecReadiness.ready &&
+    !fidrecEntitled &&
+    !fidrecPurchaseEstablished
+  const reportBlockedReason = canPurchase && bankPackOn ? reportReadiness.reason : "product_not_available"
+  const fidrecBlockedReason = canPurchase ? fidrecReadiness.reason : "product_not_available"
+
   return {
     version: 1,
     caseId: input.caseId,
@@ -176,29 +230,35 @@ export function buildCaseCapabilityBillingResponse(input: {
       report: {
         entitled: reportEntitled,
         canGenerate: reportEntitled,
-        canCheckout:
-          canPurchase &&
-          PRODUCT_CATALOGUE.self_serve_report.checkoutEnabled &&
-          reportPurchase.ready &&
-          !reportEntitled &&
-          !reportPurchaseEstablished,
+        canCheckout: reportCanCheckout,
         checkoutInProgress: reportCheckoutInProgress,
         reconciliationRequired: reportPurchaseEstablished && !reportEntitled,
-        purchaseReady: reportPurchase.ready,
-        purchaseBlockedReason: reportPurchase.blockedReason,
+        purchaseReady: reportReadiness.ready,
+        purchaseBlockedReason: reportReadiness.reason,
+        ...packState({
+          entitled: reportEntitled,
+          reconciliationRequired: reportPurchaseEstablished && !reportEntitled,
+          checkoutInProgress: reportCheckoutInProgress,
+          canCheckout: reportCanCheckout,
+          blockedReason: reportBlockedReason,
+        }),
       },
       fidrecPack: {
         entitled: fidrecEntitled,
         canUse: fidrecEntitled,
-        canCheckout:
-          canPurchase &&
-          PRODUCT_CATALOGUE.fidrec_tier2_pack.checkoutEnabled &&
-          reportEntitled &&
-          !fidrecEntitled &&
-          !fidrecPurchaseEstablished,
+        canCheckout: fidrecCanCheckout,
         checkoutInProgress: fidrecCheckoutInProgress,
         reconciliationRequired: fidrecPurchaseEstablished && !fidrecEntitled,
-        requiresReportEntitlement: true,
+        purchaseReady: fidrecReadiness.ready,
+        purchaseBlockedReason: fidrecReadiness.reason,
+        opensOn: fidrecReadiness.opensOn ?? null,
+        ...packState({
+          entitled: fidrecEntitled,
+          reconciliationRequired: fidrecPurchaseEstablished && !fidrecEntitled,
+          checkoutInProgress: fidrecCheckoutInProgress,
+          canCheckout: fidrecCanCheckout,
+          blockedReason: fidrecBlockedReason,
+        }),
       },
       regeneration: {
         availability: "policy_blocked",

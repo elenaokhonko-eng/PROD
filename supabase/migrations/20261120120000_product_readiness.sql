@@ -4,7 +4,7 @@
 --
 -- 1) cases.workflow_type: one value for now, the bank-scam dispute pathway.
 -- 2) get_case_product_readiness_v1(case, product): ready, or the reason it can't be bought.
--- 3) reserve_checkout_purchase_v1 refuses with that reason; the "FI Guide purchase required" chain check is gone.
+-- 3) reserve_checkout_purchase_v1 refuses with that reason; the check that the FIDReC pack needs the bank pack is gone.
 -- 4) grant_fidrec_pack_capability_v1 no longer needs, or grants, the bank pack.
 -- Earlier migrations are not edited; the two functions are replaced here. No data changes.
 

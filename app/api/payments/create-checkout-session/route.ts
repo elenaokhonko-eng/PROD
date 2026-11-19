@@ -11,7 +11,7 @@ import {
   resolvePriceId,
   type CheckoutProductKey,
 } from "@/lib/payments/product-catalogue"
-import { loadReportPurchaseReadiness } from "@/lib/billing/report-purchase-readiness"
+import { loadProductReadiness, productSwitchedOn } from "@/lib/billing/product-readiness"
 import { paidStagesAvailableFrom, paidStagesEnabled } from "@/lib/billing/paid-stages"
 import { invalidFields, logRefusal } from "@/lib/server/refusal-log"
 import { safeErrorText } from "@/lib/server/safe-error"
@@ -123,18 +123,32 @@ export async function POST(request: NextRequest) {
 
     const service = createServiceClient()
 
-    // The report needs the free draft and a non-blocking validation first; the buy button uses the same check.
-    if (productKey === "self_serve_report") {
+    // The stage 2 buying rules (lib/billing/product-readiness.ts); the buy buttons use the same check, and
+    // reserve_checkout_purchase_v1 applies the database part again under its lock.
+    if (productKey === "self_serve_report" || productKey === "fidrec_tier2_pack") {
+      // The bank pack's own switch (BANK_PACK_ENABLED), on top of PAID_STAGES_ENABLED above.
+      if (!productSwitchedOn(productKey)) {
+        logRefusal("checkout", "product_not_available", 409, { productKey, caseId })
+        return NextResponse.json({ error: "Product is not available yet", reason: "product_not_available" }, { status: 409 })
+      }
       let readiness
       try {
-        readiness = await loadReportPurchaseReadiness(service, caseId)
+        readiness = await loadProductReadiness(service, caseId, productKey)
       } catch (error) {
-        console.error("[payments] Failed to check report purchase readiness", safeErrorText(error))
+        console.error("[payments] Failed to check product readiness", safeErrorText(error))
         return NextResponse.json({ error: "Failed to create purchase record" }, { status: 500 })
       }
-      if (!readiness.ready) {
-        logRefusal("checkout", readiness.blockedReason ?? "not_ready", 409, { productKey, caseId })
-        return NextResponse.json({ error: "Purchase is not eligible", reason: readiness.blockedReason }, { status: 409 })
+      // An existing purchase goes on to the reservation, which resumes a pending checkout or repairs fulfilment.
+      if (!readiness.ready && readiness.reason !== "already_purchased") {
+        logRefusal("checkout", readiness.reason ?? "not_ready", 409, { productKey, caseId })
+        return NextResponse.json(
+          {
+            error: "Purchase is not eligible",
+            reason: readiness.reason,
+            ...(readiness.opensOn ? { opensOn: readiness.opensOn } : {}),
+          },
+          { status: 409 },
+        )
       }
     }
 
@@ -157,9 +171,13 @@ export async function POST(request: NextRequest) {
     )
 
     if (reservationError || !reservation) {
+      // A readiness change between the check above and the reservation (for example a second tab buying first).
+      const notReady = reservationError?.message.match(/not ready: ([a-z_]+)/)?.[1]
+      if (notReady) {
+        logRefusal("checkout", notReady, 409, { productKey, caseId })
+        return NextResponse.json({ error: "Purchase is not eligible", reason: notReady }, { status: 409 })
+      }
       if (
-        reservationError?.message.includes("purchase required") ||
-        reservationError?.message.includes("already purchased") ||
         reservationError?.message.includes("requires reconciliation") ||
         reservationError?.message.includes("active purchase")
       ) {

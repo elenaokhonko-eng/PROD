@@ -42,7 +42,7 @@ test('no buy button while paid stages are off, even when the case is ready to bu
   const free = { plan: 'free', features: {}, purchased_at: null }
   const off = buildCaseCapabilityBillingResponse({
     caseId: 'c1', entitlement: free, purchases: [],
-    reportPurchase: { ready: true, blockedReason: null },
+    readiness: { report: { ready: true, reason: null }, fidrecPack: { ready: true, reason: null } },
     paidStages: { enabled: false, availableFrom: '2026-12-01' },
   })
   assert.equal(off.capabilities.report.canCheckout, false)

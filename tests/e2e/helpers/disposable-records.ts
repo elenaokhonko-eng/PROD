@@ -94,6 +94,19 @@ export async function completeDisposableIntake(supabase: SupabaseClient, caseId:
   return rows.map((row) => row.id)
 }
 
+// The FIDReC route answer (stage2-plan §3a): a written complaint 40 days ago with no reply, so the pack is for sale.
+export async function openDisposableFidrecRoute(supabase: SupabaseClient, caseId: string): Promise<string[]> {
+  requireUuid(caseId, 'disposable case id')
+  const complained = new Date(Date.now() - 40 * 86_400_000).toISOString().slice(0, 10)
+  const rows = [
+    { id: randomUUID(), case_id: caseId, question_key: 'fidrec_route', response_value: 'no_reply', response_type: 'text' },
+    { id: randomUUID(), case_id: caseId, question_key: 'fidrec_complaint_date', response_value: complained, response_type: 'date' },
+  ]
+  const { error } = await supabase.from('case_responses').insert(rows)
+  if (error) throw new Error(`Unable to answer the disposable FIDReC route: ${error.message}`)
+  return rows.map((row) => row.id)
+}
+
 export async function createDisposableGapCase(
   supabase: SupabaseClient,
   options: {

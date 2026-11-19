@@ -1,6 +1,5 @@
 'use client'
 
-import type { ReportPurchaseReadiness } from '@/lib/billing/report-purchase-readiness'
 import type { CaseValidationRunRow, ValidationGapItemRow } from '@/lib/types/validation'
 import { deriveInGapPhase } from '@/lib/validation/gap-flow'
 import type { Tier0DraftBundle } from '@/lib/types/narratives'
@@ -31,7 +30,7 @@ export type StateMachineNode =
 
 export interface StateMachineInput {
   /** From the capabilities API; `null` while loading. Whether the free case may buy the S$18 report. */
-  reportPurchase: Pick<ReportPurchaseReadiness, 'ready'> | null
+  reportPurchase: { ready: boolean } | null
   validation: CaseValidationRunRow | null
   /** `undefined` = gap-items query still loading for the resolved validation run. */
   gapItems: ValidationGapItemRow[] | undefined

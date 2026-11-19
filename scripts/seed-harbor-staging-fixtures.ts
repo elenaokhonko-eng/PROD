@@ -119,15 +119,16 @@ class Seeder {
     await this.client.query('delete from cases where id = $1', [caseId])
   }
 
-  // Every case answers the journey questions (stage 1 asks them first) unless a fixture tests that step itself.
-  async createCase(name: string, ownerId: string, options: { journey?: boolean } = {}) {
+  // Every case answers the journey questions (stage 1 asks them first) and has a story, unless a fixture tests that
+  // step itself.
+  async createCase(name: string, ownerId: string, options: { journey?: boolean; story?: boolean } = {}) {
     const caseId = seedUuid(name)
     await this.resetCase(caseId)
     await this.client.query(
       `insert into cases (id, user_id, owner_user_id, creator_user_id, claim_type, status, case_status, case_summary,
          primary_narrative, claim_currency, jurisdiction, is_anonymous)
-       values ($1, $2, $2, $2, 'phishing_scam', 'draft', 'DRAFT', $3, $3, 'SGD', 'SG', false)`,
-      [caseId, ownerId, `Synthetic release fixture: ${name}.`],
+       values ($1, $2, $2, $2, 'phishing_scam', 'draft', 'DRAFT', $3, $4, 'SGD', 'SG', false)`,
+      [caseId, ownerId, `Synthetic release fixture: ${name}.`, options.story === false ? null : `Synthetic release fixture: ${name}.`],
     )
     if (options.journey !== false) {
       await this.client.query(
@@ -136,6 +137,16 @@ class Seeder {
       )
     }
     return caseId
+  }
+
+  // The FIDReC route answer (stage2-plan §3a): a written complaint 40 days ago with no reply, so the pack is for sale.
+  async fidrecRouteOpen(caseId: string) {
+    await this.client.query(
+      `insert into case_responses (case_id, question_key, response_value, response_type) values
+         ($1, 'fidrec_route', 'no_reply', 'text'),
+         ($1, 'fidrec_complaint_date', to_char((now() at time zone 'Asia/Singapore')::date - 40, 'YYYY-MM-DD'), 'date')`,
+      [caseId],
+    )
   }
 
   async intakeResponses(caseId: string) {
@@ -429,7 +440,8 @@ async function main() {
     await seeder.caseEntitlement(reportsFailed, 'self_serve_report')
     await seeder.failedReportJob(reportsFailed, userA)
 
-    const paymentsFree = await seeder.createCase(c.paymentsFree, userA)
+    // No story: the stage 2 buying rules refuse both packs with story_missing (stage2-plan §3a).
+    const paymentsFree = await seeder.createCase(c.paymentsFree, userA, { story: false })
     const buyReportCase = async (name: string) => {
       const id = await seeder.createCase(name, userA)
       await seeder.freeLineage(id)
@@ -442,6 +454,7 @@ async function main() {
     const paymentsConcurrent = await buyReportCase(c.paymentsConcurrent)
     const paymentsTier2 = await seeder.createCase(c.paymentsTier2, userA)
     await seeder.caseEntitlement(paymentsTier2, 'self_serve_report')
+    await seeder.fidrecRouteOpen(paymentsTier2)
     const paymentsDelayed = await seeder.createCase(c.paymentsDelayed, userA)
     await seeder.tier0Narrative(paymentsDelayed)
 
