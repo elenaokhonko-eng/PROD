@@ -14,7 +14,8 @@ const meta = (html: string, property: string) =>
 test('§L6: every indexable page has its own og:url, title and a 1200 × 630 PNG preview image', async ({ request }) => {
   for (const route of ROUTES) {
     const html = await (await request.get(route)).text()
-    expect(meta(html, 'og:url'), route).toBe(`https://guidebuoyai.sg${route}`)
+    // Next.js writes the home page's address without the trailing slash, as in its canonical link.
+    expect(meta(html, 'og:url'), route).toBe(route === '/' ? 'https://guidebuoyai.sg' : `https://guidebuoyai.sg${route}`)
     expect(meta(html, 'og:title'), route).toBe(html.match(/<title>([^<]*)<\/title>/)?.[1])
     expect(meta(html, 'twitter:card'), route).toBe('summary_large_image')
     const image = meta(html, 'og:image')
