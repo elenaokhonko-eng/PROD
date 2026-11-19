@@ -77,8 +77,8 @@ const manifest = []
 mkdirSync(MARKDOWN_OUTPUT_DIR, { recursive: true })
 const lastUpdated = new Date().toISOString().slice(0, 10)
 
-for (const { name, route } of MARKDOWN_COPIES) {
-  const file = path.join(appDir, `${name}.html`)
+for (const { name, route, html: htmlFile } of MARKDOWN_COPIES) {
+  const file = path.join(appDir, htmlFile ?? `${name}.html`)
   const html = readFileSync(file, 'utf8')
   const start = html.indexOf('<main')
   const end = html.lastIndexOf('</main>')

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { SAMPLE_PATH } from '@/lib/samples/paths'
 import { paidStagesState } from '@/lib/billing/paid-stages'
 import { Button } from '@/components/ui/button'
 import { COMING_SHORTLY, COMPARISON_LINE, FIDREC_ABOUT, FIDREC_TIME_LIMIT, packCards } from '@/lib/harbor/packs'
@@ -47,6 +48,12 @@ export function PackComparison({ headingLevel = 'h2' }: { headingLevel?: 'h2' | 
                 <p className="mt-1 leading-7 text-foreground">{FIDREC_ABOUT} {FIDREC_TIME_LIMIT}</p>
               </details>
             ) : null}
+            {/* Brief W1 §E2, §H: "See a sample" on the card whose sample exists (the free evaluation, for now). */}
+            {card.paid ? null : (
+              <Link href={SAMPLE_PATH} className="mt-4 inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4">
+                See a sample
+              </Link>
+            )}
             {card.action ? (
               <div className="mt-auto pt-7">
                 <Button asChild variant={card.paid ? 'outline' : 'default'} className="w-full text-base font-semibold">

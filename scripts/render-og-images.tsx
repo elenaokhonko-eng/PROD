@@ -15,6 +15,7 @@ export const OG_PAGES: Record<string, string> = {
   'marketplace/': 'Help categories being considered.',
   'terms/': 'Terms of Service',
   'privacy/': 'Privacy Policy',
+  'sample/evaluation/': 'A sample free evaluation',
 }
 
 async function main() {

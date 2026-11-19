@@ -70,7 +70,7 @@ test('§G: "Check this company" names the company, UEN and address, with the Biz
 // §L6: every indexable page has its own preview metadata and a 1200 × 630 image showing its headline.
 const PAGE_FILES: Record<string, string> = {
   '/': '', '/how-it-works': 'how-it-works/', '/pricing': 'pricing/', '/resources': 'resources/', '/about': 'about/',
-  '/faq': 'faq/', '/marketplace': 'marketplace/', '/terms': 'terms/', '/privacy': 'privacy/',
+  '/faq': 'faq/', '/marketplace': 'marketplace/', '/terms': 'terms/', '/privacy': 'privacy/', '/sample/evaluation': 'sample/evaluation/',
 }
 
 test('§L6: every indexable page has its own preview and preview image', () => {
