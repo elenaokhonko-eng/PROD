@@ -1,0 +1,38 @@
+[
+  {
+    "narrative_type": "tier0_srf_signal",
+    "title": "How the rules may apply",
+    "text_content": "This is based only on the facts you confirmed. It is not a decision; your bank assesses which rules apply.\n\nBank account payments (S$4,850): Likely covered by the SRF\n- This looks like the kind of phishing scam the SRF covers: a digital message impersonating an organisation, details entered on a fake website or app, and payments you did not intend.\n\nBecause the scam message came by SMS, your mobile operator may be responsible if your bank met all its duties and the operator did not meet its own. Your bank assesses this; disagreements about the operator go to IMDA in writing, not to FIDReC.\n\nSources: MAS/IMDA Guidelines on Shared Responsibility Framework (effective 16 Dec 2024); MAS E-Payments User Protection Guidelines.\n\nTerms used:\n- SRF: the Shared Responsibility Framework, under which banks and mobile operators may share losses from certain phishing scams.\n- IMDA: the Infocomm Media Development Authority, which regulates mobile operators.\n- FIDReC: the Financial Industry Disputes Resolution Centre, which resolves disputes between consumers and financial institutions.",
+    "created_at": "2026-11-19T14:55:55.631281+00:00",
+    "version": 1,
+    "language": "en",
+    "audience": "user"
+  },
+  {
+    "narrative_type": "tier0_confirmed_facts",
+    "title": "Facts you confirmed",
+    "text_content": "Banks or payment providers involved: Harbourline Bank\nAccounts or cards the money was taken from: Bank account\nType of scam: Phishing by SMS or messaging app\nHow the scammer first contacted you: SMS\nWhether you shared a password or one-time code, and how: Yes: entered on a fake website or app\nThe payments you dispute: S$1,500 3 Mar 2026 to account ending 0001; S$2,000 3 Mar 2026 to account ending 0001; S$1,350 3 Mar 2026 to account ending 0001\nAmount lost: Bank account: S$4,850\nWhether you told your bank: Yes, 4 Mar 2026\nYour bank's case reference: SAMPLE-HB-0001\nWhether you sent a full written complaint: Yes, 6 Mar 2026\nYour bank's reply: Final reply, 20 Apr 2026, rejected\nWhether you reported this to the police: Yes, 4 Mar 2026 (no supporting document provided)\nPolice report number: SAMPLE-POL-0001\nAmount recovered or offered: S$0\nWhether you have filed with FIDReC: No\nWhen you found out: 4 Mar 2026\nWho the scammer pretended to be: A bank or financial institution",
+    "created_at": "2026-11-19T14:55:55.262601+00:00",
+    "version": 1,
+    "language": "en",
+    "audience": "user"
+  },
+  {
+    "narrative_type": "tier0_evidence_checklist",
+    "title": "Evidence checklist",
+    "text_content": "What you've shown us\n- Banks or payment providers involved: Harbourline Bank. Shown by your bank statement (uploaded), a letter or email from your bank (uploaded).\n- Accounts or cards the money was taken from: Bank account. Shown by your bank statement (uploaded).\n- How the scammer first contacted you: SMS. Shown by the scam message (uploaded).\n- The payments you dispute: S$1,500 3 Mar 2026 to account ending 0001; S$2,000 3 Mar 2026 to account ending 0001; S$1,350 3 Mar 2026 to account ending 0001. Shown by your bank statement (uploaded).\n- Amount lost: Bank account: S$4,850. Shown by a letter or email from your bank (uploaded).\n- Whether you told your bank: Yes, 4 Mar 2026. Shown by a letter or email from your bank (uploaded).\n- Your bank's case reference: SAMPLE-HB-0001. Shown by a letter or email from your bank (uploaded).\n- Your bank's reply: Final reply, 20 Apr 2026, rejected. Shown by a letter or email from your bank (uploaded).\n- Amount recovered or offered: S$0. Shown by a letter or email from your bank (uploaded).\n\nWhat's still missing\n- Type of scam: Phishing by SMS or messaging app. No document yet; for example screenshots of the scam message, email, website or advert.\n- Whether you shared a password or one-time code, and how: Yes: entered on a fake website or app. No document yet; for example screenshots of the fake website or app, or of the message you replied to.\n- Whether you sent a full written complaint: Yes, 6 Mar 2026. No document yet; for example a copy of the complaint you sent, with proof of when you sent it.\n- Whether you reported this to the police: Yes, 4 Mar 2026. No document yet; for example the police report or its acknowledgement.\n- Police report number: SAMPLE-POL-0001. No document yet; for example the police report or its acknowledgement showing the number.",
+    "created_at": "2026-11-19T14:55:54.911485+00:00",
+    "version": 1,
+    "language": "en",
+    "audience": "user"
+  },
+  {
+    "narrative_type": "tier0_summary",
+    "title": "Free evaluation summary",
+    "text_content": "You experienced a phishing scam through SMS on 3 Mar 2026. You entered your credentials on a fake website or app, which led to unauthorized transactions from your bank account. On the same day, three transactions were made to an account ending in 0001, totaling S$4,850. You discovered the scam on 4 Mar 2026, and reported it to Harbourline Bank the same day. You also sent a written complaint on 6 Mar 2026. The bank provided a case reference number, SAMPLE-HB-0001, and later issued a final reply on 20 Apr 2026, rejecting your claim. You told us that you reported the incident to the police on 4 Mar 2026, and received a police report number, SAMPLE-POL-0001. No amount has been recovered or offered to you as compensation.",
+    "created_at": "2026-11-19T14:55:54.499632+00:00",
+    "version": 1,
+    "language": "en",
+    "audience": "user"
+  }
+]
