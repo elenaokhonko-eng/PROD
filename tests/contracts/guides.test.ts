@@ -4,7 +4,7 @@ import test from 'node:test'
 import { guideAction, isOfficialSource, loadGuides, loadPublishedGuides, publishProblems } from '../../lib/guides/guides'
 import { publishedGuideFiles } from '../../lib/guides/guide-files.mjs'
 import { PUBLISHED_GUIDES } from '../../lib/guides/published.mjs'
-import { resourcesOrGuides } from '../../lib/navigation'
+import { menuLinks } from '../../lib/navigation'
 import { articleJsonLd, breadcrumbJsonLd } from '../../lib/seo/structured-data'
 import { publishedModule } from '../../scripts/build-guide-index.mjs'
 
@@ -65,7 +65,7 @@ test('§O, §E3: the call to action follows the stage and the pack state', () =>
   assert.deepEqual(guideAction('just-happened', true), { kind: 'evaluation' })
 })
 
-test('§O: Article and BreadcrumbList structured data; Guides replaces Resources in the menu only once published', () => {
+test('§O: Article and BreadcrumbList structured data; Guides is added to the menu only once published', () => {
   const [, guide] = loadGuides(FIXTURES)
   const article = articleJsonLd(guide)
   assert.equal(article['@type'], 'Article')
@@ -74,8 +74,9 @@ test('§O: Article and BreadcrumbList structured data; Guides replaces Resources
   const crumbs = breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Guides', path: '/guides' }])
   assert.equal(crumbs['@type'], 'BreadcrumbList')
   assert.equal((crumbs.itemListElement as { position: number }[])[1].position, 2)
-  assert.deepEqual(resourcesOrGuides(0), { href: '/resources', label: 'Resources' })
-  assert.deepEqual(resourcesOrGuides(1), { href: '/guides', label: 'Guides' })
+  // Elena, 19 Nov: Resources always stays; Guides is added after it once a guide is published.
+  assert.deepEqual(menuLinks(0).map((l) => l.label), ['How it works', 'Pricing', 'Resources', 'About', 'FAQ'])
+  assert.deepEqual(menuLinks(1).map((l) => [l.label, l.href]).slice(2, 4), [['Resources', '/resources'], ['Guides', '/guides']])
   const page = readFileSync('app/(marketing)/guides/[slug]/page.tsx', 'utf8')
   for (const part of ['>Sources<', 'Last reviewed', '<WhatGuideBuoyIs', 'articleJsonLd(guide)', 'breadcrumbJsonLd(']) assert.ok(page.includes(part), part)
 })
