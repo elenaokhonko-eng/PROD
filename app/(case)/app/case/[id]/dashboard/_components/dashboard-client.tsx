@@ -19,7 +19,7 @@ import { ReportDrafting } from '@/components/state-machine/layer2/report-draftin
 import { ReportFailed } from '@/components/state-machine/layer2/report-failed'
 import { ReportView } from '@/components/state-machine/layer2/report-view'
 import { StateMachineErrorCard } from '@/components/state-machine/error-card'
-import { useStateMachine } from '@/hooks/state-machine/use-state-machine'
+import { type StateMachineNode, useStateMachine } from '@/hooks/state-machine/use-state-machine'
 import { useCaseFacts } from '@/hooks/state-machine/facts/use-case-facts'
 import { useCaseEligibility } from '@/hooks/state-machine/layer1/use-case-eligibility'
 import { useValidationRun } from '@/hooks/state-machine/layer1/use-validation-run'
@@ -43,6 +43,7 @@ import { useCreateCheckoutSession, type ProductKey } from '@/hooks/state-machine
 import { usePaymentStatus } from '@/hooks/state-machine/transition/use-payment-status'
 import { useDecisionRunRealtime } from '@/hooks/state-machine/layer2/use-decision-run-realtime'
 import { useReportRealtime } from '@/hooks/state-machine/layer2/use-report-realtime'
+import { clearPackIntent, type PackIntent, readPackIntent } from '@/lib/journey/pack-intent'
 import { useJobStatus } from '@/hooks/state-machine/layer2/use-job-status'
 import { useTier2Pack } from '@/hooks/state-machine/layer3/use-tier2-pack'
 import { useCasePackExport } from '@/hooks/state-machine/layer3/use-case-pack-export'
@@ -72,6 +73,9 @@ type DashboardClientProps = {
 }
 
 const GAP_SAVE_ERROR = "We couldn't save your answers. Please try again; if it keeps happening, email info@guidebuoyai.sg."
+
+// Steps before the free evaluation exists, where a pack chosen before sign-in is offered at the top.
+const BEFORE_FREE_EVALUATION = new Set<StateMachineNode>(['S1-Journey', 'S1-IntakeForm', 'S1-GapLoop', 'S1-EvidenceUpload', 'S1-Tier0DraftPending'])
 
 export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabels }: DashboardClientProps) {
   const router = useRouter()
@@ -223,6 +227,15 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const evaluationOutOfDateHref =
     freeFactsView?.latestSnapshot && !freeFactsView.latestSnapshot.unchanged ? `/app/case/${caseId}/facts?stage=free` : null
   const reportCapability = capabilityBilling?.capabilities.report
+  // The pack chosen before sign-in (?intent=bank): offered at the top while the case is still before its free
+  // evaluation, since the bank pack needs only the story (stage2-plan §3a, milestone 4).
+  const [packIntent, setPackIntent] = useState<PackIntent | null>(null)
+  useEffect(() => setPackIntent(readPackIntent()), [])
+  const showBankIntent =
+    packIntent === 'bank' &&
+    reportCapability?.entitled !== true &&
+    reportCapability?.canCheckout === true &&
+    BEFORE_FREE_EVALUATION.has(node)
   const fidrecCapability = capabilityBilling?.capabilities.fidrecPack
   const returnedProductIsEntitled =
     paymentReturnProduct === 'fidrec_tier2_pack'
@@ -338,6 +351,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   }
 
   async function handleCheckout(productKey: ProductKey) {
+    if (productKey === 'self_serve_report' && packIntent === 'bank') clearPackIntent()
     setCheckoutError(null)
     setCheckoutProduct(productKey)
     if (!canStartCheckout(productKey)) {
@@ -368,7 +382,15 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const renderLayer3 = () => (
     <div className="space-y-6">
       {reportQuery.data && !isTier2Ready ? (
-        <ReportView report={reportQuery.data} decision={decisionQuery.data} />
+        <ReportView
+          report={reportQuery.data}
+          decision={decisionQuery.data}
+          onDownload={
+            reportQuery.data.report_type === 'bank_pack_v1'
+              ? () => window.location.assign(`/api/cases/${caseId}/bank-pack/pdf`)
+              : undefined
+          }
+        />
       ) : null}
       <div className="rounded-lg border bg-muted/40 p-4 text-sm">
         <p className="font-medium">Case reference</p>
@@ -420,6 +442,16 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto max-w-5xl px-4 py-8" data-harbor-node={node} data-harbor-ready={stateReady ? 'true' : 'false'}>
+        {showBankIntent ? (
+          <div className="mb-8" data-pack-intent="bank">
+            <BuyReportCTA
+              priceLabel={priceLabels.report}
+              isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
+              errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
+              onClick={() => void handleCheckout('self_serve_report')}
+            />
+          </div>
+        ) : null}
         {eligibilityQuery.isError ? (
           <StateMachineErrorCard kind="internal" context="Case eligibility could not be loaded." />
         ) : isPaymentCancelled ? (
