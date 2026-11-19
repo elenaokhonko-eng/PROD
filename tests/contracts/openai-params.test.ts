@@ -26,7 +26,8 @@ test('Chat Completions: gpt-6 takes max_completion_tokens and reasoning_effort; 
 
 test('every OpenAI chat call site builds its parameters with the shared helper', () => {
   const sites: Record<string, RegExp> = {
-    'lib/server/ai/generate-json.ts': /\.\.\.responsesParams\(model, \{ effort: "none"/,
+    // The app-side effort comes from OPENAI_REASONING_EFFORT, "none" by default.
+    'lib/server/ai/generate-json.ts': /\.\.\.responsesParams\(model, \{ effort: getOpenAiReasoningEffort\(\)/,
     'supabase/functions/_shared/facts/summary-ladder.ts': /\.\.\.chatParams\(model, \{ effort: "none", temperature: 0\.2, maxOutputTokens: req\.maxTokens \}\)/,
     'supabase/functions/run_case_extract_v4/index.ts': /\.\.\.responsesParams\(body\.model, \{ effort: "none", temperature: 0, maxOutputTokens: OUTPUT_CAPS\.case_extraction \}\)/,
     'supabase/functions/run_case_decision_v1/index.ts': /\.\.\.responsesParams\(model, \{ effort: "none", temperature: 0\.2 \}\)/,
@@ -38,5 +39,21 @@ test('every OpenAI chat call site builds its parameters with the shared helper',
     assert.match(source, pattern, file)
     assert.doesNotMatch(source, /^\s+temperature: 0(\.2)?,$/m, `${file}: no temperature outside the helper`)
     assert.doesNotMatch(source, /\bmax_tokens:/, `${file}: no max_tokens outside the helper`)
+  }
+})
+
+test('the app-side reasoning effort setting accepts only known levels and defaults to "none"', async () => {
+  const { getOpenAiReasoningEffort } = await import('../../lib/server/ai/generate-json')
+  const previous = process.env.OPENAI_REASONING_EFFORT
+  try {
+    delete process.env.OPENAI_REASONING_EFFORT
+    assert.equal(getOpenAiReasoningEffort(), 'none')
+    process.env.OPENAI_REASONING_EFFORT = ' Medium '
+    assert.equal(getOpenAiReasoningEffort(), 'medium')
+    process.env.OPENAI_REASONING_EFFORT = 'max'
+    assert.equal(getOpenAiReasoningEffort(), 'none', 'an unknown or unapproved level falls back')
+  } finally {
+    if (previous === undefined) delete process.env.OPENAI_REASONING_EFFORT
+    else process.env.OPENAI_REASONING_EFFORT = previous
   }
 })
