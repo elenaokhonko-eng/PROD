@@ -193,15 +193,42 @@ export async function resolveOpenFindings(
 export async function payWithTestCard(page: Page, email: string) {
   const cardButton = page.locator('[data-testid="card-accordion-item-button"]')
   if (await cardButton.isVisible({ timeout: 10_000 }).catch(() => false)) await cardButton.click()
-  const emailField = page.locator('#email')
-  if (await emailField.isEditable({ timeout: 5_000 }).catch(() => false)) await emailField.fill(email)
-  await page.locator('#cardNumber').fill('4242424242424242')
-  await page.locator('#cardExpiry').fill('12 / 34')
-  await page.locator('#cardCvc').fill('123')
-  await page.locator('#billingName').fill('Release Test')
+  const emailField = await stripeField(page, '#email', 'you@example.com', 5_000)
+  if (emailField && (await emailField.isEditable().catch(() => false))) await emailField.fill(email)
+  // Stripe Checkout's layout changes (20 Nov 2026: the card fields lost their ids), so each field is found by its id
+  // or, failing that, by its placeholder, on the page or inside Stripe's frames.
+  for (const [id, placeholder, value] of [
+    ['#cardNumber', 'Card number', '4242424242424242'],
+    ['#cardExpiry', 'MM / YY', '12 / 34'],
+    ['#cardCvc', 'Security code', '123'],
+    ['#billingName', 'First and last name', 'Release Test'],
+  ] as const) {
+    const field = await stripeField(page, id, placeholder, 30_000)
+    if (!field) throw new Error(`Stripe Checkout field not found: ${placeholder}`)
+    await field.fill(value)
+  }
   const postal = page.locator('#billingPostalCode')
   if (await postal.isVisible().catch(() => false)) await postal.fill('123456')
-  await page.locator('[data-testid="hosted-payment-submit-button"]').click()
+  // The Pay button can sit inside Stripe's frame too.
+  for (const scope of [page, ...page.frames().slice(1)]) {
+    for (const submit of [scope.locator('[data-testid="hosted-payment-submit-button"]'), scope.getByRole('button', { name: 'Pay', exact: true })]) {
+      if (await submit.first().isVisible().catch(() => false)) return submit.first().click()
+    }
+  }
+  throw new Error('Stripe Checkout Pay button not found')
+}
+
+async function stripeField(page: Page, id: string, placeholder: string, timeoutMs: number): Promise<Locator | null> {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    for (const scope of [page, ...page.frames().slice(1)]) {
+      for (const candidate of [scope.locator(id), scope.getByPlaceholder(placeholder, { exact: true })]) {
+        if (await candidate.first().isVisible().catch(() => false)) return candidate.first()
+      }
+    }
+    await page.waitForTimeout(500)
+  }
+  return null
 }
 
 export async function signIn(page: Page, clerkUserId: string) {
