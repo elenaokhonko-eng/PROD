@@ -16,7 +16,9 @@ export const expectedStateText = {
   layer2ConfirmBankFacts: 'Confirm your facts',
   layer2Ready: 'Your complaint report',
   layer3Unavailable: 'Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.',
-  layer3Tier2: /FIDReC Tier 2 pack/i,
+  // Stage 2: the FIDReC pack is paid for first, then its facts are confirmed and the pack is generated and stored.
+  layer3Tier2: 'Confirm your facts',
+  layer3FidrecReady: 'Points for the institution',
 } as const
 
 export type StateCases = Record<keyof typeof expectedStateText, StateFixture>
