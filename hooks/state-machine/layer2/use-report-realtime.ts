@@ -10,7 +10,16 @@ export interface UseReportRealtimeOptions {
   enabled?: boolean
   /** Poll while the paid pipeline is still producing it; Realtime is best-effort (D7). */
   poll?: boolean
+  /** Which pack: the bank pack (and older self-serve reports), or the FIDReC pack. Default bank. */
+  kind?: ReportKind
 }
+
+export type ReportKind = 'bank' | 'fidrec'
+
+export const FIDREC_REPORT_TYPE = 'fidrec_pack_v1'
+
+const isKind = (row: Pick<ReportRow, 'report_type'>, kind: ReportKind) =>
+  kind === 'fidrec' ? row.report_type === FIDREC_REPORT_TYPE : row.report_type !== FIDREC_REPORT_TYPE
 
 const PIPELINE_POLL_MS = 10_000
 
@@ -24,9 +33,11 @@ export function useReportRealtime(caseId: string | null | undefined, options?: U
   const supabase = useSupabaseBrowser()
   const queryClient = useQueryClient()
   const enabled = Boolean(caseId) && (options?.enabled ?? true)
+  const kind = options?.kind ?? 'bank'
+  const keyFor = (id: string) => (kind === 'fidrec' ? qk.case.fidrecReport(id) : qk.case.report(id))
 
   const query = useQuery({
-    queryKey: caseId ? qk.case.report(caseId) : ['case', 'report', 'missing-case-id'],
+    queryKey: caseId ? keyFor(caseId) : ['case', 'report', kind, 'missing-case-id'],
     enabled,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -35,6 +46,7 @@ export function useReportRealtime(caseId: string | null | undefined, options?: U
           'id, user_id, case_id, status, report_json, created_at, updated_at, report_type, source_decision_run_id, inputs_hash',
         )
         .eq('case_id', caseId as string)
+        [kind === 'fidrec' ? 'eq' : 'neq']('report_type', FIDREC_REPORT_TYPE)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -49,20 +61,20 @@ export function useReportRealtime(caseId: string | null | undefined, options?: U
     if (!enabled || !caseId) return
 
     const channel = supabase
-      .channel(`reports:${caseId}`)
+      .channel(`reports:${kind}:${caseId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'reports', filter: `case_id=eq.${caseId}` },
         (payload) => {
           if (payload.eventType === 'DELETE') {
-            void queryClient.invalidateQueries({ queryKey: qk.case.report(caseId) })
+            void queryClient.invalidateQueries({ queryKey: keyFor(caseId) })
             return
           }
 
           const incoming = payload.new as ReportRow | null
-          if (!incoming?.id) return
+          if (!incoming?.id || !isKind(incoming, kind)) return
 
-          queryClient.setQueryData<ReportRow | null>(qk.case.report(caseId), (current) => {
+          queryClient.setQueryData<ReportRow | null>(keyFor(caseId), (current) => {
             if (!current) return incoming
             return compareCreatedAtDesc(incoming, current) <= 0 ? incoming : current
           })
@@ -70,14 +82,16 @@ export function useReportRealtime(caseId: string | null | undefined, options?: U
       )
       .subscribe((status) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          void queryClient.invalidateQueries({ queryKey: qk.case.report(caseId) })
+          void queryClient.invalidateQueries({ queryKey: keyFor(caseId) })
         }
       })
 
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [caseId, enabled, queryClient, supabase])
+    // keyFor depends only on kind.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseId, enabled, kind, queryClient, supabase])
 
   return query
 }

@@ -24,6 +24,7 @@ export type StateMachineNode =
   | 'L2-ReportDrafting'
   | 'L2-ReportReady'
   | 'L2-ReportFailed'
+  | 'L3-ConfirmFidrecFacts'
   | 'L3-FormFilling'
   | 'L3-Tier2Ready'
   | 'L3-Submitting'
@@ -39,6 +40,10 @@ export interface StateMachineInput {
   entitlementPlan: CaseEntitlementPlan | null
   /** The bank pack is paid for (capabilities report.entitled); the plan alone can't say so once packs are independent. */
   bankPackOwned?: boolean | null
+  /** The FIDReC pack is paid for (capabilities fidrecPack.entitled); `null` while loading (the plan decides). */
+  fidrecPackOwned?: boolean | null
+  /** The stored FIDReC pack (report_type fidrec_pack_v1); `report` is the bank pack. */
+  fidrecReport?: ReportRow | null
   documents: Array<Pick<CaseDocumentRow, 'id' | 'processing_status'>> | null
   decision: CaseDecisionRunRow | null
   report: ReportRow | null
@@ -75,6 +80,8 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
     narratives,
     entitlementPlan,
     bankPackOwned = null,
+    fidrecPackOwned = null,
+    fidrecReport = null,
     documents,
     decision,
     report,
@@ -92,13 +99,19 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   if (isContactSubmitted) return 'L3-Confirmed'
   if (isContactSubmitting) return 'L3-Submitting'
 
-  if (entitlementPlan === 'escalation_pack') {
+  // Stage 2: each pack is its own entitlement. The FIDReC pack comes first when both are owned: confirm its facts,
+  // then the pack; the bank pack follows. Pay first, then confirm (Elena, 13 Nov 2026).
+  const fidrecOwned = fidrecPackOwned ?? entitlementPlan === 'escalation_pack'
+  const bankOwned = bankPackOwned === true || (bankPackOwned === null && entitlementPlan === 'self_serve_report')
+  if (fidrecOwned) {
+    if (fidrecReport?.status !== 'COMPLETED') return 'L3-ConfirmFidrecFacts'
+    if (bankOwned && report?.status !== 'COMPLETED') return 'L2-ConfirmBankFacts'
     return 'L3-Tier2Ready'
   }
 
   // Stage 2 (Elena, 13 Nov 2026): pay first, then confirm the bank facts; the pack is generated from them
   // (run_bank_pack_v1), so there is no report job to wait for.
-  if (entitlementPlan === 'self_serve_report' || bankPackOwned === true) {
+  if (bankOwned) {
     if (report?.status === 'COMPLETED') return 'L3-FormFilling'
     return 'L2-ConfirmBankFacts'
   }

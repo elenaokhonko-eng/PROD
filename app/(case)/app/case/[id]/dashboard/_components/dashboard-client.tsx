@@ -45,10 +45,9 @@ import { useDecisionRunRealtime } from '@/hooks/state-machine/layer2/use-decisio
 import { useReportRealtime } from '@/hooks/state-machine/layer2/use-report-realtime'
 import { clearPackIntent, type PackIntent, readPackIntent } from '@/lib/journey/pack-intent'
 import { useJobStatus } from '@/hooks/state-machine/layer2/use-job-status'
-import { useTier2Pack } from '@/hooks/state-machine/layer3/use-tier2-pack'
-import { useCasePackExport } from '@/hooks/state-machine/layer3/use-case-pack-export'
-import { Tier2PackPanel } from '@/components/state-machine/layer3/tier2-pack-panel'
-import { Tier2PackView } from '@/components/state-machine/layer3/tier2-pack-view'
+import { FidrecPackView } from '@/components/state-machine/layer3/fidrec-pack-view'
+import { FidrecOffer } from '@/components/state-machine/transition/fidrec-offer'
+import type { FidrecPackJson } from '@/lib/types/report'
 import {
   getValidationResponseTypes,
   serializeValidationAnswer,
@@ -117,10 +116,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const uploadEvidence = useUploadEvidence()
   const deleteEvidence = useDeleteEvidence(caseId)
   const createCheckout = useCreateCheckoutSession()
-  const tier2PackQuery = useTier2Pack(caseId, {
-    enabled: paymentStatusQuery.data?.plan === 'escalation_pack',
-  })
-  const casePackExport = useCasePackExport()
+  // The FIDReC pack is its own stored report (run_fidrec_pack_v1); reportQuery is the bank pack.
+  const fidrecReportQuery = useReportRealtime(caseId, { kind: 'fidrec' })
   const hasSubmittedIntake = intakeCompleted || intakeCompletionQuery.data === true
 
   useAutoRefireExtract({
@@ -157,6 +154,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     narratives: tier0DraftQuery.data ?? null,
     entitlementPlan: paymentStatusQuery.data?.plan ?? null,
     bankPackOwned: reportPurchase?.entitled ?? null,
+    fidrecPackOwned: paymentStatusQuery.data?.capabilityBilling.capabilities.fidrecPack.entitled ?? null,
+    fidrecReport: fidrecReportQuery.data ?? null,
     documents: documentsQuery.data ?? null,
     decision: decisionQuery.data ?? null,
     report: reportQuery.data ?? null,
@@ -351,7 +350,9 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   }
 
   async function handleCheckout(productKey: ProductKey) {
-    if (productKey === 'self_serve_report' && packIntent === 'bank') clearPackIntent()
+    if ((productKey === 'self_serve_report' && packIntent === 'bank') || (productKey === 'fidrec_tier2_pack' && packIntent === 'fidrec')) {
+      clearPackIntent()
+    }
     setCheckoutError(null)
     setCheckoutProduct(productKey)
     if (!canStartCheckout(productKey)) {
@@ -374,14 +375,41 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     }
   }
 
-  const isTier2Ready = fidrecCapability?.entitled === true
-  const canBuyTier2 =
-    eligibilityQuery.data?.eligible_actions.run_escalation_pack === true &&
-    fidrecCapability?.canCheckout === true
+  const fidrecReport = fidrecReportQuery.data?.status === 'COMPLETED' ? fidrecReportQuery.data : null
+
+  // The route question saves fidrec_route and its date; readiness is then read again (get_case_product_readiness_v1).
+  async function saveFidrecRoute(answers: Record<string, string>) {
+    const types = Object.fromEntries(Object.keys(answers).map((key) => [key, key.endsWith('_date') ? 'date' : 'text']))
+    await saveResponses(answers, types)
+    await paymentStatusQuery.refetch()
+  }
+
+  const fidrecOffer = (
+    <FidrecOffer
+      priceLabel={priceLabels.tier2}
+      canCheckout={fidrecCapability?.canCheckout === true}
+      reason={fidrecCapability?.reason ?? null}
+      opensOn={fidrecCapability?.opensOn ?? null}
+      checkoutInProgress={fidrecCapability?.checkoutInProgress === true}
+      isStartingCheckout={createCheckout.isPending && checkoutProduct === 'fidrec_tier2_pack'}
+      errorMessage={checkoutProduct === 'fidrec_tier2_pack' ? checkoutError : null}
+      onBuy={() => void handleCheckout('fidrec_tier2_pack')}
+      onSaveRoute={saveFidrecRoute}
+    />
+  )
+  // Offered wherever packs can be bought, once paid stages are on and the case doesn't own it.
+  const showFidrecOffer = fidrecCapability?.entitled !== true && capabilityBilling?.access.paidStagesEnabled === true
 
   const renderLayer3 = () => (
     <div className="space-y-6">
-      {reportQuery.data && !isTier2Ready ? (
+      {fidrecReport ? (
+        <FidrecPackView
+          pack={(fidrecReport.report_json ?? {}) as FidrecPackJson}
+          createdAt={fidrecReport.created_at}
+          onDownload={() => window.location.assign(`/api/cases/${caseId}/fidrec-pack/pdf`)}
+        />
+      ) : null}
+      {reportQuery.data?.status === 'COMPLETED' ? (
         <ReportView
           report={reportQuery.data}
           decision={decisionQuery.data}
@@ -407,25 +435,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
         ) : null}
       </div>
 
-      {isTier2Ready ? (
-        <Tier2PackView
-          pack={tier2PackQuery.data?.submission_pack}
-          isLoading={tier2PackQuery.isLoading}
-          errorMessage={tier2PackQuery.error ? 'The Tier 2 pack could not be loaded.' : null}
-          onRefresh={() => void tier2PackQuery.refetch()}
-          onDownloadPdf={() => void casePackExport.download(caseId, 'pdf')}
-          onDownloadMd={() => void casePackExport.download(caseId, 'md')}
-        />
-      ) : (
-        <Tier2PackPanel
-          priceLabel={priceLabels.tier2}
-          disabled={!canBuyTier2}
-          unavailableReason={!canBuyTier2 ? tier2CheckoutUnavailableReason : undefined}
-          isStartingCheckout={createCheckout.isPending && checkoutProduct === 'fidrec_tier2_pack'}
-          errorMessage={checkoutProduct === 'fidrec_tier2_pack' ? checkoutError : null}
-          onClick={() => void handleCheckout('fidrec_tier2_pack')}
-        />
-      )}
+      {showFidrecOffer ? fidrecOffer : null}
 
       <section className="rounded-xl border border-dashed bg-muted/30 p-5" aria-labelledby="consultation-status">
         <h2 id="consultation-status" className="font-semibold">Human consultation</h2>
@@ -442,6 +452,11 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto max-w-5xl px-4 py-8" data-harbor-node={node} data-harbor-ready={stateReady ? 'true' : 'false'}>
+        {packIntent === 'fidrec' && showFidrecOffer && BEFORE_FREE_EVALUATION.has(node) ? (
+          <div className="mb-8" data-pack-intent="fidrec">
+            {fidrecOffer}
+          </div>
+        ) : null}
         {showBankIntent ? (
           <div className="mb-8" data-pack-intent="bank">
             <BuyReportCTA
@@ -566,6 +581,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
                     errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
                     onClick={() => void handleCheckout('self_serve_report')}
                   />
+                  {showFidrecOffer ? <div className="mt-6">{fidrecOffer}</div> : null}
                 </div>
               ),
             }}
@@ -611,6 +627,27 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
           />
         ) : node === 'T-CheckoutRedirect' ? (
           <CheckoutRedirect />
+        ) : node === 'L3-ConfirmFidrecFacts' ? (
+          <div className="space-y-8">
+            <p className="rounded-lg border bg-muted/40 p-4 text-sm">
+              If your bank has sent its final reply, upload the letter below before you confirm: the FIDReC pack uses it
+              for the bank’s position.
+            </p>
+            <ConfirmAndEvaluate
+              caseId={caseId}
+              stage="fidrec"
+              readyDocumentsKey={(documentsQuery.data ?? []).filter((d) => d.processing_status === 'ready').map((d) => d.id).sort().join(',')}
+            />
+            <EvidenceUploadPanel
+              documents={documentsQuery.data ?? []}
+              isUploading={uploadEvidence.isPending}
+              activeBatchFileCount={uploadEvidence.isPending ? uploadEvidence.variables?.files.length ?? 0 : 0}
+              errorMessage={uploadErrorMessage}
+              onUpload={handleUpload}
+              onDelete={handleDelete}
+              deletingId={deletingDocumentId}
+            />
+          </div>
         ) : node === 'L2-ConfirmBankFacts' ? (
           // Stage 2: after payment, confirm the bank facts and add evidence; the bank pack is generated from them.
           <div className="space-y-8">

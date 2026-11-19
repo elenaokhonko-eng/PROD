@@ -17,7 +17,7 @@ import { FactsRequestError } from '@/hooks/state-machine/facts/use-case-facts'
 import { type GeneratedStage, useGenerateStage } from '@/hooks/state-machine/facts/use-generate-free-evaluation'
 import { openProblemReport } from '@/lib/report-problem'
 
-// The bank pack's wording is pending Elena's approval (stage 2 copy list, 20 Nov 2026).
+// The paid packs' wording is pending Elena's approval (stage 2 copy list, 20 Nov 2026).
 const COPY: Record<GeneratedStage, { preparing: string; failed: string; failedReason: string; problem: string }> = {
   free: {
     preparing: 'Preparing your free evaluation',
@@ -31,6 +31,22 @@ const COPY: Record<GeneratedStage, { preparing: string; failed: string; failedRe
     failedReason: 'We couldn’t produce a bank pack that matches your facts exactly. We’ve been notified; please try again later.',
     problem: 'bank_pack_failed',
   },
+  fidrec: {
+    preparing: 'Preparing your FIDReC pack',
+    failed: 'We couldn’t prepare your FIDReC pack',
+    failedReason: 'We couldn’t produce a FIDReC pack that matches your facts exactly. We’ve been notified; please try again later.',
+    problem: 'fidrec_pack_failed',
+  },
+}
+
+// Decision 7: the confirmed facts don't open a route to FIDReC today, so nothing is generated (and nothing charged again).
+const ROUTE_CLOSED: Record<string, string> = {
+  fidrec_too_early:
+    'Your confirmed facts show FIDReC can’t take the complaint yet: it opens four weeks after your written complaint to the bank. Check the dates in your facts, or come back then.',
+  fidrec_window_expired:
+    'Your confirmed facts show more than six months have passed since your bank’s final reply. Ask your bank to review your complaint again; a new final reply may start a new six-month window.',
+  complaint_not_raised:
+    'Your confirmed facts don’t show a written complaint to your bank yet. FIDReC needs one first: complain to your bank in writing, then come back.',
 }
 
 export function ConfirmAndEvaluate({
@@ -74,7 +90,9 @@ export function ConfirmAndEvaluate({
           <CardDescription>
             {reason === 'facts_unconfirmed'
               ? 'Your facts changed since you confirmed them. Please check them again.'
-              : reason === 'usage_limit'
+              : reason && ROUTE_CLOSED[reason]
+                ? ROUTE_CLOSED[reason]
+                : reason === 'usage_limit'
                 ? generate.error.message
                 : reason === 'output_validation_failed'
                 ? copy.failedReason

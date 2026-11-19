@@ -24,6 +24,7 @@ export const qk = {
     narratives: (caseId: string) => ['case', caseId, 'narratives'] as const,
     decision: (caseId: string) => ['case', caseId, 'decision'] as const,
     report: (caseId: string) => ['case', caseId, 'report'] as const,
+    fidrecReport: (caseId: string) => ['case', caseId, 'fidrec-report'] as const,
     job: (caseId: string) => ['case', caseId, 'job'] as const,
     contactRequest: (caseId: string) => ['case', caseId, 'contact-request'] as const,
     tier2Pack: (caseId: string) => ['case', caseId, 'tier2-pack'] as const,

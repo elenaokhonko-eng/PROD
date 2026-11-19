@@ -100,10 +100,15 @@ export const HARBOR_FUNCTIONALITY_CONTRACT: Record<HarborFlowId, HarborFlowContr
   },
   'tier-2': {
     entryRoutes: ['/app/case/:caseId/dashboard'],
-    uiOwners: ['components/state-machine/layer3', 'hooks/state-machine/layer3'],
-    hooks: ['useTier2Pack', 'useCasePackExport'],
-    api: ['GET /api/fidrec/tier2/case-pack-json', 'GET /api/fidrec/tier2/case-pack-export'],
-    dataOwners: ['server-returned run_escalation_pack eligibility', 'case pack endpoints'],
+    // Stage 2: the FIDReC pack is generated once from the confirmed fidrec facts and stored (run_fidrec_pack_v1).
+    uiOwners: ['components/state-machine/layer3', 'components/state-machine/transition'],
+    hooks: ['useReportRealtime', 'useGenerateStage'],
+    api: [
+      'GET /api/cases/:caseId/capabilities',
+      'POST /api/edge/fidrec-pack',
+      'GET /api/cases/:caseId/fidrec-pack/pdf',
+    ],
+    dataOwners: ['typed case capability response (fidrecPack state and reason)', 'reports (fidrec_pack_v1)'],
     analytics: [],
     redirects: ['Stripe-hosted checkout URL'],
     constraints: [
