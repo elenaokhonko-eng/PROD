@@ -93,7 +93,7 @@ export function founderJsonLd(): JsonLd | null {
     name: FOUNDER.name,
     jobTitle: FOUNDER.title,
     worksFor: { '@id': ORGANIZATION_ID },
-    ...(FOUNDER.photo ? { image: `${SITE_ORIGIN}${FOUNDER.photo}` } : {}),
-    ...(FOUNDER.linkedin ? { sameAs: [FOUNDER.linkedin] } : {}),
+    image: `${SITE_ORIGIN}${FOUNDER.photo}`,
+    sameAs: [FOUNDER.linkedin],
   }
 }

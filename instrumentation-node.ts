@@ -5,7 +5,8 @@ import { checkModelHealth } from "@/lib/server/ai/model-health"
 const MODEL_CHECK_INTERVAL_MS = 60 * 60_000
 
 if (process.env.RENDER_GIT_COMMIT && process.env.NEXT_PHASE !== "phase-production-build") {
-  const run = () => void checkModelHealth({ force: true }).catch(() => undefined)
+  // confirm: a provider that does not answer is checked again a minute later before anyone is emailed.
+  const run = () => void checkModelHealth({ force: true, confirm: true }).catch(() => undefined)
   run()
   setInterval(run, MODEL_CHECK_INTERVAL_MS).unref()
 }

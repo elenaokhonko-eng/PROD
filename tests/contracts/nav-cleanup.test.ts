@@ -60,6 +60,7 @@ const BANK_DOMAINS: Record<string, string> = {
   'Standard Chartered': 'sc.com',
   HSBC: 'hsbc.com.sg',
   Citibank: 'citibank.com.sg',
+  Maybank: 'maybank2u.com.sg',
   'Bank of China': 'bankofchina.com',
   ICBC: 'icbc.com.sg',
   CIMB: 'cimb.com.sg',
@@ -88,4 +89,20 @@ test('§I: the official sources follow the brief’s order and link to official 
       assert.match(new URL(url).hostname, /(\.gov\.sg|fidrec\.com\.sg)$/, `${source.id}: ${url}`)
     }
   }
+})
+
+// Elena, 19 Nov: Clifford Law LLP as the first legal partner, greyed out and labelled until confirmed.
+test('Marketplace shows the first legal partner as pending, with the firm’s website', async () => {
+  const { PARTNERS, MARKETPLACE_INTRO } = await import('../../lib/content/partners')
+  assert.equal(PARTNERS.length, 1)
+  const [partner] = PARTNERS
+  assert.equal(partner.heading, 'First legal partner, pending confirmation')
+  assert.equal(partner.status, 'pending')
+  assert.deepEqual(partner.website, { label: 'Clifford Law LLP website', href: 'https://www.cliffordlaw.sg/' })
+  assert.ok(existsSync(`public${partner.photo}`))
+  assert.doesNotMatch(MARKETPLACE_INTRO, /not referrals, partnerships/, 'the intro no longer denies any partnership')
+  const page = readFileSync('app/(marketing)/marketplace/page.tsx', 'utf8')
+  assert.match(page, /intro=\{MARKETPLACE_INTRO\}/)
+  assert.match(page, /pending && 'opacity-60 grayscale'/)
+  assert.match(page, /\{PENDING_LABEL\}/)
 })

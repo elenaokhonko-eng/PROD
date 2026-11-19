@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col bg-harbor-teal-tint">
       <header className="flex items-center justify-between gap-2 px-4 pt-4">
         <Link href="/" className="inline-flex min-h-11 items-center gap-2 rounded-full pr-2 font-semibold">
-          <Image src="/assets/harbor/lumi-buoy.jpg" alt="" width={36} height={36} className="size-9 rounded-full object-cover" />
+          <Image src="/assets/harbor/lumi-72.webp" alt="" width={36} height={36} className="size-9 object-contain" />
           <span>GuideBuoy AI</span>
         </Link>
         <AccountButton />

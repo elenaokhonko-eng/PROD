@@ -38,11 +38,11 @@ export function PublicHeader() {
       <div className="gb-container flex min-h-16 items-center gap-2">
         <Link href="/" className="flex min-h-11 shrink-0 items-center gap-2 rounded-full pr-2 font-semibold">
           <Image
-            src="/assets/harbor/lumi-buoy.jpg"
+            src="/assets/harbor/lumi-72.webp"
             alt=""
             width={36}
             height={36}
-            className="size-9 rounded-full object-cover"
+            className="size-9 object-contain"
           />
           {/* Brief W1 §A2: on narrow phones the name gives way to the start button; screen readers still hear it. */}
           <span className="sr-only min-[420px]:not-sr-only">GuideBuoy AI</span>

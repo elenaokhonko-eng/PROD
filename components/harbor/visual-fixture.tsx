@@ -32,7 +32,7 @@ export function HarborVisualFixture({ fixture }: { fixture: HarborVisualFixture 
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="gb-container flex min-h-16 items-center gap-3">
-          <Image src="/assets/harbor/lumi-buoy.jpg" alt="" width={40} height={40} className="size-10 rounded-full object-cover" priority />
+          <Image src="/assets/harbor/lumi-72.webp" alt="" width={40} height={40} className="size-10 object-contain" priority />
           <div className="min-w-0">
             <p className="truncate font-semibold text-harbor-deep">GuideBuoy AI</p>
             <p className="truncate text-xs text-muted-foreground">Harbor visual acceptance fixture</p>
