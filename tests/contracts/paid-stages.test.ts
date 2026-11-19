@@ -49,5 +49,8 @@ test('no buy button while paid stages are off, even when the case is ready to bu
   assert.equal(off.capabilities.fidrecPack.canCheckout, false)
   assert.equal(off.access.paidStagesEnabled, false)
   assert.equal(off.access.paidStagesAvailableFrom, '2026-12-01')
-  assert.match(readFileSync('app/api/cases/[caseId]/capabilities/route.ts', 'utf8'), /paidStages: paidStagesState\(\)/)
+  const route = readFileSync('app/api/cases/[caseId]/capabilities/route.ts', 'utf8')
+  assert.match(route, /const paidStages = paidStagesState\(\)[\s\S]*?buildCaseCapabilityBillingResponse\(\{[\s\S]*?paidStages,/)
+  // Stage 1 doesn't read the buying rules, so it doesn't depend on the stage 2 migration being applied.
+  assert.match(route, /if \(paidStages\.enabled\) \{[\s\S]*?loadProductReadiness/)
 })
