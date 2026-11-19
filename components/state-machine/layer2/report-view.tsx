@@ -14,6 +14,7 @@ import { Check, Download, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { CaseDecisionRunRow } from '@/lib/types/decision'
+import { PAID_PACK_NOTICE } from '@/lib/legal/automated-output-notice'
 import type { ReportJson, ReportRow } from '@/lib/types/report'
 
 export interface ReportViewProps {
@@ -53,8 +54,9 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
         </div>
       </div>
 
+      {/* Paid packs carry the notice without the consultation line (stage 2 decision 8). */}
       <p className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground" role="note">
-        Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
+        {PAID_PACK_NOTICE}
       </p>
 
       {json.executive_summary ? (
@@ -121,6 +123,19 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
               Showing first 5 of {json.disputed_transactions.length} transactions.
             </p>
           ) : null}
+        </Section>
+      ) : null}
+
+      {typeof json.total_loss === 'string' && json.total_loss ? (
+        <p className="text-sm">
+          <span className="font-medium">Amount lost: </span>
+          {json.total_loss}
+        </p>
+      ) : null}
+
+      {typeof json.rules_assessment === 'string' && json.rules_assessment ? (
+        <Section title="How the rules may apply">
+          <Prose>{json.rules_assessment}</Prose>
         </Section>
       ) : null}
 

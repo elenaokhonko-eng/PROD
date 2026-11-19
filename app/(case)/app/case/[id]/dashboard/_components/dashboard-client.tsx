@@ -152,6 +152,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     gapItems: validationQuery.gapItems,
     narratives: tier0DraftQuery.data ?? null,
     entitlementPlan: paymentStatusQuery.data?.plan ?? null,
+    bankPackOwned: reportPurchase?.entitled ?? null,
     documents: documentsQuery.data ?? null,
     decision: decisionQuery.data ?? null,
     report: reportQuery.data ?? null,
@@ -578,6 +579,24 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
           />
         ) : node === 'T-CheckoutRedirect' ? (
           <CheckoutRedirect />
+        ) : node === 'L2-ConfirmBankFacts' ? (
+          // Stage 2: after payment, confirm the bank facts and add evidence; the bank pack is generated from them.
+          <div className="space-y-8">
+            <ConfirmAndEvaluate
+              caseId={caseId}
+              stage="bank"
+              readyDocumentsKey={(documentsQuery.data ?? []).filter((d) => d.processing_status === 'ready').map((d) => d.id).sort().join(',')}
+            />
+            <EvidenceUploadPanel
+              documents={documentsQuery.data ?? []}
+              isUploading={uploadEvidence.isPending}
+              activeBatchFileCount={uploadEvidence.isPending ? uploadEvidence.variables?.files.length ?? 0 : 0}
+              errorMessage={uploadErrorMessage}
+              onUpload={handleUpload}
+              onDelete={handleDelete}
+              deletingId={deletingDocumentId}
+            />
+          </div>
         ) : node === 'L2-DecisionRunning' ? (
           <DecisionProgress />
         ) : node === 'L2-ReportDrafting' ? (

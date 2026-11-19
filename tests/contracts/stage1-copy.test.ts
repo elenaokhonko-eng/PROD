@@ -53,7 +53,6 @@ test('D3 / Terms 2.2: every output, on screen and in every download, shows the a
   assert.equal(readFileSync('lib/legal/automated-output-notice.ts', 'utf8').includes(notice), true)
   const outputs = [
     'components/state-machine/layer1/tier0-draft-view.tsx',
-    'components/state-machine/layer2/report-view.tsx',
     'components/state-machine/layer3/tier2-pack-view.tsx',
     'lib/server/facts/free-evaluation-pdf.ts',
     'lib/server/fidrec/build-case-pack-pdf.ts',
@@ -64,6 +63,10 @@ test('D3 / Terms 2.2: every output, on screen and in every download, shows the a
     return !text.includes(notice) && !/(addParagraph|lines\.push)\(AUTOMATED_OUTPUT_NOTICE\)/.test(text)
   })
   assert.deepEqual(missing, [])
+  // The bank pack's screen carries the paid packs' notice, which ends before the consultation offer (decision 8).
+  const paid = 'Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person.'
+  assert.match(readFileSync('lib/legal/automated-output-notice.ts', 'utf8'), new RegExp(`PAID_PACK_NOTICE = "${paid.replace(/\./g, '\\.')}"`))
+  assert.match(readFileSync('components/state-machine/layer2/report-view.tsx', 'utf8'), /\{PAID_PACK_NOTICE\}/)
 })
 
 test('B1/E1 (Elena, 7 Nov): the story box shows the worked example; the about page uses "Tell us once", not the buoy metaphor', () => {

@@ -204,12 +204,13 @@ describe('Harbor UI functionality contract', () => {
       'components/state-machine/layer1/tier0-draft-view.tsx',
       'components/state-machine/transition/buy-report-cta.tsx',
       'components/state-machine/layer2/report-drafting.tsx',
-      'components/state-machine/layer2/report-view.tsx',
       'components/state-machine/layer3/tier2-pack-panel.tsx',
       'components/state-machine/layer3/tier2-pack-view.tsx',
     ]) {
       assert.ok(readSource(path).includes(disclosure), `${path} is missing the automated-output disclosure`)
     }
+    // The bank pack: the paid packs' notice, without the consultation offer (stage2-plan §4, decision 8).
+    assert.match(readSource('components/state-machine/layer2/report-view.tsx'), /\{PAID_PACK_NOTICE\}/)
   })
 
   it('keeps deletion, referral, consultation, Singpass, and handoffs inactive', () => {
