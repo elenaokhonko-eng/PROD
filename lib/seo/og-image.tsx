@@ -13,8 +13,9 @@ export const OG_IMAGE_SIZE = { width: 1200, height: 630 }
 const COLORS = { background: '#e3ebf0', headline: '#245854', text: '#2e3a3f', rule: '#2e6e6a' }
 
 export async function ogImage(headline: string) {
-  const mascot = await readFile(join(process.cwd(), 'public/assets/harbor/lumi-buoy.jpg'))
-  const mascotSrc = `data:image/jpeg;base64,${mascot.toString('base64')}`
+  // The transparent cut-out (brief W1 §V5), as PNG: next/og does not decode WebP.
+  const mascot = await readFile(join(process.cwd(), 'public/assets/harbor/lumi-192.png'))
+  const mascotSrc = `data:image/png;base64,${mascot.toString('base64')}`
 
   return new ImageResponse(
     (
@@ -32,7 +33,7 @@ export async function ogImage(headline: string) {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={mascotSrc} width={96} height={96} alt="" style={{ borderRadius: 48 }} />
+          <img src={mascotSrc} width={96} height={96} alt="" />
           <div style={{ fontSize: 40, fontWeight: 600, color: COLORS.rule }}>GuideBuoy AI</div>
         </div>
         <div style={{ display: 'flex', fontSize: headline.length > 60 ? 60 : 72, fontWeight: 700, lineHeight: 1.12, color: COLORS.headline }}>

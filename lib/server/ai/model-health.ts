@@ -110,15 +110,83 @@ export function describeFailures(health: ModelHealth): string {
     .join("; ")
 }
 
+// Why a check failed, which decides what the alert asks for. "not-responding" (no answer or a 5xx) is usually a
+// short provider outage, as on 17 Nov, when OpenAI answered 504 twice; it says nothing about the key or the model ID.
+export type FailureKind = "key-refused" | "model-missing" | "not-responding" | "other"
+
+export function failureKind(status: number | null): FailureKind {
+  if (status === null || status >= 500) return "not-responding"
+  if (status === 401 || status === 403) return "key-refused"
+  if (status === 404) return "model-missing"
+  return "other"
+}
+
+const RETRY_AFTER_MS = 60_000
+
+// The scheduled checks look again a minute later before alerting on a provider that did not respond, so a passing
+// blip sends no email. A missing model or refused key is reported at once.
+export async function confirmFailures(
+  run: () => Promise<ModelHealth>,
+  delayMs = RETRY_AFTER_MS,
+  sleep: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+): Promise<ModelHealth> {
+  const first = await run()
+  if (first.ok || !first.checks.some((check) => !check.ok && failureKind(check.status) === "not-responding")) return first
+  await sleep(delayMs)
+  return run()
+}
+
+const ADVICE: Record<FailureKind, { heading: string; advice: string }> = {
+  "key-refused": {
+    heading: "The provider refused the deployed key",
+    advice: "Check that the key is current and has access to this model. Calls using it will fail until it is fixed.",
+  },
+  "model-missing": {
+    heading: "The model ID is not available to the deployed key",
+    advice: "Evidence processing, transcription or report generation will fail until the model setting is changed to an available model ID.",
+  },
+  "not-responding": {
+    heading: "The provider did not answer in time, twice, a minute apart",
+    advice: "This is usually a short outage on the provider's side; the key and the model ID were not rejected. The check runs again within the hour. If this alert repeats, check the provider's status page.",
+  },
+  other: {
+    heading: "The provider gave an unexpected answer",
+    advice: "Look at the status codes above and the provider's documentation.",
+  },
+}
+
+// The alert email, grouped by cause.
+export function alertEmail(health: ModelHealth, environment: string): { subject: string; html: string } {
+  const failing = health.checks.filter((check) => !check.ok)
+  const kinds = [...new Set(failing.map((check) => failureKind(check.status)))]
+  const onlyNotResponding = kinds.length === 1 && kinds[0] === "not-responding"
+  const subject = `GuideBuoy AI ${onlyNotResponding ? "provider not responding" : "model unavailable"} (${environment})`
+  const sections = kinds.map((kind) => {
+    const items = failing
+      .filter((check) => failureKind(check.status) === kind)
+      .map((check) => `<li>${check.where} ${check.provider} ${check.model} (${check.use}): HTTP ${check.status ?? "no response"}</li>`)
+      .join("")
+    return `<p><strong>${ADVICE[kind].heading}:</strong></p><ul>${items}</ul><p>${ADVICE[kind].advice}</p>`
+  })
+  return { subject, html: sections.join("") }
+}
+
 let cached: { health: ModelHealth; expiresAt: number } | null = null
 let inFlight: Promise<ModelHealth> | null = null
 let lastAlertAt = 0
 
-export async function checkModelHealth(options: { force?: boolean } = {}): Promise<ModelHealth> {
+async function runChecks(): Promise<ModelHealth> {
+  const checks = (await Promise.all([appChecks(), edgeChecks()])).flat()
+  return { ok: checks.every((check) => check.ok), checks, checkedAt: new Date().toISOString() }
+}
+
+// `confirm` (the startup and hourly checks) looks again after a minute before alerting on a provider that did not
+// respond; /api/health/release answers at once.
+export async function checkModelHealth(options: { force?: boolean; confirm?: boolean } = {}): Promise<ModelHealth> {
   if (!options.force && cached && cached.expiresAt > Date.now()) return cached.health
   inFlight ??= (async () => {
-    const checks = (await Promise.all([appChecks(), edgeChecks()])).flat()
-    const health = { ok: checks.every((check) => check.ok), checks, checkedAt: new Date().toISOString() }
+    const health = options.confirm ? await confirmFailures(runChecks) : await runChecks()
+    const checks = health.checks
     cached = { health, expiresAt: Date.now() + (health.ok ? HEALTHY_CACHE_MS : UNHEALTHY_CACHE_MS) }
     if (health.ok) {
       log.info("AI models available", { models: checks.map((check) => `${check.where}:${check.model}`) })
@@ -138,15 +206,8 @@ async function reportUnavailable(health: ModelHealth) {
   if (Date.now() - lastAlertAt < ALERT_INTERVAL_MS) return
   lastAlertAt = Date.now()
   try {
-    await sendMail({
-      from: EMAIL_FROM,
-      to: ADMIN_EMAIL,
-      subject: `GuideBuoy AI model unavailable (${process.env.HARBOR_DEPLOYMENT_ENVIRONMENT ?? "unknown environment"})`,
-      html: `<p>These configured AI models did not respond with the deployed keys:</p><ul>${failures
-        .split("; ")
-        .map((failure) => `<li>${failure}</li>`)
-        .join("")}</ul><p>Evidence processing, transcription or report generation will fail until the model setting is changed to an available model ID.</p>`,
-    })
+    const { subject, html } = alertEmail(health, process.env.HARBOR_DEPLOYMENT_ENVIRONMENT ?? "unknown environment")
+    await sendMail({ from: EMAIL_FROM, to: ADMIN_EMAIL, subject, html })
   } catch (error) {
     log.error("ai_model_unavailable alert email failed", { message: error instanceof Error ? error.message : String(error) })
   }

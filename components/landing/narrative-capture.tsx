@@ -221,7 +221,7 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
           Tell GuideBuoy what happened — in your own words.
         </h2>
         {/* §A2: on phones the mascot sits small beside the story heading instead of between the hero and the box. */}
-        <Image src="/assets/harbor/lumi-buoy.jpg" alt="" width={64} height={64} className="size-16 shrink-0 rounded-2xl object-cover lg:hidden" />
+        <Image src="/assets/harbor/lumi-192.webp" alt="" width={96} height={96} className="size-24 shrink-0 object-contain lg:hidden" />
       </div>
       <p className="mt-2 leading-6 text-muted-foreground">There is no wrong way to begin. You can edit your words before continuing.</p>
 

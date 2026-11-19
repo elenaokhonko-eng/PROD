@@ -1,6 +1,7 @@
 // Brief W1 §I: the Resources page, server-rendered from this file. Every number and link was read on the
 // organisation's own website (sourceUrl) on the date checked. A bank whose number could not be confirmed on its own
-// site is left out and listed for Elena (Maybank, 18 Nov: its site did not load). Elena reviews this list before
+// site is left out and listed for Elena. Exception: Maybank's site does not load from our checks (18 and 19 Nov), so
+// its number is the one Elena supplied on 19 Nov from Maybank's published hotline. Elena reviews this list before
 // each production release that changes it.
 
 import { FIDREC_ABOUT, FIDREC_TIME_LIMIT } from '@/lib/harbor/packs'
@@ -24,6 +25,7 @@ export const BANK_HOTLINES: readonly BankHotline[] = [
   { bank: 'Standard Chartered', phone: '6747 7000', tel: '+6567477000', label: 'Personal Banking (24-hour): select 1 to report a fraudulent transaction', sourceUrl: 'https://www.sc.com/sg/fraud-scam/help/' },
   { bank: 'HSBC', phone: '6472 2669', tel: '+6564722669', label: 'Emergency services (fraud and scam related enquiry): 24/7', sourceUrl: 'https://www.hsbc.com.sg/contact/' },
   { bank: 'Citibank', phone: '6337 5519', tel: '+6563375519', label: 'Fraud hotline, 24/7', sourceUrl: 'https://www.citibank.com.sg/static/contact' },
+  { bank: 'Maybank', phone: '1800 629 2265', tel: '+6518006292265', label: '1800-MAYBANK: press *1 to report scams or suspicious transactions', sourceUrl: 'https://www.maybank2u.com.sg/en/personal/eservices/security-alerts/online-threats/measures-to-protect-you-from-scams.page' },
   { bank: 'Bank of China', phone: '1800 66 95566', tel: '+6518006695566', label: '24-hour customer service hotline', sourceUrl: 'https://www.bankofchina.com/sg/bocinfo/bi1/202006/t20200615_18038779.html' },
   { bank: 'ICBC', phone: '6369 5588', tel: '+6563695588', label: 'Hotline (24 hours)', sourceUrl: 'https://www.icbc.com.sg/en/page/721854456743624706.html' },
   { bank: 'CIMB', phone: '6333 7777', tel: '+6563337777', label: 'Hotline for suspected scams and fraud', sourceUrl: 'https://www.cimb.com.sg/en/personal/help-support/security-fraud.html' },

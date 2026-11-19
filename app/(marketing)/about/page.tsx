@@ -8,7 +8,8 @@ import { StartEvaluationButton } from '@/components/harbor/start-evaluation-butt
 import { UenCheck } from '@/components/harbor/trust-row'
 import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 import { JsonLd } from '@/components/seo/json-ld'
-import { FOUNDER, FOUNDER_NOTE, visibleTeam } from '@/lib/content/team'
+import { FOUNDER, FOUNDER_NOTE, PENDING_LABEL, teamGroup } from '@/lib/content/team'
+import { cn } from '@/lib/utils'
 import { COMPANY } from '@/lib/harbor/company'
 import { founderJsonLd } from '@/lib/seo/structured-data'
 
@@ -25,8 +26,12 @@ const principles = [
   { icon: Scale, title: 'Not legal advice', text: 'GuideBuoy helps organise information. It does not decide your case or provide legal advice.' },
 ] as const
 
+const GROUPS = [
+  { group: 'team', title: 'Team' },
+  { group: 'adviser', title: 'Advisers' },
+] as const
+
 export default function AboutPage() {
-  const team = visibleTeam()
   return (
     <MarketingPage
       eyebrow="Why GuideBuoy exists"
@@ -39,22 +44,17 @@ export default function AboutPage() {
         {FOUNDER ? (
           <figure className="gb-card bg-harbor-teal-tint p-6 sm:p-8" aria-labelledby="founder-note-title">
             <div className="flex items-center gap-4">
-              {FOUNDER.photo ? (
-                <Image src={FOUNDER.photo} alt={FOUNDER.name} width={96} height={96} className="size-24 shrink-0 rounded-full object-cover" />
-              ) : null}
+              <Image src={FOUNDER.photo} alt={FOUNDER.name} width={96} height={96} className="size-24 shrink-0 rounded-full object-cover" />
               <h2 id="founder-note-title" className="text-xl font-semibold text-harbor-deep">Why GuideBuoy exists.</h2>
             </div>
             <blockquote className="mt-4 text-lg leading-8 text-foreground">{FOUNDER_NOTE}</blockquote>
             <figcaption className="mt-4 leading-7">
-              — {FOUNDER.name}, {FOUNDER.title.toLowerCase()}
-              {FOUNDER.linkedin ? (
-                <>
-                  {' · '}
-                  <a href={FOUNDER.linkedin} target="_blank" rel="noopener noreferrer" className="font-medium underline">
-                    LinkedIn<span className="sr-only"> profile of {FOUNDER.name} (opens in a new tab)</span>
-                  </a>
-                </>
-              ) : null}
+              {/* The brief's sign-off, word for word; the full title is on her team card below. */}
+              — {FOUNDER.name}, founder
+              {' · '}
+              <a href={FOUNDER.linkedin} target="_blank" rel="noopener noreferrer" className="font-medium underline">
+                LinkedIn<span className="sr-only"> profile of {FOUNDER.name} (opens in a new tab)</span>
+              </a>
             </figcaption>
           </figure>
         ) : null}
@@ -79,30 +79,42 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Brief W1 §G: the team, only people who have given their OK. The founder is already introduced above, so the
-          section appears once someone else has joined the list. */}
-      {team.length > 1 ? (
-        <MarketingSection>
-          <h2 id="team-title" className="text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">Team</h2>
-          <ul aria-labelledby="team-title" className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {team.map((member) => (
-              <li key={member.name} className="rounded-card border bg-card p-6">
-                {member.photo ? (
-                  <Image src={member.photo} alt={member.name} width={80} height={80} className="size-20 rounded-full object-cover" />
-                ) : null}
-                <h3 className="mt-4 text-xl font-semibold">{member.name}</h3>
-                <p className="text-muted-foreground">{member.title}</p>
-                {member.line ? <p className="mt-3 leading-7">{member.line}</p> : null}
-                {member.linkedin ? (
-                  <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center font-medium underline">
-                    LinkedIn<span className="sr-only"> profile of {member.name} (opens in a new tab)</span>
-                  </a>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </MarketingSection>
-      ) : null}
+      {/* Brief W1 §G: the team and advisers from lib/content/team.ts, in Elena's order. A pending card is greyed out,
+          labelled and has no LinkedIn link (Elena, 19 Nov). */}
+      <MarketingSection>
+        {GROUPS.map(({ group, title }) => (
+          <section key={group} aria-labelledby={`${group}-title`} className="mt-10 first:mt-0">
+            <h2 id={`${group}-title`} className="text-[1.75rem] leading-tight font-semibold sm:text-[2rem] text-harbor-deep">{title}</h2>
+            <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {teamGroup(group).map((member) => {
+                const pending = member.status === 'pending'
+                return (
+                  <li key={member.name} data-status={member.status} className={cn('flex flex-col rounded-card border bg-card p-6', pending && 'border-dashed')}>
+                    <Image
+                      src={member.photo}
+                      alt={member.name}
+                      width={80}
+                      height={80}
+                      className={cn('size-20 rounded-full object-cover', pending && 'opacity-60 grayscale')}
+                    />
+                    {pending ? (
+                      <p className="mt-4 w-fit rounded-full bg-harbor-surface-subtle px-3 py-1 text-sm font-medium text-foreground">{PENDING_LABEL}</p>
+                    ) : null}
+                    <h3 className={cn('mt-4 text-xl font-semibold', pending && 'text-muted-foreground')}>{member.name}</h3>
+                    <p className="text-muted-foreground">{member.title}</p>
+                    <p className={cn('mt-3 leading-7', pending && 'text-muted-foreground')}>{member.line}</p>
+                    {pending ? null : (
+                      <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="mt-auto inline-flex min-h-11 items-center pt-3 font-medium underline">
+                        LinkedIn<span className="sr-only"> profile of {member.name} (opens in a new tab)</span>
+                      </a>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        ))}
+      </MarketingSection>
 
       {/* Brief W1 §G: about checking the company, with the same BizFile link and Copy UEN as the trust row. */}
       <MarketingSection className="pb-0 sm:pb-0">

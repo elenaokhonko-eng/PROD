@@ -60,6 +60,7 @@ const BANK_DOMAINS: Record<string, string> = {
   'Standard Chartered': 'sc.com',
   HSBC: 'hsbc.com.sg',
   Citibank: 'citibank.com.sg',
+  Maybank: 'maybank2u.com.sg',
   'Bank of China': 'bankofchina.com',
   ICBC: 'icbc.com.sg',
   CIMB: 'cimb.com.sg',

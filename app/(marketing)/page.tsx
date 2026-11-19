@@ -80,14 +80,14 @@ export default function HomePage() {
             </div>
           </div>
           {/* §A2: on phones the mascot no longer sits between the hero and the story box. */}
-          <div className="gb-illo gb-avatar mx-auto hidden max-w-[16rem] lg:block">
+          <div className="gb-illo gb-avatar mx-auto hidden max-w-[10rem] lg:block">
             <Image
-              src="/assets/harbor/lumi-buoy.jpg"
+              src="/assets/harbor/lumi-320.webp"
               alt="GuideBuoy’s avatar"
-              width={640}
-              height={640}
+              width={320}
+              height={320}
               priority
-              className="gb-decorative aspect-square rounded-[2rem] object-cover"
+              className="gb-decorative aspect-square object-contain"
             />
           </div>
         </div>

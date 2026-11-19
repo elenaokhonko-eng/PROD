@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import test from 'node:test'
-import { FOUNDER_NOTE, visibleTeam, type TeamMember } from '../../lib/content/team'
+import { FOUNDER, FOUNDER_NOTE, PENDING_LABEL, TEAM, teamGroup } from '../../lib/content/team'
+import { founderJsonLd } from '../../lib/seo/structured-data'
 import { MARKDOWN_COPIES } from '../../lib/seo/public-routes.mjs'
 import { indexNowKey, routesForChangedFiles, submission } from '../../scripts/indexnow-submit'
 import { OG_PAGES } from '../../scripts/render-og-images'
@@ -21,14 +23,42 @@ test('§G: the founder note is word for word, and About ends with the primary bu
   assert.ok(about.lastIndexOf('<StartEvaluationButton />') > about.indexOf('<ContactCard />'), 'primary button at the end')
 })
 
-test('§G: only people who gave their OK are shown, in order', () => {
-  const member = (name: string, consent: boolean, order: number): TeamMember =>
-    ({ name, title: 't', line: '', photo: null, linkedin: null, consent, order })
-  assert.deepEqual(
-    visibleTeam([member('B', true, 2), member('C', false, 1), member('A', true, 1)]).map((m) => m.name),
-    ['A', 'B'],
-  )
-  assert.match(about, /const team = visibleTeam\(\)/)
+test('§G: the team and advisers follow Elena’s order, each with a photo and LinkedIn (inputs approved 19 Nov)', () => {
+  assert.deepEqual(teamGroup('team').map((m) => m.name), ['Elena Okhonko', 'Maria Baranova', 'Stepan Kropachev', 'Federico Folcia', 'Nick (Ng Yuin Harng)'])
+  assert.deepEqual(teamGroup('adviser').map((m) => m.name), ['Sergey Anosov', 'Greg Woolf', 'Viviene Sandhu'])
+  for (const member of TEAM) {
+    assert.ok(existsSync(`public${member.photo}`), `${member.name}: photo`)
+    const jpeg = readFileSync(`public${member.photo}`)
+    assert.equal(jpeg.readUInt16BE(0), 0xffd8, `${member.name}: a JPEG`)
+    assert.match(member.linkedin, /^https:\/\/www\.linkedin\.com\/in\/[\w-]+\/$/, member.name)
+    assert.ok(member.title && member.line, member.name)
+  }
+  assert.equal(FOUNDER?.name, 'Elena Okhonko')
+  assert.equal(FOUNDER?.title, 'Founder & CEO')
+  assert.match(about, /— \{FOUNDER\.name\}, founder/, 'the brief’s sign-off, word for word')
+})
+
+test('§G: a pending card is greyed out, labelled and has no LinkedIn link, and is not in structured data', () => {
+  assert.deepEqual(TEAM.filter((m) => m.status === 'pending').map((m) => m.name), ['Viviene Sandhu'])
+  assert.equal(PENDING_LABEL, 'Pending finalisation')
+  assert.match(about, /pending && 'opacity-60 grayscale'/)
+  assert.match(about, /\{pending \? \(\s*<p[^>]*>\{PENDING_LABEL\}<\/p>/)
+  assert.match(about, /\{pending \? null : \(\s*<a href=\{member\.linkedin\}/)
+  const person = founderJsonLd()!
+  assert.equal(person.image, 'https://guidebuoyai.sg/assets/team/elena.jpg')
+  assert.deepEqual(person.sameAs, ['https://www.linkedin.com/in/elenaokhonko/'])
+  assert.doesNotMatch(readFileSync('lib/seo/structured-data.ts', 'utf8'), /TEAM\b|teamGroup/, 'only the founder is published as a Person')
+})
+
+test('§V5: the mascot is the transparent cut-out everywhere except the in-app chat', () => {
+  const uses = execFileSync('git', ['grep', '-l', 'lumi-buoy.jpg', '--', 'app', 'components', 'lib'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+  assert.deepEqual(uses, ['components/lumi-chat.tsx'], 'only the in-app chat keeps the old square image (out of scope)')
+  for (const size of [72, 192, 320]) {
+    const png = readFileSync(`public/assets/harbor/lumi-${size}.png`)
+    assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [size, size], `lumi-${size}.png`)
+    assert.equal(png[25], 6, `lumi-${size}.png has an alpha channel (RGBA)`)
+    assert.ok(existsSync(`public/assets/harbor/lumi-${size}.webp`), `lumi-${size}.webp`)
+  }
 })
 
 test('§G: "Check this company" names the company, UEN and address, with the BizFile check', () => {
