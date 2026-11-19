@@ -1,6 +1,5 @@
 'use client'
 
-import type { ReportPurchaseReadiness } from '@/lib/billing/report-purchase-readiness'
 import type { CaseValidationRunRow, ValidationGapItemRow } from '@/lib/types/validation'
 import { deriveInGapPhase } from '@/lib/validation/gap-flow'
 import type { Tier0DraftBundle } from '@/lib/types/narratives'
@@ -20,6 +19,7 @@ export type StateMachineNode =
   | 'T-BuyReportCTA'
   | 'T-CheckoutRedirect'
   | 'T-PaymentSuccessLanding'
+  | 'L2-ConfirmBankFacts'
   | 'L2-DecisionRunning'
   | 'L2-ReportDrafting'
   | 'L2-ReportReady'
@@ -31,12 +31,14 @@ export type StateMachineNode =
 
 export interface StateMachineInput {
   /** From the capabilities API; `null` while loading. Whether the free case may buy the S$18 report. */
-  reportPurchase: Pick<ReportPurchaseReadiness, 'ready'> | null
+  reportPurchase: { ready: boolean } | null
   validation: CaseValidationRunRow | null
   /** `undefined` = gap-items query still loading for the resolved validation run. */
   gapItems: ValidationGapItemRow[] | undefined
   narratives: Tier0DraftBundle | null
   entitlementPlan: CaseEntitlementPlan | null
+  /** The bank pack is paid for (capabilities report.entitled); the plan alone can't say so once packs are independent. */
+  bankPackOwned?: boolean | null
   documents: Array<Pick<CaseDocumentRow, 'id' | 'processing_status'>> | null
   decision: CaseDecisionRunRow | null
   report: ReportRow | null
@@ -72,6 +74,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
     gapItems,
     narratives,
     entitlementPlan,
+    bankPackOwned = null,
     documents,
     decision,
     report,
@@ -93,11 +96,11 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
     return 'L3-Tier2Ready'
   }
 
-  if (entitlementPlan === 'self_serve_report') {
+  // Stage 2 (Elena, 13 Nov 2026): pay first, then confirm the bank facts; the pack is generated from them
+  // (run_bank_pack_v1), so there is no report job to wait for.
+  if (entitlementPlan === 'self_serve_report' || bankPackOwned === true) {
     if (report?.status === 'COMPLETED') return 'L3-FormFilling'
-    if (jobStatus?.status === 'failed') return 'L2-ReportFailed'
-    if (!decision) return 'L2-DecisionRunning'
-    return 'L2-ReportDrafting'
+    return 'L2-ConfirmBankFacts'
   }
 
   if (!narratives?.tier0_summary && !narratives?.tier0_evidence_checklist && !narratives?.tier0_srf_signal) {

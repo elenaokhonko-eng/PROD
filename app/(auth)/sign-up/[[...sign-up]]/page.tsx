@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { SignUp } from '@clerk/nextjs'
+import { Suspense } from 'react'
+import { PackIntentCapture } from '@/components/journey/pack-intent-capture'
 import { NO_CARD_LINE } from '@/lib/harbor/cta'
 import { SAFETY_NOTICE_SHORT } from '@/lib/safety-notice'
 import { FunnelStep } from '@/components/analytics/funnel-step'
@@ -24,6 +26,9 @@ export default function SignUpPage() {
         </p>
       </div>
       <FunnelStep event="signup_reached" />
+      <Suspense fallback={null}>
+        <PackIntentCapture />
+      </Suspense>
     </div>
   )
 }

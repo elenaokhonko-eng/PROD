@@ -2,6 +2,7 @@ import { expect, test } from '../fixtures/harbor-test'
 import { createServiceClientFromEnvironment } from '../helpers/disposable-records'
 import {
   completeFreeEvaluation,
+  confirmFactsInDashboard,
   deleteClerkUser,
   payWithTestCard,
   smsPhishingNarrative,
@@ -87,11 +88,17 @@ test.describe('fresh free account', () => {
         }, { timeout: 180_000, message: 'Stripe webhook records the paid purchase' })
         .toEqual([{ product_code: 'self_serve_report', payment_status: 'paid', amount: 18 }])
 
-      // A generated report has its own title; every report shows these.
-      await expect(page.getByText('Executive summary', { exact: true })).toBeVisible({ timeout: 15 * 60_000 })
+      // Stage 2 (Elena, 13 Nov 2026): pay first, then confirm the bank facts; the pack is generated from them.
+      await confirmFactsInDashboard(page, caseId, 'bank')
+
+      // A generated pack has its own title; every pack shows these.
+      await expect(page.getByText('Executive summary', { exact: true })).toBeVisible({ timeout: 5 * 60_000 })
       await expect(page.getByText('Generated automatically by GuideBuoy AI').first()).toBeVisible()
-      const { data: reports } = await supabase.from('reports').select('status').eq('case_id', caseId)
-      expect(reports).toEqual([{ status: 'COMPLETED' }])
+      await expect(page.getByText('How the rules may apply', { exact: true })).toBeVisible()
+      const { data: reports } = await supabase.from('reports').select('status, report_type, fact_snapshot_id').eq('case_id', caseId)
+      expect(reports).toHaveLength(1)
+      expect(reports?.[0]).toMatchObject({ status: 'COMPLETED', report_type: 'bank_pack_v1' })
+      expect(reports?.[0]?.fact_snapshot_id).toBeTruthy()
     } finally {
       await deleteClerkUser(clerkUserId)
     }

@@ -189,12 +189,11 @@ export async function POST(request: NextRequest) {
                 payment_status: string
               }
             },
-            enqueueReportJob: async (args) => {
-              const { error } = await supabase.rpc("enqueue_post_payment_report_generation", {
+            // The bank pack is generated after the person confirms its facts (run_bank_pack_v1), not here.
+            grantReportEntitlement: async (args) => {
+              const { error } = await supabase.rpc("grant_self_serve_report_capability_v1", {
                 p_case_id: args.caseId,
-                p_user_id: args.userId,
-                p_idempotency_key: args.idempotencyKey,
-                p_payment_row_id: args.paymentRowId,
+                p_purchase_ref: args.idempotencyKey,
               })
               if (error) throw new Error(error.message)
             },

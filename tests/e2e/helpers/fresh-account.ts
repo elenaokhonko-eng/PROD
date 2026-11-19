@@ -67,9 +67,12 @@ export async function expectFreeEvaluation(page: Page) {
   await expect(page.getByText('Facts you confirmed', { exact: true })).toBeVisible()
 }
 
-export async function confirmFactsInDashboard(page: Page, caseId: string) {
-  await resolveOpenFindings(page, caseId)
-  await page.getByRole('button', { name: 'Confirm and continue to your free evaluation' }).click()
+// The confirm button names the stage (confirm-facts-panel.tsx STAGE_NAMES).
+const CONFIRM_BUTTON = { free: 'Confirm and continue to your free evaluation', bank: 'Confirm and continue to your bank dispute pack' } as const
+
+export async function confirmFactsInDashboard(page: Page, caseId: string, stage: keyof typeof CONFIRM_BUTTON = 'free') {
+  await resolveOpenFindings(page, caseId, { stage })
+  await page.getByRole('button', { name: CONFIRM_BUTTON[stage] }).click()
 }
 
 // Synthetic journey: told the bank by phone, no written complaint yet, no reply, police report made, no FIDReC.
@@ -152,7 +155,11 @@ export async function answerFollowUps(form: Locator) {
 // claim without a document, "I'm not sure" for a missing fact (findings A1-A8: each fact is one card, the values are
 // boxes and choosing a box is the answer). Confirming then generates the free evaluation.
 // `rounds` limits how many open items are answered (the edge-case spec answers one, then lets the session expire).
-export async function resolveOpenFindings(page: Page, caseId: string, { rounds = 20 }: { rounds?: number } = {}) {
+export async function resolveOpenFindings(
+  page: Page,
+  caseId: string,
+  { rounds = 20, stage = 'free' }: { rounds?: number; stage?: 'free' | 'bank' } = {},
+) {
   // A document that finishes being read re-runs the check (Q2) and the cards are replaced by "Checking your story…"
   // until it ends; answer only once the panel has settled, as a person would. 6 minutes covers the slowest check
   // seen on staging (310 s).
@@ -174,7 +181,7 @@ export async function resolveOpenFindings(page: Page, caseId: string, { rounds =
       if (await yes.count()) await yes.first().click()
       else if (!(await open.locator('input.sr-only:checked').count())) await boxes.first().click()
     }
-    const saved = page.waitForResponse((r) => r.url().includes(`/api/cases/${caseId}/facts?stage=free`) && r.request().method() === 'GET', { timeout: 120_000 })
+    const saved = page.waitForResponse((r) => r.url().includes(`/api/cases/${caseId}/facts?stage=${stage}`) && r.request().method() === 'GET', { timeout: 120_000 })
     await open.getByRole('button', { name: 'Save answer' }).click()
     await saved
   }
@@ -186,15 +193,42 @@ export async function resolveOpenFindings(page: Page, caseId: string, { rounds =
 export async function payWithTestCard(page: Page, email: string) {
   const cardButton = page.locator('[data-testid="card-accordion-item-button"]')
   if (await cardButton.isVisible({ timeout: 10_000 }).catch(() => false)) await cardButton.click()
-  const emailField = page.locator('#email')
-  if (await emailField.isEditable({ timeout: 5_000 }).catch(() => false)) await emailField.fill(email)
-  await page.locator('#cardNumber').fill('4242424242424242')
-  await page.locator('#cardExpiry').fill('12 / 34')
-  await page.locator('#cardCvc').fill('123')
-  await page.locator('#billingName').fill('Release Test')
+  const emailField = await stripeField(page, '#email', 'you@example.com', 5_000)
+  if (emailField && (await emailField.isEditable().catch(() => false))) await emailField.fill(email)
+  // Stripe Checkout's layout changes (20 Nov 2026: the card fields lost their ids), so each field is found by its id
+  // or, failing that, by its placeholder, on the page or inside Stripe's frames.
+  for (const [id, placeholder, value] of [
+    ['#cardNumber', 'Card number', '4242424242424242'],
+    ['#cardExpiry', 'MM / YY', '12 / 34'],
+    ['#cardCvc', 'Security code', '123'],
+    ['#billingName', 'First and last name', 'Release Test'],
+  ] as const) {
+    const field = await stripeField(page, id, placeholder, 30_000)
+    if (!field) throw new Error(`Stripe Checkout field not found: ${placeholder}`)
+    await field.fill(value)
+  }
   const postal = page.locator('#billingPostalCode')
   if (await postal.isVisible().catch(() => false)) await postal.fill('123456')
-  await page.locator('[data-testid="hosted-payment-submit-button"]').click()
+  // The Pay button can sit inside Stripe's frame too.
+  for (const scope of [page, ...page.frames().slice(1)]) {
+    for (const submit of [scope.locator('[data-testid="hosted-payment-submit-button"]'), scope.getByRole('button', { name: 'Pay', exact: true })]) {
+      if (await submit.first().isVisible().catch(() => false)) return submit.first().click()
+    }
+  }
+  throw new Error('Stripe Checkout Pay button not found')
+}
+
+async function stripeField(page: Page, id: string, placeholder: string, timeoutMs: number): Promise<Locator | null> {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    for (const scope of [page, ...page.frames().slice(1)]) {
+      for (const candidate of [scope.locator(id), scope.getByPlaceholder(placeholder, { exact: true })]) {
+        if (await candidate.first().isVisible().catch(() => false)) return candidate.first()
+      }
+    }
+    await page.waitForTimeout(500)
+  }
+  return null
 }
 
 export async function signIn(page: Page, clerkUserId: string) {

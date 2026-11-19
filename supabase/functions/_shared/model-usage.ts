@@ -182,6 +182,8 @@ export class ModelBudgetExceeded extends Error {
 export const OUTPUT_CAPS = {
   fact_extraction: 1_100,
   summary: 800,
+  // The bank pack's prose: up to 900 words of JSON (20 Nov 2026).
+  bank_pack: 1_600,
   case_extraction: 400,
   evidence: 8_192,
   transcription: 2_000,

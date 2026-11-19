@@ -8,6 +8,11 @@ export function paidStagesEnabled(): boolean {
   return process.env.PAID_STAGES_ENABLED?.trim().toLowerCase() === "true"
 }
 
+// The bank pack's emergency switch (design K3): off unless exactly "true", and only while paid stages are on.
+export function bankPackEnabled(): boolean {
+  return paidStagesEnabled() && process.env.BANK_PACK_ENABLED?.trim().toLowerCase() === "true"
+}
+
 export function paidStagesAvailableFrom(): string {
   const value = process.env.PAID_STAGES_AVAILABLE_FROM?.trim()
   return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : DEFAULT_AVAILABLE_FROM

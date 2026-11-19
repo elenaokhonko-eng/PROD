@@ -69,6 +69,7 @@ const STRIPE_KEYS: ReadonlySet<string> = new Set([
 export const optionalKeys = [
   "PAID_STAGES_ENABLED",
   "PAID_STAGES_AVAILABLE_FROM",
+  "BANK_PACK_ENABLED",
   "STRIPE_PRICE_ID_HUMAN_CONSULT_30M_SGD",
   "GOOGLE_GENERATIVE_AI_MODEL",
   "OPENAI_MODEL",
@@ -249,6 +250,11 @@ export function checkEnvironmentSet(
   if (!paidStages) add("PASS", "paid stages off (stage 1)", "Stripe settings are not required while PAID_STAGES_ENABLED is not true")
   const availableFrom = get("PAID_STAGES_AVAILABLE_FROM")
   if (availableFrom && !/^\d{4}-\d{2}-\d{2}$/.test(availableFrom)) add("FAIL", "PAID_STAGES_AVAILABLE_FROM is a date", "use YYYY-MM-DD")
+  // The bank pack's emergency switch (design K3): stated explicitly once payments are on; off unless exactly "true".
+  const bankPack = get("BANK_PACK_ENABLED").toLowerCase()
+  if ((paidStages || bankPack) && bankPack !== "true" && bankPack !== "false") {
+    add("FAIL", "BANK_PACK_ENABLED is true or false", paidStages ? "required while PAID_STAGES_ENABLED is true" : undefined)
+  }
   const placeholders = Object.keys(env).filter((key) => get(key) && isPlaceholder(get(key)))
   if (placeholders.length) add("FAIL", "no placeholder values", placeholders.join(", "))
   const known = new Set<string>([...requiredKeys, ...optionalKeys])

@@ -23,6 +23,7 @@ const productionRef = "abcdefghijklmnopqrst"
 function stagingValues(): Record<string, string> {
   return {
     PAID_STAGES_ENABLED: "true",
+    BANK_PACK_ENABLED: "true",
     HARBOR_DEPLOYMENT_ENVIRONMENT: "preview",
     CHECKOUT_REDIRECT_ORIGIN: "https://guidebuoy-staging.onrender.com",
     NEXT_PUBLIC_APP_URL: "https://guidebuoy-staging.onrender.com",
@@ -254,6 +255,19 @@ test("stage 2: with paid stages on, a missing Stripe key still fails", () => {
   const values = stagingValues()
   values.STRIPE_PRICE_ID_FIDREC_TIER2_PACK_SGD = ""
   assert.ok(failures(checkEnvironmentSet("staging", file(values))).includes("required variables present"))
+})
+
+test("stage 2: BANK_PACK_ENABLED must be stated as true or false while paid stages are on", () => {
+  const values = stagingValues()
+  for (const value of ["", "yes"]) {
+    values.BANK_PACK_ENABLED = value
+    assert.ok(failures(checkEnvironmentSet("staging", file(values))).includes("BANK_PACK_ENABLED is true or false"))
+  }
+  values.BANK_PACK_ENABLED = "false"
+  assert.deepEqual(failures(checkEnvironmentSet("staging", file(values))), [])
+  delete values.PAID_STAGES_ENABLED
+  delete values.BANK_PACK_ENABLED
+  assert.ok(!failures(checkEnvironmentSet("staging", file(values))).includes("BANK_PACK_ENABLED is true or false"), "optional in stage 1")
 })
 
 test("PAID_STAGES_AVAILABLE_FROM must be a date", () => {

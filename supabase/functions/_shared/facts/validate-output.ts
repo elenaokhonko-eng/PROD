@@ -29,6 +29,10 @@ export interface ValidateOptions {
   extraDates?: string[];
   // Text addressed to the claimant ("you"); "the user" or "the claimant" fails (free evaluation).
   secondPerson?: boolean;
+  // Text written as the claimant ("I"), such as the bank pack's complaint (20 Nov 2026): "the claimant" fails, and
+  // the claimant's own account of a fact they have no document for needs no "you told us". Facts marked "not sure"
+  // must still be qualified.
+  firstPerson?: boolean;
   // Topics this output may not cover, e.g. an SRF verdict the server writes itself.
   forbidden?: Array<{ pattern: RegExp; detail: string }>;
   // Text shown to the person: no internal names or input field names, and a sensible length in words.
@@ -266,7 +270,7 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
   // Amounts kept without a document (the total or the payments) are attributed ("you told us"), unless a confirmed
   // amount is the same (corpus, 8 Nov).
   for (const sentence of sentences(text)) {
-    if (statesClaimedAmount(sentence, facts) && !amountAttributed(sentence)) {
+    if (!options.firstPerson && statesClaimedAmount(sentence, facts) && !amountAttributed(sentence)) {
       failures.push({ check: "unqualified", detail: `amount has no document: ${sentence.slice(0, 160)}` });
     }
   }
@@ -293,7 +297,13 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
       if (fact.label === "not_sure" && !qualified(sentence, key)) {
         failures.push({ check: "unqualified", detail: `${key} is not confirmed: ${sentence.slice(0, 160)}` });
       }
-      if (fact.label === "claimant_only" && !documentedElsewhere(facts, key, options.documented) && !ATTRIBUTED.test(sentence) && !qualified(sentence, key)) {
+      if (
+        fact.label === "claimant_only" &&
+        !options.firstPerson &&
+        !documentedElsewhere(facts, key, options.documented) &&
+        !ATTRIBUTED.test(sentence) &&
+        !qualified(sentence, key)
+      ) {
         failures.push({ check: "unqualified", detail: `${key} has no document: ${sentence.slice(0, 160)}` });
       }
     }
@@ -302,6 +312,9 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
     }
     if (options.secondPerson && THIRD_PERSON.test(sentence)) {
       failures.push({ check: "person", detail: `write to the person as "you": ${sentence.slice(0, 160)}` });
+    }
+    if (options.firstPerson && THIRD_PERSON.test(sentence)) {
+      failures.push({ check: "person", detail: `write as the person, using "I": ${sentence.slice(0, 160)}` });
     }
     for (const rule of options.forbidden ?? []) {
       if (rule.pattern.test(sentence)) failures.push({ check: "forbidden", detail: `${rule.detail}: ${sentence.slice(0, 160)}` });

@@ -3,6 +3,8 @@ import test from 'node:test'
 import 'regenerator-runtime/runtime'
 import fontkit from '@pdf-lib/fontkit'
 import { decodePDFRawStream, PDFDict, PDFDocument, PDFName, PDFRawStream } from 'pdf-lib'
+import { readFileSync } from 'node:fs'
+import { buildBankPackPdf } from '../../lib/server/facts/bank-pack-pdf'
 import { buildFreeEvaluationPdf } from '../../lib/server/facts/free-evaluation-pdf'
 import { fontRuns, unprintable } from '../../lib/server/pdf-fonts'
 
@@ -48,5 +50,33 @@ test('the free-evaluation PDF embeds subset Unicode fonts whose glyphs all have 
     // subset (the CFF .otf, or unpadded glyphs) loses the outlines of most glyphs.
     const empty = Array.from({ length: font.numGlyphs - 1 }, (_, i) => i + 1).filter((id) => font.getGlyph(id).path.toSVG() === "")
     assert.ok(empty.length <= 1, `${name}: ${empty.length} of ${font.numGlyphs - 1} glyphs have no outline`)
+  }
+})
+
+test('the bank pack PDF prints accented and non-Latin names, with the paid notice and every section', async () => {
+  const bytes = await buildBankPackPdf(
+    {
+      title: 'Complaint · Zoë Müller-Đặng',
+      executive_summary: `${LATIN}\n${CHINESE}\n${TAMIL}`,
+      timeline: [{ date: '2026-10-02', event: 'Payment of S$1,800 to José Peña' }, { event: 'I found out about the scam' }],
+      disputed_transactions: [{ date: '2026-10-02', amount: 'S$1,800', paid_to: 'José Peña', method: 'FAST transfer' }],
+      total_loss: 'S$1,800',
+      rules_assessment: 'This is based only on the facts you confirmed.',
+      requested_resolution: 'I ask the bank to review the disputed payments.',
+      evidence_checklist: [{ label: 'Amount lost: S$1,800. No document yet.', present: false }],
+    },
+    '2026-11-20T00:00:00Z',
+  )
+  const doc = await PDFDocument.load(bytes)
+  assert.ok(doc.getPageCount() >= 1)
+  const fonts = [...doc.context.enumerateIndirectObjects()]
+    .filter(([, o]) => o instanceof PDFDict && o.get(PDFName.of('Type')) === PDFName.of('FontDescriptor'))
+    .map(([, o]) => String((o as PDFDict).get(PDFName.of('FontName'))))
+  assert.ok(fonts.some((f) => /NotoSansSC/.test(f)) && fonts.some((f) => /NotoSansTamil/.test(f)), 'Chinese and Tamil fonts are embedded')
+  assert.deepEqual(unprintable(`Zoë Müller-Đặng José Peña ${LATIN}`), [])
+  const source = readFileSync('lib/server/facts/bank-pack-pdf.ts', 'utf8')
+  assert.match(source, /addParagraph\(PAID_PACK_NOTICE\)/)
+  for (const heading of ['Executive summary', 'Timeline', 'Disputed transactions', 'How the rules may apply', 'Requested resolution', 'Evidence checklist']) {
+    assert.ok(source.includes(`"${heading}"`), heading)
   }
 })

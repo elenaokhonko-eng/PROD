@@ -60,42 +60,75 @@ function repair(summary: string, failures: OutputFailure[], facts: SnapshotFacts
   return failures.some((f) => f.check === "unqualified") ? qualifyUnsupportedStatements(summary, facts, options.documented) : summary;
 }
 
-export async function produceSummary({ facts, options, generate, sanitize = (s) => s }: LadderInput): Promise<SummaryResult> {
+/** The ladder's result for any model-written output: the free evaluation's summary, or a paid pack's prose fields. */
+export interface CheckedResult<T> extends Omit<SummaryResult, "summary"> {
+  output: T;
+}
+
+/**
+ * The same ladder for structured output (the paid packs, 20 Nov 2026): every string in the output is checked, the
+ * same exact repairs and date formatting apply to each string, and the fallback is the stage's own fixed wording.
+ */
+export interface CheckedLadderInput<T> {
+  facts: SnapshotFacts;
+  options: ValidateOptions;
+  generate: (previousFailures: string | null) => Promise<T>;
+  /** Applies a clean-up to every string the person will read; used for sanitising, repairs and dates. */
+  mapText: (output: T, fn: (text: string) => string) => T;
+  /** The strings to check. */
+  texts: (output: T) => string[];
+  fallback: (facts: SnapshotFacts) => T;
+  sanitize?: (text: string) => string;
+}
+
+export async function produceChecked<T>(input: CheckedLadderInput<T>): Promise<CheckedResult<T>> {
+  const { facts, options, generate, mapText, texts, sanitize = (s) => s } = input;
   const firedChecks: OutputCheck[][] = [];
   let previous: string | null = null;
   let lastFailures: OutputFailure[] = [];
+  const fallback = (attempts: number, reason: SummaryResult["fallbackReason"], hardChecks: OutputCheck[]): CheckedResult<T> => ({
+    output: input.fallback(facts),
+    source: "fallback",
+    attempts,
+    fallbackReason: reason,
+    firedChecks,
+    hardChecks,
+  });
   for (let attempt = 1; attempt <= 2; attempt++) {
-    let summary: string;
+    let output: T;
     try {
-      summary = sanitize(await generate(previous));
+      output = mapText(await generate(previous), sanitize);
     } catch (error) {
       if (!(error instanceof ProviderFailure)) throw error;
-      return fallback(facts, attempt, error.kind, firedChecks, []);
+      return fallback(attempt, error.kind, []);
     }
-    let failures = validateOutput([summary], facts, options);
+    let failures = validateOutput(texts(output), facts, options);
     firedChecks.push(failures.map((f) => f.check));
     if (failures.length) {
-      summary = repair(summary, failures, facts, options);
-      failures = validateOutput([summary], facts, options);
+      const found = failures;
+      output = mapText(output, (text) => repair(text, found, facts, options));
+      failures = validateOutput(texts(output), facts, options);
     }
     if (!failures.length) {
-      return { summary: harmoniseDates(summary), source: "model", attempts: attempt, fallbackReason: null, firedChecks, hardChecks: [] };
+      return { output: mapText(output, harmoniseDates), source: "model", attempts: attempt, fallbackReason: null, firedChecks, hardChecks: [] };
     }
     lastFailures = failures;
     previous = describeFailures(failures);
   }
-  const hard = [...new Set(lastFailures.map((f) => f.check).filter(isHardCheck))];
-  return fallback(facts, 2, "checks", firedChecks, hard);
+  return fallback(2, "checks", [...new Set(lastFailures.map((f) => f.check).filter(isHardCheck))]);
 }
 
-function fallback(
-  facts: SnapshotFacts,
-  attempts: number,
-  reason: SummaryResult["fallbackReason"],
-  firedChecks: OutputCheck[][],
-  hardChecks: OutputCheck[],
-): SummaryResult {
-  return { summary: fallbackSummary(facts), source: "fallback", attempts, fallbackReason: reason, firedChecks, hardChecks };
+export async function produceSummary({ facts, options, generate, sanitize }: LadderInput): Promise<SummaryResult> {
+  const { output, ...result } = await produceChecked<string>({
+    facts,
+    options,
+    generate,
+    sanitize,
+    mapText: (summary, fn) => fn(summary),
+    texts: (summary) => [summary],
+    fallback: fallbackSummary,
+  });
+  return { summary: output, ...result };
 }
 
 export const FALLBACK_TITLE = "Free evaluation summary (summary version)";
@@ -165,6 +198,17 @@ const RETRYABLE: ProviderFailureKind[] = ["rate_limited", "provider_error", "tim
  * Errors carry the status and kind only, never the provider's response text.
  */
 export async function chatSummary(req: ChatSummaryRequest): Promise<string> {
+  return chatJson(req, (parsed) => {
+    const summary = (parsed as { summary?: unknown })?.summary;
+    return typeof summary === "string" && summary.trim() ? summary : null;
+  });
+}
+
+/**
+ * The same call for any JSON answer: `parse` returns the usable output, or null when the answer is unusable (handled
+ * like an empty answer: retried once, then the ladder's fallback).
+ */
+export async function chatJson<T>(req: ChatSummaryRequest, parse: (parsed: unknown) => T | null): Promise<T> {
   const sleep = req.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
   let last: ProviderFailure | null = null;
   let model = req.model;
@@ -172,7 +216,7 @@ export async function chatSummary(req: ChatSummaryRequest): Promise<string> {
     const remaining = req.deadline - Date.now();
     if (remaining < 5_000) throw last ?? new ProviderFailure("timeout");
     try {
-      return await chatSummaryOnce(req, model, Math.min(req.callTimeoutMs ?? 40_000, remaining));
+      return await chatSummaryOnce(req, model, Math.min(req.callTimeoutMs ?? 40_000, remaining), parse);
     } catch (error) {
       if (!(error instanceof ProviderFailure)) throw error;
       last = error;
@@ -185,7 +229,12 @@ export async function chatSummary(req: ChatSummaryRequest): Promise<string> {
   throw last ?? new ProviderFailure("provider_error");
 }
 
-async function chatSummaryOnce(req: ChatSummaryRequest, model: string, timeoutMs: number): Promise<string> {
+async function chatSummaryOnce<T>(
+  req: ChatSummaryRequest,
+  model: string,
+  timeoutMs: number,
+  parse: (parsed: unknown) => T | null,
+): Promise<T> {
   const started = Date.now();
   const report = async (kind: SummaryCall["kind"], httpStatus: number | null, usage: TokenUsage | null = null) => {
     try {
@@ -195,16 +244,21 @@ async function chatSummaryOnce(req: ChatSummaryRequest, model: string, timeoutMs
     }
   };
   try {
-    const result = await chatSummaryRequest(req, model, timeoutMs);
+    const result = await chatSummaryRequest(req, model, timeoutMs, parse);
     await report("ok", 200, result.usage);
-    return result.summary;
+    return result.output;
   } catch (error) {
     if (error instanceof ProviderFailure) await report(error.kind, error.status, (error as ProviderFailure & { usage?: TokenUsage }).usage ?? null);
     throw error;
   }
 }
 
-async function chatSummaryRequest(req: ChatSummaryRequest, model: string, timeoutMs: number): Promise<{ summary: string; usage: TokenUsage }> {
+async function chatSummaryRequest<T>(
+  req: ChatSummaryRequest,
+  model: string,
+  timeoutMs: number,
+  parse: (parsed: unknown) => T | null,
+): Promise<{ output: T; usage: TokenUsage }> {
   let resp: Response;
   try {
     resp = await req.fetch("https://api.openai.com/v1/chat/completions", {
@@ -245,7 +299,7 @@ async function chatSummaryRequest(req: ChatSummaryRequest, model: string, timeou
   } catch {
     throw fail("malformed");
   }
-  const summary = (parsed as { summary?: unknown })?.summary;
-  if (typeof summary !== "string" || !summary.trim()) throw fail("empty");
-  return { summary, usage };
+  const output = parse(parsed);
+  if (output === null) throw fail("empty");
+  return { output, usage };
 }

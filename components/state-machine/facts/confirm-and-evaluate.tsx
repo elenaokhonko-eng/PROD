@@ -1,8 +1,9 @@
 'use client'
 
 /**
- * C5: the confirm-your-facts step inside the dashboard flow. Once the facts are confirmed, the free evaluation is
- * generated from that snapshot; when it exists the dashboard moves on to the evaluation by itself.
+ * C5: the confirm-your-facts step inside the dashboard flow. Once the facts are confirmed, the stage's output is
+ * generated from that snapshot (the free evaluation, or the bank pack after payment); when it exists the dashboard
+ * moves on to it by itself.
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -13,11 +14,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ConfirmFactsPanel } from '@/components/state-machine/facts/confirm-facts-panel'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { FactsRequestError } from '@/hooks/state-machine/facts/use-case-facts'
-import { useGenerateFreeEvaluation } from '@/hooks/state-machine/facts/use-generate-free-evaluation'
+import { type GeneratedStage, useGenerateStage } from '@/hooks/state-machine/facts/use-generate-free-evaluation'
 import { openProblemReport } from '@/lib/report-problem'
 
-export function ConfirmAndEvaluate({ caseId, readyDocumentsKey }: { caseId: string; readyDocumentsKey: string }) {
-  const generate = useGenerateFreeEvaluation(caseId)
+// The bank pack's wording is pending Elena's approval (stage 2 copy list, 20 Nov 2026).
+const COPY: Record<GeneratedStage, { preparing: string; failed: string; failedReason: string; problem: string }> = {
+  free: {
+    preparing: 'Preparing your free evaluation',
+    failed: 'We couldn’t prepare your free evaluation',
+    failedReason: 'We couldn’t produce an evaluation that matches your facts exactly. We’ve been notified; please try again later.',
+    problem: 'free_evaluation_failed',
+  },
+  bank: {
+    preparing: 'Preparing your bank pack',
+    failed: 'We couldn’t prepare your bank pack',
+    failedReason: 'We couldn’t produce a bank pack that matches your facts exactly. We’ve been notified; please try again later.',
+    problem: 'bank_pack_failed',
+  },
+}
+
+export function ConfirmAndEvaluate({
+  caseId,
+  readyDocumentsKey,
+  stage = 'free',
+}: {
+  caseId: string
+  readyDocumentsKey: string
+  stage?: GeneratedStage
+}) {
+  const generate = useGenerateStage(caseId, stage)
+  const copy = COPY[stage]
   const [snapshotId, setSnapshotId] = useState<string | null>(null)
   const queryClient = useQueryClient()
   const lastDocumentsKey = useRef(readyDocumentsKey)
@@ -26,13 +52,13 @@ export function ConfirmAndEvaluate({ caseId, readyDocumentsKey }: { caseId: stri
   useEffect(() => {
     if (lastDocumentsKey.current === readyDocumentsKey) return
     lastDocumentsKey.current = readyDocumentsKey
-    void queryClient.invalidateQueries({ queryKey: qk.case.facts(caseId, 'free') })
-  }, [caseId, queryClient, readyDocumentsKey])
+    void queryClient.invalidateQueries({ queryKey: qk.case.facts(caseId, stage) })
+  }, [caseId, queryClient, readyDocumentsKey, stage])
 
   if (generate.isPending) {
     return (
       <StateMachineLoading
-        title="Preparing your free evaluation"
+        title={copy.preparing}
         description="We’re writing it from the facts you confirmed. This usually takes under a minute."
       />
     )
@@ -44,14 +70,14 @@ export function ConfirmAndEvaluate({ caseId, readyDocumentsKey }: { caseId: stri
     return (
       <Card role="alert">
         <CardHeader>
-          <CardTitle>We couldn’t prepare your free evaluation</CardTitle>
+          <CardTitle>{copy.failed}</CardTitle>
           <CardDescription>
             {reason === 'facts_unconfirmed'
               ? 'Your facts changed since you confirmed them. Please check them again.'
               : reason === 'usage_limit'
                 ? generate.error.message
                 : reason === 'output_validation_failed'
-                ? 'We couldn’t produce an evaluation that matches your facts exactly. We’ve been notified; please try again later.'
+                ? copy.failedReason
                 : 'Something went wrong. Your answers are saved; please try again.'}
           </CardDescription>
         </CardHeader>
@@ -62,7 +88,7 @@ export function ConfirmAndEvaluate({ caseId, readyDocumentsKey }: { caseId: stri
             <Button onClick={() => generate.mutate(snapshotId)}>Try again</Button>
           )}
           {/* Elena, 7 Nov: the report carries the failed check names so the cause can be found. */}
-          <Button variant="outline" onClick={() => openProblemReport(reason ?? 'free_evaluation_failed', checks.map((c) => `check: ${c}`))}>
+          <Button variant="outline" onClick={() => openProblemReport(reason ?? copy.problem, checks.map((c) => `check: ${c}`))}>
             Report this problem
           </Button>
         </CardContent>
@@ -82,7 +108,7 @@ export function ConfirmAndEvaluate({ caseId, readyDocumentsKey }: { caseId: stri
       </section>
       <ConfirmFactsPanel
         caseId={caseId}
-        stage="free"
+        stage={stage}
         showIntro={false}
         onConfirmed={(id) => {
           setSnapshotId(id)

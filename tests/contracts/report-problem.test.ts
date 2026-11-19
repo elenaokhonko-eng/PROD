@@ -24,7 +24,10 @@ test('the report names the page, case, time and the error codes, with the person
 test('the panel is on every signed-in page, and the failed-evaluation card offers it with the failed check names only', () => {
   assert.match(readFileSync('components/harbor/case-shell.tsx', 'utf8'), /<ReportProblem \/>/)
   const card = readFileSync('components/state-machine/facts/confirm-and-evaluate.tsx', 'utf8')
-  assert.match(card, /openProblemReport\(reason \?\? 'free_evaluation_failed', checks\.map\(\(c\) => `check: \$\{c\}`\)\)/)
+  // One card for the free evaluation and the bank pack (20 Nov 2026), each with its own problem name.
+  assert.match(card, /openProblemReport\(reason \?\? copy\.problem, checks\.map\(\(c\) => `check: \$\{c\}`\)\)/)
+  assert.match(card, /free: \{[\s\S]*?problem: 'free_evaluation_failed',/)
+  assert.match(card, /bank: \{[\s\S]*?problem: 'bank_pack_failed',/)
   const hook = readFileSync('hooks/state-machine/facts/use-generate-free-evaluation.ts', 'utf8')
   assert.match(hook, /\.map\(\(c\) => c\.check\)/, 'only the check names are kept, never the flagged text')
   assert.doesNotMatch(hook, /c\.detail/)

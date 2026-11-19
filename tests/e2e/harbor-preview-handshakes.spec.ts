@@ -7,6 +7,7 @@ import pg from "pg"
 import Stripe from "stripe"
 import {
   cleanupDisposableRecords,
+  openDisposableFidrecRoute,
   createDisposableCase,
   requireUuid,
   type DisposableCleanupScope,
@@ -468,6 +469,11 @@ test.describe("Harbor preview integration handshakes", () => {
         amountCents: 1_800,
         eventId: reportEventId,
       })
+      // Stage 2: the FIDReC pack needs its route answer, not the bank pack (stage2-plan §3a).
+      cleanup.caseResponseIds = [
+        ...(cleanup.caseResponseIds ?? []),
+        ...(await openDisposableFidrecRoute(serviceClient, caseId)),
+      ]
       const tier2Purchase = await checkoutAndFulfil({
         productKey: "fidrec_tier2_pack",
         productCode: "escalation_pack",
@@ -497,8 +503,9 @@ test.describe("Harbor preview integration handshakes", () => {
         .select("id")
         .eq("idempotency_key", reportPurchase.provider_checkout_session_id)
       expect(reportJobError).toBeNull()
-      expect(reportJobs).toHaveLength(1)
-      cleanup.jobIds = [...(cleanup.jobIds ?? []), requireUuid(String(reportJobs?.[0]?.id), "report job id")]
+      // Stage 2 (Elena, 13 Nov 2026): pay first, then confirm the bank facts; the pack is generated after that
+      // (run_bank_pack_v1), so payment queues no report job.
+      expect(reportJobs).toHaveLength(0)
 
       const { count: tier2JobCount, error: tier2JobCountError } = await serviceClient
         .from("jobs")

@@ -11,10 +11,10 @@ export const expectedStateText = {
   layer1FreeDraft: /^Your free evaluation$/,
   // Stage 1 (paid stages off): the evaluation is followed by the next steps instead of a buy button.
   transitionBuyReport: paidStagesEnabled ? 'Get your Bank Pack' : 'Your next steps',
-  layer2Running: 'Checking your case information',
-  layer2Drafting: 'Preparing your automated report',
+  // Stage 2 (Elena, 13 Nov 2026): pay first, then confirm the bank facts; the pack is generated from them, so a paid
+  // case without its pack is on the confirm step (the old running, drafting and failed report-job states are gone).
+  layer2ConfirmBankFacts: 'Confirm your facts',
   layer2Ready: 'Your complaint report',
-  layer2Failed: 'We hit a snag generating your report',
   layer3Unavailable: 'Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.',
   layer3Tier2: /FIDReC Tier 2 pack/i,
 } as const

@@ -16,16 +16,21 @@
  */
 
 import { useEffect } from 'react'
-import type { ReportPurchaseReadiness } from '@/lib/billing/report-purchase-readiness'
+import type { ProductReadinessReason } from '@/lib/billing/product-readiness'
 import type { CaseEligibilityResponse } from '@/lib/types/eligibility'
+
+/** From the capabilities API's bank pack entry (lib/billing/product-readiness.ts). */
+export interface PurchaseReadiness {
+  ready: boolean
+  blockedReason: ProductReadinessReason | null
+}
 
 export type EligibilityGateResult =
   | { eligible: true }
   | { eligible: false; blockedReason: string; missing: string[] }
 
 export interface EligibilityGateProps {
-  /** From the capabilities API (lib/billing/report-purchase-readiness.ts). */
-  purchase: ReportPurchaseReadiness | null | undefined
+  purchase: PurchaseReadiness | null | undefined
   eligibility: CaseEligibilityResponse | null | undefined
   onResult: (result: EligibilityGateResult) => void
 }
@@ -51,19 +56,13 @@ export function EligibilityGate({ purchase, eligibility, onResult }: Eligibility
 }
 
 export function deriveMissing(
-  purchase: ReportPurchaseReadiness,
+  _purchase: PurchaseReadiness,
   eligibility: CaseEligibilityResponse | null | undefined,
 ): string[] {
   const prerequisites = eligibility?.prerequisites
   const missing: string[] = []
   if (prerequisites && !prerequisites.has_extract_run) missing.push('extract')
-  if (
-    (prerequisites && !prerequisites.has_validation_run) ||
-    purchase.blockedReason === 'validation_missing' ||
-    purchase.blockedReason === 'validation_blocking'
-  ) {
-    missing.push('validation')
-  }
+  if (prerequisites && !prerequisites.has_validation_run) missing.push('validation')
   if (prerequisites && !prerequisites.has_processed_documents) missing.push('documents')
   return missing
 }

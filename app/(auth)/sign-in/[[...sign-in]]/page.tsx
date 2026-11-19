@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { SignIn } from '@clerk/nextjs'
+import { Suspense } from 'react'
+import { PackIntentCapture } from '@/components/journey/pack-intent-capture'
 
 // Brief W1 §F and §L3: plain wording, email code or Google only, its own title (noindex comes from the root layout).
 export const metadata: Metadata = { title: { absolute: 'Sign in · GuideBuoy' } }
@@ -13,6 +15,9 @@ export default function SignInPage() {
         <p className="mt-4 text-lg leading-8 text-foreground">Sign in to continue your case.</p>
       </section>
       <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" />
+      <Suspense fallback={null}>
+        <PackIntentCapture />
+      </Suspense>
     </div>
   )
 }

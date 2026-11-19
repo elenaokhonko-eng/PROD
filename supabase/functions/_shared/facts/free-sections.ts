@@ -73,6 +73,18 @@ export const EVIDENCE_MISSING_HEADING = "What's still missing";
 // Two lists: each confirmed fact a document shows (and which document), and each fact with no document, with
 // examples of what would show it.
 export function evidenceListsText(facts: Facts, findings: readonly EvidenceFinding[]): string {
+  const { shown, missing } = evidenceLists(facts, findings);
+  return [
+    EVIDENCE_SHOWN_HEADING,
+    ...(shown.length ? shown.map((s) => `- ${s}`) : ["- No document supports a confirmed fact yet."]),
+    "",
+    EVIDENCE_MISSING_HEADING,
+    ...(missing.length ? missing.map((s) => `- ${s}`) : ["- Nothing for the facts you confirmed."]),
+  ].join("\n");
+}
+
+// The same two lists as items, for the paid packs' evidence checklist.
+export function evidenceLists(facts: Facts, findings: readonly EvidenceFinding[]): { shown: string[]; missing: string[] } {
   const shown: string[] = [];
   const missing: string[] = [];
   for (const key of Object.keys(FACT_LABELS) as FactKey[]) {
@@ -89,13 +101,7 @@ export function evidenceListsText(facts: Facts, findings: readonly EvidenceFindi
     if (documents.length) shown.push(`${label}: ${value}. Shown by ${documents.join(", ")}.`);
     else if (PROOF[key] && claimsSomething(key, fact.value)) missing.push(`${label}: ${value}. No document yet; for example ${PROOF[key]}.`);
   }
-  return [
-    EVIDENCE_SHOWN_HEADING,
-    ...(shown.length ? shown.map((s) => `- ${s}`) : ["- No document supports a confirmed fact yet."]),
-    "",
-    EVIDENCE_MISSING_HEADING,
-    ...(missing.length ? missing.map((s) => `- ${s}`) : ["- Nothing for the facts you confirmed."]),
-  ].join("\n");
+  return { shown, missing };
 }
 
 // "Report it now" (C4): shown when the bank or the police have not been told. Generic and sourced; no bank's phone

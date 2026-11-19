@@ -14,6 +14,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createUserClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import {
+  BANK_PACK_FN,
   DECISION_FN,
   EVIDENCE_FN,
   EXTRACT_FN,
@@ -157,8 +158,8 @@ function buildForwardBody(
       ...workerBinding,
     }
   }
-  if (fnName === TIER0_FN) {
-    // The confirmed fact snapshot the free evaluation is generated from (checked by the tier0 route).
+  if (fnName === TIER0_FN || fnName === BANK_PACK_FN) {
+    // The confirmed fact snapshot the free evaluation or bank pack is generated from (checked by its route).
     const snapshotId = typeof body.fact_snapshot_id === 'string' && UUID_PATTERN.test(body.fact_snapshot_id)
       ? body.fact_snapshot_id
       : null
@@ -208,8 +209,8 @@ export async function proxyEdgeFunction({
   let workerJobType: string | null = null
 
   if (isWorkerRequest) {
-    if (fnName === TIER0_FN) {
-      return NextResponse.json({ error: 'Workers cannot invoke Tier 0' }, { status: 403 })
+    if (fnName === TIER0_FN || fnName === BANK_PACK_FN) {
+      return NextResponse.json({ error: 'Workers cannot invoke this function' }, { status: 403 })
     }
     const workerAuthorization = await verifyWorkerJob(body)
     if (workerAuthorization.ok === false) return workerAuthorization.response

@@ -18,7 +18,7 @@ export type CasePurchaseProductCode =
   | "escalation_pack"
 
 export type ProductFulfilment =
-  | "self_serve_report_job"
+  | "self_serve_report_entitlement"
   | "escalation_pack_entitlement"
   | "payment_record_only"
 
@@ -41,7 +41,7 @@ export const PRODUCT_CATALOGUE: Record<CheckoutProductKey, ProductDefinition> = 
     amountSgd: 18,
     checkoutEnabled: true,
     legacyServiceType: "standard",
-    fulfilment: "self_serve_report_job",
+    fulfilment: "self_serve_report_entitlement",
   },
   fidrec_tier2_pack: {
     checkoutKey: "fidrec_tier2_pack",

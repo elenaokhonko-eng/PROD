@@ -19,7 +19,7 @@ import {
   resolvePriceId,
 } from "../lib/payments/product-catalogue"
 import {
-  enqueuesReportJob,
+  grantsReportEntitlement,
   fulfilCheckoutSessionCompleted,
   mutatesCaseEntitlements,
   sideEffectsForFulfilment,
@@ -162,7 +162,7 @@ function createMockDeps(overrides?: {
       }
       return row
     },
-    enqueueReportJob: async ({ idempotencyKey }) => {
+    grantReportEntitlement: async ({ idempotencyKey }) => {
       calls.reportJobAttempts += 1
       if (overrides?.failOn === "report") throw new Error("enqueue boom")
       if (!durableState.reportJobKeys.has(idempotencyKey)) {
@@ -269,11 +269,11 @@ describe("product catalogue", () => {
   })
 
   it("documents fulfilment side-effect matrix", () => {
-    assert.equal(enqueuesReportJob("self_serve_report_job"), true)
-    assert.equal(enqueuesReportJob("payment_record_only"), false)
-    assert.equal(enqueuesReportJob("escalation_pack_entitlement"), false)
+    assert.equal(grantsReportEntitlement("self_serve_report_entitlement"), true)
+    assert.equal(grantsReportEntitlement("payment_record_only"), false)
+    assert.equal(grantsReportEntitlement("escalation_pack_entitlement"), false)
 
-    assert.equal(mutatesCaseEntitlements("self_serve_report_job"), true)
+    assert.equal(mutatesCaseEntitlements("self_serve_report_entitlement"), true)
     assert.equal(mutatesCaseEntitlements("escalation_pack_entitlement"), true)
     assert.equal(mutatesCaseEntitlements("payment_record_only"), false)
 
@@ -282,8 +282,8 @@ describe("product catalogue", () => {
     assert.deepEqual(sideEffectsForFulfilment("escalation_pack_entitlement"), [
       { type: "upsert_escalation_pack_entitlement" },
     ])
-    assert.deepEqual(sideEffectsForFulfilment("self_serve_report_job"), [
-      { type: "enqueue_report_job" },
+    assert.deepEqual(sideEffectsForFulfilment("self_serve_report_entitlement"), [
+      { type: "grant_report_entitlement" },
     ])
   })
 })
@@ -354,7 +354,7 @@ describe("fulfilCheckoutSessionCompleted", () => {
     })
     assert.equal(result.status, "processed")
     if (result.status === "processed") {
-      assert.equal(result.fulfilment, "self_serve_report_job")
+      assert.equal(result.fulfilment, "self_serve_report_entitlement")
     }
     assert.equal(calls.purchases, 1)
     assert.equal(calls.reportJobs, 1)
@@ -961,28 +961,45 @@ describe("payment lifecycle reconciliation", () => {
 })
 
 describe("typed case capability response", () => {
-  it("retains report capability when FIDReC capability is granted", () => {
+  // Stage 2 (Elena, 13 Nov 2026): the packs are independent. The FIDReC pack no longer includes the bank pack, and
+  // no longer needs it first (migration 20261120120000).
+  it("a FIDReC entitlement does not include the bank pack, except where it was granted explicitly", () => {
     const response = buildCaseCapabilityBillingResponse({
       caseId: CASE_ID,
       entitlement: {
         plan: "escalation_pack",
-        features: { allow_escalation_pack: true },
+        features: { allow_escalation_pack: true, allow_self_serve_report: false },
         purchased_at: "2026-07-13T00:00:00.000Z",
       },
       purchases: [],
+      readiness: { report: { ready: true, reason: null }, fidrecPack: { ready: false, reason: "already_purchased" } },
       generatedAt: "2026-07-13T00:00:00.000Z",
     })
 
-    assert.equal(response.capabilities.report.entitled, true)
+    assert.equal(response.capabilities.report.entitled, false)
     assert.equal(response.capabilities.fidrecPack.entitled, true)
-    assert.equal(response.capabilities.report.canCheckout, false)
+    assert.equal(response.capabilities.report.canCheckout, true)
     assert.equal(response.capabilities.fidrecPack.canCheckout, false)
     assert.equal(response.capabilities.regeneration.availability, "policy_blocked")
     assert.equal(response.billing.subscription.availability, "policy_blocked")
+
+    // Cases granted under the old chain carry the bank feature explicitly and keep it.
+    const legacy = buildCaseCapabilityBillingResponse({
+      caseId: CASE_ID,
+      entitlement: {
+        plan: "escalation_pack",
+        features: { allow_escalation_pack: true, allow_self_serve_report: true },
+        purchased_at: "2026-07-13T00:00:00.000Z",
+      },
+      purchases: [],
+    })
+    assert.equal(legacy.capabilities.report.entitled, true)
+    assert.equal(legacy.capabilities.report.canCheckout, false)
   })
 
-  it("allows FIDReC checkout only after the FI report capability", () => {
-    const response = buildCaseCapabilityBillingResponse({
+  it("allows FIDReC checkout on its own readiness, with or without the bank pack", () => {
+    const ready = { report: { ready: true, reason: null }, fidrecPack: { ready: true, reason: null } } as const
+    const withBank = buildCaseCapabilityBillingResponse({
       caseId: CASE_ID,
       entitlement: {
         plan: "self_serve_report",
@@ -990,10 +1007,21 @@ describe("typed case capability response", () => {
         purchased_at: "2026-07-13T00:00:00.000Z",
       },
       purchases: [],
+      readiness: ready,
     })
+    assert.equal(withBank.capabilities.report.canGenerate, true)
+    assert.equal(withBank.capabilities.fidrecPack.canCheckout, true)
 
-    assert.equal(response.capabilities.report.canGenerate, true)
-    assert.equal(response.capabilities.fidrecPack.canCheckout, true)
+    const without = buildCaseCapabilityBillingResponse({ caseId: CASE_ID, entitlement: null, purchases: [], readiness: ready })
+    assert.equal(without.capabilities.fidrecPack.canCheckout, true)
+
+    const notYet = buildCaseCapabilityBillingResponse({
+      caseId: CASE_ID,
+      entitlement: null,
+      purchases: [],
+      readiness: { ...ready, fidrecPack: { ready: false, reason: "complaint_not_raised" } },
+    })
+    assert.equal(notYet.capabilities.fidrecPack.canCheckout, false)
   })
 
   it("blocks duplicate checkout while established purchases await fulfilment recovery", () => {
@@ -1045,7 +1073,7 @@ describe("typed case capability response", () => {
         created_at: "2026-07-13T00:00:00.000Z",
       }],
       // A checkout can only have started on a case that was ready to buy.
-      reportPurchase: { ready: true, blockedReason: null },
+      readiness: { report: { ready: true, reason: null }, fidrecPack: { ready: true, reason: null } },
     })
 
     assert.equal(response.capabilities.report.checkoutInProgress, true)

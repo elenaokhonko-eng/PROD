@@ -52,9 +52,11 @@ const cases: Array<[string, Partial<StateMachineInput>, string]> = [
   ['checkout transition', { narratives: tier0, reportPurchase: purchasable, isCheckoutRedirecting: true }, 'T-CheckoutRedirect'],
   // A free case, no paid entitlement anywhere: the free draft with the S$18 buy button.
   ['Layer 1 free draft', { narratives: tier0, reportPurchase: purchasable, documents: readyDocument }, 'S1-Tier0Draft'],
-  ['Layer 2 decision', { entitlementPlan: 'self_serve_report' }, 'L2-DecisionRunning'],
-  ['Layer 2 report drafting', { entitlementPlan: 'self_serve_report', decision: { id: 'run1' } as never }, 'L2-ReportDrafting'],
-  ['Layer 2 failure', { entitlementPlan: 'self_serve_report', jobStatus: { status: 'failed' } }, 'L2-ReportFailed'],
+  // Stage 2 (Elena, 13 Nov 2026): pay first, then confirm the bank facts; the pack is generated from them, so no
+  // decision run or report job is waited for.
+  ['Layer 2 confirm bank facts after payment', { entitlementPlan: 'self_serve_report' }, 'L2-ConfirmBankFacts'],
+  ['Layer 2 confirm bank facts, whatever an old job did', { entitlementPlan: 'self_serve_report', decision: { id: 'run1' } as never, jobStatus: { status: 'failed' } }, 'L2-ConfirmBankFacts'],
+  ['Layer 2 bank pack bought on its own', { entitlementPlan: 'free', bankPackOwned: true }, 'L2-ConfirmBankFacts'],
   ['Layer 3 form', { entitlementPlan: 'self_serve_report', report: { status: 'COMPLETED' } as never }, 'L3-FormFilling'],
   ['Layer 3 Tier 2', { entitlementPlan: 'escalation_pack' }, 'L3-Tier2Ready'],
   ['Layer 3 submitting', { isContactSubmitting: true }, 'L3-Submitting'],

@@ -5,15 +5,15 @@ import {
 } from "@/lib/payments/product-catalogue"
 
 export type FulfilmentSideEffect =
-  | { type: "enqueue_report_job" }
+  | { type: "grant_report_entitlement" }
   | { type: "upsert_escalation_pack_entitlement" }
 
 export function sideEffectsForFulfilment(
   fulfilment: ProductFulfilment,
 ): FulfilmentSideEffect[] {
   switch (fulfilment) {
-    case "self_serve_report_job":
-      return [{ type: "enqueue_report_job" }]
+    case "self_serve_report_entitlement":
+      return [{ type: "grant_report_entitlement" }]
     case "escalation_pack_entitlement":
       return [{ type: "upsert_escalation_pack_entitlement" }]
     case "payment_record_only":
@@ -27,13 +27,13 @@ export function sideEffectsForFulfilment(
 
 export function mutatesCaseEntitlements(fulfilment: ProductFulfilment): boolean {
   return (
-    fulfilment === "self_serve_report_job" ||
+    fulfilment === "self_serve_report_entitlement" ||
     fulfilment === "escalation_pack_entitlement"
   )
 }
 
-export function enqueuesReportJob(fulfilment: ProductFulfilment): boolean {
-  return fulfilment === "self_serve_report_job"
+export function grantsReportEntitlement(fulfilment: ProductFulfilment): boolean {
+  return fulfilment === "self_serve_report_entitlement"
 }
 
 export interface CheckoutSessionCompletedInput {
@@ -116,7 +116,7 @@ export interface FulfilmentDeps {
     fulfilmentEventId: string
     checkoutProductKey: string
   }) => Promise<PurchaseRow>
-  enqueueReportJob: (args: {
+  grantReportEntitlement: (args: {
     caseId: string
     userId: string
     idempotencyKey: string
@@ -297,8 +297,8 @@ export async function fulfilCheckoutSessionCompleted(
 
   try {
     for (const effect of sideEffectsForFulfilment(product.fulfilment)) {
-      if (effect.type === "enqueue_report_job") {
-        await deps.enqueueReportJob({
+      if (effect.type === "grant_report_entitlement") {
+        await deps.grantReportEntitlement({
           caseId,
           userId: purchase.user_id,
           idempotencyKey: input.sessionId,

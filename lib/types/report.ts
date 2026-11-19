@@ -17,6 +17,9 @@ export interface ReportJson {
   requested_resolution?: string
   evidence_checklist?: Array<{ label: string; present: boolean }>
   disclaimers?: string[]
+  /** Bank pack (bank_pack_v1): built from the confirmed facts, never by the model. */
+  total_loss?: string | null
+  rules_assessment?: string
   [extra: string]: unknown
 }
 
