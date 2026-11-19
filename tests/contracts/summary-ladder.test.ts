@@ -168,7 +168,8 @@ test('provider errors never carry the response text, and the review log holds ID
   assert.deepEqual(fields, ['case_id', 'fact_snapshot_id', 'source', 'fallback_reason', 'attempts', 'fired_checks', 'hard_checks', 'model', 'prompt_version', 'release'])
   assert.doesNotMatch(fn, /output_validation_failed/, 'a checker rejection no longer fails the request')
   assert.match(fn, /title: result\.source === "fallback" \? FALLBACK_TITLE : "Free evaluation summary"/)
-  assert.match(fn, /const TIER0_MODEL = \(Deno\.env\.get\("TIER0_MODEL"\) \?\? "gpt-4o-mini-2024-07-18"\)/, 'the model is pinned to a dated snapshot')
+  // 20 Nov 2026: gpt-4o-mini shuts down on 14 Jan 2027. gpt-6-luna has no dated snapshot yet, so the exact ID is pinned.
+  assert.match(fn, /const TIER0_MODEL = \(Deno\.env\.get\("TIER0_MODEL"\) \?\? "gpt-6-luna"\)/, 'the model is pinned to an exact ID')
 })
 
 test('the summary version replaces the same row as a model summary (one tier0_summary per case)', () => {

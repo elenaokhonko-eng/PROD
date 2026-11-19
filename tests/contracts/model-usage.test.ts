@@ -64,7 +64,7 @@ test('every stage-1 model call is metered and capped', () => {
   const read = (p: string) => readFileSync(p, 'utf8')
   assert.match(read('lib/server/ai/generate-json.ts'), /await recordUsage\(\{ \.\.\.meter, outcome: "ok", usage: openAiUsage\(response\)/)
   assert.match(read('lib/server/ai/generate-json.ts'), /throw new ModelBudgetExceeded\(\)/)
-  assert.match(read('supabase/functions/run_case_extract_v4/index.ts'), /max_output_tokens: OUTPUT_CAPS\.case_extraction/)
+  assert.match(read('supabase/functions/run_case_extract_v4/index.ts'), /maxOutputTokens: OUTPUT_CAPS\.case_extraction/)
   assert.match(read('supabase/functions/run_case_extract_v4/index.ts'), /purpose: "case_extraction"/)
   const evidence = read('supabase/functions/evidence_processed_v2/index.ts')
   assert.match(evidence, /max_output_tokens: OUTPUT_CAPS\.evidence,\s*thinking_config: \{ thinking_budget: GEMINI_THINKING_BUDGET\.evidence \}/)

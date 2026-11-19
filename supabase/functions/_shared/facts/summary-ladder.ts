@@ -9,6 +9,7 @@
 
 import { factLabel, formatFactValue, harmoniseDates } from "./display.ts";
 import { backoffMs, openAiUsage, type TokenUsage } from "../model-usage.ts";
+import { chatParams } from "../openai-params.ts";
 import type { FactKey } from "./keys.ts";
 import {
   describeFailures,
@@ -211,8 +212,7 @@ async function chatSummaryRequest(req: ChatSummaryRequest, model: string, timeou
       headers: { Authorization: `Bearer ${req.apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
-        temperature: 0.2,
-        ...(req.maxTokens ? { max_tokens: req.maxTokens } : {}),
+        ...chatParams(model, { effort: "none", temperature: 0.2, maxOutputTokens: req.maxTokens }),
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: req.system },

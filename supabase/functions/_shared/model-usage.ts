@@ -15,6 +15,9 @@ const GEMINI_FLASH_2027: ModelPrice = { input: 1.5, cachedInput: 0.15, output: 7
 
 export function priceOf(model: string, at: Date = new Date()): ModelPrice {
   const m = model.toLowerCase();
+  // gpt-6 (OpenAI pricing, checked 20 Nov 2026), per million tokens.
+  if (m.startsWith("gpt-6-luna")) return { input: 0.1, cachedInput: 0.01, output: 0.5 };
+  if (m.startsWith("gpt-6.1-terra")) return { input: 1, cachedInput: 0.05, output: 5 };
   if (m.startsWith("gpt-4.1-mini")) return { input: 0.4, cachedInput: 0.1, output: 1.6 };
   if (m.startsWith("gpt-4o-mini")) return { input: 0.15, cachedInput: 0.075, output: 0.6 };
   if (m.startsWith("gpt-4.1")) return { input: 2, cachedInput: 0.5, output: 8 };

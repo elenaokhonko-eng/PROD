@@ -34,9 +34,9 @@ const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction");
 // OpenAI model IDs are lower case; the default keeps the model this function has always used.
 // Pinned to a dated snapshot so a provider-side model update cannot change behaviour unseen (hardening item 2);
 // the corpus (scripts/tier0-corpus) is re-run before this or the prompt changes.
-const TIER0_MODEL = (Deno.env.get("TIER0_MODEL") ?? "gpt-4o-mini-2024-07-18").trim().toLowerCase(); // = TIER0_DEFAULT_MODEL
+const TIER0_MODEL = (Deno.env.get("TIER0_MODEL") ?? "gpt-6-luna").trim().toLowerCase(); // = TIER0_DEFAULT_MODEL
 // Used straight away when the main model is rate-limited (cost-controls spec §5 B8).
-const TIER0_SECONDARY_MODEL = (Deno.env.get("TIER0_SECONDARY_MODEL") ?? "gpt-4.1-mini").trim().toLowerCase();
+const TIER0_SECONDARY_MODEL = (Deno.env.get("TIER0_SECONDARY_MODEL") ?? "gpt-6.1-terra").trim().toLowerCase();
 const TIER0_BUDGET_MS = 90_000;
 
 type FidrecCheck = {

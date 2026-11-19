@@ -7,6 +7,7 @@ import {
   verifyHarborEdgeRequest,
 } from "../_shared/edge-auth.ts";
 import { safeErrorText } from "../_shared/safe-error.ts";
+import { DEFAULT_OPENAI_MODEL, responsesParams } from "../_shared/openai-params.ts";
 function nowIso() {
   return new Date().toISOString();
 }
@@ -440,7 +441,7 @@ async function openaiDecision(apiKey, model, inputObj) {
     },
     body: JSON.stringify({
       model,
-      temperature: 0.2,
+      ...responsesParams(model, { effort: "none", temperature: 0.2 }),
       input: [
         {
           role: "system",
@@ -811,7 +812,7 @@ function buildEvidenceFromDoc(d, maxItems = 6) {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction") ?? "";
-    const MODEL = Deno.env.get("CASE_DECISION_MODEL") ?? "gpt-4.1-mini";
+    const MODEL = Deno.env.get("CASE_DECISION_MODEL") ?? DEFAULT_OPENAI_MODEL;
     if (!SUPABASE_URL) return textResp("Missing SUPABASE_URL", 500);
     if (!SUPABASE_SERVICE_ROLE_KEY) return textResp("Missing SUPABASE_SERVICE_ROLE_KEY", 500);
     if (!OPENAI_API_KEY) return textResp("Missing GuideBuoy_EdgeFunction secret", 500);

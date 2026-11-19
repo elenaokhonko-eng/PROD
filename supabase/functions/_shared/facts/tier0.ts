@@ -7,7 +7,7 @@ import type { SnapshotFacts, ValidateOptions } from "./validate-output.ts";
 
 // Pinned to a dated snapshot so a provider-side model update cannot change behaviour unseen; re-run the corpus
 // before changing this or the prompt.
-export const TIER0_DEFAULT_MODEL = "gpt-4o-mini-2024-07-18";
+export const TIER0_DEFAULT_MODEL = "gpt-6-luna";
 export const TIER0_MIN_WORDS = 40;
 export const TIER0_MAX_WORDS = 450;
 // Dates the free evaluation may state that are not case facts (SRF effective dates).

@@ -32,6 +32,7 @@ import {
   validateOutput,
 } from '@/lib/facts'
 import { generateJson, getOpenAiModel } from '@/lib/server/ai/generate-json'
+import { chatParams } from '../../supabase/functions/_shared/openai-params'
 import { type CorpusStory, STORIES } from './stories'
 
 function loadEnv() {
@@ -72,7 +73,8 @@ type RunRecord = {
   ms: { extraction: number; summary: number }
 }
 
-const JUDGE_MODEL = 'gpt-4.1-2025-04-14'
+// A stronger model than the one under test (20 Nov 2026: gpt-4.1 shuts down on 14 Jan 2027).
+const JUDGE_MODEL = process.env.JUDGE_MODEL || 'gpt-6.1-terra'
 
 
 // Several values from the same source (a story listing the amount per account) are parts of one answer, which a
@@ -120,7 +122,7 @@ ${summary}`
   const resp = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: JUDGE_MODEL, temperature: 0, response_format: { type: 'json_object' }, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({ model: JUDGE_MODEL, ...chatParams(JUDGE_MODEL, { effort: 'low', temperature: 0 }), response_format: { type: 'json_object' }, messages: [{ role: 'user', content: prompt }] }),
     signal: AbortSignal.timeout(60_000),
   })
   if (!resp.ok) throw new Error(`judge ${resp.status}`)
