@@ -15,15 +15,24 @@ test('pages are noindex by default and only marketing pages opt in', () => {
   assert.match(source('app/(marketing)/layout.tsx'), /robots: INDEX\b/)
 
   const routes = enumeratePageRoutes()
+  // A dynamic route's pattern, e.g. /guides/[slug] matches /guides/how-to-start.
+  const matches = (route: { path: string }, path: string) =>
+    new RegExp(`^${route.path.replace(/\[[^\]/]+\]/g, '[^/]+')}$`).test(path)
   for (const path of INDEXABLE_ROUTES) {
-    const route = routes.find((r) => r.path === path)
+    const route = routes.find((r) => r.path === path) ?? routes.find((r) => r.dynamic && matches(r, path))
     assert.ok(route, `indexable route ${path} has a page`)
     assert.ok(route.marketing, `${path} is indexable but sits outside the marketing layout`)
     // pageAlternates sets the page's own canonical and its markdown copy (Addendum M §M5).
-    assert.match(source(route.file), new RegExp(`alternates: pageAlternates\\('${path}'\\)`), `${path} sets its own canonical`)
+    if (route.dynamic) assert.match(source(route.file), /alternates: pageAlternates\(`/, `${path} sets its own canonical`)
+    else assert.match(source(route.file), new RegExp(`alternates: pageAlternates\\('${path}'\\)`), `${path} sets its own canonical`)
   }
-  for (const route of routes.filter((r) => r.marketing && !INDEXABLE_ROUTES.includes(routePath(r)))) {
+  for (const route of routes.filter((r) => r.marketing && !r.dynamic && !INDEXABLE_ROUTES.includes(routePath(r)))) {
     assert.match(source(route.file), /robots: NOINDEX/, `${route.path} is a marketing page that is not listed as indexable`)
+  }
+  // Brief W1 §O: a dynamic marketing page (a guide) builds only the addresses it lists, so nothing unlisted is served.
+  for (const route of routes.filter((r) => r.marketing && r.dynamic)) {
+    assert.match(source(route.file), /export const dynamicParams = false/, `${route.path} serves only the pages it builds`)
+    assert.match(source(route.file), /export function generateStaticParams/, `${route.path} lists the pages it builds`)
   }
 })
 

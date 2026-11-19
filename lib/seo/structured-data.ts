@@ -97,3 +97,30 @@ export function founderJsonLd(): JsonLd | null {
     sameAs: [FOUNDER.linkedin],
   }
 }
+
+// Guides (brief W1 §O): the article and its place in the site.
+export function articleJsonLd(guide: { slug: string; title: string; description: string; reviewedOn: string; reviewedBy: string }): JsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: guide.title,
+    description: guide.description,
+    url: `${SITE_ORIGIN}/guides/${guide.slug}`,
+    dateModified: guide.reviewedOn,
+    reviewedBy: { '@type': 'Person', name: guide.reviewedBy },
+    publisher: { '@id': ORGANIZATION_ID },
+  }
+}
+
+export function breadcrumbJsonLd(items: readonly { name: string; path: string }[]): JsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: `${SITE_ORIGIN}${item.path}`,
+    })),
+  }
+}

@@ -7,7 +7,7 @@
   },
   "packageManager": "pnpm@10.18.3",
   "scripts": {
-    "build": "next build && node scripts/build-markdown-copies.mjs",
+    "build": "node scripts/build-guide-index.mjs && next build && node scripts/build-markdown-copies.mjs",
     "check:sm": "tsx scripts/check-state-machine-rules.ts",
     "dev": "next dev",
     "dry-run:fidrec-tier2": "npx --yes tsx scripts/dry-run-fidrec-tier2-helpers.ts",
