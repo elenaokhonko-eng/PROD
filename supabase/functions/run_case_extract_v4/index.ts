@@ -7,6 +7,7 @@ import {
   verifyHarborEdgeRequest,
 } from "../_shared/edge-auth.ts";
 import { applyGapAnswers } from "../_shared/gap-answers.ts";
+import { DEFAULT_OPENAI_MODEL, responsesParams } from "../_shared/openai-params.ts";
 import { safeError } from "../_shared/safe-error.ts";
 import { dailyBreaker, openAiUsage, OUTPUT_CAPS, recordModelUsage, type TokenUsage, usageEnvironment } from "../_shared/model-usage.ts";
 
@@ -293,8 +294,8 @@ async function callOpenAIResponses(openaiKey, body) {
       authorization: `Bearer ${openaiKey}`,
       "content-type": "application/json"
     },
-    // Output cap (§5 B5): observed maximum + 30%.
-    body: JSON.stringify({ max_output_tokens: OUTPUT_CAPS.case_extraction, ...body })
+    // Output cap (§5 B5): observed maximum + 30%. Model parameters from _shared/openai-params (gpt-6, 20 Nov 2026).
+    body: JSON.stringify({ ...body, ...responsesParams(body.model, { effort: "none", temperature: 0, maxOutputTokens: OUTPUT_CAPS.case_extraction }) })
   });
   const raw = await res.text().catch(()=>"");
   let payload = null;
@@ -315,7 +316,6 @@ async function openaiExtract(args) {
   const userText = "Fill this JSON template using only the provided case data.\n\n" + `TEMPLATE (JSON):\n${JSON.stringify(template)}\n\n` + `SERVER_COMPUTED:\n${JSON.stringify(serverComputed)}\n\n` + `DATA:\n${inputText}\n`;
   const payload1 = await callOpenAIResponses(openaiKey, {
     model,
-    temperature: 0,
     text: {
       format: {
         type: "json_object"
@@ -349,7 +349,6 @@ async function openaiExtract(args) {
     const retryText = "The previous output was NOT valid JSON.\n" + "Re-output ONLY a valid JSON object that matches the TEMPLATE EXACTLY.\n" + "No markdown. No commentary. No trailing commas. No extra keys.\n\n" + `TEMPLATE (JSON):\n${JSON.stringify(template)}\n\n` + `SERVER_COMPUTED:\n${JSON.stringify(serverComputed)}\n\n` + `PREVIOUS OUTPUT:\n${outText}\n`;
     const payload2 = await callOpenAIResponses(openaiKey, {
       model,
-      temperature: 0,
       text: {
         format: {
           type: "json_object"
@@ -1123,7 +1122,7 @@ function applyValidationCompatibilityAndEnforce(ejRaw, serverFacts, caseRecord) 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const OPENAI_API_KEY = Deno.env.get("GuideBuoy_EdgeFunction");
-    const EXTRACT_MODEL = Deno.env.get("CASE_EXTRACT_MODEL") ?? "gpt-4.1-mini";
+    const EXTRACT_MODEL = Deno.env.get("CASE_EXTRACT_MODEL") ?? DEFAULT_OPENAI_MODEL;
     if (!SUPABASE_URL) throw new Error("Missing SUPABASE_URL");
     if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
     if (!OPENAI_API_KEY) throw new Error("Missing GuideBuoy_EdgeFunction secret");

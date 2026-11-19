@@ -3,6 +3,7 @@ import OpenAI from "openai"
 import { logger } from "@/lib/logger"
 import { currentBreaker, ModelBudgetExceeded, openAiUsage, recordUsage } from "@/lib/server/model-usage"
 import { safeErrorText } from "@/lib/server/safe-error"
+import { DEFAULT_OPENAI_MODEL, responsesParams } from "../../../supabase/functions/_shared/openai-params"
 
 const log = logger.withContext({ module: "ai-generate-json" })
 
@@ -58,7 +59,7 @@ export function getOpenAiApiKey(): string {
 
 export function getOpenAiModel(): string {
   // OpenAI model IDs are lower-case and case-sensitive ("GPT-4.1-mini" is a 404).
-  return process.env.OPENAI_MODEL?.trim().toLowerCase() || "gpt-4.1-mini"
+  return process.env.OPENAI_MODEL?.trim().toLowerCase() || DEFAULT_OPENAI_MODEL
 }
 
 function extractResponseText(response: ResponseLike, schemaName: string): string {
@@ -113,7 +114,8 @@ export async function generateJson<T = unknown>(input: GenerateJsonInput): Promi
       text: {
         format: { type: "json_object" },
       },
-      ...(usage?.maxOutputTokens ? { max_output_tokens: usage.maxOutputTokens } : {}),
+      // Model parameters from _shared/openai-params (gpt-6, 20 Nov 2026): no reasoning, as the earlier models had none.
+      ...responsesParams(model, { effort: "none", maxOutputTokens: usage?.maxOutputTokens }),
     })) as ResponseLike
   } catch (error) {
     const status = (error as { status?: number })?.status ?? null

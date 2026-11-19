@@ -3,6 +3,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
 import { getOpenAiModel } from '../../lib/server/ai/generate-json'
+import { DEFAULT_OPENAI_MODEL } from '../../supabase/functions/_shared/openai-params'
 import { isReachable } from '../../lib/server/ai/model-health'
 import { CHECKED_MODEL_IDS, getGeminiModel } from '../../lib/server/ai/models'
 
@@ -28,10 +29,11 @@ test('no app, lib or Edge function code defaults to a retired Gemini model', () 
 test('OPENAI_MODEL is normalised to the lower-case model ID', () => {
   const previous = process.env.OPENAI_MODEL
   try {
-    process.env.OPENAI_MODEL = ' GPT-4.1-mini '
-    assert.equal(getOpenAiModel(), 'gpt-4.1-mini')
+    process.env.OPENAI_MODEL = ' GPT-6-Luna '
+    assert.equal(getOpenAiModel(), 'gpt-6-luna')
     delete process.env.OPENAI_MODEL
-    assert.equal(getOpenAiModel(), 'gpt-4.1-mini')
+    // 20 Nov 2026: gpt-4.1-mini shuts down on 14 Jan 2027; gpt-6-luna replaces it.
+    assert.equal(getOpenAiModel(), 'gpt-6-luna')
   } finally {
     if (previous === undefined) delete process.env.OPENAI_MODEL
     else process.env.OPENAI_MODEL = previous
@@ -53,7 +55,9 @@ test('the Edge model health check probes every model each Edge function uses, wi
   assert.ok(listed.length >= 6)
   for (const { fn, env, fallback } of listed) {
     const source = readFileSync(`supabase/functions/${fn}/index.ts`, 'utf8')
-    if (env) assert.ok(source.includes(`Deno.env.get("${env}") ?? "${fallback}"`), `${fn} defaults ${env} to ${fallback}`)
+    // A default is written out, or, for the OpenAI chat models, the shared DEFAULT_OPENAI_MODEL (20 Nov 2026).
+    const shared = fallback === DEFAULT_OPENAI_MODEL && source.includes(`Deno.env.get("${env}") ?? DEFAULT_OPENAI_MODEL`)
+    if (env) assert.ok(shared || source.includes(`Deno.env.get("${env}") ?? "${fallback}"`), `${fn} defaults ${env} to ${fallback}`)
     else assert.ok(source.includes(`"${fallback}"`), `${fn} uses ${fallback}`)
   }
   for (const fn of readdirSync('supabase/functions').filter((name) => !name.startsWith('_') && name !== 'ai_model_health_v1')) {

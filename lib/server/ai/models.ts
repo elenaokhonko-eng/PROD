@@ -6,7 +6,7 @@ export function getGeminiModel(): string {
 
 // Model IDs verified to answer with current keys (see the AI model health check). check-env-set fails any model
 // setting outside this list or not in lower case; add an ID here only after probing it with the target keys.
-export const CHECKED_MODEL_IDS = ["gemini-3.8-flash", "gpt-4.1-mini", "gpt-4o-mini", "gpt-4o-mini-2024-07-18", "text-embedding-3-small"] as const
+export const CHECKED_MODEL_IDS = ["gemini-3.8-flash", "gpt-6-luna", "gpt-6.1-terra", "gpt-4.1-mini", "gpt-4o-mini", "gpt-4o-mini-2024-07-18", "text-embedding-3-small"] as const
 
 // App (Render) and Edge (Supabase secret) settings that name a model.
 export const MODEL_SETTING_KEYS = [
@@ -16,4 +16,7 @@ export const MODEL_SETTING_KEYS = [
   "CASE_EXTRACT_MODEL",
   "CASE_DECISION_MODEL",
   "SELF_SERVE_REPORT_MODEL",
+  // The free evaluation (bright-function); unchecked before 20 Nov.
+  "TIER0_MODEL",
+  "TIER0_SECONDARY_MODEL",
 ] as const

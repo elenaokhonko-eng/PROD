@@ -16,12 +16,12 @@ type EdgeModel = { use: string; provider: Provider; env: string | null; fallback
 
 export const EDGE_MODELS: EdgeModel[] = [
   { use: "evidence_processed_v2", provider: "gemini", env: "EVIDENCE_GEMINI_MODEL", fallback: "gemini-3.8-flash", key: "GEMINI_API_KEY" },
-  { use: "run_case_extract_v4", provider: "openai", env: "CASE_EXTRACT_MODEL", fallback: "gpt-4.1-mini", key: "GuideBuoy_EdgeFunction" },
-  { use: "run_case_decision_v1", provider: "openai", env: "CASE_DECISION_MODEL", fallback: "gpt-4.1-mini", key: "GuideBuoy_EdgeFunction" },
+  { use: "run_case_extract_v4", provider: "openai", env: "CASE_EXTRACT_MODEL", fallback: "gpt-6-luna", key: "GuideBuoy_EdgeFunction" },
+  { use: "run_case_decision_v1", provider: "openai", env: "CASE_DECISION_MODEL", fallback: "gpt-6-luna", key: "GuideBuoy_EdgeFunction" },
   { use: "run_case_decision_v1 embeddings", provider: "openai", env: null, fallback: "text-embedding-3-small", key: "GuideBuoy_EdgeFunction" },
-  { use: "run_report_selfserve_v1", provider: "openai", env: "SELF_SERVE_REPORT_MODEL", fallback: "gpt-4.1-mini", key: "GuideBuoy_EdgeFunction" },
-  { use: "bright-function", provider: "openai", env: "TIER0_MODEL", fallback: "gpt-4o-mini-2024-07-18", key: "GuideBuoy_EdgeFunction" },
-  { use: "bright-function secondary", provider: "openai", env: "TIER0_SECONDARY_MODEL", fallback: "gpt-4.1-mini", key: "GuideBuoy_EdgeFunction" },
+  { use: "run_report_selfserve_v1", provider: "openai", env: "SELF_SERVE_REPORT_MODEL", fallback: "gpt-6-luna", key: "GuideBuoy_EdgeFunction" },
+  { use: "bright-function", provider: "openai", env: "TIER0_MODEL", fallback: "gpt-6-luna", key: "GuideBuoy_EdgeFunction" },
+  { use: "bright-function secondary", provider: "openai", env: "TIER0_SECONDARY_MODEL", fallback: "gpt-6.1-terra", key: "GuideBuoy_EdgeFunction" },
   { use: "backfill_embeddings_v1", provider: "openai", env: null, fallback: "text-embedding-3-small", key: "GuideBuoy_EdgeFunction" },
 ];
 
