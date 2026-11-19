@@ -90,7 +90,7 @@ export default function HomePage() {
           <div className="hidden items-center justify-center gap-6 lg:flex">
             <Link
               href={SAMPLE_PATH}
-              className="group block w-56 shrink-0 rounded-card border bg-card p-2 shadow-sm transition hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 xl:w-64"
+              className="group block w-56 shrink-0 rounded-card border bg-card p-2 transition hover:border-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 xl:w-64"
             >
               <Image
                 src="/assets/samples/free-evaluation-preview.webp"

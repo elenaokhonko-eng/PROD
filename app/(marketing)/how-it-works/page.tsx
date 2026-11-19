@@ -51,7 +51,7 @@ export default function HowItWorksPage() {
             Report sections are assembled from the information in your case. Missing or uncertain details remain visible rather than being guessed.
           </p>
           {/* Brief W1 §H: the sample evaluation, as an image that opens the full sample; the outline follows it (§I). */}
-          <Link href={SAMPLE_PATH} className="group mt-6 block rounded-card border bg-card p-2 shadow-sm hover:shadow-md">
+          <Link href={SAMPLE_PATH} className="group mt-6 block rounded-card border bg-card p-2 transition hover:border-primary">
             <Image
               src="/assets/samples/free-evaluation-preview.webp"
               alt="A sample free evaluation for a fictional case"
