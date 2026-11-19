@@ -17,7 +17,8 @@ test('faq exposes stateful explorer and keeps contact workflow disabled', async 
   await expect(search).toBeVisible()
 
   const allCategory = page.getByRole('button', { name: 'All', exact: true })
-  const pricingCategory = page.getByRole('button', { name: 'Products and pricing' })
+  // Brief W1 §J groups: Start, What you get, Cost, Privacy.
+  const pricingCategory = page.getByRole('button', { name: 'Cost', exact: true })
   await pricingCategory.click()
   await expect(pricingCategory).toHaveAttribute('aria-pressed', 'true')
   await allCategory.click()

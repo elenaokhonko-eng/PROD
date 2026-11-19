@@ -14,6 +14,12 @@ export const pageAlternates = (route: string): Metadata['alternates'] => ({
   types: { 'text/markdown': markdownPath(route) },
 })
 
+// Brief W1 §L6: each indexable page's own link preview. The image comes from the page's opengraph-image.tsx.
+export const pagePreview = (route: string, title: string, description: string): Pick<Metadata, 'openGraph' | 'twitter'> => ({
+  openGraph: { type: 'website', siteName: 'GuideBuoy AI', locale: 'en_SG', url: route, title, description },
+  twitter: { card: 'summary_large_image', title, description },
+})
+
 export const INDEX: Metadata['robots'] = { index: true, follow: true }
 export const NOINDEX: Metadata['robots'] = { index: false, follow: false }
 

@@ -1,5 +1,5 @@
 ﻿import type { Metadata } from 'next'
-import { pageAlternates } from '@/lib/seo/indexing'
+import { pageAlternates, pagePreview } from '@/lib/seo/indexing'
 import Link from 'next/link'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { FileCheck2 } from 'lucide-react'
@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   title: { absolute: 'How GuideBuoy prepares your scam or bank dispute, step by step' },
   description: 'From your story to a checked record and a suggested next step in six steps. Free to start, no card.',
   alternates: pageAlternates('/how-it-works'),
+  ...pagePreview('/how-it-works', 'How GuideBuoy prepares your scam or bank dispute, step by step', 'From your story to a checked record and a suggested next step in six steps. Free to start, no card.'),
 }
 
 const steps = [

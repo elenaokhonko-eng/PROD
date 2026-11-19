@@ -37,5 +37,19 @@ test('the sign-up consent label adds the age statement and keeps both links', as
 
 test('nothing a person types is rendered as HTML (walkthrough L-11, 9 Nov)', () => {
   const hits = execFileSync('git', ['grep', '-l', 'dangerouslySetInnerHTML', '--', 'app', 'components'], { encoding: 'utf8' }).trim().split('\n')
-  assert.deepEqual(hits, ['app/layout.tsx'], 'only the fixed start-up script in the root layout')
+  assert.deepEqual(
+    hits,
+    ['app/layout.tsx', 'components/seo/json-ld.tsx'],
+    'only the fixed start-up script in the root layout, and structured data built from fixed site constants',
+  )
+  // Brief W1 §L5: the JSON-LD writer escapes "<", and every caller passes data from lib/seo/structured-data only.
+  assert.match(readFileSync('components/seo/json-ld.tsx', 'utf8'), /\.replace\(\/<\/g, '\\\\u003c'\)/)
+  const callers = execFileSync('git', ['grep', '-l', '<JsonLd', '--', 'app', 'components'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+  for (const file of callers) {
+    const source = readFileSync(file, 'utf8')
+    for (const [, expression] of source.matchAll(/<JsonLd data=\{([^}]*)\}/g)) {
+      assert.match(expression, /^\w+JsonLd\(/, `${file}: JsonLd data must come from a lib/seo/structured-data builder`)
+    }
+    assert.match(source, /from '@\/lib\/seo\/structured-data'/, file)
+  }
 })

@@ -15,7 +15,8 @@ export const TRUST_ITEMS = [
   { icon: LockKeyhole, text: 'Private to your account. We never share your case with any bank or authority unless the law requires it.' },
 ] as const
 
-export function TrustRow() {
+// The ACRA BizFile link and "Copy UEN" button, shared by the trust row and About's "Check this company" (brief W1 §G).
+export function UenCheck() {
   const [copied, setCopied] = useState(false)
   const copyUen = async () => {
     try {
@@ -28,6 +29,25 @@ export function TrustRow() {
   }
 
   return (
+    <>
+      <a className="font-medium underline" href={BIZFILE_URL} target="_blank" rel="noopener noreferrer">
+        Check on ACRA BizFile<span className="sr-only"> (opens in a new tab)</span>
+      </a>{' '}
+      <button
+        type="button"
+        onClick={() => void copyUen()}
+        className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 align-middle font-medium text-primary underline-offset-2 hover:underline"
+      >
+        <Copy className="size-4" aria-hidden="true" />
+        {copied ? 'UEN copied' : 'Copy UEN'}
+      </button>
+      <span className="sr-only" aria-live="polite">{copied ? 'UEN copied' : ''}</span>
+    </>
+  )
+}
+
+export function TrustRow() {
+  return (
     <ul aria-label="What GuideBuoy promises" className="grid gap-3 sm:grid-cols-2">
       {TRUST_ITEMS.map(({ icon: Icon, text }) => (
         <li key={text} className="flex items-start gap-3 rounded-control bg-harbor-surface-subtle p-3 text-base leading-7 text-foreground">
@@ -39,18 +59,7 @@ export function TrustRow() {
         <Building2 className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
         <span>
           Singapore company, UEN {COMPANY_UEN}.{' '}
-          <a className="font-medium underline" href={BIZFILE_URL} target="_blank" rel="noopener noreferrer">
-            Check on ACRA BizFile<span className="sr-only"> (opens in a new tab)</span>
-          </a>{' '}
-          <button
-            type="button"
-            onClick={() => void copyUen()}
-            className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 align-middle font-medium text-primary underline-offset-2 hover:underline"
-          >
-            <Copy className="size-4" aria-hidden="true" />
-            {copied ? 'UEN copied' : 'Copy UEN'}
-          </button>
-          <span className="sr-only" aria-live="polite">{copied ? 'UEN copied' : ''}</span>
+          <UenCheck />
         </span>
       </li>
     </ul>

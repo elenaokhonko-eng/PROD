@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { pageAlternates } from '@/lib/seo/indexing'
+import { pageAlternates, pagePreview } from '@/lib/seo/indexing'
 import { LegalDocumentPage } from '@/components/harbor/legal-document'
 import { loadLegalDocument } from '@/lib/legal/legal-document'
 
@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: 'Privacy Policy',
   description: 'How GuideBuoy AI handles personal data when you use the service.',
   alternates: pageAlternates('/privacy'),
+  ...pagePreview('/privacy', 'Privacy Policy · GuideBuoy', 'How GuideBuoy AI handles personal data when you use the service.'),
 }
 
 export default function PrivacyPage() {

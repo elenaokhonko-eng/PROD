@@ -4,6 +4,8 @@ import { PublicHeader } from '@/components/harbor/public-header'
 import { PublicFooter } from '@/components/harbor/public-footer'
 import { INDEX } from '@/lib/seo/indexing'
 import { FunnelStep } from '@/components/analytics/funnel-step'
+import { JsonLd } from '@/components/seo/json-ld'
+import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/structured-data'
 
 export const metadata: Metadata = { robots: INDEX }
 
@@ -21,6 +23,9 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
       <PublicFooter />
       {/* Analytics 2: where the visitor first came from, kept for this tab only. */}
       <FunnelStep />
+      {/* Brief W1 §L5: site-wide structured data. */}
+      <JsonLd data={organizationJsonLd()} />
+      <JsonLd data={websiteJsonLd()} />
     </div>
   )
 }
