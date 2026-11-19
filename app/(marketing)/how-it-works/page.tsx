@@ -1,6 +1,8 @@
 ﻿import type { Metadata } from 'next'
 import { pageAlternates, pagePreview } from '@/lib/seo/indexing'
 import Link from 'next/link'
+import Image from 'next/image'
+import { SAMPLE_PATH } from '@/lib/samples/paths'
 import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-page'
 import { FileCheck2 } from 'lucide-react'
 import { StepJourney } from '@/components/harbor/step-journey'
@@ -48,6 +50,17 @@ export default function HowItWorksPage() {
           <p className="mt-4 leading-7 text-muted-foreground">
             Report sections are assembled from the information in your case. Missing or uncertain details remain visible rather than being guessed.
           </p>
+          {/* Brief W1 §H: the sample evaluation, as an image that opens the full sample; the outline follows it (§I). */}
+          <Link href={SAMPLE_PATH} className="group mt-6 block rounded-card border bg-card p-2 shadow-sm hover:shadow-md">
+            <Image
+              src="/assets/samples/free-evaluation-preview.webp"
+              alt="A sample free evaluation for a fictional case"
+              width={720}
+              height={735}
+              className="rounded-control"
+            />
+            <span className="mt-2 block px-1 pb-1 font-medium text-primary group-hover:underline">See a sample evaluation →</span>
+          </Link>
           <div className="mt-6 rounded-card border bg-background p-4 sm:p-6">
             <div className="flex items-center gap-3 border-b pb-4">
               <FileCheck2 className="size-6 text-harbor-info" aria-hidden="true" />

@@ -14,7 +14,9 @@ import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
 import { TrustRow } from '@/components/harbor/trust-row'
 import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 import { FunnelStep } from '@/components/analytics/funnel-step'
+import Link from 'next/link'
 import { JsonLd } from '@/components/seo/json-ld'
+import { SAMPLE_PATH } from '@/lib/samples/paths'
 import { webApplicationJsonLd } from '@/lib/seo/structured-data'
 
 export const metadata: Metadata = {
@@ -77,18 +79,38 @@ export default function HomePage() {
             <div className="mt-6 flex flex-col items-start gap-2">
               <StartEvaluationButton />
               <p className="text-sm text-muted-foreground">{NO_CARD_LINE}</p>
+              {/* Brief W1 §A1: the secondary link, once the sample ships (§H). */}
+              <Link href={SAMPLE_PATH} className="inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4">
+                See a sample evaluation →
+              </Link>
             </div>
           </div>
-          {/* §A2: on phones the mascot no longer sits between the hero and the story box. */}
-          <div className="gb-illo gb-avatar mx-auto hidden max-w-[18rem] lg:block">
-            <Image
-              src="/assets/harbor/lumi-576.webp"
-              alt="GuideBuoy’s avatar"
-              width={576}
-              height={576}
-              priority
-              className="gb-decorative aspect-square object-contain"
-            />
+          {/* §A2, §H: on desktop the mascot and, beside it, a preview of the sample evaluation that opens it (Elena,
+              19 Nov). On phones neither sits between the hero and the story box. */}
+          <div className="hidden items-center justify-center gap-6 lg:flex">
+            <Link
+              href={SAMPLE_PATH}
+              className="group block w-56 shrink-0 rounded-card border bg-card p-2 shadow-sm transition hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 xl:w-64"
+            >
+              <Image
+                src="/assets/samples/free-evaluation-preview.webp"
+                alt="A sample free evaluation for a fictional case"
+                width={720}
+                height={735}
+                className="rounded-control"
+              />
+              <span className="mt-2 block px-1 pb-1 text-sm font-medium text-primary group-hover:underline">See a sample evaluation →</span>
+            </Link>
+            <div className="gb-illo gb-avatar max-w-[12rem] xl:max-w-[18rem]">
+              <Image
+                src="/assets/harbor/lumi-576.webp"
+                alt="GuideBuoy’s avatar"
+                width={576}
+                height={576}
+                priority
+                className="gb-decorative aspect-square object-contain"
+              />
+            </div>
           </div>
         </div>
       </section>

@@ -5,15 +5,16 @@ import { MarketingPage, MarketingSection } from '@/components/harbor/marketing-p
 import { StartEvaluationButton } from '@/components/harbor/start-evaluation-button'
 import { WhatGuideBuoyIs } from '@/components/harbor/what-guidebuoy-is'
 import { Tier0DraftView } from '@/components/state-machine/layer1/tier0-draft-view'
-import { NOINDEX } from '@/lib/seo/indexing'
+import { pageAlternates, pagePreview } from '@/lib/seo/indexing'
 import { SAMPLE_BANNER, loadSampleRows, sampleBundle } from '@/lib/samples/free-evaluation'
 
-// Brief W1 §H: the free evaluation of the fictional case, exactly as the app shows it, read-only. Not indexed or linked
-// until Elena has reviewed it on staging.
+// Brief W1 §H: the free evaluation of the fictional case, exactly as the app shows it, read-only. Elena reviews it on
+// staging before it reaches production.
 export const metadata: Metadata = {
-  title: 'Sample free evaluation',
+  title: { absolute: 'Sample free evaluation for a fictional scam case · GuideBuoy' },
   description: 'What a GuideBuoy free evaluation looks like, shown for a fictional case.',
-  robots: NOINDEX,
+  alternates: pageAlternates('/sample/evaluation'),
+  ...pagePreview('/sample/evaluation', 'Sample free evaluation for a fictional scam case · GuideBuoy', 'What a GuideBuoy free evaluation looks like, shown for a fictional case.'),
 }
 
 export default function SampleEvaluationPage() {
