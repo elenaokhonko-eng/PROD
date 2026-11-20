@@ -3,7 +3,10 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, sep } from 'node:path'
 import test from 'node:test'
 import {
+  ANALYTICS_SIGN_UP_EVENT,
+  GOOGLE_TAG_ID,
   GOOGLE_TAG_MANAGER_ID,
+  googleTagSnippet,
   googleTagEnabled,
   googleTagManagerSnippet,
   safeNextPath,
@@ -70,7 +73,16 @@ test('Privacy v2.2 explains the Google tag in the wording Elena approved, and no
   assert.match(privacy, /^replaces: "2\.1 \(14 November 2026\)"$/m)
   const cookies = privacy.slice(privacy.indexOf('## 8.'), privacy.indexOf('## 9.'))
   assert.ok(cookies.includes(
-    '**Measuring our website and advertising.** On our public pages and the sign-up page we use Google Tag Manager, a service from Google, to understand how people find GuideBuoy and whether our advertising works. Google may set cookies and receive information about your device and visit, such as your IP address, the pages you viewed and the ad you clicked. This happens only on our public pages: your story, documents and case details are never sent to Google. You can block these cookies in your browser settings.',
+    '**Measuring our website and advertising.** On our public pages and the sign-up page we use Google Tag Manager and Google Analytics, services from Google, to understand how people find GuideBuoy and whether our advertising works. Google may set cookies and receive information about your device and visit, such as your IP address, the pages you viewed and the ad you clicked. This happens only on our public pages: your story, documents and case details are never sent to Google. You can block these cookies in your browser settings.',
   ))
   assert.doesNotMatch(cookies, /We don't use advertising or third-party tracking cookies/)
+})
+
+test('the Google tag for Analytics (GT-MR59L657 to G-YFMTYRWZYT) is installed beside Tag Manager, and gets the sign-up', () => {
+  assert.equal(GOOGLE_TAG_ID, 'GT-MR59L657')
+  assert.equal(googleTagSnippet(), "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','GT-MR59L657');")
+  const component = readFileSync('components/analytics/google-tag-manager.tsx', 'utf8')
+  assert.match(component, /src=\{`https:\/\/www\.googletagmanager\.com\/gtag\/js\?id=\$\{GOOGLE_TAG_ID\}`\}/)
+  assert.equal(ANALYTICS_SIGN_UP_EVENT, 'sign_up')
+  assert.match(readFileSync('components/analytics/sign-up-completed.tsx', 'utf8'), /w\.gtag\?\.\('event', ANALYTICS_SIGN_UP_EVENT/)
 })

@@ -101,7 +101,7 @@ Email info@guidebuoyai.sg. We will check your identity, respond within 30 days, 
 
 We use strictly necessary cookies for sign-in and security, and browser storage that keeps an unfinished story while the browser tab is open, so reloading the page or signing in doesn't lose it; it is deleted when you close the tab. We record how the service and our public tools are used (for example which steps are completed, and how many times a tool is used) in our own systems, to improve them; this first-party usage data is not shared with advertisers. Cloudflare also gives us visit statistics for the site, without advertising cookies.
 
-**Measuring our website and advertising.** On our public pages and the sign-up page we use Google Tag Manager, a service from Google, to understand how people find GuideBuoy and whether our advertising works. Google may set cookies and receive information about your device and visit, such as your IP address, the pages you viewed and the ad you clicked. This happens only on our public pages: your story, documents and case details are never sent to Google. You can block these cookies in your browser settings.
+**Measuring our website and advertising.** On our public pages and the sign-up page we use Google Tag Manager and Google Analytics, services from Google, to understand how people find GuideBuoy and whether our advertising works. Google may set cookies and receive information about your device and visit, such as your IP address, the pages you viewed and the ad you clicked. This happens only on our public pages: your story, documents and case details are never sent to Google. You can block these cookies in your browser settings.
 
 ## 9. Children
 

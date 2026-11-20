@@ -4,6 +4,16 @@
 
 export const GOOGLE_TAG_MANAGER_ID = 'GTM-WD9X2LV2'
 
+// The Google tag (gtag.js) for Google Analytics, container "guidebuoyai.sg": Google tag GT-MR59L657, sending to the
+// Analytics stream G-YFMTYRWZYT (Elena, 20 Nov 2026). Installed directly, beside Tag Manager, so Analytics needs no
+// set-up inside Tag Manager. Don't also add a Google Analytics tag in the Tag Manager container: visits would count twice.
+export const GOOGLE_TAG_ID = 'GT-MR59L657'
+
+// Google's standard Google tag set-up, after gtag/js has loaded.
+export function googleTagSnippet(id: string = GOOGLE_TAG_ID): string {
+  return `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${id}');`
+}
+
 export function googleTagEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return env.HARBOR_DEPLOYMENT_ENVIRONMENT?.trim() === 'production'
 }
@@ -15,8 +25,10 @@ export function googleTagManagerSnippet(id: string = GOOGLE_TAG_MANAGER_ID): str
 }
 
 // The sign-up conversion (Elena, 20 Nov 2026): Clerk sends a new account to /signed-up, a public step outside the
-// case area, which reports this one event to Google and then continues to where the person was going.
+// case area, which reports this one event to Google and then continues to where the person was going. Tag Manager
+// gets it as a custom event; Google Analytics as its standard sign_up event.
 export const SIGN_UP_COMPLETED_EVENT = 'sign_up_completed'
+export const ANALYTICS_SIGN_UP_EVENT = 'sign_up'
 export const SIGNED_UP_PATH = '/signed-up'
 
 /** Only a path on this site, never another origin ("//evil.example", "https://…", backslashes). */
