@@ -38,7 +38,7 @@ test.describe('fresh free account', () => {
 
       await expect(page.getByRole('heading', { name: 'Your next steps' })).toBeVisible({ timeout: 60_000 })
       await expect(page.getByText('Coming shortly', { exact: true }).first()).toBeVisible()
-      await expect(page.getByRole('button', { name: /Get Bank Pack/i })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: /Get Bank dispute pack/i })).toHaveCount(0)
       await page.getByRole('button', { name: 'Email me when it’s available' }).first().click()
       await expect(page.getByText(/^Thank you\. We’ll email /)).toBeVisible()
 
@@ -70,7 +70,7 @@ test.describe('fresh free account', () => {
 
     try {
       await completeFreeEvaluation(page, caseId, syntheticNarrative)
-      const buy = page.getByRole('button', { name: /Get Bank Pack/i })
+      const buy = page.getByRole('button', { name: /Get Bank dispute pack/i })
       await expect(buy).toBeEnabled()
 
       await buy.click()
