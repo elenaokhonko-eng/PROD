@@ -272,3 +272,28 @@ test('the clauses and documents reach the model; the report lists only the claus
   const report = assembleFidrecPack({ prose, source: 'model', facts, findings: [], evidenceIndex: index, route, finalReplyUsed: false, clauses })
   assert.deepEqual(report.regulatory_sources, [{ id: 'R1', source: 'MAS SRF Guidelines (2024)', clause_ref: '4.2(b)', title: 'Cooling period' }])
 })
+
+test('the route question becomes facts, so the purchase and the generation agree (decision 7)', () => {
+  const { answerCandidates } = require('../../lib/facts') as typeof import('../../lib/facts')
+  const row = (questionKey: string, value: string) => ({ questionKey, value, revisionId: `r-${questionKey}` })
+  const finalReply = answerCandidates([row('fidrec_route', 'final_reply'), row('fidrec_final_reply_date', '2026-11-10')]).candidates
+  assert.deepEqual(finalReply.find((c) => c.factKey === 'bank_reply')?.value, {
+    status: 'final_reply',
+    date: '2026-11-10',
+    outcome: null,
+    qualifies: 'yes',
+    reference: null,
+  })
+  const notQualifying = answerCandidates([
+    row('fidrec_route', 'final_reply'),
+    row('fidrec_final_reply_date', '2026-11-10'),
+    row('journey_final_reply_qualifies', 'no'),
+  ]).candidates
+  assert.equal((notQualifying.find((c) => c.factKey === 'bank_reply')?.value as { qualifies: string }).qualifies, 'no')
+  const noReply = answerCandidates([row('fidrec_route', 'no_reply'), row('fidrec_complaint_date', '2026-10-04')]).candidates
+  assert.deepEqual(noReply.find((c) => c.factKey === 'written_complaint_sent')?.value, { value: 'yes', date: '2026-10-04', reference: null, channel: null })
+  assert.equal(answerCandidates([row('fidrec_route', 'not_complained')]).candidates.length, 0)
+  // The same answers, as facts, open the route the generation checks.
+  const routeFacts: SnapshotFacts = { ...facts, bank_reply: { value: finalReply.find((c) => c.factKey === 'bank_reply')!.value, label: 'confirmed' } }
+  assert.equal(fidrecRouteFromFacts(routeFacts, '2026-11-20').available, true)
+})

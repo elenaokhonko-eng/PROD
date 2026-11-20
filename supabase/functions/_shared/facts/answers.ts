@@ -40,6 +40,13 @@ export const JOURNEY_KEYS = {
   institutionTypes: "journey_institution_types",
 } as const;
 
+// The FIDReC route question (get_case_product_readiness_v1 reads the same keys).
+export const FIDREC_ROUTE_KEYS = {
+  route: "fidrec_route",
+  finalReplyDate: "fidrec_final_reply_date",
+  complaintDate: "fidrec_complaint_date",
+} as const;
+
 // Free-text answers worth extracting with the model when they don't parse.
 export const FREE_TEXT_ANSWER_KEYS = ["incident_summary", "account_details", "financial_impact", "contact_details"] as const;
 
@@ -129,6 +136,30 @@ export function answerCandidates(rows: readonly AnswerRow[]): { candidates: Fact
       reference: null,
     };
     add("bank_reply", reply, [JOURNEY_KEYS.bankReplyStatus, JOURNEY_KEYS.bankReplyDate, JOURNEY_KEYS.bankReplyOutcome, JOURNEY_KEYS.finalReplyQualifies]);
+  }
+
+  // The FIDReC route question, asked before the FIDReC pack is bought (fidrec-offer.tsx). Readiness reads these keys
+  // to allow the purchase; as facts they let the generation's route check (decision 7) agree with what was asked.
+  // A conflict with the story or a document is shown on the confirm screen like any other.
+  const route = value(FIDREC_ROUTE_KEYS.route);
+  const routeDate = (key: string) => normaliseDate(value(key));
+  if (route === "final_reply" && routeDate(FIDREC_ROUTE_KEYS.finalReplyDate)) {
+    const reply: BankReply = {
+      status: "final_reply",
+      date: routeDate(FIDREC_ROUTE_KEYS.finalReplyDate),
+      outcome: null,
+      // "My bank has given its final reply" counts as a qualifying reply unless the journey answer says it doesn't.
+      qualifies: normaliseYesNo(value(JOURNEY_KEYS.finalReplyQualifies)) ?? "yes",
+      reference: null,
+    };
+    add("bank_reply", reply, [FIDREC_ROUTE_KEYS.route, FIDREC_ROUTE_KEYS.finalReplyDate]);
+  }
+  if (route === "no_reply" && routeDate(FIDREC_ROUTE_KEYS.complaintDate)) {
+    add(
+      "written_complaint_sent",
+      { value: "yes", date: routeDate(FIDREC_ROUTE_KEYS.complaintDate), reference: null, channel: null },
+      [FIDREC_ROUTE_KEYS.route, FIDREC_ROUTE_KEYS.complaintDate],
+    );
   }
 
   // Follow-up answers use the extract's field paths as question keys.
