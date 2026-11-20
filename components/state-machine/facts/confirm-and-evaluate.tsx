@@ -100,7 +100,7 @@ export function ConfirmAndEvaluate({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
-          {reason === 'facts_unconfirmed' ? (
+          {reason === 'facts_unconfirmed' || (reason && ROUTE_CLOSED[reason]) ? (
             <Button onClick={() => { generate.reset(); setSnapshotId(null) }}>Check my facts again</Button>
           ) : (
             <Button onClick={() => generate.mutate(snapshotId)}>Try again</Button>

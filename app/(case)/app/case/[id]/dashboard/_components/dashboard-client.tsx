@@ -379,8 +379,18 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
 
   // The route question saves fidrec_route and its date; readiness is then read again (get_case_product_readiness_v1).
   async function saveFidrecRoute(answers: Record<string, string>) {
-    const types = Object.fromEntries(Object.keys(answers).map((key) => [key, key.endsWith('_date') ? 'date' : 'text']))
-    await saveResponses(answers, types)
+    // The route answer is the person's latest word on their bank's reply or written complaint, so the matching journey
+    // answers follow it; otherwise an older "no reply yet" contradicts it on the confirm screen and the confirmed
+    // facts can close the route after payment (decision 7).
+    const mirrored: Record<string, string> =
+      answers.fidrec_route === 'final_reply'
+        ? { journey_bank_reply_status: 'final_reply', journey_bank_reply_date: answers.fidrec_final_reply_date }
+        : answers.fidrec_route === 'no_reply'
+          ? { journey_written_complaint: 'yes', journey_written_complaint_date: answers.fidrec_complaint_date }
+          : {}
+    const all = { ...answers, ...mirrored }
+    const types = Object.fromEntries(Object.keys(all).map((key) => [key, key.endsWith('_date') ? 'date' : 'text']))
+    await saveResponses(all, types)
     await paymentStatusQuery.refetch()
   }
 
