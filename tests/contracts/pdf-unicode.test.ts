@@ -5,6 +5,7 @@ import fontkit from '@pdf-lib/fontkit'
 import { decodePDFRawStream, PDFDict, PDFDocument, PDFName, PDFRawStream } from 'pdf-lib'
 import { readFileSync } from 'node:fs'
 import { buildBankPackPdf } from '../../lib/server/facts/bank-pack-pdf'
+import { buildFidrecPackPdf } from '../../lib/server/facts/fidrec-pack-pdf'
 import { buildFreeEvaluationPdf } from '../../lib/server/facts/free-evaluation-pdf'
 import { fontRuns, unprintable } from '../../lib/server/pdf-fonts'
 
@@ -77,6 +78,30 @@ test('the bank pack PDF prints accented and non-Latin names, with the paid notic
   const source = readFileSync('lib/server/facts/bank-pack-pdf.ts', 'utf8')
   assert.match(source, /addParagraph\(PAID_PACK_NOTICE\)/)
   for (const heading of ['Executive summary', 'Timeline', 'Disputed transactions', 'How the rules may apply', 'Requested resolution', 'Evidence checklist']) {
+    assert.ok(source.includes(`"${heading}"`), heading)
+  }
+})
+
+test('the FIDReC pack PDF prints accented and non-Latin names, with the paid notice and both sides', async () => {
+  const bytes = await buildFidrecPackPdf(
+    {
+      title: 'Complaint · Zoë Müller-Đặng',
+      executive_summary: `${LATIN}\n${CHINESE}\n${TAMIL}`,
+      route: 'If the case goes to adjudication, FIDReC charges individuals a S$50 case fee.',
+      timeline: [{ date: '2026-08-02', event: 'Payment of S$3,000' }],
+      claimant_position: 'The complainant, José Peña, asks FIDReC to review the payment.',
+      institution_position: 'The institution declined the claim.',
+      arguments_for_claimant: [{ text: 'Reported promptly.', evidence_ids: ['E1'] }],
+      arguments_for_institution: [{ text: 'Own device.', evidence_ids: ['E1'] }],
+      evidence_index: [{ id: 'E1', document: 'a letter or email from your bank (uploaded)' }],
+    },
+    '2026-11-21T00:00:00Z',
+  )
+  const doc = await PDFDocument.load(bytes)
+  assert.ok(doc.getPageCount() >= 1)
+  const source = readFileSync('lib/server/facts/fidrec-pack-pdf.ts', 'utf8')
+  assert.match(source, /addParagraph\(PAID_PACK_NOTICE\)/)
+  for (const heading of ['Executive summary', 'Filing with FIDReC', 'Chronology', 'The complainant’s position', 'The institution’s position', 'Points for the complainant', 'Points for the institution', 'Evidence index']) {
     assert.ok(source.includes(`"${heading}"`), heading)
   }
 })

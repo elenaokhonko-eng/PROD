@@ -68,7 +68,11 @@ export async function expectFreeEvaluation(page: Page) {
 }
 
 // The confirm button names the stage (confirm-facts-panel.tsx STAGE_NAMES).
-const CONFIRM_BUTTON = { free: 'Confirm and continue to your free evaluation', bank: 'Confirm and continue to your bank dispute pack' } as const
+const CONFIRM_BUTTON = {
+  free: 'Confirm and continue to your free evaluation',
+  bank: 'Confirm and continue to your bank dispute pack',
+  fidrec: 'Confirm and continue to your FIDReC escalation pack',
+} as const
 
 export async function confirmFactsInDashboard(page: Page, caseId: string, stage: keyof typeof CONFIRM_BUTTON = 'free') {
   await resolveOpenFindings(page, caseId, { stage })
@@ -158,7 +162,7 @@ export async function answerFollowUps(form: Locator) {
 export async function resolveOpenFindings(
   page: Page,
   caseId: string,
-  { rounds = 20, stage = 'free' }: { rounds?: number; stage?: 'free' | 'bank' } = {},
+  { rounds = 20, stage = 'free' }: { rounds?: number; stage?: 'free' | 'bank' | 'fidrec' } = {},
 ) {
   // A document that finishes being read re-runs the check (Q2) and the cards are replaced by "Checking your story…"
   // until it ends; answer only once the panel has settled, as a person would. 6 minutes covers the slowest check

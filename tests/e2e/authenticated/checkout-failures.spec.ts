@@ -20,11 +20,11 @@ test('payment failure keeps the user on the case and offers a safe retry', synth
     }),
   )
   await page.goto(`/app/case/${caseId}/dashboard`)
-  await page.getByRole('button', { name: 'Get Bank Pack' }).click()
+  await page.getByRole('button', { name: 'Get Bank dispute pack' }).click()
 
   await expect(page).toHaveURL(new RegExp(`/app/case/${caseId}/dashboard`))
   await expect(page.getByText(/payment_action_required|payment.*failed|try again/i).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: /^Get Bank Pack$|try again/i }).first()).toBeEnabled()
+  await expect(page.getByRole('button', { name: /^Get Bank dispute pack$|try again/i }).first()).toBeEnabled()
 })
 
 test('successful return waits for delayed entitlement instead of showing a false failure', async ({ page }) => {

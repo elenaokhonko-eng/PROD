@@ -24,6 +24,9 @@ export const EDGE_MODELS: EdgeModel[] = [
   { use: "bright-function secondary", provider: "openai", env: "TIER0_SECONDARY_MODEL", fallback: "gpt-6.1-terra", key: "GuideBuoy_EdgeFunction" },
   { use: "run_bank_pack_v1", provider: "openai", env: "BANK_PACK_MODEL", fallback: "gpt-6-luna", key: "GuideBuoy_EdgeFunction" },
   { use: "run_bank_pack_v1 secondary", provider: "openai", env: "BANK_PACK_SECONDARY_MODEL", fallback: "gpt-6.1-terra", key: "GuideBuoy_EdgeFunction" },
+  { use: "run_fidrec_pack_v1", provider: "openai", env: "FIDREC_PACK_MODEL", fallback: "gpt-6-luna", key: "GuideBuoy_EdgeFunction" },
+  { use: "run_fidrec_pack_v1 secondary", provider: "openai", env: "FIDREC_PACK_SECONDARY_MODEL", fallback: "gpt-6.1-terra", key: "GuideBuoy_EdgeFunction" },
+  { use: "run_fidrec_pack_v1 embeddings", provider: "openai", env: null, fallback: "text-embedding-3-small", key: "GuideBuoy_EdgeFunction" },
   { use: "backfill_embeddings_v1", provider: "openai", env: null, fallback: "text-embedding-3-small", key: "GuideBuoy_EdgeFunction" },
 ];
 

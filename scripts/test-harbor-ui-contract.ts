@@ -141,7 +141,8 @@ describe('Harbor UI functionality contract', () => {
     assert.match(stateMachineSource, /reportPurchase\.ready/)
     assert.doesNotMatch(stateMachineSource, /eligible_actions\.run_report_selfserve/)
     assert.match(dashboardSource, /capabilities\.report[\s\S]*?purchaseReady/)
-    assert.match(dashboardSource, /eligible_actions\.run_escalation_pack/)
+    // Stage 2 (F1): the FIDReC pack is bought on its own readiness too; run_escalation_pack is only true once owned.
+    assert.doesNotMatch(dashboardSource, /eligible_actions\.run_escalation_pack/)
     assert.match(dashboardSource, /reportCapability\?\.canCheckout/)
     assert.match(dashboardSource, /fidrecCapability\?\.canCheckout/)
   })
@@ -204,13 +205,18 @@ describe('Harbor UI functionality contract', () => {
       'components/state-machine/layer1/tier0-draft-view.tsx',
       'components/state-machine/transition/buy-report-cta.tsx',
       'components/state-machine/layer2/report-drafting.tsx',
-      'components/state-machine/layer3/tier2-pack-panel.tsx',
       'components/state-machine/layer3/tier2-pack-view.tsx',
     ]) {
       assert.ok(readSource(path).includes(disclosure), `${path} is missing the automated-output disclosure`)
     }
-    // The bank pack: the paid packs' notice, without the consultation offer (stage2-plan §4, decision 8).
-    assert.match(readSource('components/state-machine/layer2/report-view.tsx'), /\{PAID_PACK_NOTICE\}/)
+    // The paid packs: their notice, without the consultation offer (stage2-plan §4, decision 8).
+    for (const path of [
+      'components/state-machine/layer2/report-view.tsx',
+      'components/state-machine/layer3/tier2-pack-panel.tsx',
+      'components/state-machine/layer3/fidrec-pack-view.tsx',
+    ]) {
+      assert.match(readSource(path), /\{PAID_PACK_NOTICE\}/, path)
+    }
   })
 
   it('keeps deletion, referral, consultation, Singpass, and handoffs inactive', () => {

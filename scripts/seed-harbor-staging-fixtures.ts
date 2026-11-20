@@ -52,6 +52,7 @@ const stateCaseNames = {
   layer2Ready: 'state-layer2-ready',
   layer3Unavailable: 'state-layer3-unavailable',
   layer3Tier2: 'state-layer3-tier2',
+  layer3FidrecReady: 'state-layer3-fidrec-ready',
 } as const satisfies Record<keyof StateCases, string>
 
 // Stage 2 retired these states (a paid bank case is on the confirm step until its pack exists); their synthetic cases
@@ -270,6 +271,32 @@ class Seeder {
     )
   }
 
+  // A stored FIDReC pack with synthetic sections (run_fidrec_pack_v1 writes the same shape).
+  async fidrecPack(caseId: string, ownerId: string) {
+    const pack = {
+      report_version: 'fidrec_pack_v1',
+      title: 'Synthetic FIDReC pack',
+      executive_summary: 'Synthetic release fixture: the complainant disputes one payment.',
+      claimant_position: 'Synthetic claimant position.',
+      institution_position: 'Synthetic institution position.',
+      arguments_for_claimant: [{ text: 'Synthetic point for the complainant.', evidence_ids: [] }],
+      arguments_for_institution: [{ text: 'Synthetic point for the institution.', evidence_ids: [] }],
+      timeline: [],
+      disputed_transactions: [],
+      total_loss: null,
+      evidence_index: [],
+      evidence_checklist: [],
+      route: 'If the case goes to adjudication, FIDReC charges individuals a S$50 case fee.',
+      rules_assessment: '',
+      final_reply_used: false,
+      prose_source: 'fallback',
+    }
+    await this.client.query(
+      `insert into reports (id, user_id, case_id, status, report_json, report_type) values ($1, $2, $3, 'COMPLETED', $4, 'fidrec_pack_v1')`,
+      [seedUuid(`${caseId}:fidrec-pack`), ownerId, caseId, pack],
+    )
+  }
+
   async failedReportJob(caseId: string, ownerId: string) {
     await this.client.query(
       `insert into jobs (id, case_id, user_id, job_type, idempotency_key, status, payload, error, completed_at)
@@ -372,6 +399,10 @@ async function main() {
       await seeder.completedReport(id, userA)
     })
     await add('layer3Tier2', (id) => seeder.caseEntitlement(id, 'escalation_pack'))
+    await add('layer3FidrecReady', async (id) => {
+      await seeder.caseEntitlement(id, 'escalation_pack')
+      await seeder.fidrecPack(id, userA)
+    })
 
     const c = releaseCaseNames
     const owned = {
