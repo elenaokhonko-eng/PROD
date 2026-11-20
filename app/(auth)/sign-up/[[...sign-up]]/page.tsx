@@ -5,6 +5,7 @@ import { PackIntentCapture } from '@/components/journey/pack-intent-capture'
 import { NO_CARD_LINE } from '@/lib/harbor/cta'
 import { SAFETY_NOTICE_SHORT } from '@/lib/safety-notice'
 import { FunnelStep } from '@/components/analytics/funnel-step'
+import { GoogleTagManager } from '@/components/analytics/google-tag-manager'
 
 // Brief W1 §F and §L3: plain wording, email code or Google only, its own title (noindex comes from the root layout).
 export const metadata: Metadata = { title: { absolute: 'Create your account · GuideBuoy' } }
@@ -26,6 +27,8 @@ export default function SignUpPage() {
         </p>
       </div>
       <FunnelStep event="signup_reached" />
+      {/* Sign-up is the campaigns' conversion page; the signed-in case area has no Google tag. */}
+      <GoogleTagManager />
       <Suspense fallback={null}>
         <PackIntentCapture />
       </Suspense>
