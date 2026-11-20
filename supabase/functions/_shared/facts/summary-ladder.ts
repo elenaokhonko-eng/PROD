@@ -57,7 +57,9 @@ export interface LadderInput {
 }
 
 function repair(summary: string, failures: OutputFailure[], facts: SnapshotFacts, options: ValidateOptions): string {
-  return failures.some((f) => f.check === "unqualified") ? qualifyUnsupportedStatements(summary, facts, options.documented) : summary;
+  return failures.some((f) => f.check === "unqualified")
+    ? qualifyUnsupportedStatements(summary, facts, options.documented, options.thirdPerson)
+    : summary;
 }
 
 /** The ladder's result for any model-written output: the free evaluation's summary, or a paid pack's prose fields. */

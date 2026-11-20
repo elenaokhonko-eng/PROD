@@ -37,6 +37,7 @@ export function fidrecPackChecks(extraDates: string[], documents: DocumentQuotab
     extraAmounts: [...RULE_AMOUNTS, ...documents.amounts],
     extraDates: [...TIER0_EXTRA_DATES, ...extraDates, ...documents.dates],
     extraReferences: documents.references,
+    thirdPerson: true,
     forbidden: [{ pattern: SRF_VERDICT, detail: "the rules section is written by the server" }],
     userFacing: { minWords: FIDREC_PACK_MIN_WORDS, maxWords: FIDREC_PACK_MAX_WORDS },
   };
@@ -379,6 +380,8 @@ export function buildFidrecPackInput(args: {
   evidenceIndex: readonly EvidenceIndexEntry[];
   documents?: ReadonlyArray<{ id: string; document: string; excerpt: string }>;
   clauses?: readonly RegulatoryClause[];
+  /** Every date the text may state: the confirmed facts', the documents' and the filing deadline. */
+  allowedDates?: readonly string[];
 }) {
   const { fidrec_check: _fidrec, ...input } = buildTier0Input({ facts: args.facts, findings: args.findings, storyText: args.storyText, fidrecCheck: null });
   return {
@@ -387,6 +390,7 @@ export function buildFidrecPackInput(args: {
     final_reply_letter: args.finalReplyText ? args.finalReplyText.slice(0, FINAL_REPLY_MAX_CHARS) : null,
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label, supports: e.facts })),
     documents: args.documents ?? [],
+    allowed_dates: [...new Set(args.allowedDates ?? [])].sort(),
     regulatory_clauses: (args.clauses ?? []).map((c) => ({ id: c.id, source: c.source, clause: c.clause_ref, title: c.title, text: c.text })),
   };
 }
@@ -404,7 +408,7 @@ CONFIRMED FACTS (these override everything else in the input)
 - status "confirmed": state as fact.
 - status "claimant_only": attribute it ("the complainant states that"); there is no document for it.
 - status "not_sure" or "not_known": say it is not confirmed; never state a value for it.
-Never state a date, amount, institution or reference that differs from confirmed_facts. primary_narrative is the complainant's own story: use it only for the order of events and context. If primary_narrative is null, write only from confirmed_facts.
+Never state a date, amount, institution or reference that differs from confirmed_facts. State only dates listed in allowed_dates; describe any other timing without a date (for example "the same evening" or "the next day"). primary_narrative is the complainant's own story: use it only for the order of events and context. If primary_narrative is null, write only from confirmed_facts.
 final_reply_letter is the institution's own final reply. If it is present, base institution_position on it and quote no more than a short phrase. If it is null, say the institution's written position is not available.
 evidence_index lists the documents, each with an ID (E1, E2, …); documents gives their text. Every argument must cite the IDs of the documents that support it, and only IDs from evidence_index. If evidence_index is empty, cite none. Use what the documents show, including the institution's own records of logins, devices, IP addresses, alerts and limits.
 

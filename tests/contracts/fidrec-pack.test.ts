@@ -297,3 +297,17 @@ test('the route question becomes facts, so the purchase and the generation agree
   const routeFacts: SnapshotFacts = { ...facts, bank_reply: { value: finalReply.find((c) => c.factKey === 'bank_reply')!.value, label: 'confirmed' } }
   assert.equal(fidrecRouteFromFacts(routeFacts, '2026-11-20').available, true)
 })
+
+test('a fact without a document is attributed in the third person, and the model is told which dates it may use', () => {
+  const { qualifyUnsupportedStatements } = require('../../lib/facts') as typeof import('../../lib/facts')
+  // The police report is the complainant's own account here (claimant_only).
+  const checks = fidrecPackChecks([])
+  const text = 'The complainant reported the scam to the police on 4 Aug 2026.'
+  assert.ok(validateOutput([text], facts, { ...checks, userFacing: undefined }).some((f) => f.check === 'unqualified'))
+  const repaired = qualifyUnsupportedStatements(text, facts, [], true)
+  assert.equal(repaired, 'The complainant states that the complainant reported the scam to the police on 4 Aug 2026.')
+  assert.deepEqual(validateOutput([repaired], facts, { ...checks, userFacing: undefined }), [])
+  const input = buildFidrecPackInput({ facts, findings, storyText: null, finalReplyText: null, evidenceIndex: [], allowedDates: ['2026-09-01', '2027-03-01', '2026-09-01'] })
+  assert.deepEqual(input.allowed_dates, ['2026-09-01', '2027-03-01'])
+  assert.match(fidrecPackSystem(null), /State only dates listed in allowed_dates/)
+})

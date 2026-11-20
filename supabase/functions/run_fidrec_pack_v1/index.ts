@@ -22,6 +22,7 @@ import {
   documentedFacts,
   type EvidenceFinding,
   evidenceIdFailures,
+  factDates,
   fidrecPackChecks,
   fidrecPackFallback,
   fidrecPackSystem,
@@ -191,6 +192,8 @@ Deno.serve(async (req) => {
       console.warn(`FIDReC pack clause retrieval failed: ${safeErrorText(error)}`);
     }
 
+    const quotables = documentQuotables(excerpts);
+    const checkDates = [...(route.route === "final_reply" ? [route.deadline] : []), ...quotables.dates];
     const input = buildFidrecPackInput({
       facts,
       findings: findings ?? [],
@@ -199,9 +202,10 @@ Deno.serve(async (req) => {
       evidenceIndex,
       documents: excerpts,
       clauses,
+      allowedDates: [...factDates(facts), ...checkDates],
     });
     const checks = {
-      ...fidrecPackChecks(route.route === "final_reply" ? [route.deadline] : [], documentQuotables(excerpts)),
+      ...fidrecPackChecks(route.route === "final_reply" ? [route.deadline] : [], quotables),
       documented: documentedFacts(findings ?? []),
     };
     const user = `INPUT JSON:
