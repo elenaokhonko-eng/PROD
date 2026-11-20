@@ -182,6 +182,9 @@ export interface RegulatoryClause {
   clause_ref: string | null;
   title: string | null;
   text: string;
+  /** The source document's issue and effective dates, which the duties may state (measured 20 Nov 2026: the model
+   * cited the ABS safeguards' start date and the pack was refused). */
+  dates: string[];
 }
 
 export const CLAUSE_TEXT_MAX_CHARS = 1_500;
@@ -205,7 +208,7 @@ export function regulatoryQuery(facts: SnapshotFacts): string {
 }
 
 export function numberClauses(
-  rows: ReadonlyArray<{ clause_ref: string | null; title: string | null; text_content: string; source: string }>,
+  rows: ReadonlyArray<{ clause_ref: string | null; title: string | null; text_content: string; source: string; dates?: Array<string | null> }>,
 ): RegulatoryClause[] {
   return rows.map((row, i) => ({
     id: `R${i + 1}`,
@@ -213,6 +216,7 @@ export function numberClauses(
     clause_ref: row.clause_ref,
     title: row.title,
     text: row.text_content.slice(0, CLAUSE_TEXT_MAX_CHARS),
+    dates: (row.dates ?? []).filter((d): d is string => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)),
   }));
 }
 
@@ -391,7 +395,7 @@ export function buildFidrecPackInput(args: {
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label, supports: e.facts })),
     documents: args.documents ?? [],
     allowed_dates: [...new Set(args.allowedDates ?? [])].sort(),
-    regulatory_clauses: (args.clauses ?? []).map((c) => ({ id: c.id, source: c.source, clause: c.clause_ref, title: c.title, text: c.text })),
+    regulatory_clauses: (args.clauses ?? []).map((c) => ({ id: c.id, source: c.source, clause: c.clause_ref, title: c.title, text: c.text, dates: c.dates })),
   };
 }
 

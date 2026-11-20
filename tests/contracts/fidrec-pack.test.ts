@@ -323,3 +323,14 @@ test('card duties are argued through the cardholder agreement and the ABS Code, 
   assert.match(fidrecPackSystem(null), /a chargeback is the card issuer's right against the scheme, not a duty it owes the cardholder[\s\S]*cardholder agreement and the ABS Code of Practice for credit cards/)
   assert.match(regulatoryQuery(facts).concat(regulatoryQuery({ ...facts, transactions: { value: [{ date: null, amount: sgd(1), channel: null, payee: null, last4: null, instrument: 'credit_card' }], label: 'confirmed' } })), /chargebacks and card scheme disputes/)
 })
+
+test("a regulation's own issue and effective dates may be stated (measured 20 Nov 2026)", () => {
+  const [abs] = numberClauses([{ clause_ref: '1', title: 'Safeguards', text_content: 'Enhanced safeguards from 15 October 2025.', source: 'ABS media release', dates: ['2025-10-03', '2025-10-15', null] }])
+  assert.deepEqual(abs.dates, ['2025-10-03', '2025-10-15'])
+  const duty = { text: 'From 15 October 2025 the ABS safeguards apply; the records show the limit was raised minutes before the transfers.', clause_ids: ['R1'], evidence_ids: ['E1'] }
+  const refused = dutyFailures({ ...GOOD, institution_duties: [duty] }, [abs], facts, fidrecPackChecks([]))
+  assert.ok(refused.some((f) => f.check === 'date'), 'without the dates the pack is refused')
+  assert.deepEqual(dutyFailures({ ...GOOD, institution_duties: [duty] }, [abs], facts, fidrecPackChecks(abs.dates)).filter((f) => f.check === 'date'), [])
+  const fn = readFileSync('supabase/functions/run_fidrec_pack_v1/index.ts', 'utf8')
+  assert.match(fn, /\.\.\.clauses\.flatMap\(\(c\) => c\.dates\)/)
+})

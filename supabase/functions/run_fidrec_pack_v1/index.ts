@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
     }
 
     const quotables = documentQuotables(excerpts);
-    const checkDates = [...(route.route === "final_reply" ? [route.deadline] : []), ...quotables.dates];
+    const checkDates = [...(route.route === "final_reply" ? [route.deadline] : []), ...quotables.dates, ...clauses.flatMap((c) => c.dates)];
     const input = buildFidrecPackInput({
       facts,
       findings: findings ?? [],
@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
       allowedDates: [...factDates(facts), ...checkDates],
     });
     const checks = {
-      ...fidrecPackChecks(route.route === "final_reply" ? [route.deadline] : [], quotables),
+      ...fidrecPackChecks(checkDates, quotables),
       documented: documentedFacts(findings ?? []),
     };
     const user = `INPUT JSON:
@@ -327,11 +327,16 @@ async function retrieveClauses(
   const rows = (matches ?? []) as Array<{ document_id: string | null; clause_ref: string | null; title: string | null; text_content: string }>;
   const documentIds = [...new Set(rows.map((r) => r.document_id).filter((id): id is string => Boolean(id)))];
   const { data: documents, error: documentsError } = documentIds.length
-    ? await supabase.from("regulatory_documents").select("id, document_title, document_key").in("id", documentIds)
-    : { data: [] as Array<{ id: string; document_title: string; document_key: string | null }>, error: null };
+    ? await supabase.from("regulatory_documents").select("id, document_title, document_key, issue_date, effective_date").in("id", documentIds)
+    : { data: [] as Array<{ id: string; document_title: string; document_key: string | null; issue_date: string | null; effective_date: string | null }>, error: null };
   if (documentsError) throw new Error(`clause sources failed (${documentsError.code ?? "unknown"})`);
   const titles = new Map((documents ?? []).map((d) => [d.id, (d.document_key as string | null) ?? (d.document_title as string)]));
-  return numberClauses(rows.map((r) => ({ ...r, source: (r.document_id && titles.get(r.document_id)) || "Regulatory source" })));
+  const dates = new Map((documents ?? []).map((d) => [d.id, [d.issue_date as string | null, d.effective_date as string | null]]));
+  return numberClauses(rows.map((r) => ({
+    ...r,
+    source: (r.document_id && titles.get(r.document_id)) || "Regulatory source",
+    dates: (r.document_id && dates.get(r.document_id)) || [],
+  })));
 }
 
 // The old report's wording rule, kept: "disputed", never "unauthorised" (run_report_selfserve_v1).
