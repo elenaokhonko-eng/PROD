@@ -2,7 +2,14 @@ import assert from 'node:assert/strict'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, sep } from 'node:path'
 import test from 'node:test'
-import { GOOGLE_TAG_MANAGER_ID, googleTagEnabled, googleTagManagerSnippet } from '../../lib/analytics/google-tag'
+import {
+  GOOGLE_TAG_MANAGER_ID,
+  googleTagEnabled,
+  googleTagManagerSnippet,
+  safeNextPath,
+  SIGN_UP_COMPLETED_EVENT,
+  signedUpRedirect,
+} from '../../lib/analytics/google-tag'
 
 // Elena, 20 Nov 2026: Google campaign tracking on the public pages. Never in the signed-in case area, never on staging.
 
@@ -34,7 +41,36 @@ test('on every public marketing page and the sign-up page, and nowhere in the si
   const users = [...files('app'), ...files('components')].filter((path) => /GoogleTagManager|googletagmanager/.test(readFileSync(path, 'utf8')))
   assert.deepEqual(users.sort(), [
     'app/(auth)/sign-up/[[...sign-up]]/page.tsx',
+    'app/(auth)/signed-up/page.tsx',
     'app/(marketing)/layout.tsx',
     'components/analytics/google-tag-manager.tsx',
   ])
+})
+
+test('sign-up completed: a public step reports one event and continues, to this site only', () => {
+  assert.equal(SIGN_UP_COMPLETED_EVENT, 'sign_up_completed')
+  assert.equal(signedUpRedirect('/onboarding'), '/signed-up?next=%2Fonboarding')
+  assert.equal(signedUpRedirect(undefined), '/signed-up?next=%2Fapp')
+  for (const unsafe of ['//evil.example', 'https://evil.example', '/\\evil.example', 'javascript:alert(1)', '']) {
+    assert.equal(safeNextPath(unsafe), '/app', unsafe)
+  }
+  assert.equal(safeNextPath('/app/case/abc/dashboard?checkout=success'), '/app/case/abc/dashboard?checkout=success')
+  const signUp = readFileSync('app/(auth)/sign-up/[[...sign-up]]/page.tsx', 'utf8')
+  assert.match(signUp, /forceRedirectUrl=\{signedUpRedirect\(redirectUrl\)\}/)
+  const step = readFileSync('components/analytics/sign-up-completed.tsx', 'utf8')
+  assert.match(step, /dataLayer\.push\(\{ event: SIGN_UP_COMPLETED_EVENT, eventCallback: go, eventTimeout: 2000 \}\)/)
+  assert.match(step, /if \(!report\) \{\s*go\(\)/, 'without the tag (staging) it continues at once')
+  // The step is outside the signed-in area, so the tag never loads where cases are.
+  assert.doesNotMatch(readFileSync('middleware.ts', 'utf8'), /signed-up/)
+})
+
+test('Privacy v2.2 explains the Google tag in the wording Elena approved, and no longer says there are no tracking cookies', () => {
+  const privacy = readFileSync('docs/legal/privacy-policy.md', 'utf8').replace(/\r\n/g, '\n')
+  assert.match(privacy, /^version: "2\.2"$/m)
+  assert.match(privacy, /^replaces: "2\.1 \(14 November 2026\)"$/m)
+  const cookies = privacy.slice(privacy.indexOf('## 8.'), privacy.indexOf('## 9.'))
+  assert.ok(cookies.includes(
+    '**Measuring our website and advertising.** On our public pages and the sign-up page we use Google Tag Manager, a service from Google, to understand how people find GuideBuoy and whether our advertising works. Google may set cookies and receive information about your device and visit, such as your IP address, the pages you viewed and the ad you clicked. This happens only on our public pages: your story, documents and case details are never sent to Google. You can block these cookies in your browser settings.',
+  ))
+  assert.doesNotMatch(cookies, /We don't use advertising or third-party tracking cookies/)
 })

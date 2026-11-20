@@ -53,7 +53,7 @@ for (const name of Object.keys(LEGAL_FILES) as Array<keyof typeof LEGAL_FILES>) 
 
   test(`F: the ${name} header is the single source of its title, version and effective date`, () => {
     const { meta, blocks } = loadLegalDocument(name)
-    assert.equal(meta.version, { terms: '2.2', privacy: '2.1' }[name])
+    assert.equal(meta.version, { terms: '2.2', privacy: '2.2' }[name])
     assert.equal(meta.contact, 'info@guidebuoyai.sg')
     assert.deepEqual(blocks[0], { kind: 'heading', level: 1, text: meta.title })
     const replaces = meta.replaces.replace(/^(\S+) \((.*)\)$/, '$1 of $2')
