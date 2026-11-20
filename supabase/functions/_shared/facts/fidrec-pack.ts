@@ -12,7 +12,16 @@ import { type FidrecAvailability, fidrecAvailability, FIDREC_RULES } from "./rul
 import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
 import { bankPackTransactions } from "./bank-pack.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
-import type { OutputFailure, SnapshotFacts, ValidateOptions } from "./validate-output.ts";
+import { normaliseDate } from "./normalise.ts";
+import {
+  DATE_PATTERN,
+  MONEY_PATTERN,
+  type OutputFailure,
+  referencesMentioned,
+  type SnapshotFacts,
+  validateOutput,
+  type ValidateOptions,
+} from "./validate-output.ts";
 
 export const FIDREC_PACK_VERSION = "fidrec_pack_v1";
 export const FIDREC_PACK_MIN_WORDS = 250;
@@ -23,10 +32,11 @@ export const FINAL_REPLY_MAX_CHARS = 12_000;
 // Amounts FIDReC's rules put in the text (the S$50 fee, the S$150,000 award cap).
 const RULE_AMOUNTS = [FIDREC_RULES.adjudicationFeeSgd.individual, FIDREC_RULES.awardCapSgd.value];
 
-export function fidrecPackChecks(extraDates: string[]): ValidateOptions {
+export function fidrecPackChecks(extraDates: string[], documents: DocumentQuotables = EMPTY_QUOTABLES): ValidateOptions {
   return {
-    extraAmounts: RULE_AMOUNTS,
-    extraDates: [...TIER0_EXTRA_DATES, ...extraDates],
+    extraAmounts: [...RULE_AMOUNTS, ...documents.amounts],
+    extraDates: [...TIER0_EXTRA_DATES, ...extraDates, ...documents.dates],
+    extraReferences: documents.references,
     forbidden: [{ pattern: SRF_VERDICT, detail: "the rules section is written by the server" }],
     userFacing: { minWords: FIDREC_PACK_MIN_WORDS, maxWords: FIDREC_PACK_MAX_WORDS },
   };
@@ -34,6 +44,13 @@ export function fidrecPackChecks(extraDates: string[]): ValidateOptions {
 
 export interface FidrecArgument {
   text: string;
+  evidence_ids: string[];
+}
+
+/** A duty the institution had, from a retrieved clause (R1…), set against what the evidence (E1…) shows. */
+export interface FidrecDuty {
+  text: string;
+  clause_ids: string[];
   evidence_ids: string[];
 }
 
@@ -45,6 +62,18 @@ export interface FidrecPackProse {
   institution_position: string;
   arguments_for_claimant: FidrecArgument[];
   arguments_for_institution: FidrecArgument[];
+  institution_duties: FidrecDuty[];
+}
+
+function parseDuties(value: unknown): FidrecDuty[] {
+  if (!Array.isArray(value)) return [];
+  const ids = (v: unknown) =>
+    Array.isArray(v) ? [...new Set(v.filter((id): id is string => typeof id === "string").map((id) => id.trim().toUpperCase()))] : [];
+  return value.slice(0, 10).flatMap((item) => {
+    const row = (item ?? {}) as Record<string, unknown>;
+    const text = typeof row.text === "string" ? row.text.trim() : "";
+    return text ? [{ text, clause_ids: ids(row.clause_ids), evidence_ids: ids(row.evidence_ids) }] : [];
+  });
 }
 
 function parseArguments(value: unknown): FidrecArgument[] | null {
@@ -73,7 +102,12 @@ export function parseFidrecPackProse(parsed: unknown): FidrecPackProse | null {
   };
   if (!prose.title || !prose.executive_summary || !prose.claimant_position || !prose.institution_position) return null;
   if (!forClaimant?.length || !forInstitution) return null;
-  return { ...prose, arguments_for_claimant: forClaimant, arguments_for_institution: forInstitution };
+  return {
+    ...prose,
+    arguments_for_claimant: forClaimant,
+    arguments_for_institution: forInstitution,
+    institution_duties: parseDuties(row.institution_duties),
+  };
 }
 
 export const mapFidrecPackProse = (prose: FidrecPackProse, fn: (text: string) => string): FidrecPackProse => ({
@@ -83,6 +117,7 @@ export const mapFidrecPackProse = (prose: FidrecPackProse, fn: (text: string) =>
   institution_position: fn(prose.institution_position),
   arguments_for_claimant: prose.arguments_for_claimant.map((a) => ({ ...a, text: fn(a.text) })),
   arguments_for_institution: prose.arguments_for_institution.map((a) => ({ ...a, text: fn(a.text) })),
+  institution_duties: prose.institution_duties.map((d) => ({ ...d, text: fn(d.text) })),
 });
 
 export const fidrecPackTexts = (prose: FidrecPackProse) => [
@@ -98,7 +133,7 @@ export const fidrecPackTexts = (prose: FidrecPackProse) => [
 export function evidenceIdFailures(prose: FidrecPackProse, index: readonly EvidenceIndexEntry[]): OutputFailure[] {
   const known = new Set(index.map((e) => e.id));
   const failures: OutputFailure[] = [];
-  for (const argument of [...prose.arguments_for_claimant, ...prose.arguments_for_institution]) {
+  for (const argument of [...prose.arguments_for_claimant, ...prose.arguments_for_institution, ...prose.institution_duties]) {
     const unknown = argument.evidence_ids.filter((id) => !known.has(id));
     if (unknown.length) failures.push({ check: "reference", detail: `evidence IDs not in the index: ${unknown.join(", ")}` });
     if (known.size && !argument.evidence_ids.length) {
@@ -106,6 +141,78 @@ export function evidenceIdFailures(prose: FidrecPackProse, index: readonly Evide
     }
   }
   return failures;
+}
+
+// The duties section may name the SRF, the E-Payments Guidelines and the MAS notices: that is its job. It may not
+// decide the dispute: FIDReC does.
+export const DUTY_CONCLUSION = /\b(?:is|was|are|were)\s+(?:therefore\s+)?liable\b|\bmust\s+(?:refund|reimburse|repay|compensate)\b|\bis entitled to (?:a )?(?:refund|reimbursement)\b/i;
+
+export function dutyFailures(
+  prose: FidrecPackProse,
+  clauses: readonly RegulatoryClause[],
+  facts: SnapshotFacts,
+  options: ValidateOptions,
+): OutputFailure[] {
+  const known = new Set(clauses.map((c) => c.id));
+  const failures: OutputFailure[] = [];
+  for (const duty of prose.institution_duties) {
+    const unknown = duty.clause_ids.filter((id) => !known.has(id));
+    if (unknown.length) failures.push({ check: "reference", detail: `clause IDs not provided: ${unknown.join(", ")}` });
+    if (!duty.clause_ids.length) failures.push({ check: "reference", detail: `duty without a clause: ${duty.text.slice(0, 120)}` });
+  }
+  const texts = prose.institution_duties.map((d) => d.text);
+  if (!texts.length) return failures;
+  const dutyOptions: ValidateOptions = {
+    ...options,
+    forbidden: [{ pattern: DUTY_CONCLUSION, detail: "describe the duty and what the records show; FIDReC decides liability" }],
+    userFacing: undefined,
+  };
+  return [...failures, ...validateOutput(texts, facts, dutyOptions)];
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Regulatory clauses (the regulatory_clauses table: SRF, E-Payments Guidelines, ABS Code, MAS notices)
+// ---------------------------------------------------------------------------------------------------------------
+
+export interface RegulatoryClause {
+  /** R1, R2, … for the duties to cite. */
+  id: string;
+  source: string;
+  clause_ref: string | null;
+  title: string | null;
+  text: string;
+}
+
+export const CLAUSE_TEXT_MAX_CHARS = 1_500;
+
+/** What the retrieval asks for: the institution's duties on the confirmed facts of this case. */
+export function regulatoryQuery(facts: SnapshotFacts): string {
+  const parts = [
+    "Duties of a bank or payment institution to protect customer accounts from unauthorised access, scams and fraud:",
+    "authentication, new device and digital token activation, cooling periods, transaction and limit alerts,",
+    "fraud surveillance and blocking of suspicious transactions, kill switch, handling of customer reports and disputes.",
+  ];
+  const scam = facts.scam_type?.value;
+  if (Array.isArray(scam) && scam.length) parts.push(`Scam type: ${scam.join(", ")}.`);
+  const channel = facts.phishing_channel?.value;
+  if (typeof channel === "string") parts.push(`First contact by ${channel}.`);
+  const transactions = (facts.transactions?.value as Transaction[] | null) ?? [];
+  const instruments = [...new Set(transactions.map((t) => t.instrument).filter(Boolean))];
+  if (instruments.length) parts.push(`Payment types: ${instruments.join(", ")}.`);
+  if (instruments.some((i) => /card/.test(String(i)))) parts.push("Card transactions, chargebacks and card scheme disputes.");
+  return parts.join(" ");
+}
+
+export function numberClauses(
+  rows: ReadonlyArray<{ clause_ref: string | null; title: string | null; text_content: string; source: string }>,
+): RegulatoryClause[] {
+  return rows.map((row, i) => ({
+    id: `R${i + 1}`,
+    source: row.source,
+    clause_ref: row.clause_ref,
+    title: row.title,
+    text: row.text_content.slice(0, CLAUSE_TEXT_MAX_CHARS),
+  }));
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -133,8 +240,38 @@ function chosenValues(finding: Tier0Finding): StoredValue[] {
   return [];
 }
 
-/** The documents behind the confirmed facts, numbered E1… for the arguments to cite. */
-export function buildEvidenceIndex(findings: readonly Tier0Finding[]): EvidenceIndexEntry[] {
+// The evidence pipeline's document types (evidence_processed_v2), named by kind.
+const EVIDENCE_KIND_LABELS: Record<string, string> = {
+  PHISHING_EMAIL_COPY_OR_DESCRIPTION: "the scam message (uploaded)",
+  BANK_ACCOUNT_STATEMENT_SHOWING_TRANSACTIONS: "your bank statement (uploaded)",
+  CREDIT_CARD_STATEMENT_SHOWING_TRANSACTIONS: "your card statement (uploaded)",
+  SMS_LOG_ALL_TRANSACTION_NOTIFICATIONS: "your SMS alerts (uploaded)",
+  SMS_LOG_TOKEN_BINDING_NOTIFICATIONS: "your SMS alerts (uploaded)",
+  SMS_LOG_BANK_ACCOUNT_LIMIT_NOTIFICATIONS: "your SMS alerts (uploaded)",
+  SMS_LOG_CREDIT_CARD_BLOCKING_NOTIFICATIONS: "your SMS alerts (uploaded)",
+  BANK_SCAM_FRAUD_HOTLINE_CALL_LOG: "your call log with the bank (uploaded)",
+  POLICE_REPORT_OF_FRAUD_SCAM: "your police report (uploaded)",
+  TRANSACTIONS_DISPUTE_REPORT_RAISED_WITH_BANK: "your transaction dispute with the bank (uploaded)",
+  BANK_DISPUTED_TRANSACTIONS_OFFICIAL_RESPONSE_COPY: "the bank's reply on the disputed transactions (uploaded)",
+  BANK_SRF_INVESTIGATION_REPORT_OR_OFFICIAL_RESPONSE: "the bank's investigation reply (uploaded)",
+  BANK_EMAILS_OR_COMMUNICATIONS_ADDITIONAL: "a letter or email from your bank (uploaded)",
+  RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA: "the bank's login, device and IP records (uploaded)",
+  TIMELINE_NOTES: "your timeline notes (uploaded)",
+  CYBER_EXPERT_REPORT: "a technical expert's report (uploaded)",
+};
+
+export interface CaseDocument {
+  id: string;
+  /** evidence_processed_v2's type, when known. */
+  evidenceType: string | null;
+  text: string | null;
+}
+
+/**
+ * The documents behind the confirmed facts, numbered E1… for the arguments to cite, then every other ready document
+ * (such as the bank's device and IP records, which support no single fact but show who accessed the account).
+ */
+export function buildEvidenceIndex(findings: readonly Tier0Finding[], documents: readonly CaseDocument[] = []): EvidenceIndexEntry[] {
   const byDocument = new Map<string, EvidenceIndexEntry>();
   for (const finding of findings) {
     for (const value of chosenValues(finding)) {
@@ -152,7 +289,45 @@ export function buildEvidenceIndex(findings: readonly Tier0Finding[]): EvidenceI
       }
     }
   }
+  for (const document of documents) {
+    if (byDocument.has(document.id)) continue;
+    const label = (document.evidenceType && EVIDENCE_KIND_LABELS[document.evidenceType]) ?? "an uploaded document";
+    byDocument.set(document.id, { id: `E${byDocument.size + 1}`, documentId: document.id, label, facts: [] });
+  }
   return [...byDocument.values()];
+}
+
+export const DOCUMENT_EXCERPT_MAX_CHARS = 4_000;
+export const DOCUMENTS_TOTAL_MAX_CHARS = 24_000;
+
+/** The documents' own words for the model, capped per document and in total; the index order decides what fits. */
+export function documentExcerpts(index: readonly EvidenceIndexEntry[], documents: readonly CaseDocument[]) {
+  let budget = DOCUMENTS_TOTAL_MAX_CHARS;
+  return index.flatMap((entry) => {
+    const text = documents.find((d) => d.id === entry.documentId)?.text?.trim();
+    if (!text || budget <= 0) return [];
+    const excerpt = text.slice(0, Math.min(DOCUMENT_EXCERPT_MAX_CHARS, budget));
+    budget -= excerpt.length;
+    return [{ id: entry.id, document: entry.label, excerpt }];
+  });
+}
+
+export interface DocumentQuotables {
+  dates: string[];
+  amounts: number[];
+  references: string[];
+}
+
+const EMPTY_QUOTABLES: DocumentQuotables = { dates: [], amounts: [], references: [] };
+
+/** Dates, amounts and reference codes written in the documents the model was given, which it may quote. */
+export function documentQuotables(excerpts: ReadonlyArray<{ excerpt: string }>): DocumentQuotables {
+  const text = excerpts.map((e) => e.excerpt).join("\n");
+  const dates = [...text.matchAll(DATE_PATTERN)]
+    .map((m) => normaliseDate(m[1].replace(/(\d)(st|nd|rd|th)/, "$1")))
+    .filter((d): d is string => Boolean(d));
+  const amounts = [...text.matchAll(MONEY_PATTERN)].map((m) => Number(m[1].replace(/,/g, ""))).filter(Number.isFinite);
+  return { dates: [...new Set(dates)], amounts: [...new Set(amounts)], references: referencesMentioned(text) };
 }
 
 /**
@@ -202,6 +377,8 @@ export function buildFidrecPackInput(args: {
   storyText: string | null;
   finalReplyText: string | null;
   evidenceIndex: readonly EvidenceIndexEntry[];
+  documents?: ReadonlyArray<{ id: string; document: string; excerpt: string }>;
+  clauses?: readonly RegulatoryClause[];
 }) {
   const { fidrec_check: _fidrec, ...input } = buildTier0Input({ facts: args.facts, findings: args.findings, storyText: args.storyText, fidrecCheck: null });
   return {
@@ -209,6 +386,8 @@ export function buildFidrecPackInput(args: {
     // The institution's own words, from a qualifying final-reply letter only; null when there is none.
     final_reply_letter: args.finalReplyText ? args.finalReplyText.slice(0, FINAL_REPLY_MAX_CHARS) : null,
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label, supports: e.facts })),
+    documents: args.documents ?? [],
+    regulatory_clauses: (args.clauses ?? []).map((c) => ({ id: c.id, source: c.source, clause: c.clause_ref, title: c.title, text: c.text })),
   };
 }
 
@@ -219,7 +398,7 @@ GROUND RULES
 Use only facts explicitly present in the provided JSON. Do not infer, assume, invent facts, or introduce external knowledge.
 Do not say whether the institution is liable, whether a refund is likely, or whether any rule was breached. Present each side's points fairly; the arguments for the institution must be the strongest fair points it could make on these facts.
 Do not use the word "unauthorised"; say "disputed payments".
-Do not assess or mention the Shared Responsibility Framework (SRF), IMDA, telcos or mobile operators: GuideBuoy adds that section separately from fixed rules.
+Outside institution_duties, do not assess or mention the Shared Responsibility Framework (SRF), IMDA, telcos or mobile operators: GuideBuoy adds that assessment separately from fixed rules.
 
 CONFIRMED FACTS (these override everything else in the input)
 - status "confirmed": state as fact.
@@ -227,7 +406,10 @@ CONFIRMED FACTS (these override everything else in the input)
 - status "not_sure" or "not_known": say it is not confirmed; never state a value for it.
 Never state a date, amount, institution or reference that differs from confirmed_facts. primary_narrative is the complainant's own story: use it only for the order of events and context. If primary_narrative is null, write only from confirmed_facts.
 final_reply_letter is the institution's own final reply. If it is present, base institution_position on it and quote no more than a short phrase. If it is null, say the institution's written position is not available.
-evidence_index lists the documents, each with an ID (E1, E2, …). Every argument must cite the IDs of the documents that support it, and only IDs from evidence_index. If evidence_index is empty, cite none.
+evidence_index lists the documents, each with an ID (E1, E2, …); documents gives their text. Every argument must cite the IDs of the documents that support it, and only IDs from evidence_index. If evidence_index is empty, cite none. Use what the documents show, including the institution's own records of logins, devices, IP addresses, alerts and limits.
+
+INSTITUTION DUTIES
+regulatory_clauses lists clauses (R1, R2, …) from the SRF Guidelines, the E-Payments User Protection Guidelines, the ABS Code and MAS notices on technology risk and cyber hygiene. In institution_duties, set out each duty these clauses give the institution that is relevant to what happened, and what the evidence shows about it: for example a cooling period after a new device or token, alerts, fraud surveillance, transaction limits, blocking, or handling of the report. Cite the clause IDs and the evidence IDs for each. Only use clauses from regulatory_clauses; do not cite any other rule. Describe; do not conclude: never say the institution is liable or must refund. A duty may be met on paper under one framework and not under another: say so where the evidence shows it. If regulatory_clauses is empty, return an empty list.
 Never use the input's field names or internal names; describe the facts in ordinary words.
 
 OUTPUT
@@ -238,7 +420,8 @@ Return STRICT JSON only, with exactly these keys:
 "claimant_position": "the complainant's position",
 "institution_position": "the institution's position",
 "arguments_for_claimant": [{ "text": "one point", "evidence_ids": ["E1"] }],
-"arguments_for_institution": [{ "text": "one point", "evidence_ids": ["E2"] }]
+"arguments_for_institution": [{ "text": "one point", "evidence_ids": ["E2"] }],
+"institution_duties": [{ "text": "the duty and what the records show", "clause_ids": ["R1"], "evidence_ids": ["E3"] }]
 }
 Write ${FIDREC_PACK_MIN_WORDS + 150} to ${FIDREC_PACK_MAX_WORDS - 400} words in total, with 2 to 6 arguments for each side.${previousFailures ? `
 
@@ -285,6 +468,7 @@ export function fidrecPackFallback(facts: SnapshotFacts): FidrecPackProse {
     institution_position: "The institution's written position is set out in its reply, where one has been provided.",
     arguments_for_claimant: [],
     arguments_for_institution: [],
+    institution_duties: [],
   };
 }
 
@@ -352,6 +536,9 @@ export interface FidrecPackReport {
   institution_position: string;
   arguments_for_claimant: FidrecArgument[];
   arguments_for_institution: FidrecArgument[];
+  institution_duties: FidrecDuty[];
+  /** The clauses the duties cite, with their source documents. */
+  regulatory_sources: Array<{ id: string; source: string; clause_ref: string | null; title: string | null }>;
   timeline: Array<{ date?: string; event: string }>;
   disputed_transactions: Array<Record<string, string>>;
   total_loss: string | null;
@@ -372,6 +559,7 @@ export function assembleFidrecPack(args: {
   evidenceIndex: readonly EvidenceIndexEntry[];
   route: FidrecAvailability;
   finalReplyUsed: boolean;
+  clauses?: readonly RegulatoryClause[];
 }): FidrecPackReport {
   const { facts } = args;
   const { shown, missing } = evidenceLists(facts, args.findings);
@@ -379,6 +567,9 @@ export function assembleFidrecPack(args: {
   return {
     report_version: FIDREC_PACK_VERSION,
     ...args.prose,
+    regulatory_sources: (args.clauses ?? [])
+      .filter((c) => args.prose.institution_duties.some((d) => d.clause_ids.includes(c.id)))
+      .map((c) => ({ id: c.id, source: c.source, clause_ref: c.clause_ref, title: c.title })),
     timeline: fidrecChronology(facts),
     disputed_transactions: bankPackTransactions(facts),
     total_loss: loss ? formatMoney(loss) : null,

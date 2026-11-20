@@ -37,6 +37,9 @@ export interface ValidateOptions {
   forbidden?: Array<{ pattern: RegExp; detail: string }>;
   // Text shown to the person: no internal names or input field names, and a sensible length in words.
   userFacing?: { minWords: number; maxWords: number };
+  // References the output may quote that are not case facts: codes in the documents themselves, such as a device ID
+  // or a reference in the bank's records (the FIDReC pack, 20 Nov 2026).
+  extraReferences?: string[];
   // Facts whose value comes from a document (snapshot.ts documentedFacts).
   documented?: readonly FactKey[];
 }
@@ -83,7 +86,7 @@ function allowedAmounts(facts: SnapshotFacts, extra: number[]): number[] {
   return amounts;
 }
 
-const MONEY_PATTERN = /(?:S\$|SGD\s?|US\$|USD\s?|\$)\s?(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/gi;
+export const MONEY_PATTERN = /(?:S\$|SGD\s?|US\$|USD\s?|\$)\s?(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/gi;
 export const DATE_PATTERN = /\b(\d{4}-\d{2}-\d{2}|\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?,?\s+\d{4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4})\b/gi;
 
 function factDates(facts: SnapshotFacts): string[] {
@@ -145,7 +148,7 @@ const REFERENCE_CODE = /\b(?=[A-Z0-9/-]*\d)[A-Z][A-Z0-9]*(?:[/-][A-Z0-9]+)+\b/g;
 const REFERENCE_LABELLED = /\b(?:report|reference|case|ref)(?:\s+(?:number|no\.?))?(?:\s+(?:of|is))?:?\s+(?=[A-Z0-9/-]*\d)([A-Z0-9][A-Z0-9/-]{3,})\b/gi;
 const normaliseRef = (ref: string) => ref.toUpperCase().replace(/\s+/g, "");
 
-function referencesMentioned(text: string): string[] {
+export function referencesMentioned(text: string): string[] {
   const found = [...text.matchAll(REFERENCE_CODE)].map((m) => m[0]).concat([...text.matchAll(REFERENCE_LABELLED)].map((m) => m[1]));
   return [...new Set(found.map(normaliseRef))]
     // Dates and amounts are checked on their own.
@@ -262,7 +265,7 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
 
   // Bank, police and FIDReC references must be ones the person confirmed (corpus, 8 Nov: a report number taken from
   // the story that the confirm screen never showed).
-  const references = factReferences(facts);
+  const references = [...factReferences(facts), ...(options.extraReferences ?? []).map(normaliseRef)];
   for (const ref of referencesMentioned(text)) {
     if (!references.includes(ref)) failures.push({ check: "reference", detail: ref });
   }

@@ -5,6 +5,11 @@ import {
   assembleFidrecPack,
   buildEvidenceIndex,
   buildFidrecPackInput,
+  documentExcerpts,
+  documentQuotables,
+  dutyFailures,
+  numberClauses,
+  regulatoryQuery,
   evidenceIdFailures,
   FIDREC_PACK_FALLBACK_TITLE,
   type FidrecPackProse,
@@ -66,6 +71,7 @@ const GOOD: FidrecPackProse = {
   institution_position: 'In its final reply of 1 Sep 2026, Synthetic Bank declined the claim.',
   arguments_for_claimant: [{ text: 'The complainant reported the scam promptly to Synthetic Bank.', evidence_ids: ['E1'] }],
   arguments_for_institution: [{ text: 'Synthetic Bank says the payment was made from the complainant’s own device.', evidence_ids: ['E1'] }],
+  institution_duties: [],
 }
 
 const index = buildEvidenceIndex(findings)
@@ -202,4 +208,67 @@ test('the Edge Function and route are paid-only, once per case, exempt from the 
   const migration = readFileSync('supabase/migrations/20261121120000_fidrec_pack.sql', 'utf8')
   assert.match(migration, /'run_bank_pack_v1', 'run_fidrec_pack_v1'\)/)
   assert.match(migration, /s\.stage = 'fidrec'/)
+})
+
+// Elena, 20 Nov 2026: the bank's technical records (devices, IP addresses) and its duties under the SRF, the E-Payments
+// Guidelines and MAS notices belong in the FIDReC pack.
+const accessLog = {
+  id: 'doc-access-log',
+  evidenceType: 'RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA',
+  text: 'Digital token activated 2 Oct 2026 19:46 on device AND-58F3-0D9A-E7C4 from IP 198.51.100.23. Transfer limit raised to S$10,000. Released 12 November 2026.',
+}
+const clauses = numberClauses([
+  { clause_ref: '4.2(b)', title: 'Cooling period', text_content: 'A cooling period of at least 12 hours applies after activation of a digital security token on a new device.', source: 'MAS SRF Guidelines (2024)' },
+  { clause_ref: '7', title: 'Access control', text_content: 'A financial institution shall implement controls to detect unauthorised access.', source: 'MAS Notice FSM-N06 (2024)' },
+])
+
+test('every ready document is evidence, after those behind the facts; the model gets capped excerpts', () => {
+  const index = buildEvidenceIndex(findings, [{ id: 'doc-letter', evidenceType: null, text: 'x' }, accessLog])
+  assert.deepEqual(index.map((e) => [e.id, e.label]), [
+    ['E1', 'a letter or email from your bank (uploaded)'],
+    ['E2', 'your bank statement (uploaded)'],
+    ['E3', 'the bank’s login, device and IP records (uploaded)'.replace('’', "'")],
+  ])
+  const excerpts = documentExcerpts(index, [accessLog, { id: 'doc-letter', evidenceType: null, text: 'y'.repeat(9_000) }])
+  assert.equal(excerpts.find((e) => e.id === 'E1')?.excerpt.length, 4_000, 'capped per document')
+  assert.equal(excerpts.find((e) => e.id === 'E3')?.excerpt, accessLog.text)
+})
+
+test('device IDs, dates and amounts in the documents may be quoted; others still fail', () => {
+  const quotables = documentQuotables([{ excerpt: accessLog.text }])
+  assert.ok(quotables.references.includes('AND-58F3-0D9A-E7C4'))
+  assert.ok(quotables.dates.includes('2026-11-12') && quotables.amounts.includes(10_000))
+  const options = fidrecPackChecks([], quotables)
+  const quoted = 'The institution’s records show a digital token was activated on device AND-58F3-0D9A-E7C4 and the transfer limit was raised to S$10,000.'
+  assert.deepEqual(validateOutput([quoted], facts, { ...options, userFacing: undefined }), [])
+  const invented = validateOutput(['A token was activated on device XYZ-11-22 and S$7,777 was moved.'], facts, { ...options, userFacing: undefined })
+  assert.deepEqual(invented.map((f) => f.check).sort(), ['amount', 'reference'])
+})
+
+test('duties cite retrieved clauses and evidence, may name the frameworks, but never decide liability', () => {
+  const duty = {
+    text: 'The SRF requires a cooling period of at least 12 hours after a new token is activated; the institution’s records show the token was activated at 19:46 and the first transfer followed minutes later.',
+    clause_ids: ['R1'],
+    evidence_ids: ['E1'],
+  }
+  const checks = fidrecPackChecks([])
+  assert.deepEqual(dutyFailures({ ...GOOD, institution_duties: [duty] }, clauses, facts, checks), [])
+  const unknownClause = dutyFailures({ ...GOOD, institution_duties: [{ ...duty, clause_ids: ['R9'] }] }, clauses, facts, checks)
+  assert.deepEqual(unknownClause.map((f) => f.check), ['reference'])
+  const conclusion = dutyFailures({ ...GOOD, institution_duties: [{ ...duty, text: 'The institution is liable and must refund the complainant.' }] }, clauses, facts, checks)
+  assert.ok(conclusion.some((f) => f.check === 'forbidden'))
+  // Outside the duties section the SRF assessment stays the server's.
+  assert.ok(validateOutput([`${GOOD.claimant_position} Under the SRF the bank pays.`], facts, checks).some((f) => f.check === 'forbidden'))
+})
+
+test('the clauses and documents reach the model; the report lists only the clauses the duties cite', () => {
+  const index = buildEvidenceIndex(findings, [accessLog])
+  const input = buildFidrecPackInput({ facts, findings, storyText: null, finalReplyText: null, evidenceIndex: index, documents: documentExcerpts(index, [accessLog]), clauses })
+  assert.deepEqual(input.regulatory_clauses.map((c) => c.id), ['R1', 'R2'])
+  assert.equal(input.documents.length, 1)
+  assert.match(fidrecPackSystem(null), /INSTITUTION DUTIES[\s\S]*never say the institution is liable/)
+  assert.match(regulatoryQuery(facts), /cooling periods[\s\S]*Scam type: phishing/)
+  const prose = { ...GOOD, institution_duties: [{ text: 'A duty.', clause_ids: ['R1'], evidence_ids: ['E1'] }] }
+  const report = assembleFidrecPack({ prose, source: 'model', facts, findings: [], evidenceIndex: index, route, finalReplyUsed: false, clauses })
+  assert.deepEqual(report.regulatory_sources, [{ id: 'R1', source: 'MAS SRF Guidelines (2024)', clause_ref: '4.2(b)', title: 'Cooling period' }])
 })

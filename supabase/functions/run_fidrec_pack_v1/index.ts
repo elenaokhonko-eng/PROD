@@ -6,12 +6,18 @@ import {
   verifyHarborEdgeRequest,
 } from "../_shared/edge-auth.ts";
 import { safeErrorText } from "../_shared/safe-error.ts";
-import { OUTPUT_CAPS, recordModelUsage, type UsageClient, usageEnvironment } from "../_shared/model-usage.ts";
+import { openAiUsage, OUTPUT_CAPS, recordModelUsage, type UsageClient, usageEnvironment } from "../_shared/model-usage.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/openai-params.ts";
 import {
   assembleFidrecPack,
   buildEvidenceIndex,
   buildFidrecPackInput,
+  type CaseDocument,
+  documentExcerpts,
+  documentQuotables,
+  dutyFailures,
+  numberClauses,
+  regulatoryQuery,
   chatJson,
   documentedFacts,
   type EvidenceFinding,
@@ -42,6 +48,11 @@ const FIDREC_PACK_MODEL = (Deno.env.get("FIDREC_PACK_MODEL") ?? DEFAULT_OPENAI_M
 // Used straight away when the main model is rate-limited (cost-controls spec §5 B8).
 const FIDREC_PACK_SECONDARY_MODEL = (Deno.env.get("FIDREC_PACK_SECONDARY_MODEL") ?? "gpt-6.1-terra").trim().toLowerCase();
 const FIDREC_PACK_BUDGET_MS = 140_000;
+// The clauses for the duties section come from the regulatory_clauses table (SRF, E-Payments Guidelines, ABS Code,
+// MAS notices), by similarity to the case.
+const EMBEDDING_MODEL = "text-embedding-3-small";
+const CLAUSE_COUNT = 12;
+const CLAUSE_SIMILARITY = 0.25;
 
 Deno.serve(async (req) => {
   try {
@@ -142,18 +153,60 @@ Deno.serve(async (req) => {
       }
     }
 
-    const evidenceIndex = buildEvidenceIndex(findings ?? []);
-    const input = buildFidrecPackInput({ facts, findings: findings ?? [], storyText: storyRow?.story_text ?? null, finalReplyText, evidenceIndex });
+    // Every ready document is evidence: those behind the confirmed facts first, then the rest (such as the bank's
+    // device and IP records). The model gets a capped excerpt of each.
+    const { data: documentRows, error: documentsErr } = await supabase
+      .from("case_documents")
+      .select("id, verified_document_type, content_latest_id, processing_status, upload_date")
+      .eq("case_id", case_id)
+      .eq("processing_status", "ready")
+      .order("upload_date", { ascending: true });
+    if (documentsErr) return json({ ok: false, error: "documents_unavailable", code: documentsErr.code ?? null }, 500);
+    const contentIds = (documentRows ?? []).map((d) => d.content_latest_id).filter((id): id is string => Boolean(id));
+    const { data: contents, error: contentsErr } = contentIds.length
+      ? await supabase.from("case_documents_content").select("id, text_content").in("id", contentIds)
+      : { data: [] as Array<{ id: string; text_content: string | null }>, error: null };
+    if (contentsErr) return json({ ok: false, error: "documents_unavailable", code: contentsErr.code ?? null }, 500);
+    const contentText = new Map((contents ?? []).map((c) => [c.id as string, (c.text_content as string | null) ?? null]));
+    const caseDocuments: CaseDocument[] = (documentRows ?? []).map((d) => ({
+      id: d.id as string,
+      evidenceType: (d.verified_document_type as string | null) ?? null,
+      text: d.content_latest_id ? contentText.get(d.content_latest_id as string) ?? null : null,
+    }));
+
+    const evidenceIndex = buildEvidenceIndex(findings ?? [], caseDocuments);
+    const excerpts = documentExcerpts(evidenceIndex, caseDocuments);
+
+    const usageEnv = usageEnvironment(Deno.env.toObject());
+    const usageClient = supabase as unknown as UsageClient;
+    const meter = { caller: "edge" as const, purpose: "fidrec_pack", provider: "openai" as const, caseId: case_id };
+
+    // The duties section's clauses. Retrieval failing leaves the section empty rather than failing the pack.
+    let clauses: ReturnType<typeof numberClauses> = [];
+    try {
+      clauses = await retrieveClauses(regulatoryQuery(facts), (call) =>
+        recordModelUsage(usageClient, usageEnv, { ...meter, purpose: "fidrec_pack_retrieval", model: EMBEDDING_MODEL, ...call })
+      );
+    } catch (error) {
+      console.warn(`FIDReC pack clause retrieval failed: ${safeErrorText(error)}`);
+    }
+
+    const input = buildFidrecPackInput({
+      facts,
+      findings: findings ?? [],
+      storyText: storyRow?.story_text ?? null,
+      finalReplyText,
+      evidenceIndex,
+      documents: excerpts,
+      clauses,
+    });
     const checks = {
-      ...fidrecPackChecks(route.route === "final_reply" ? [route.deadline] : []),
+      ...fidrecPackChecks(route.route === "final_reply" ? [route.deadline] : [], documentQuotables(excerpts)),
       documented: documentedFacts(findings ?? []),
     };
     const user = `INPUT JSON:
 ${JSON.stringify(input, null, 2)}`;
     const deadline = Date.now() + FIDREC_PACK_BUDGET_MS;
-    const usageEnv = usageEnvironment(Deno.env.toObject());
-    const usageClient = supabase as unknown as UsageClient;
-    const meter = { caller: "edge" as const, purpose: "fidrec_pack", provider: "openai" as const, caseId: case_id };
     const result = await produceChecked({
       facts,
       options: checks,
@@ -161,7 +214,7 @@ ${JSON.stringify(input, null, 2)}`;
       mapText: mapFidrecPackProse,
       texts: fidrecPackTexts,
       fallback: fidrecPackFallback,
-      extraChecks: (prose) => evidenceIdFailures(prose, evidenceIndex),
+      extraChecks: (prose) => [...evidenceIdFailures(prose, evidenceIndex), ...dutyFailures(prose, clauses, facts, checks)],
       generate: (previousFailures) =>
         chatJson(
           {
@@ -198,6 +251,8 @@ ${JSON.stringify(input, null, 2)}`;
       hard_checks: result.hardChecks,
       final_reply_used: Boolean(finalReplyText),
       evidence_documents: evidenceIndex.length,
+      clauses_retrieved: clauses.length,
+      duties: result.output.institution_duties.length,
       model: FIDREC_PACK_MODEL,
       release: typeof body.release === "string" ? body.release.slice(0, 40) : null,
     };
@@ -220,6 +275,7 @@ ${JSON.stringify(input, null, 2)}`;
       evidenceIndex,
       route,
       finalReplyUsed: Boolean(finalReplyText),
+      clauses,
     });
     const { data: committed, error: commitErr } = await supabase.rpc("commit_fidrec_pack_v1", {
       p_case_id: case_id,
@@ -239,6 +295,40 @@ ${JSON.stringify(input, null, 2)}`;
     return json({ ok: false, error: "internal_error" }, 500);
   }
 });
+
+// One embedding of the case's duty question, then the nearest clauses with their documents' titles.
+async function retrieveClauses(
+  query: string,
+  onCall: (call: { usage?: ReturnType<typeof openAiUsage>; latencyMs: number; httpStatus: number | null; outcome: "ok" | "error" }) => unknown,
+) {
+  const started = Date.now();
+  const res = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: EMBEDDING_MODEL, input: query }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  const data = await res.json().catch(() => null);
+  await onCall({ usage: openAiUsage(data), latencyMs: Date.now() - started, httpStatus: res.status, outcome: res.ok ? "ok" : "error" });
+  const embedding = data?.data?.[0]?.embedding;
+  if (!res.ok || !Array.isArray(embedding)) throw new Error(`embedding failed (${res.status})`);
+
+  const supabase = createClient(PROJECT_URL!, SERVICE_ROLE_KEY!);
+  const { data: matches, error } = await supabase.rpc("match_regulatory_clauses_threshold", {
+    query_embedding: embedding,
+    match_count: CLAUSE_COUNT,
+    similarity_threshold: CLAUSE_SIMILARITY,
+  });
+  if (error) throw new Error(`clause search failed (${error.code ?? "unknown"})`);
+  const rows = (matches ?? []) as Array<{ document_id: string | null; clause_ref: string | null; title: string | null; text_content: string }>;
+  const documentIds = [...new Set(rows.map((r) => r.document_id).filter((id): id is string => Boolean(id)))];
+  const { data: documents, error: documentsError } = documentIds.length
+    ? await supabase.from("regulatory_documents").select("id, document_title, document_key").in("id", documentIds)
+    : { data: [] as Array<{ id: string; document_title: string; document_key: string | null }>, error: null };
+  if (documentsError) throw new Error(`clause sources failed (${documentsError.code ?? "unknown"})`);
+  const titles = new Map((documents ?? []).map((d) => [d.id, (d.document_key as string | null) ?? (d.document_title as string)]));
+  return numberClauses(rows.map((r) => ({ ...r, source: (r.document_id && titles.get(r.document_id)) || "Regulatory source" })));
+}
 
 // The old report's wording rule, kept: "disputed", never "unauthorised" (run_report_selfserve_v1).
 function sanitizeProse(text: string): string {

@@ -71,6 +71,29 @@ export function FidrecPackView({ pack, createdAt, onDownload }: FidrecPackViewPr
       <Arguments title="Points for the complainant" items={pack.arguments_for_claimant} />
       <Arguments title="Points for the institution" items={pack.arguments_for_institution} />
 
+      {pack.institution_duties?.length ? (
+        <Section title="The institution’s duties and what the records show">
+          <ul className="ml-4 list-disc space-y-2 text-sm">
+            {pack.institution_duties.map((duty, i) => (
+              <li key={i}>
+                {duty.text}
+                <span className="text-muted-foreground"> ({[...duty.clause_ids, ...duty.evidence_ids].join(', ')})</span>
+              </li>
+            ))}
+          </ul>
+          {pack.regulatory_sources?.length ? (
+            <dl className="mt-4 space-y-1 text-xs text-muted-foreground">
+              {pack.regulatory_sources.map((source) => (
+                <div key={source.id}>
+                  <dt className="inline font-medium">{source.id}: </dt>
+                  <dd className="inline">{[source.source, source.clause_ref, source.title].filter(Boolean).join(', ')}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+        </Section>
+      ) : null}
+
       {pack.evidence_index?.length ? (
         <Section title="Evidence index">
           <ul className="space-y-1 text-sm">
