@@ -10,7 +10,7 @@ export const expectedStateText = {
   layer1DraftPending: 'GuideBuoy can only point you to the right resolution path',
   layer1FreeDraft: /^Your free evaluation$/,
   // Stage 1 (paid stages off): the evaluation is followed by the next steps instead of a buy button.
-  transitionBuyReport: paidStagesEnabled ? 'Get your Bank Pack' : 'Your next steps',
+  transitionBuyReport: paidStagesEnabled ? 'Get your Bank dispute pack' : 'Your next steps',
   // Stage 2 (Elena, 13 Nov 2026): pay first, then confirm the bank facts; the pack is generated from them, so a paid
   // case without its pack is on the confirm step (the old running, drafting and failed report-job states are gone).
   layer2ConfirmBankFacts: 'Confirm your facts',

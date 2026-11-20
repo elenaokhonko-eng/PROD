@@ -26,9 +26,9 @@ const COPY: Record<GeneratedStage, { preparing: string; failed: string; failedRe
     problem: 'free_evaluation_failed',
   },
   bank: {
-    preparing: 'Preparing your bank pack',
-    failed: 'We couldn’t prepare your bank pack',
-    failedReason: 'We couldn’t produce a bank pack that matches your facts exactly. We’ve been notified; please try again later.',
+    preparing: 'Preparing your bank dispute pack',
+    failed: 'We couldn’t prepare your bank dispute pack',
+    failedReason: 'We couldn’t produce a bank dispute pack that matches your facts exactly. We’ve been notified; please try again later.',
     problem: 'bank_pack_failed',
   },
   fidrec: {
