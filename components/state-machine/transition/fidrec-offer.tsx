@@ -6,7 +6,7 @@
  * hasn't resolved, so the pack can be bought only on one of those routes; get_case_product_readiness_v1 decides from
  * the answers saved here. The packs are independent: no bank pack or free evaluation is needed first.
  *
- * Wording pending Elena's approval (stage 2 copy list, 20 Nov 2026).
+ * Wording approved by Elena on 20 Nov 2026 (stage 2 copy list).
  */
 
 import { useState } from 'react'

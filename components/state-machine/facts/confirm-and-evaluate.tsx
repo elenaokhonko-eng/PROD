@@ -17,7 +17,7 @@ import { FactsRequestError } from '@/hooks/state-machine/facts/use-case-facts'
 import { type GeneratedStage, useGenerateStage } from '@/hooks/state-machine/facts/use-generate-free-evaluation'
 import { openProblemReport } from '@/lib/report-problem'
 
-// The paid packs' wording is pending Elena's approval (stage 2 copy list, 20 Nov 2026).
+// The paid packs' wording: approved by Elena on 20 Nov 2026 (stage 2 copy list).
 const COPY: Record<GeneratedStage, { preparing: string; failed: string; failedReason: string; problem: string }> = {
   free: {
     preparing: 'Preparing your free evaluation',

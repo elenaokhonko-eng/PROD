@@ -311,3 +311,15 @@ test('a fact without a document is attributed in the third person, and the model
   assert.deepEqual(input.allowed_dates, ['2026-09-01', '2027-03-01'])
   assert.match(fidrecPackSystem(null), /State only dates listed in allowed_dates/)
 })
+
+test('more Singapore banks are recognised, including names with "and" in them (Elena, 20 Nov 2026)', () => {
+  const { institutionsIn, institutionsMentioned } = require('../../lib/facts') as typeof import('../../lib/facts')
+  assert.deepEqual(institutionsIn('Industrial and Commercial Bank of China and MariBank').map((i) => i.name), ['ICBC', 'MariBank'])
+  assert.deepEqual(institutionsIn('Bank of China / CIMB, RHB').map((i) => [i.name, i.type]), [['Bank of China', 'bank'], ['CIMB', 'bank'], ['RHB', 'bank']])
+  assert.deepEqual(institutionsMentioned('I complained to ICBC, not Bank of China.').map((i) => i.name).sort(), ['Bank of China', 'ICBC'])
+})
+
+test('card duties are argued through the cardholder agreement and the ABS Code, not a duty to raise a chargeback', () => {
+  assert.match(fidrecPackSystem(null), /a chargeback is the card issuer's right against the scheme, not a duty it owes the cardholder[\s\S]*cardholder agreement and the ABS Code of Practice for credit cards/)
+  assert.match(regulatoryQuery(facts).concat(regulatoryQuery({ ...facts, transactions: { value: [{ date: null, amount: sgd(1), channel: null, payee: null, last4: null, instrument: 'credit_card' }], label: 'confirmed' } })), /chargebacks and card scheme disputes/)
+})
