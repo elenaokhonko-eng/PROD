@@ -8,7 +8,10 @@ import test from 'node:test'
 // The database side (rules 3, 7, 8) is scripts/sql/tests/test_standards_corpus.sql.
 
 const MIGRATION = 'supabase/migrations/20261122120000_standards_corpus.sql'
-const CORPUS_TABLES = ['standard_clauses', 'standard_document_versions', 'standard_documents', 'definition_statements']
+const REVIEW_LINKS = 'supabase/migrations/20261123120000_standards_review_links.sql'
+const CORPUS_TABLES = [
+  'standard_clauses', 'standard_document_versions', 'standard_documents', 'definition_statements', 'definition_statement_clauses',
+]
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -54,4 +57,26 @@ test('legacy rows come in as drafts, so nothing changes until a version is verif
   const sql = readFileSync(MIGRATION, 'utf8')
   assert.match(sql, /'legacy_import', 'selected_sections'/)
   assert.match(sql, /AND provenance <> 'legacy_import'/)
+})
+
+test('statements are read by the wording they were checked against, and rules count in the verify check', () => {
+  const sql = readFileSync(REVIEW_LINKS, 'utf8')
+  for (const table of ['standard_institutions', 'definition_statement_clauses', 'standard_rule_citations']) {
+    assert.match(sql, new RegExp(`ALTER TABLE public\.${table} ENABLE ROW LEVEL SECURITY`), table)
+  }
+  assert.match(sql, /FROM PUBLIC, anon, authenticated;\s*GRANT SELECT, INSERT, UPDATE, DELETE ON public\.standard_institutions/)
+  assert.doesNotMatch(sql, /GRANT [^;]* TO (anon|authenticated)\b/)
+  for (const trigger of ['definition_statement_clauses_guard', 'definition_statements_link', 'standard_dependant_reviews_guard', 'standard_dependant_reviews_link']) {
+    assert.match(sql, new RegExp(`CREATE TRIGGER ${trigger}`), trigger)
+  }
+  // The as-of statement read goes through the verified, dated clause read and matches the recorded wording.
+  const body = sql.slice(sql.indexOf('FUNCTION public.get_statement_as_of_v1('))
+  const text = body.slice(0, body.indexOf('$$;', body.indexOf('AS $$')))
+  assert.match(text, /s\.status = 'approved'/)
+  assert.match(text, /get_clause_as_of_v1\(k, p_on_date\)/)
+  assert.match(text, /l\.text_sha256 = c\.text_sha256/)
+  // Institutions are codes, held by foreign key on both tables that name one.
+  assert.match(sql, /standard_documents_institution_fkey FOREIGN KEY \(institution\) REFERENCES public\.standard_institutions\(code\)/)
+  assert.match(sql, /institution_term_requests_institution_fkey FOREIGN KEY \(institution\) REFERENCES public\.standard_institutions\(code\)/)
+  assert.match(sql, /'rule ' \|\| rc\.rule_id/)
 })
