@@ -28,14 +28,17 @@ DECLARE
   v_text text;
   v_count integer;
 BEGIN
+  -- Institutions are named by a fixed code (20261123120000).
+  INSERT INTO public.standard_institutions (code, name) VALUES
+    ('synthetic_bank_a', 'Synthetic Bank A'), ('synthetic_bank_b', 'Synthetic Bank B');
   INSERT INTO public.standard_documents (document_key, title, publisher, binding_level, applies_to, instrument_scope)
   VALUES ('test.guideline', 'Synthetic guideline', 'Synthetic regulator', 'guideline', '{bank}', '{account_transfer,sg_card}')
   RETURNING id INTO v_guideline;
   INSERT INTO public.standard_documents (document_key, title, publisher, binding_level, applies_to, instrument_scope, institution)
-  VALUES ('test.bank_a_terms', 'Synthetic Bank A terms', 'Synthetic Bank A', 'contract', '{bank}', '{account_transfer}', 'Synthetic Bank A')
+  VALUES ('test.bank_a_terms', 'Synthetic Bank A terms', 'Synthetic Bank A', 'contract', '{bank}', '{account_transfer}', 'synthetic_bank_a')
   RETURNING id INTO v_bank_a;
   INSERT INTO public.standard_documents (document_key, title, publisher, binding_level, applies_to, instrument_scope, institution)
-  VALUES ('test.bank_b_terms', 'Synthetic Bank B terms', 'Synthetic Bank B', 'contract', '{bank}', '{account_transfer}', 'Synthetic Bank B')
+  VALUES ('test.bank_b_terms', 'Synthetic Bank B terms', 'Synthetic Bank B', 'contract', '{bank}', '{account_transfer}', 'synthetic_bank_b')
   RETURNING id INTO v_bank_b;
 
   -- A contract must name its institution.
@@ -110,8 +113,8 @@ BEGIN
   UPDATE public.standard_clauses SET embedding = c_vec, embedding_model = 'synthetic-2' WHERE version_id = v_g1;
 
   -- An approved statement and a term request resting on 4.7.
-  INSERT INTO public.definition_statements (statement_key, framework, applies_to_instrument, text, clause_keys, status, approved_by, approved_at)
-  VALUES ('test.cooling.term', 'eupg', '{account_transfer}', 'Synthetic statement.', '{test.guideline/4.7}', 'approved', 'synthetic reviewer', now())
+  INSERT INTO public.definition_statements (statement_key, framework, applies_to_instrument, text, clause_keys, status, approved_by, approved_at, clauses_as_of)
+  VALUES ('test.cooling.term', 'eupg', '{account_transfer}', 'Synthetic statement.', '{test.guideline/4.7}', 'approved', 'synthetic reviewer', now(), '2025-03-01')
   RETURNING id INTO v_statement;
   BEGIN
     UPDATE public.definition_statements SET text = 'Silently reworded.' WHERE id = v_statement;
@@ -127,10 +130,10 @@ BEGIN
     (v_g2, 'test.guideline/4.9', 'Synthetic alert duty.', '', c_vec, 'synthetic', NULL),
     (v_g2, 'test.guideline/4.21', 'Synthetic surveillance duty.', '', c_vec, 'synthetic', '2025-09-01');
 
-  SELECT count(*) INTO v_count FROM public.standard_version_diff_v1(v_g2)
+  SELECT count(*) INTO v_count FROM public.standard_version_diff_v2(v_g2)
   WHERE clause_key = 'test.guideline/4.7' AND change = 'changed' AND statements = ARRAY['test.cooling.term r1'];
   IF v_count <> 1 THEN RAISE EXCEPTION 'diff did not list the statement on the changed clause'; END IF;
-  SELECT count(*) INTO v_count FROM public.standard_version_diff_v1(v_g2) WHERE clause_key = 'test.guideline/4.9';
+  SELECT count(*) INTO v_count FROM public.standard_version_diff_v2(v_g2) WHERE clause_key = 'test.guideline/4.9';
   IF v_count <> 0 THEN RAISE EXCEPTION 'unchanged clause listed in the diff'; END IF;
 
   -- Not verifiable until the statement is reviewed for v2.
@@ -225,7 +228,7 @@ BEGIN
 
   -- A tag-selected term request needs a review whenever its document changes.
   INSERT INTO public.institution_term_requests (institution, product, purpose, document_key, selector)
-  VALUES ('Synthetic Bank A', 'account', 'fault_definition', 'test.bank_a_terms', '{"tags": ["fault_definition"]}')
+  VALUES ('synthetic_bank_a', 'account', 'fault_definition', 'test.bank_a_terms', '{"tags": ["fault_definition"]}')
   RETURNING id INTO v_term;
   BEGIN
     UPDATE public.standard_document_versions
@@ -242,23 +245,23 @@ BEGIN
       content_sha256 = c_sha, retrieved_at = now(), verified_by = 'synthetic reviewer', verified_at = now()
   WHERE id IN (v_a1, v_b1);
 
-  SELECT count(*) INTO v_count FROM public.match_standards_v1(c_vec, '2025-03-01', p_institution => 'Synthetic Bank A')
-  WHERE institution IS NOT NULL AND institution <> 'Synthetic Bank A';
+  SELECT count(*) INTO v_count FROM public.match_standards_v1(c_vec, '2025-03-01', p_institution => 'synthetic_bank_a')
+  WHERE institution IS NOT NULL AND institution <> 'synthetic_bank_a';
   IF v_count <> 0 THEN RAISE EXCEPTION 'another institution''s contract was retrieved'; END IF;
-  SELECT count(*) INTO v_count FROM public.match_standards_v1(c_vec, '2025-03-01', p_institution => 'Synthetic Bank A')
-  WHERE institution = 'Synthetic Bank A';
+  SELECT count(*) INTO v_count FROM public.match_standards_v1(c_vec, '2025-03-01', p_institution => 'synthetic_bank_a')
+  WHERE institution = 'synthetic_bank_a';
   IF v_count <> 1 THEN RAISE EXCEPTION 'the case''s own contract was not retrieved'; END IF;
   SELECT count(*) INTO v_count FROM public.match_standards_v1(c_vec, '2025-03-01') WHERE institution IS NOT NULL;
   IF v_count <> 0 THEN RAISE EXCEPTION 'a contract was retrieved with no institution given'; END IF;
-  SELECT count(*) INTO v_count FROM public.get_clauses_by_tag_v1('fault_definition', 'Synthetic Bank B', '2025-03-01');
-  IF v_count <> 1 OR NOT EXISTS (SELECT 1 FROM public.get_clauses_by_tag_v1('fault_definition', 'Synthetic Bank B', '2025-03-01')
+  SELECT count(*) INTO v_count FROM public.get_clauses_by_tag_v1('fault_definition', 'synthetic_bank_b', '2025-03-01');
+  IF v_count <> 1 OR NOT EXISTS (SELECT 1 FROM public.get_clauses_by_tag_v1('fault_definition', 'synthetic_bank_b', '2025-03-01')
                                  WHERE clause_key = 'test.bank_b_terms/8') THEN
     RAISE EXCEPTION 'tag read crossed institutions';
   END IF;
 
   -- A verified version can be withdrawn, and is then not read.
   UPDATE public.standard_document_versions SET status = 'withdrawn' WHERE id = v_b1;
-  SELECT count(*) INTO v_count FROM public.get_clauses_by_tag_v1('fault_definition', 'Synthetic Bank B', '2025-03-01');
+  SELECT count(*) INTO v_count FROM public.get_clauses_by_tag_v1('fault_definition', 'synthetic_bank_b', '2025-03-01');
   IF v_count <> 0 THEN RAISE EXCEPTION 'withdrawn version was read'; END IF;
 
   -- The legacy corpus: every mapped document copied once, as a draft, clause for clause.
