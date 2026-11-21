@@ -9,46 +9,22 @@ import { createUserClient } from "@/lib/supabase/server"
 import { CostDashboardSection } from "@/components/harbor/cost-dashboard"
 import { type CostDashboard, type CostDashboardClient, loadCostDashboard } from "@/lib/server/cost-dashboard"
 import { dailyCapUsd, usageEnvironment } from "@/lib/server/model-usage"
+import {
+  GRANULARITIES,
+  type EventRow,
+  countryRows,
+  funnelRow,
+  periodRows,
+  sessionCounts as dailySessionCounts,
+  sessionRows,
+} from "@/lib/server/analytics1"
 
 export const metadata: Metadata = {
   title: "Analytics | GuideBuoy AI",
-  description: "Live metrics from Supabase views: sessions, engagement, funnels, registrations, and waitlist.",
+  description: "Live metrics from Supabase tables: sessions, engagement, funnels, registrations, and waitlist.",
 }
 
 export const dynamic = "force-dynamic"
-
-type PageSessionRow = {
-  session_id: string | null
-  page_views: number | null
-  total_events: number | null
-}
-
-type CountryRow = {
-  country: string | null
-  events: number | null
-}
-
-type SessionCountRow = {
-  day: string | null
-  unique_sessions: number | null
-  total_events: number | null
-}
-
-type SessionPeriodRow = {
-  granularity: string | null
-  period_start: string | null
-  unique_sessions: number | null
-  total_events: number | null
-  cumulative_sessions: number | null
-  cumulative_events: number | null
-}
-
-type FunnelRow = {
-  avg_story_to_signup_minutes: number | null
-  avg_signup_to_docs_minutes: number | null
-  avg_docs_to_report_minutes: number | null
-  avg_report_to_download_minutes: number | null
-}
 
 type Metrics = {
   totalEvents: number
@@ -68,82 +44,46 @@ type Metrics = {
   avgReportToDownloadMinutes: number | null
 }
 
-async function fetchSessionRows(): Promise<PageSessionRow[]> {
+const EVENT_DAYS = 365
+const PAGE = 1000
+const REPORT_DONE = ["COMPLETED", "EXPORTED", "RESOLVED"]
+
+// The last year's events, a page at a time (the API returns at most 1000 rows per request). Only the country fields
+// of event_data are read.
+async function fetchEvents(): Promise<EventRow[] | null> {
   const supabase = createServiceClient()
-  const { data, error } = await supabase.from("mv_pages_per_session").select("session_id,page_views,total_events")
-  if (error) {
-    console.error("[analytics] failed to load mv_pages_per_session:", error.message)
-    return []
+  const since = new Date(Date.now() - EVENT_DAYS * 86_400_000).toISOString()
+  const rows: EventRow[] = []
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("analytics_events")
+      .select(
+        "session_id,user_id,event_name,created_at,ip_country:event_data->>ip_country,country:event_data->>country,country_code:event_data->>country_code",
+      )
+      .gte("created_at", since)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + PAGE - 1)
+    if (error) {
+      console.error("[analytics] failed to load analytics_events:", error.message)
+      return null
+    }
+    rows.push(...((data ?? []) as unknown as EventRow[]))
+    if (!data || data.length < PAGE) return rows
   }
-  return data ?? []
 }
 
-async function fetchCountryRows(): Promise<CountryRow[]> {
+async function fetchStatusCounts(table: "cases" | "reports", done: string[]) {
   const supabase = createServiceClient()
-  const { data, error } = await supabase.from("mv_country_rollup").select("country,events").order("events", { ascending: false })
-  if (error) {
-    console.error("[analytics] failed to load mv_country_rollup:", error.message)
-    return []
-  }
-  return data ?? []
-}
-
-async function fetchSessionCounts(): Promise<SessionCountRow[]> {
-  const supabase = createServiceClient()
-  const { data, error } = await supabase
-    .from("mv_session_counts")
-    .select("day,unique_sessions,total_events")
-    .order("day", { ascending: false })
-
-  if (error) {
-    console.error("[analytics] failed to load mv_session_counts:", error.message)
-    return []
-  }
-  return data ?? []
-}
-
-async function fetchSessionPeriods(): Promise<SessionPeriodRow[]> {
-  const supabase = createServiceClient()
-  const { data, error } = await supabase
-    .from("mv_session_counts_periods")
-    .select("granularity,period_start,unique_sessions,total_events,cumulative_sessions,cumulative_events")
-    .order("period_start", { ascending: false })
-
-  if (error) {
-    console.error("[analytics] failed to load mv_session_counts_periods:", error.message)
-    return []
-  }
-  return data ?? []
-}
-
-async function fetchComplaintStatusCounts() {
-  const supabase = createServiceClient()
-  const { data, error } = await supabase.from("mv_complaint_status_counts").select("*").maybeSingle()
-  if (error) {
-    console.error("[analytics] failed to load mv_complaint_status_counts:", error.message)
+  const [all, completed] = await Promise.all([
+    supabase.from(table).select("id", { count: "exact", head: true }).not("status", "is", null),
+    supabase.from(table).select("id", { count: "exact", head: true }).in("status", done),
+  ])
+  if (all.error || completed.error) {
+    console.error(`[analytics] failed to count ${table} by status:`, (all.error ?? completed.error)?.message)
     return { pending: null, completed: null }
   }
-  return { pending: data?.pending ?? null, completed: data?.completed ?? null }
-}
-
-async function fetchReportStatusCounts() {
-  const supabase = createServiceClient()
-  const { data, error } = await supabase.from("mv_report_status_counts").select("*").maybeSingle()
-  if (error) {
-    console.error("[analytics] failed to load mv_report_status_counts:", error.message)
-    return { pending: null, completed: null }
-  }
-  return { pending: data?.pending ?? null, completed: data?.completed ?? null }
-}
-
-async function fetchFunnelRow(): Promise<FunnelRow | null> {
-  const supabase = createServiceClient()
-  const { data, error } = await supabase.from("mv_funnel_durations").select("*").maybeSingle()
-  if (error) {
-    console.error("[analytics] failed to load mv_funnel_durations:", error.message)
-    return null
-  }
-  return data ?? null
+  return { pending: (all.count ?? 0) - (completed.count ?? 0), completed: completed.count ?? 0 }
 }
 
 async function countTableRows(table: string): Promise<number | null> {
@@ -157,24 +97,20 @@ async function countTableRows(table: string): Promise<number | null> {
 }
 
 function buildMetrics(
-  sessions: PageSessionRow[],
-  countries: CountryRow[],
-  funnel: FunnelRow | null,
+  events: EventRow[],
   registeredUsers: number | null,
   waitlistUsers: number | null,
   complaintStatus: { pending: number | null; completed: number | null },
   reportStatus: { pending: number | null; completed: number | null },
 ): Metrics {
+  const sessions = sessionRows(events)
+  const funnel = funnelRow(events)
   const uniqueSessions = sessions.length
-  const totalEvents = sessions.reduce((sum, row) => sum + (row.total_events ?? 0), 0)
-  const repeatSessions = sessions.filter((row) => (row.total_events ?? 0) > 1).length
-  const avgEventsPerSession = uniqueSessions ? totalEvents / uniqueSessions : 0
-
-  const countryCounts: Record<string, number> = {}
-  for (const row of countries) {
-    const key = row.country ?? "UNKNOWN"
-    countryCounts[key] = row.events ?? 0
-  }
+  const totalEvents = events.length
+  const repeatSessions = sessions.filter((row) => row.total_events > 1).length
+  const sessionEvents = sessions.reduce((sum, row) => sum + row.total_events, 0)
+  const avgEventsPerSession = uniqueSessions ? sessionEvents / uniqueSessions : 0
+  const countryCounts = Object.fromEntries(countryRows(events).map((row) => [row.country, row.events]))
 
   return {
     totalEvents,
@@ -188,10 +124,10 @@ function buildMetrics(
     complaintsCompleted: complaintStatus.completed,
     reportsPending: reportStatus.pending,
     reportsCompleted: reportStatus.completed,
-    avgStoryToSignupMinutes: funnel?.avg_story_to_signup_minutes ?? null,
-    avgSignupToDocsMinutes: funnel?.avg_signup_to_docs_minutes ?? null,
-    avgDocsToReportMinutes: funnel?.avg_docs_to_report_minutes ?? null,
-    avgReportToDownloadMinutes: funnel?.avg_report_to_download_minutes ?? null,
+    avgStoryToSignupMinutes: funnel.avg_story_to_signup_minutes,
+    avgSignupToDocsMinutes: funnel.avg_signup_to_docs_minutes,
+    avgDocsToReportMinutes: funnel.avg_docs_to_report_minutes,
+    avgReportToDownloadMinutes: funnel.avg_report_to_download_minutes,
   }
 }
 
@@ -218,20 +154,18 @@ export default async function AnalyticsPage() {
     console.error("[analytics] model costs unavailable:", error instanceof Error ? error.message.slice(0, 120) : "unknown")
   }
 
-  const [sessions, countries, sessionCounts, sessionPeriods, funnel, registeredUsers, waitlistUsers, complaintStatus, reportStatus] =
-    await Promise.all([
-      fetchSessionRows(),
-      fetchCountryRows(),
-      fetchSessionCounts(),
-      fetchSessionPeriods(),
-      fetchFunnelRow(),
-      countTableRows("profiles"),
-      countTableRows("waitlist"),
-      fetchComplaintStatusCounts(),
-      fetchReportStatusCounts(),
-    ])
+  const [loadedEvents, registeredUsers, waitlistUsers, complaintStatus, reportStatus] = await Promise.all([
+    fetchEvents(),
+    countTableRows("profiles"),
+    countTableRows("waitlist"),
+    fetchStatusCounts("cases", ["completed"]),
+    fetchStatusCounts("reports", REPORT_DONE),
+  ])
+  const events = loadedEvents ?? []
+  const sessionCounts = dailySessionCounts(events)
+  const sessionPeriods = GRANULARITIES.flatMap((granularity) => periodRows(events, granularity))
 
-  const metrics = buildMetrics(sessions, countries, funnel, registeredUsers, waitlistUsers, complaintStatus, reportStatus)
+  const metrics = buildMetrics(events, registeredUsers, waitlistUsers, complaintStatus, reportStatus)
 
   return (
     <main className="min-h-screen bg-background">
@@ -244,8 +178,12 @@ export default async function AnalyticsPage() {
           </Badge>
           <h1 className="text-4xl font-bold text-balance">Acquisition & engagement</h1>
           <p className="text-muted-foreground max-w-3xl">
-            Live metrics pulled from Supabase materialized views, plus profiles and waitlist tables.
+            Live metrics read from the events, cases, reports, profiles and waitlist tables. Page views sent before 22 Nov
+            2026 have no session, so they count as events but not as sessions.
           </p>
+          {loadedEvents === null ? (
+            <p role="status" className="text-sm text-destructive">Events are not available right now; event tiles show zero.</p>
+          ) : null}
         </div>
       </div>
 
@@ -256,7 +194,7 @@ export default async function AnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Unique visits (sessions)</CardTitle>
-              <CardDescription>Distinct sessions from mv_pages_per_session.</CardDescription>
+              <CardDescription>Distinct sessions in the last year.</CardDescription>
             </CardHeader>
             <CardContent className="text-3xl font-bold">{formatNumber(metrics.uniqueSessions)}</CardContent>
           </Card>
@@ -293,7 +231,7 @@ export default async function AnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Complaints status</CardTitle>
-              <CardDescription>Pending vs completed (mv_complaint_status_counts).</CardDescription>
+              <CardDescription>Pending vs completed cases.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-1">
               <p className="text-lg font-semibold text-foreground">Pending: {formatNumber(metrics.complaintsPending)}</p>
@@ -303,7 +241,7 @@ export default async function AnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Reports status</CardTitle>
-              <CardDescription>Pending vs completed/exported/resolved (mv_report_status_counts).</CardDescription>
+              <CardDescription>Pending vs completed, exported or resolved reports.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-1">
               <p className="text-lg font-semibold text-foreground">Pending: {formatNumber(metrics.reportsPending)}</p>
@@ -313,7 +251,7 @@ export default async function AnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Total events</CardTitle>
-              <CardDescription>Events summed from mv_pages_per_session.</CardDescription>
+              <CardDescription>All events in the last year, with or without a session.</CardDescription>
             </CardHeader>
             <CardContent className="text-3xl font-bold">{formatNumber(metrics.totalEvents)}</CardContent>
           </Card>
@@ -322,7 +260,7 @@ export default async function AnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Funnel timing (minutes)</CardTitle>
-            <CardDescription>Average time between key events from mv_funnel_durations.</CardDescription>
+            <CardDescription>Average time between key events, per session or account.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 text-sm text-muted-foreground">
             <div>
@@ -355,7 +293,7 @@ export default async function AnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Countries (from event data)</CardTitle>
-            <CardDescription>Based on ip_country/country fields in mv_country_rollup.</CardDescription>
+            <CardDescription>Events by the country recorded with them.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             {Object.keys(metrics.countryCounts).length === 0 ? (
@@ -378,7 +316,7 @@ export default async function AnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Sessions per day</CardTitle>
-            <CardDescription>Distinct sessions and events from mv_session_counts (latest 14 days).</CardDescription>
+            <CardDescription>Distinct sessions and events per day (latest 14 days).</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             {sessionCounts.length === 0 ? (
@@ -446,7 +384,6 @@ export default async function AnalyticsPage() {
               <li>Add page_view on any route with a custom layout (root layout already covered).</li>
               <li>Ensure IP-to-country enrichment (your edge should set a trusted geo header such as CF-IPCountry).</li>
               <li>Keep emitting funnel events: story_submitted, signup_complete, documents_uploaded, report_generated, report_downloaded.</li>
-              <li>Create a scheduled REFRESH for all MVs to keep dashboards current.</li>
             </ul>
           </CardContent>
         </Card>
