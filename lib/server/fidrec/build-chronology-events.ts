@@ -257,7 +257,7 @@ function collectPoliceReportContext(input: BuildChronologyEventsInput): {
     const corpus = documentCorpus(label, input)
     const filename = label.original_filename ?? ""
     const reportRefInCorpus = corpus.match(/\bE\/20\d{6}\/\d+\b/)
-    const enclosesReportPdf = /E_20251016_7004\.pdf/i.test(corpus) && /Police online report|enclosed the Police/i.test(corpus)
+    const enclosesReportPdf = /\bE_20\d{6}_\d+\.pdf\b/i.test(corpus) && /Police online report|enclosed the Police/i.test(corpus)
 
     if (
       isStandalonePoliceReportPdfFilename(filename) ||
@@ -568,6 +568,8 @@ function formatTimeParts(hour: number, minute: number): string {
 }
 
 type PayNowDrainWindow = {
+  month: number
+  day: number
   startHour: number
   startMinute: number
   endHour: number
@@ -575,25 +577,51 @@ type PayNowDrainWindow = {
   payees: string[]
 }
 
-function extractPayNowDrainWindow(corpus: string): PayNowDrainWindow | null {
-  const times: Array<{ hour: number; minute: number }> = []
-  for (const match of corpus.matchAll(/16 Oct (\d{1,2}):(\d{2}) SGT/gi)) {
-    times.push({ hour: Number(match[1]), minute: Number(match[2]) })
+// Timestamps written in alerts as "3 Mar 10:12" or "03/03 10:12".
+function alertTimestamps(corpus: string): Array<{ month: number; day: number; hour: number; minute: number }> {
+  const stamps: Array<{ month: number; day: number; hour: number; minute: number }> = []
+  for (const match of corpus.matchAll(/\b(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{1,2}):(\d{2})\b/g)) {
+    const month = parseMonthToken(match[2])
+    if (month) stamps.push({ month, day: Number(match[1]), hour: Number(match[3]), minute: Number(match[4]) })
   }
-  if (!times.length) return null
+  for (const match of corpus.matchAll(/\b(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})\b/g)) {
+    const month = Number(match[2])
+    if (month >= 1 && month <= 12) stamps.push({ month, day: Number(match[1]), hour: Number(match[3]), minute: Number(match[4]) })
+  }
+  return stamps
+}
 
+// Payees as alerts name them: the upper-case name after "to", up to the next lower-case word or punctuation.
+function alertPayees(corpus: string): string[] {
+  const payees: string[] = []
+  for (const match of corpus.matchAll(/\bto\s+([A-Z][A-Z0-9&.'()\/-]*(?:\s+[A-Z0-9][A-Z0-9&.'()\/-]*)*)/g)) {
+    const payee = match[1].replace(/[.)]+$/, "").trim()
+    if (payee.length >= 2 && !/^(SGD|S\$|PAYNOW|FAST)$/.test(payee)) payees.push(payee)
+  }
+  return uniqueStrings(payees)
+}
+
+// The transfer window on the day with the most PayNow alerts.
+function extractPayNowDrainWindow(corpus: string): PayNowDrainWindow | null {
+  const stamps = alertTimestamps(corpus)
+  if (!stamps.length) return null
+
+  const byDay = new Map<string, typeof stamps>()
+  for (const stamp of stamps) {
+    const key = `${stamp.month}-${stamp.day}`
+    byDay.set(key, [...(byDay.get(key) ?? []), stamp])
+  }
+  const times = [...byDay.values()].sort((left, right) => right.length - left.length)[0]
   times.sort((left, right) => left.hour * 60 + left.minute - (right.hour * 60 + right.minute))
-  const payees = uniqueStrings([
-    ...( /OXPAY/i.test(corpus) ? ["OXPAY-PMMAX TECHNOLOGY LIMITED"] : []),
-    ...( /TZP-eneba/i.test(corpus) ? ["TZP-eneba"] : []),
-  ])
 
   return {
+    month: times[0].month,
+    day: times[0].day,
     startHour: times[0].hour,
     startMinute: times[0].minute,
     endHour: times[times.length - 1].hour,
     endMinute: times[times.length - 1].minute,
-    payees,
+    payees: alertPayees(corpus),
   }
 }
 
@@ -618,23 +646,32 @@ function limitIncreaseSmsLabels(input: BuildChronologyEventsInput): EvidenceLabe
   return labelsMatching(
     input,
     (label, corpus) =>
-      /increased your (?:DBS\/POSB )?transfer limit|daily limit to/i.test(corpus) &&
-      /\$100,?000|S\$100,?000|100,?000/i.test(corpus),
+      /increased your (?:[A-Za-z\/]+ )?(?:daily )?transfer limit|(?:daily|transfer) limit (?:was )?(?:increased |changed )?to/i.test(corpus) &&
+      /(?:S\$|SGD|\$)\s?\d[\d,]*/i.test(corpus),
   )
 }
 
-function initialTokenCoolingLabels(input: BuildChronologyEventsInput): EvidenceLabel[] {
-  return tokenRegistrationLabels(input).filter((label) => {
-    const corpus = documentCorpus(label, input)
-    return /12 hours|15\/10 08:49|15 Oct at 08:49/i.test(corpus) && !/16\/10 07:18/i.test(corpus)
-  })
+// Token registrations grouped by the day their record shows, earliest first. Records without a date come last.
+function tokenRegistrationsByDay(input: BuildChronologyEventsInput): EvidenceLabel[][] {
+  const groups = new Map<number, EvidenceLabel[]>()
+  for (const label of tokenRegistrationLabels(input)) {
+    const parts = parseDatePartsFromText(documentCorpus(label, input), 2000)
+    const day = parts ? parts.month * 100 + parts.day : Number.MAX_SAFE_INTEGER
+    groups.set(day, [...(groups.get(day) ?? []), label])
+  }
+  return [...groups.entries()].sort(([left], [right]) => left - right).map(([, labels]) => labels)
 }
 
+// The first registration, when its record states the cooling-off period.
+function initialTokenCoolingLabels(input: BuildChronologyEventsInput): EvidenceLabel[] {
+  return (tokenRegistrationsByDay(input)[0] ?? []).filter((label) =>
+    /12 hours|cooling[- ]off/i.test(documentCorpus(label, input)),
+  )
+}
+
+// Registrations on any later day.
 function secondaryTokenBindingLabels(input: BuildChronologyEventsInput): EvidenceLabel[] {
-  return tokenRegistrationLabels(input).filter((label) => {
-    const corpus = documentCorpus(label, input)
-    return /16\/10 07:18|digital token on 16\/10 07:18|16 Oct 07:18/i.test(corpus)
-  })
+  return tokenRegistrationsByDay(input).slice(1).flat()
 }
 
 function fraudDrainSmsLabels(input: BuildChronologyEventsInput): EvidenceLabel[] {
@@ -642,9 +679,8 @@ function fraudDrainSmsLabels(input: BuildChronologyEventsInput): EvidenceLabel[]
     input,
     (label, corpus) =>
       label.evidence_type === "sms_or_email_alert" &&
-      /Successful PayNow/i.test(corpus) &&
-      /OXPAY|TZP-eneba/i.test(corpus) &&
-      /16 Oct/i.test(corpus),
+      /Successful PayNow|PayNow transfer/i.test(corpus) &&
+      alertTimestamps(corpus).length > 0,
   )
 }
 
@@ -653,14 +689,9 @@ function shouldFoldFraudDrainIntoLimitChange(input: BuildChronologyEventsInput):
 }
 
 function tokenBindingLabelsForPhishingStep(input: BuildChronologyEventsInput): EvidenceLabel[] {
-  return tokenRegistrationLabels(input).filter((label) => {
-    const corpus = documentCorpus(label, input)
-    return (
-      /setting up your .*digital token|digital token which can be used/i.test(corpus) &&
-      /15\/10|15 Oct/i.test(corpus) &&
-      !/16\/10/i.test(corpus)
-    )
-  })
+  return (tokenRegistrationsByDay(input)[0] ?? []).filter((label) =>
+    /setting up your .*digital token|digital token which can be used/i.test(documentCorpus(label, input)),
+  )
 }
 
 function shouldFoldTokenRegistrationIntoPhishing(input: BuildChronologyEventsInput, phishingCorpus: string): boolean {
@@ -819,7 +850,7 @@ function buildLimitChangeEvent(input: BuildChronologyEventsInput, anchorYear: nu
       )
 
   const limitLabels = smsLimitLabels.length ? smsLimitLabels : fallbackLabels
-  if (!limitLabels.length && !/increased her daily transfer limit|daily transfer limit/i.test(input.primaryNarrative ?? "")) {
+  if (!limitLabels.length && !/daily transfer limit/i.test(input.primaryNarrative ?? "")) {
     return null
   }
 
@@ -831,8 +862,9 @@ function buildLimitChangeEvent(input: BuildChronologyEventsInput, anchorYear: nu
   const coolingParts = withAnchorYear(parseDatePartsFromText(coolingCorpus, anchorYear), anchorYear)
   const drainWindow = foldDrain ? extractPayNowDrainWindow(drainCorpus) : null
 
-  const limitMatch = limitCorpus.match(/limit to \$?([\d,]+)|limit to S\$([\d,]+)/i)
-  const limitAmount = (limitMatch?.[1] ?? limitMatch?.[2] ?? "100000").replace(/,/g, "")
+  // The new limit only as the record states it; without one, the sentence names no amount.
+  const limitMatch = limitCorpus.match(/limit (?:was )?(?:increased |changed )?to (?:S\$|SGD\s?|\$)?\s?(\d[\d,]*)/i)
+  const limitPhrase = limitMatch ? ` to S$${limitMatch[1].replace(/,/g, "")}` : ""
 
   const refs = sortEvidenceRefs([
     ...refsForLabels(coolingLabels),
@@ -856,22 +888,29 @@ function buildLimitChangeEvent(input: BuildChronologyEventsInput, anchorYear: nu
 
   let eventText: string
   if (foldDrain && dateParts && coolingParts && drainWindow) {
+    const sameDay = drainWindow.month === dateParts.month && drainWindow.day === dateParts.day
     const windowStart =
+      sameDay &&
       hasConfirmedTime(dateParts) &&
       dateParts.hour! * 60 + dateParts.minute! < drainWindow.startHour * 60 + drainWindow.startMinute
         ? { hour: dateParts.hour!, minute: dateParts.minute! }
         : { hour: drainWindow.startHour, minute: drainWindow.startMinute }
     const payeePhrase =
-      drainWindow.payees.length === 2
-        ? `${drainWindow.payees[0]} and ${drainWindow.payees[1]}`
-        : drainWindow.payees.join(" and ")
+      drainWindow.payees.length === 0
+        ? ""
+        : drainWindow.payees.length <= 3
+          ? ` to ${drainWindow.payees.slice(0, -1).join(", ")}${drainWindow.payees.length > 1 ? " and " : ""}${drainWindow.payees[drainWindow.payees.length - 1]}`
+          : ` to ${drainWindow.payees.length} payees`
+    const dayPhrase = sameDay
+      ? "on the same day"
+      : `on ${formatDisplayDate({ year: dateParts.year, month: drainWindow.month, day: drainWindow.day, hour: null, minute: null })}`
     eventText =
-      `The available evidence suggests that on ${formatDisplayDate(dateParts)}, following the 12-hour cooling period after the digital token was registered on ${formatDisplayDate(coolingParts)}, the account daily transfer limit was increased to S$${limitAmount}. ` +
-      `The available evidence further suggests that unauthorized PayNow transfers to ${payeePhrase} occurred between ${formatTimeParts(windowStart.hour, windowStart.minute)} and ${formatTimeParts(drainWindow.endHour, drainWindow.endMinute)} on the same day.`
+      `The available evidence suggests that on ${formatDisplayDate(dateParts)}, following the 12-hour cooling period after the digital token was registered on ${formatDisplayDate(coolingParts)}, the account daily transfer limit was increased${limitPhrase}. ` +
+      `The available evidence further suggests that unauthorized PayNow transfers${payeePhrase} occurred between ${formatTimeParts(windowStart.hour, windowStart.minute)} and ${formatTimeParts(drainWindow.endHour, drainWindow.endMinute)} ${dayPhrase}.`
   } else if (dateParts) {
-    eventText = `The available evidence suggests that the customer's daily transfer limit was increased to S$${limitAmount} on ${formatDisplayDate(dateParts)}.`
+    eventText = `The available evidence suggests that the customer's daily transfer limit was increased${limitPhrase} on ${formatDisplayDate(dateParts)}.`
   } else {
-    eventText = `The available evidence suggests that the customer's daily transfer limit was increased to S$${limitAmount} during the relevant period.`
+    eventText = `The available evidence suggests that the customer's daily transfer limit was increased${limitPhrase} during the relevant period.`
   }
 
   return {
@@ -1001,8 +1040,7 @@ function hotlineCallEvidenceLabels(input: BuildChronologyEventsInput): EvidenceL
     input,
     (label, corpus) =>
       label.evidence_type === "hotline_call_record" ||
-      /Proof to call DBS/i.test(label.original_filename ?? "") ||
-      (/1800 111 1111/i.test(corpus) && /Outgoing Call/i.test(corpus)),
+      (/\b1800[\s-]?\d{3}[\s-]?\d{4}\b/.test(corpus) && /Outgoing Call/i.test(corpus)),
   )
 }
 
