@@ -7,7 +7,8 @@
 import { formatMoney } from "./display.ts";
 import { DOCUMENT_CONFIDENCE_THRESHOLD } from "./extraction.ts";
 import { DOCUMENT_LABELS, type EvidenceFinding, evidenceLists } from "./free-sections.ts";
-import type { BankReply, FactKey, Money, ReportedEvent, Transaction } from "./keys.ts";
+import type { BankReply, FactKey, Instrument, Money, ReportedEvent, Transaction } from "./keys.ts";
+import { appliesToCase, appliesToLabel, instrumentsOf } from "./rules/instrument-scope.ts";
 import { type FidrecAvailability, fidrecAvailability, FIDREC_RULES } from "./rules/fidrec.ts";
 import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
 import { bankPackTransactions } from "./bank-pack.ts";
@@ -185,30 +186,40 @@ export interface RegulatoryClause {
   /** The source document's issue and effective dates, which the duties may state (measured 20 Nov 2026: the model
    * cited the ABS safeguards' start date and the pack was refused). */
   dates: string[];
+  /** The case's payments this clause covers, in plain words ("card payments", "all payments"; instrument-scope.ts). */
+  applies_to: string;
 }
 
 export const CLAUSE_TEXT_MAX_CHARS = 1_500;
 
-/** What the retrieval asks for: the institution's duties on the confirmed facts of this case. */
+export function caseInstruments(facts: SnapshotFacts): Array<Instrument | null> {
+  return instrumentsOf((facts.transactions?.value as Transaction[] | null) ?? []);
+}
+
+/** What the retrieval asks for: the institution's duties on the confirmed facts of this case, routed by payment kind
+ * (brief v5 Phase 0b): a card-only case does not ask for the account duties (cooling-off, token alerts), which do not
+ * apply to cards, and no case asks for a new-device trigger, which applies only to payment service providers. */
 export function regulatoryQuery(facts: SnapshotFacts): string {
-  const parts = [
-    "Duties of a bank or payment institution to protect customer accounts from unauthorised access, scams and fraud:",
-    "authentication, new device and digital token activation, cooling periods, transaction and limit alerts,",
-    "fraud surveillance and blocking of suspicious transactions, kill switch, handling of customer reports and disputes.",
-  ];
+  const instruments = [...new Set(caseInstruments(facts).filter(Boolean))];
+  const cardOnly = instruments.length > 0 && instruments.every((i) => i === "sg_card");
+  const card = instruments.includes("sg_card");
+  const parts = cardOnly
+    ? ["Duties of a card issuer to a cardholder over disputed card payments: transaction alerts, reporting and blocking the card,",
+      "the issuer's investigation, and the cardholder's liability for disputed card transactions."]
+    : ["Duties of a bank or payment institution to protect customer accounts from unauthorised access, scams and fraud:",
+      "authentication, digital token activation, cooling-off before high-risk activities, transaction and limit alerts,",
+      "fraud surveillance and blocking of suspicious transactions, kill switch, handling of customer reports and disputes."];
   const scam = facts.scam_type?.value;
   if (Array.isArray(scam) && scam.length) parts.push(`Scam type: ${scam.join(", ")}.`);
   const channel = facts.phishing_channel?.value;
   if (typeof channel === "string") parts.push(`First contact by ${channel}.`);
-  const transactions = (facts.transactions?.value as Transaction[] | null) ?? [];
-  const instruments = [...new Set(transactions.map((t) => t.instrument).filter(Boolean))];
   if (instruments.length) parts.push(`Payment types: ${instruments.join(", ")}.`);
-  if (instruments.some((i) => /card/.test(String(i)))) parts.push("Card transactions, chargebacks and card scheme disputes.");
+  if (card && !cardOnly) parts.push("Card transactions: alerts, reporting and blocking the card, cardholder liability.");
   return parts.join(" ");
 }
 
 export function numberClauses(
-  rows: ReadonlyArray<{ clause_ref: string | null; title: string | null; text_content: string; source: string; dates?: Array<string | null> }>,
+  rows: ReadonlyArray<{ clause_ref: string | null; title: string | null; text_content: string; source: string; dates?: Array<string | null>; applies_to?: string }>,
 ): RegulatoryClause[] {
   return rows.map((row, i) => ({
     id: `R${i + 1}`,
@@ -217,7 +228,21 @@ export function numberClauses(
     title: row.title,
     text: row.text_content.slice(0, CLAUSE_TEXT_MAX_CHARS),
     dates: (row.dates ?? []).filter((d): d is string => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)),
+    applies_to: row.applies_to ?? "all payments",
   }));
+}
+
+/** The retrieval's filter (brief v5 Phase 0b): keep only clauses that apply to at least one of the case's payment
+ * kinds, label each with the payments it covers, and keep the first `limit` in similarity order. */
+export function routeClauses<T extends { clause_ref: string | null; title: string | null; text_content: string; source: string }>(
+  rows: readonly T[],
+  instruments: ReadonlyArray<Instrument | null>,
+  limit: number,
+): Array<T & { applies_to: string }> {
+  return rows
+    .filter((r) => appliesToCase({ source: r.source, title: r.title, clause_ref: r.clause_ref, text: r.text_content }, instruments))
+    .slice(0, limit)
+    .map((r) => ({ ...r, applies_to: appliesToLabel({ source: r.source, title: r.title, clause_ref: r.clause_ref, text: r.text_content }, instruments) }));
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -395,7 +420,7 @@ export function buildFidrecPackInput(args: {
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label, supports: e.facts })),
     documents: args.documents ?? [],
     allowed_dates: [...new Set(args.allowedDates ?? [])].sort(),
-    regulatory_clauses: (args.clauses ?? []).map((c) => ({ id: c.id, source: c.source, clause: c.clause_ref, title: c.title, text: c.text, dates: c.dates })),
+    regulatory_clauses: (args.clauses ?? []).map((c) => ({ id: c.id, source: c.source, clause: c.clause_ref, title: c.title, text: c.text, dates: c.dates, applies_to: c.applies_to })),
   };
 }
 
@@ -417,7 +442,7 @@ final_reply_letter is the institution's own final reply. If it is present, base 
 evidence_index lists the documents, each with an ID (E1, E2, …); documents gives their text. Every argument must cite the IDs of the documents that support it, and only IDs from evidence_index. If evidence_index is empty, cite none. Use what the documents show, including the institution's own records of logins, devices, IP addresses, alerts and limits.
 
 INSTITUTION DUTIES
-regulatory_clauses lists clauses (R1, R2, …) from the SRF Guidelines, the E-Payments User Protection Guidelines, the ABS Code and MAS notices on technology risk and cyber hygiene. In institution_duties, set out each duty these clauses give the institution that is relevant to what happened, and what the evidence shows about it: for example a cooling period after a new device or token, alerts, fraud surveillance, transaction limits, blocking, or handling of the report. Cite the clause IDs and the evidence IDs for each. Only use clauses from regulatory_clauses; do not cite any other rule. Describe; do not conclude: never say the institution is liable or must refund. A duty may be met on paper under one framework and not under another: say so where the evidence shows it. For card transactions: under the card schemes' rules (Visa, Mastercard, American Express) a chargeback is the card issuer's right against the scheme, not a duty it owes the cardholder, so do not say the institution had to raise one. Set out its card duties from the cardholder agreement and the ABS Code of Practice for credit cards where those are in regulatory_clauses. If regulatory_clauses is empty, return an empty list.
+regulatory_clauses lists clauses (R1, R2, …) from the SRF Guidelines, the E-Payments User Protection Guidelines, the ABS Code and MAS notices on technology risk and cyber hygiene. In institution_duties, set out each duty these clauses give the institution that is relevant to what happened, and what the evidence shows about it: for example a cooling-off period before high-risk activities after a digital token is activated, alerts, fraud surveillance, transaction limits, blocking, or handling of the report. Each clause's applies_to names the payments it covers: set a clause only against those payments. Cite the clause IDs and the evidence IDs for each. Only use clauses from regulatory_clauses; do not cite any other rule. Describe; do not conclude: never say the institution is liable or must refund. A duty may be met on paper under one framework and not under another: say so where the evidence shows it. For card payments, set out the issuer's duties from the ABS Code of Practice for credit cards where it is in regulatory_clauses. Do not say what card scheme rules (Visa, Mastercard, American Express) allow or require of the issuer: GuideBuoy adds that separately. If regulatory_clauses is empty, return an empty list.
 Never use the input's field names or internal names; describe the facts in ordinary words.
 
 OUTPUT

@@ -267,7 +267,9 @@ test('the clauses and documents reach the model; the report lists only the claus
   assert.deepEqual(input.regulatory_clauses.map((c) => c.id), ['R1', 'R2'])
   assert.equal(input.documents.length, 1)
   assert.match(fidrecPackSystem(null), /INSTITUTION DUTIES[\s\S]*never say the institution is liable/)
-  assert.match(regulatoryQuery(facts), /cooling periods[\s\S]*Scam type: phishing/)
+  assert.match(regulatoryQuery(facts), /cooling-off before high-risk activities[\s\S]*Scam type: phishing/)
+  // Brief v5, 1.4c: a login on a new device is a trigger only for accounts issued by payment service providers.
+  assert.doesNotMatch(regulatoryQuery(facts), /new device/i)
   const prose = { ...GOOD, institution_duties: [{ text: 'A duty.', clause_ids: ['R1'], evidence_ids: ['E1'] }] }
   const report = assembleFidrecPack({ prose, source: 'model', facts, findings: [], evidenceIndex: index, route, finalReplyUsed: false, clauses })
   assert.deepEqual(report.regulatory_sources, [{ id: 'R1', source: 'MAS SRF Guidelines (2024)', clause_ref: '4.2(b)', title: 'Cooling period' }])
@@ -319,9 +321,16 @@ test('more Singapore banks are recognised, including names with "and" in them (E
   assert.deepEqual(institutionsMentioned('I complained to ICBC, not Bank of China.').map((i) => i.name).sort(), ['Bank of China', 'ICBC'])
 })
 
-test('card duties are argued through the cardholder agreement and the ABS Code, not a duty to raise a chargeback', () => {
-  assert.match(fidrecPackSystem(null), /a chargeback is the card issuer's right against the scheme, not a duty it owes the cardholder[\s\S]*cardholder agreement and the ABS Code of Practice for credit cards/)
-  assert.match(regulatoryQuery(facts).concat(regulatoryQuery({ ...facts, transactions: { value: [{ date: null, amount: sgd(1), channel: null, payee: null, last4: null, instrument: 'credit_card' }], label: 'confirmed' } })), /chargebacks and card scheme disputes/)
+test('card duties come from the ABS Code; the model says nothing of card scheme rules (brief v5, Phase 0b and decision 19)', () => {
+  const system = fidrecPackSystem(null)
+  assert.match(system, /For card payments, set out the issuer's duties from the ABS Code of Practice for credit cards/)
+  assert.match(system, /Do not say what card scheme rules \(Visa, Mastercard, American Express\) allow or require of the issuer/)
+  assert.match(system, /Each clause's applies_to names the payments it covers: set a clause only against those payments/)
+  // The hand-written chargeback sentence is gone; the reviewed scheme statements of Phase 7 replace it.
+  assert.doesNotMatch(system, /right against the scheme/)
+  const cardOnly = { ...facts, transactions: { value: [{ date: null, amount: sgd(1), channel: null, payee: null, last4: null, instrument: 'sg_card' }], label: 'confirmed' } } as SnapshotFacts
+  assert.match(regulatoryQuery(cardOnly), /card issuer to a cardholder/)
+  assert.doesNotMatch(regulatoryQuery(cardOnly), /cooling|token|new device|chargeback/i)
 })
 
 test("a regulation's own issue and effective dates may be stated (measured 20 Nov 2026)", () => {

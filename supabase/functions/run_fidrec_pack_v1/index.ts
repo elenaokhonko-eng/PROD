@@ -18,6 +18,8 @@ import {
   dutyFailures,
   numberClauses,
   regulatoryQuery,
+  caseInstruments,
+  routeClauses,
   chatJson,
   documentedFacts,
   type EvidenceFinding,
@@ -185,7 +187,7 @@ Deno.serve(async (req) => {
     // The duties section's clauses. Retrieval failing leaves the section empty rather than failing the pack.
     let clauses: ReturnType<typeof numberClauses> = [];
     try {
-      clauses = await retrieveClauses(regulatoryQuery(facts), (call) =>
+      clauses = await retrieveClauses(regulatoryQuery(facts), caseInstruments(facts), (call) =>
         recordModelUsage(usageClient, usageEnv, { ...meter, purpose: "fidrec_pack_retrieval", model: EMBEDDING_MODEL, ...call })
       );
     } catch (error) {
@@ -303,6 +305,7 @@ ${JSON.stringify(input, null, 2)}`;
 // One embedding of the case's duty question, then the nearest clauses with their documents' titles.
 async function retrieveClauses(
   query: string,
+  instruments: ReturnType<typeof caseInstruments>,
   onCall: (call: { usage?: ReturnType<typeof openAiUsage>; latencyMs: number; httpStatus: number | null; outcome: "ok" | "error" }) => unknown,
 ) {
   const started = Date.now();
@@ -320,7 +323,8 @@ async function retrieveClauses(
   const supabase = createClient(PROJECT_URL!, SERVICE_ROLE_KEY!);
   const { data: matches, error } = await supabase.rpc("match_regulatory_clauses_threshold", {
     query_embedding: embedding,
-    match_count: CLAUSE_COUNT,
+    // Twice the clauses kept, so the payment-kind filter below still leaves enough.
+    match_count: CLAUSE_COUNT * 2,
     similarity_threshold: CLAUSE_SIMILARITY,
   });
   if (error) throw new Error(`clause search failed (${error.code ?? "unknown"})`);
@@ -332,11 +336,13 @@ async function retrieveClauses(
   if (documentsError) throw new Error(`clause sources failed (${documentsError.code ?? "unknown"})`);
   const titles = new Map((documents ?? []).map((d) => [d.id, (d.document_key as string | null) ?? (d.document_title as string)]));
   const dates = new Map((documents ?? []).map((d) => [d.id, [d.issue_date as string | null, d.effective_date as string | null]]));
-  return numberClauses(rows.map((r) => ({
+  // Only clauses that apply to the case's kinds of payment (brief v5 Phase 0b: no SRF clause and no EUPG paragraph
+  // outside 4.2-4.6, 4.10-4.12 and 4.14-4.16 for card payments), each labelled with the payments it covers.
+  return numberClauses(routeClauses(rows.map((r) => ({
     ...r,
     source: (r.document_id && titles.get(r.document_id)) || "Regulatory source",
     dates: (r.document_id && dates.get(r.document_id)) || [],
-  })));
+  })), instruments, CLAUSE_COUNT));
 }
 
 // The old report's wording rule, kept: "disputed", never "unauthorised" (run_report_selfserve_v1).
