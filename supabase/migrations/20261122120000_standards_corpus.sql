@@ -18,9 +18,14 @@ CREATE TABLE public.standard_documents (
   title text NOT NULL CHECK (btrim(title) <> ''),
   publisher text NOT NULL CHECK (btrim(publisher) <> ''),
   binding_level text NOT NULL
-    CHECK (binding_level IN ('guideline', 'notice', 'industry_code', 'announcement', 'contract', 'scheme_rule', 'forum_rules')),
+    CHECK (binding_level IN (
+      'guideline', 'notice', 'circular', 'industry_code', 'announcement', 'contract', 'scheme_rule', 'forum_rules'
+    )),
   applies_to text[] NOT NULL DEFAULT '{}'
-    CHECK (applies_to <@ ARRAY['bank', 'card_issuer', 'payment_service_provider', 'telco']::text[]),
+    CHECK (applies_to <@ ARRAY[
+      'bank', 'card_issuer', 'payment_service_provider', 'payment_system_operator', 'settlement_institution',
+      'dpt_service_provider', 'telco'
+    ]::text[]),
   instrument_scope text[] NOT NULL DEFAULT '{}'
     CHECK (instrument_scope <@ ARRAY['account_transfer', 'sg_card', 'ewallet']::text[]),
   institution text,
@@ -84,6 +89,9 @@ CREATE TABLE public.standard_clauses (
   text_sha256 text NOT NULL CHECK (text_sha256 ~ '^[0-9a-f]{64}$'),
   tags text[] NOT NULL DEFAULT '{}',
   effective_from_override date,
+  -- Narrower than the document where a paragraph covers fewer payments (EUPG 4.1: only 4.2-4.6, 4.10-4.12 and
+  -- 4.14-4.16 apply to cards). Null means the document's scope.
+  instrument_scope text[] CHECK (instrument_scope <@ ARRAY['account_transfer', 'sg_card', 'ewallet']::text[]),
   embedding public.vector(1536),
   embedding_model text,
   legacy_clause_id uuid UNIQUE REFERENCES public.regulatory_clauses(id) ON DELETE SET NULL,
@@ -189,8 +197,9 @@ AS $$
 DECLARE
   v_status text;
   v_document_key text;
+  v_document_scope text[];
 BEGIN
-  SELECT v.status, d.document_key INTO v_status, v_document_key
+  SELECT v.status, d.document_key, d.instrument_scope INTO v_status, v_document_key, v_document_scope
   FROM public.standard_document_versions v JOIN public.standard_documents d ON d.id = v.document_id
   WHERE v.id = COALESCE(NEW.version_id, OLD.version_id);
 
@@ -202,9 +211,11 @@ BEGIN
   END IF;
 
   IF TG_OP = 'UPDATE' AND v_status <> 'draft' AND (
-    NEW.version_id, NEW.clause_key, NEW.clause_ref, NEW.heading_path, NEW.text_content, NEW.tags, NEW.effective_from_override
+    NEW.version_id, NEW.clause_key, NEW.clause_ref, NEW.heading_path, NEW.text_content, NEW.tags, NEW.effective_from_override,
+    NEW.instrument_scope
   ) IS DISTINCT FROM (
-    OLD.version_id, OLD.clause_key, OLD.clause_ref, OLD.heading_path, OLD.text_content, OLD.tags, OLD.effective_from_override
+    OLD.version_id, OLD.clause_key, OLD.clause_ref, OLD.heading_path, OLD.text_content, OLD.tags, OLD.effective_from_override,
+    OLD.instrument_scope
   ) THEN
     RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'standard_clause_immutable';
   END IF;
@@ -215,6 +226,10 @@ BEGIN
 
   IF split_part(NEW.clause_key, '/', 1) <> v_document_key THEN
     RAISE EXCEPTION USING ERRCODE = '23514', MESSAGE = 'standard_clause_key_document_mismatch';
+  END IF;
+
+  IF NEW.instrument_scope IS NOT NULL AND NOT NEW.instrument_scope <@ v_document_scope THEN
+    RAISE EXCEPTION USING ERRCODE = '23514', MESSAGE = 'standard_clause_scope_wider_than_document';
   END IF;
 
   NEW.text_sha256 := encode(sha256(convert_to(NEW.text_content, 'UTF8')), 'hex');
@@ -325,13 +340,26 @@ BEGIN
         DETAIL = v_missing;
     END IF;
 
-    SELECT * INTO v_previous FROM public.standard_document_versions p
-    WHERE p.document_id = NEW.document_id AND p.status = 'verified' AND p.effective_to IS NULL AND p.id <> NEW.id;
-    IF FOUND THEN
-      IF NEW.effective_from <= v_previous.effective_from THEN
-        RAISE EXCEPTION USING ERRCODE = '23514', MESSAGE = 'standard_version_not_after_current';
+    -- An open-ended version follows the current one, which closes on its start date. An earlier version loaded
+    -- later (a bank's previous terms, the EUPG before 16 Dec 2024) carries its own end date and must fit a gap.
+    IF NEW.effective_to IS NULL THEN
+      SELECT * INTO v_previous FROM public.standard_document_versions p
+      WHERE p.document_id = NEW.document_id AND p.status = 'verified' AND p.effective_to IS NULL AND p.id <> NEW.id;
+      IF FOUND THEN
+        IF NEW.effective_from <= v_previous.effective_from THEN
+          RAISE EXCEPTION USING ERRCODE = '23514', MESSAGE = 'standard_version_not_after_current',
+            HINT = 'An earlier version needs its own effective_to.';
+        END IF;
+        UPDATE public.standard_document_versions SET effective_to = NEW.effective_from WHERE id = v_previous.id;
       END IF;
-      UPDATE public.standard_document_versions SET effective_to = NEW.effective_from WHERE id = v_previous.id;
+    END IF;
+
+    IF EXISTS (
+      SELECT 1 FROM public.standard_document_versions p
+      WHERE p.document_id = NEW.document_id AND p.status = 'verified' AND p.id <> NEW.id
+        AND daterange(p.effective_from, p.effective_to) && daterange(NEW.effective_from, NEW.effective_to)
+    ) THEN
+      RAISE EXCEPTION USING ERRCODE = '23514', MESSAGE = 'standard_version_overlaps';
     END IF;
   END IF;
 
@@ -377,7 +405,8 @@ CREATE TRIGGER definition_statements_guard
 -- 4) As-of reads -----------------------------------------------------------------------------------------------------
 
 -- A clause is in force on a date when its version is verified and covers the date, and any later start for the
--- paragraph itself (effective_from_override) has passed. Another institution's contract is never returned.
+-- paragraph itself (effective_from_override) has passed. Another institution's contract is never returned. The
+-- payment filter uses the paragraph's own scope where it has one.
 CREATE OR REPLACE FUNCTION public.match_standards_v1(
   query_embedding public.vector,
   p_on_date date,
@@ -393,7 +422,7 @@ RETURNS TABLE (
   clause_id uuid, clause_key text, clause_ref text, heading_path text[], text_content text, text_sha256 text,
   tags text[], version_id uuid, version_label text, effective_from date, effective_to date, document_key text,
   title text, publisher text, binding_level text, institution text, card_scheme text, source_url text,
-  coverage text, similarity double precision
+  coverage text, instrument_scope text[], similarity double precision
 )
 LANGUAGE sql
 STABLE
@@ -401,7 +430,7 @@ SET search_path = ''
 AS $$
   SELECT c.id, c.clause_key, c.clause_ref, c.heading_path, c.text_content, c.text_sha256, c.tags, v.id,
     v.version_label, v.effective_from, v.effective_to, d.document_key, d.title, d.publisher, d.binding_level,
-    d.institution, d.card_scheme, v.source_url, v.coverage,
+    d.institution, d.card_scheme, v.source_url, v.coverage, COALESCE(c.instrument_scope, d.instrument_scope),
     1 - (c.embedding OPERATOR(public.<=>) query_embedding) AS similarity
   FROM public.standard_clauses c
   JOIN public.standard_document_versions v ON v.id = c.version_id
@@ -413,7 +442,7 @@ AS $$
     AND c.embedding IS NOT NULL
     AND (p_layers IS NULL OR d.binding_level = ANY (p_layers))
     AND (p_applies_to IS NULL OR d.applies_to && p_applies_to)
-    AND (p_instrument_scope IS NULL OR d.instrument_scope && p_instrument_scope)
+    AND (p_instrument_scope IS NULL OR COALESCE(c.instrument_scope, d.instrument_scope) && p_instrument_scope)
     AND (d.institution IS NULL OR d.institution = p_institution)
     AND (d.card_scheme IS NULL OR d.card_scheme = p_card_scheme)
     AND 1 - (c.embedding OPERATOR(public.<=>) query_embedding) >= similarity_threshold
@@ -426,7 +455,7 @@ RETURNS TABLE (
   clause_id uuid, clause_key text, clause_ref text, heading_path text[], text_content text, text_sha256 text,
   tags text[], version_id uuid, version_label text, effective_from date, effective_to date, document_key text,
   title text, publisher text, binding_level text, institution text, card_scheme text, source_url text,
-  coverage text
+  coverage text, instrument_scope text[]
 )
 LANGUAGE sql
 STABLE
@@ -434,7 +463,7 @@ SET search_path = ''
 AS $$
   SELECT c.id, c.clause_key, c.clause_ref, c.heading_path, c.text_content, c.text_sha256, c.tags, v.id,
     v.version_label, v.effective_from, v.effective_to, d.document_key, d.title, d.publisher, d.binding_level,
-    d.institution, d.card_scheme, v.source_url, v.coverage
+    d.institution, d.card_scheme, v.source_url, v.coverage, COALESCE(c.instrument_scope, d.instrument_scope)
   FROM public.standard_clauses c
   JOIN public.standard_document_versions v ON v.id = c.version_id
   JOIN public.standard_documents d ON d.id = v.document_id
@@ -449,7 +478,7 @@ RETURNS TABLE (
   clause_id uuid, clause_key text, clause_ref text, heading_path text[], text_content text, text_sha256 text,
   tags text[], version_id uuid, version_label text, effective_from date, effective_to date, document_key text,
   title text, publisher text, binding_level text, institution text, card_scheme text, source_url text,
-  coverage text
+  coverage text, instrument_scope text[]
 )
 LANGUAGE sql
 STABLE
@@ -457,7 +486,7 @@ SET search_path = ''
 AS $$
   SELECT c.id, c.clause_key, c.clause_ref, c.heading_path, c.text_content, c.text_sha256, c.tags, v.id,
     v.version_label, v.effective_from, v.effective_to, d.document_key, d.title, d.publisher, d.binding_level,
-    d.institution, d.card_scheme, v.source_url, v.coverage
+    d.institution, d.card_scheme, v.source_url, v.coverage, COALESCE(c.instrument_scope, d.instrument_scope)
   FROM public.standard_clauses c
   JOIN public.standard_document_versions v ON v.id = c.version_id
   JOIN public.standard_documents d ON d.id = v.document_id
@@ -540,17 +569,20 @@ FROM (VALUES
    'Monetary Authority of Singapore', 'guideline', '{bank,payment_service_provider,telco}', '{account_transfer,ewallet}'),
   ('MAS Anti-Scam Measures for MPI E-Wallets (2024)', 'mas.mpi_ewallet_antiscam',
    'Anti-Scam Measures by Major Payment Institutions that Issue Personal Payment Accounts Containing E-Money',
-   'Monetary Authority of Singapore', 'guideline', '{payment_service_provider}', '{ewallet}'),
+   'Monetary Authority of Singapore', 'circular', '{payment_service_provider}', '{ewallet}'),
   ('MAS Notice FSM-N05 (2024)', 'mas.fsm-n05', 'Notice on Technology Risk Management (FSM-N05)',
    'Monetary Authority of Singapore', 'notice', '{bank}', '{account_transfer,sg_card,ewallet}'),
   ('MAS Notice FSM-N06 (2024)', 'mas.fsm-n06', 'Notice on Cyber Hygiene (FSM-N06)',
    'Monetary Authority of Singapore', 'notice', '{bank}', '{account_transfer,sg_card,ewallet}'),
   ('MAS Notice FSM-N08 (2024)', 'mas.fsm-n08', 'Notice on Cyber Hygiene (FSM-N08)',
    'Monetary Authority of Singapore', 'notice', '{card_issuer}', '{sg_card}'),
+  -- MAS lists FSM-N13 and N14 for designated payment system operators, settlement institutions and DPT providers.
   ('MAS Notice FSM-N13 (2024)', 'mas.fsm-n13', 'Notice on Technology Risk Management (FSM-N13)',
-   'Monetary Authority of Singapore', 'notice', '{payment_service_provider}', '{account_transfer,ewallet}'),
+   'Monetary Authority of Singapore', 'notice', '{payment_system_operator,settlement_institution,dpt_service_provider}',
+   '{account_transfer,ewallet}'),
   ('MAS Notice FSM-N14 (2024)', 'mas.fsm-n14', 'Notice on Cyber Hygiene (FSM-N14)',
-   'Monetary Authority of Singapore', 'notice', '{payment_service_provider}', '{account_transfer,ewallet}'),
+   'Monetary Authority of Singapore', 'notice', '{payment_system_operator,settlement_institution,dpt_service_provider}',
+   '{account_transfer,ewallet}'),
   ('ABS CODE OF PRACTICE BANKS CREDIT CARDS 2020', 'abs.card_code', 'Code of Practice for Banks – Credit Cards',
    'The Association of Banks in Singapore', 'industry_code', '{bank,card_issuer}', '{sg_card}'),
   ('ABS MEDIA RELEASE ENHANCED SAFEGUARDS (2025)', 'abs.media_2025_10_safeguards',
@@ -568,11 +600,19 @@ FROM public.standard_documents s JOIN public.regulatory_documents d ON d.id = s.
 
 -- Clause keys: the clause_ref where there is one, else the paragraph number the text opens with, else a key from
 -- the legacy row's id. A repeated key gets ~2, ~3 in the legacy row's order. Embeddings are copied as they are.
+-- EUPG 4.1: only 4.2-4.6, 4.10-4.12 and 4.14-4.16 apply to card payments; every other EUPG paragraph, and the
+-- definitions, cover account and e-wallet payments only.
 INSERT INTO public.standard_clauses (version_id, clause_key, clause_ref, heading_path, text_content, text_sha256, tags,
-  embedding, embedding_model, legacy_clause_id)
+  instrument_scope, embedding, embedding_model, legacy_clause_id)
 SELECT k.version_id,
   k.base_key || CASE WHEN k.n > 1 THEN '~' || k.n ELSE '' END,
-  k.clause_ref, k.heading_path, k.text_content, '', k.tags, k.embedding,
+  k.clause_ref, k.heading_path, k.text_content, '', k.tags,
+  CASE
+    WHEN k.base_key NOT LIKE 'mas.eupg/%' THEN NULL
+    WHEN k.base_key ~ '^mas\.eupg/4\.(2|3|4|5|6|10|11|12|14|15|16)$' THEN NULL
+    ELSE '{account_transfer,ewallet}'::text[]
+  END,
+  k.embedding,
   CASE WHEN k.embedding IS NULL THEN NULL ELSE 'text-embedding-3-small' END,
   k.legacy_clause_id
 FROM (

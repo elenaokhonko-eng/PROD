@@ -29,7 +29,7 @@ DECLARE
   v_count integer;
 BEGIN
   INSERT INTO public.standard_documents (document_key, title, publisher, binding_level, applies_to, instrument_scope)
-  VALUES ('test.guideline', 'Synthetic guideline', 'Synthetic regulator', 'guideline', '{bank}', '{account_transfer}')
+  VALUES ('test.guideline', 'Synthetic guideline', 'Synthetic regulator', 'guideline', '{bank}', '{account_transfer,sg_card}')
   RETURNING id INTO v_guideline;
   INSERT INTO public.standard_documents (document_key, title, publisher, binding_level, applies_to, instrument_scope, institution)
   VALUES ('test.bank_a_terms', 'Synthetic Bank A terms', 'Synthetic Bank A', 'contract', '{bank}', '{account_transfer}', 'Synthetic Bank A')
@@ -49,9 +49,18 @@ BEGIN
   -- Version 1 of the guideline, in force from 1 Jan 2025.
   INSERT INTO public.standard_document_versions (document_id, version_label, effective_from, provenance)
   VALUES (v_guideline, 'v1', '2025-01-01', 'publisher_site') RETURNING id INTO v_g1;
-  INSERT INTO public.standard_clauses (version_id, clause_key, text_content, text_sha256, tags, embedding, embedding_model) VALUES
-    (v_g1, 'test.guideline/4.7', 'Synthetic cooling-off duty, first wording.', '', '{cooling_off}', c_vec, 'synthetic'),
-    (v_g1, 'test.guideline/4.9', 'Synthetic alert duty.', '', '{alerts}', c_vec, 'synthetic');
+  -- 4.7 covers account payments only, though the document also covers cards.
+  INSERT INTO public.standard_clauses (version_id, clause_key, text_content, text_sha256, tags, instrument_scope, embedding, embedding_model) VALUES
+    (v_g1, 'test.guideline/4.7', 'Synthetic cooling-off duty, first wording.', '', '{cooling_off}', '{account_transfer}', c_vec, 'synthetic'),
+    (v_g1, 'test.guideline/4.9', 'Synthetic alert duty.', '', '{alerts}', NULL, c_vec, 'synthetic');
+
+  -- A paragraph cannot cover more than its document.
+  BEGIN
+    INSERT INTO public.standard_clauses (version_id, clause_key, text_content, text_sha256, instrument_scope)
+    VALUES (v_g1, 'test.guideline/4.8', 'Too wide.', '', '{ewallet}');
+    RAISE EXCEPTION 'clause scope wider than its document was accepted';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
 
   -- A clause key from another document is refused.
   BEGIN
@@ -157,7 +166,13 @@ BEGIN
   IF v_count <> 0 THEN RAISE EXCEPTION 'paragraph retrieved before its own start date'; END IF;
   SELECT count(*) INTO v_count FROM public.match_standards_v1(c_vec, '2025-09-01') WHERE clause_key = 'test.guideline/4.21';
   IF v_count <> 1 THEN RAISE EXCEPTION 'paragraph not retrieved from its own start date'; END IF;
+  -- A card search gets 4.9 but not 4.7, which covers account payments only.
   SELECT count(*) INTO v_count FROM public.match_standards_v1(c_vec, '2025-03-01', p_instrument_scope => '{sg_card}');
+  IF v_count <> 1 OR NOT EXISTS (SELECT 1 FROM public.match_standards_v1(c_vec, '2025-03-01', p_instrument_scope => '{sg_card}')
+                                 WHERE clause_key = 'test.guideline/4.9') THEN
+    RAISE EXCEPTION 'paragraph scope ignored by the card filter';
+  END IF;
+  SELECT count(*) INTO v_count FROM public.match_standards_v1(c_vec, '2025-03-01', p_instrument_scope => '{ewallet}');
   IF v_count <> 0 THEN RAISE EXCEPTION 'instrument filter ignored'; END IF;
 
   -- A new version may not start on or before the current one.
@@ -171,6 +186,33 @@ BEGIN
     RAISE EXCEPTION 'older version verified over the current one';
   EXCEPTION WHEN check_violation THEN NULL;
   END;
+
+  -- An earlier version loaded later carries its own end date; it must not overlap a verified version.
+  UPDATE public.standard_document_versions SET effective_from = '2024-06-01', effective_to = '2025-02-01' WHERE id = v_g3;
+  INSERT INTO public.standard_clauses (version_id, clause_key, text_content, text_sha256, embedding, embedding_model)
+  VALUES (v_g3, 'test.guideline/4.7', 'Synthetic cooling-off duty, earlier wording.', '', c_vec, 'synthetic');
+  INSERT INTO public.standard_dependant_reviews (version_id, statement_id, outcome, reviewed_by)
+  VALUES (v_g3, v_statement, 'unchanged', 'synthetic reviewer');
+  BEGIN
+    UPDATE public.standard_document_versions
+    SET status = 'verified', source_url = 'https://example.test/v0.pdf', snapshot_path = 'synthetic/v0.pdf',
+        content_sha256 = c_sha, retrieved_at = now(), verified_by = 'synthetic reviewer', verified_at = now()
+    WHERE id = v_g3;
+    RAISE EXCEPTION 'overlapping earlier version verified';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+  UPDATE public.standard_document_versions SET effective_to = '2025-01-01' WHERE id = v_g3;
+  UPDATE public.standard_document_versions
+  SET status = 'verified', source_url = 'https://example.test/v0.pdf', snapshot_path = 'synthetic/v0.pdf',
+      content_sha256 = c_sha, retrieved_at = now(), verified_by = 'synthetic reviewer', verified_at = now()
+  WHERE id = v_g3;
+  SELECT text_content INTO v_text FROM public.get_clause_as_of_v1('test.guideline/4.7', '2024-12-31');
+  IF v_text IS DISTINCT FROM 'Synthetic cooling-off duty, earlier wording.' THEN RAISE EXCEPTION 'earlier version not read: %', v_text; END IF;
+  SELECT text_content INTO v_text FROM public.get_clause_as_of_v1('test.guideline/4.7', '2025-03-01');
+  IF v_text IS DISTINCT FROM 'Synthetic cooling-off duty, first wording.' THEN RAISE EXCEPTION 'earlier version displaced v1: %', v_text; END IF;
+  IF (SELECT effective_to FROM public.standard_document_versions WHERE id = v_g2) IS NOT NULL THEN
+    RAISE EXCEPTION 'loading an earlier version closed the current one';
+  END IF;
 
   -- Contracts: one per bank, both verified.
   INSERT INTO public.standard_document_versions (document_id, version_label, effective_from, provenance)
@@ -235,6 +277,20 @@ BEGIN
            WHERE v.document_id = s.id)
   ) THEN
     RAISE EXCEPTION 'legacy clause counts differ';
+  END IF;
+  -- EUPG paragraphs outside 4.2-4.6, 4.10-4.12 and 4.14-4.16 do not reach a card search.
+  IF EXISTS (
+    SELECT 1 FROM public.standard_clauses c
+    JOIN public.standard_document_versions v ON v.id = c.version_id
+    JOIN public.standard_documents d ON d.id = v.document_id
+    WHERE d.document_key = 'mas.eupg'
+      AND c.clause_key !~ '^mas\.eupg/4\.(2|3|4|5|6|10|11|12|14|15|16)(~[0-9]+)?$'
+      AND 'sg_card' = ANY (COALESCE(c.instrument_scope, d.instrument_scope))
+  ) THEN
+    RAISE EXCEPTION 'an EUPG paragraph outside the card list covers cards';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.standard_documents WHERE document_key = 'mas.mpi_ewallet_antiscam' AND binding_level <> 'circular') THEN
+    RAISE EXCEPTION 'the e-wallet anti-scam document is not classed as a circular';
   END IF;
   IF EXISTS (SELECT 1 FROM public.regulatory_documents WHERE document_key IN ('MAS Notice FMS-N08 (2024)', 'ABS MEDIA RELEASE ENHANCED SAFEGUARDS (2025))')) THEN
     RAISE EXCEPTION 'legacy key typos remain';
