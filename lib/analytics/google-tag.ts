@@ -1,0 +1,43 @@
+// Google Tag Manager for the public site (Elena, 20 Nov 2026: Google campaign tracking). Loaded on the public marketing
+// pages and the sign-up page only, never in the signed-in case area, and only in production, so staging visits don't
+// reach the campaign data.
+
+export const GOOGLE_TAG_MANAGER_ID = 'GTM-WD9X2LV2'
+
+// The Google tag (gtag.js) for Google Analytics, container "guidebuoyai.sg": Google tag GT-MR59L657, sending to the
+// Analytics stream G-YFMTYRWZYT (Elena, 20 Nov 2026). Installed directly, beside Tag Manager, so Analytics needs no
+// set-up inside Tag Manager. Don't also add a Google Analytics tag in the Tag Manager container: visits would count twice.
+export const GOOGLE_TAG_ID = 'GT-MR59L657'
+
+// Google's standard Google tag set-up, after gtag/js has loaded.
+export function googleTagSnippet(id: string = GOOGLE_TAG_ID): string {
+  return `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${id}');`
+}
+
+export function googleTagEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return env.HARBOR_DEPLOYMENT_ENVIRONMENT?.trim() === 'production'
+}
+
+// Google's standard container snippet: it records the page-load event (gtm.start) that "All pages" triggers fire on,
+// then loads the container.
+export function googleTagManagerSnippet(id: string = GOOGLE_TAG_MANAGER_ID): string {
+  return `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${id}');`
+}
+
+// The sign-up conversion (Elena, 20 Nov 2026): Clerk sends a new account to /signed-up, a public step outside the
+// case area, which reports this one event to Google and then continues to where the person was going. Tag Manager
+// gets it as a custom event; Google Analytics as its standard sign_up event.
+export const SIGN_UP_COMPLETED_EVENT = 'sign_up_completed'
+export const ANALYTICS_SIGN_UP_EVENT = 'sign_up'
+export const SIGNED_UP_PATH = '/signed-up'
+
+/** Only a path on this site, never another origin ("//evil.example", "https://…", backslashes). */
+export function safeNextPath(value: unknown, fallback = '/app'): string {
+  if (typeof value !== 'string') return fallback
+  const path = value.trim()
+  return path.startsWith('/') && !path.startsWith('//') && !path.includes('\\') &&!/[\u0000-\u001f]/.test(path) ? path : fallback
+}
+
+export function signedUpRedirect(redirectUrl: unknown): string {
+  return `${SIGNED_UP_PATH}?next=${encodeURIComponent(safeNextPath(redirectUrl))}`
+}

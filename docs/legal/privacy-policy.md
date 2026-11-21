@@ -1,14 +1,14 @@
 ---
 title: Privacy Policy
-version: "2.1"
+version: "2.2"
 effective: "{{effective}}"
-replaces: "2.0 (12 November 2026)"
+replaces: "2.1 (14 November 2026)"
 contact: info@guidebuoyai.sg
 ---
 
 # Privacy Policy
 
-**Version 2.1 · Effective {{effective}} · Replaces version 2.0 of 12 November 2026**
+**Version 2.2 · Effective {{effective}} · Replaces version 2.1 of 14 November 2026**
 
 GuideBuoy AI SG Pte Ltd ("GuideBuoy", "we"), UEN 202545875C, of 51 Goldhill Plaza #07-10/11, Singapore 308900, is the organisation responsible for your personal data under Singapore's Personal Data Protection Act 2012 (PDPA). This policy explains what we collect, why, who we share it with, how long we keep it, and your rights. Our Data Protection Officer can be reached at info@guidebuoyai.sg.
 
@@ -99,7 +99,9 @@ Email info@guidebuoyai.sg. We will check your identity, respond within 30 days, 
 
 ## 8. Cookies and analytics
 
-We use strictly necessary cookies for sign-in and security, and browser storage that keeps an unfinished story while the browser tab is open, so reloading the page or signing in doesn't lose it; it is deleted when you close the tab. We record how the service and our public tools are used (for example which steps are completed, and how many times a tool is used) in our own systems, to improve them; this first-party usage data is not shared with advertisers. Cloudflare also gives us visit statistics for the site, without advertising cookies. We don't use advertising or third-party tracking cookies.
+We use strictly necessary cookies for sign-in and security, and browser storage that keeps an unfinished story while the browser tab is open, so reloading the page or signing in doesn't lose it; it is deleted when you close the tab. We record how the service and our public tools are used (for example which steps are completed, and how many times a tool is used) in our own systems, to improve them; this first-party usage data is not shared with advertisers. Cloudflare also gives us visit statistics for the site, without advertising cookies.
+
+**Measuring our website and advertising.** On our public pages and the sign-up page we use Google Tag Manager and Google Analytics, services from Google, to understand how people find GuideBuoy and whether our advertising works. Google may set cookies and receive information about your device and visit, such as your IP address, the pages you viewed and the ad you clicked. This happens only on our public pages: your story, documents and case details are never sent to Google. You can block these cookies in your browser settings.
 
 ## 9. Children
 
