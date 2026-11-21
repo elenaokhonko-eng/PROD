@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
+import { NOT_A_VISITOR } from "@/lib/analytics/funnel-schema"
 import type { AnalyticsEventPayload } from "@/lib/analytics/types"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { getCurrentUser } from "@/lib/auth"
@@ -18,6 +19,8 @@ const payloadSchema = z.object({
 const log = logger.withContext({ module: "analytics-track" })
 
 export async function POST(request: NextRequest) {
+  // Crawlers and monitors are not visitors (same filter as the journey tracking).
+  if (NOT_A_VISITOR.test(request.headers.get("user-agent") ?? "")) return NextResponse.json({ success: true })
   try {
     let parsed
     try {

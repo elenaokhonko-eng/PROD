@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service"
+import { withoutClickIds } from "./click-ids"
 import type { AnalyticsEventPayload } from "./types"
 
 function buildRecord(payload: AnalyticsEventPayload) {
@@ -7,7 +8,7 @@ function buildRecord(payload: AnalyticsEventPayload) {
     event_data: payload.eventData ?? null,
     session_id: payload.sessionId ?? null,
     user_id: payload.userId ?? null,
-    page_url: payload.pageUrl ?? null,
+    page_url: withoutClickIds(payload.pageUrl),
     user_agent: payload.userAgent ?? null,
     created_at: payload.createdAt ?? new Date().toISOString(),
   }

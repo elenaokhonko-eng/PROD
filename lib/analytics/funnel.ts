@@ -2,6 +2,8 @@
 // sessionStorage (gone when the tab closes); no cookies, no IP address, no user agent, no story text. The channel the
 // visitor first arrived from is kept for the tab, so later steps keep it after moving between pages.
 
+import { adClickSource } from './click-ids'
+
 export const FUNNEL_EVENTS = ['home_viewed', 'story_started', 'story_submitted', 'signup_reached', 'case_created'] as const
 export type FunnelEvent = (typeof FUNNEL_EVENTS)[number]
 export const DEVICE_CLASSES = ['phone', 'tablet', 'desktop'] as const
@@ -28,7 +30,10 @@ export function deviceClass(width: number): DeviceClass {
 
 const clip = (value: string | null, max: number) => (value ? value.trim().slice(0, max) || null : null)
 
-/** The channel for a landing: another site's host name (never its path) and the UTM tags of the landing address. */
+/**
+ * The channel for a landing: another site's host name (never its path) and the UTM tags of the landing address. A Google
+ * Ads click without a utm_source counts as source "google-ads"; the click id itself is not kept.
+ */
 export function firstTouchFrom(landing: { href: string; referrer: string; width: number }): FirstTouch {
   const url = new URL(landing.href)
   let referrerHost: string | null = null
@@ -40,7 +45,7 @@ export function firstTouchFrom(landing: { href: string; referrer: string; width:
   }
   return {
     referrer_host: clip(referrerHost, 200),
-    utm_source: clip(url.searchParams.get('utm_source'), 100),
+    utm_source: clip(url.searchParams.get('utm_source'), 100) ?? adClickSource(url.searchParams),
     utm_medium: clip(url.searchParams.get('utm_medium'), 100),
     utm_campaign: clip(url.searchParams.get('utm_campaign'), 100),
     device_class: deviceClass(landing.width),
