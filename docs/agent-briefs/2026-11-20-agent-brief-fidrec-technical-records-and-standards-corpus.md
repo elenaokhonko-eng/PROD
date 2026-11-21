@@ -1,11 +1,13 @@
 # Agent brief: FIDReC pack — technical evidence, versioned standards corpus, and server-written comparisons
 
-Version 3, 21 November 2026. Written by Claude (chat session) for Elena and the Claude Code agent.
+Version 4, 21 November 2026. Written by Claude (chat session) for Elena and the Claude Code agent.
 Read against `main` @ 2733f13 and `feat/fidrec-pack-2026-11` @ d5b8338. Nothing in this brief is implemented yet.
 
 **How to use this brief.** Work the phases in order. Each phase ends with a gate. Schema migrations run on staging only after Elena approves them. Follow `CLAUDE.md`: no real case data in the repo, fixtures are synthetic, report IDs and counts only.
 
 **Changed in version 3:** decisions 10–14; EUPG card scope (1.4a) and its effect on the time checks (4a); card provisioning sources (1.7); the account-access sequence rule (4f); the customer-fault definitions section with linked statements and per-institution term requests (4d, 4e); versioning made a precondition for any quoted clause (3.2 rules 8–9); quoting switches in place of a blocking lawyer gate (Phases 6, 7).
+
+**Changed in version 4:** decisions 15–17; the SRF Guidelines read from the text Elena supplied (1.4b), which fixes the SRF statements (4d), the fraud-surveillance condition and the cooling-off trigger (4a); how an MAS requirement bears on the loss under EUPG 5.5(b) and SRF 6.3 (1.3, section 4, 4b); card scheme rules loaded as selected sections only, with seed statements (Phase 7); quoting defaults switched on (Phases 6, 7).
 
 ---
 
@@ -25,6 +27,9 @@ Read against `main` @ 2733f13 and `feat/fidrec-pack-2026-11` @ d5b8338. Nothing 
 12. **The institution's definitions are loaded by a configurable request** per institution and product, resolved as of the payment date.
 13. **Statements follow their source.** Each fixed statement is linked to the clauses it rests on. When a source document changes, the statement is reviewed before the new version can be used.
 14. **Versioning is a precondition for quoting.** No clause is quoted or cited in any pack unless it comes from a verified version (section 3).
+15. **Quoting defaults, both on.** The institution's own terms are quoted (short clause, attributed, with version and link). Card scheme rules are shown by section number, edition and link with our own reviewed statement, not quoted.
+16. **Card scheme rules are loaded selectively.** Only the sections on how unauthorised transactions are handled (reporting fraud to the scheme; raising a dispute with the merchant's bank, and whether that is required or permitted) and on who carries a fraudulent payment with and without 3-D Secure. The full rulebooks are not loaded or embedded.
+17. **SRF source.** The SRF Guidelines (issued 24 October 2024, effective 16 December 2024) and MAS's operational-workflow infographic, both supplied by Elena, are the source for every SRF statement and check, and both go into the corpus.
 
 ---
 
@@ -68,6 +73,7 @@ The audit doc's labels for N06 and N13 are wrong; correct them in Phase 1.
 - **FSM-N06 (banks, cyber hygiene)** paras 4.1–4.6: administrative accounts, patches, security standards, network perimeter, malware protection, multi-factor authentication. Para 4.6 requires MFA for (a) administrative accounts on critical systems and (b) accounts on any system *the bank uses* to access customer information through the internet. On its wording this covers the bank's own accounts, not a customer logging in to online banking. **Do not build a customer-login check on 4.6 unless Elena's lawyer confirms a wider reading.**
 - **FSM-N07 (card licensees, technology risk)** paras 4–9: critical systems; availability (unscheduled downtime of a critical system not above 4 hours in 12 months); recovery time objective of 4 hours; notify MAS within 1 hour of discovering a relevant incident; root-cause report within 14 days; **para 9: implement IT controls to protect customer information from unauthorised access or disclosure.** FSM-N05 for banks follows the same structure; confirm its paragraph numbers from the FSM-N05 text at ingestion.
 - The clause closest to "protect the account against unauthorised login" is the **customer-information clause of the technology-risk notice**, and after it the MAS Guidelines on Technology Risk Management (guidelines, not a notice). It is a duty to have controls; it is not worded as a promise that no unauthorised access occurs. The institution-side point (credentials and a one-time code were used) is printed beside it.
+- **How an MAS requirement bears on the loss (account payments).** EUPG 5.4 and 5.5(b): the account holder is not liable for a loss arising from "non-compliance by the responsible FI or its employee with any requirement imposed by MAS on the responsible FI in respect of its provision of any financial service". SRF 6.3 (with footnote 12) says the institution is responsible for a loss from a seemingly authorised transaction that arises from the same. So a notice is not only a matter between the institution and MAS: these two paragraphs connect it to who bears the loss. This corrects versions 1–3, which said notices do not bear on the customer's position. It applies to account payments; EUPG Section 5 and the SRF do not apply to card transactions. Whether a given notice is such a "requirement" is for Elena's lawyer (open items).
 
 ### 1.4 What each consumer-facing document says about customer fault
 
@@ -83,7 +89,16 @@ Read from the texts on 20–21 November. These are the basis of the statements i
 
 **1.4a EUPG and cards.** Para 4.1: Section 4 does not apply to credit, charge or debit card transactions except paras 4.2–4.6, 4.10–4.12 and 4.14–4.16. Para 5.1: Section 5 (liability) does not apply to card transactions. Footnote 3: card holders have the liability apportionment in the ABS card code. Para 7.8: the EUPG dispute process does not apply to card disputes the institution resolves under card scheme rules. Para 2.1: "high-risk activities" include, but are not limited to, adding payees, increasing transaction limits, disabling transaction notifications and changing contact details; adding a card to a mobile wallet is not named.
 
-**SRF Guidelines.** No customer-fault test. The loss follows the waterfall on the institution's and the telco's duties (MAS–IMDA response paras 5.6–5.7). Card transactions are outside the SRF (para 8.3(d)). Outside the SRF, institutions consider whether the victim acted responsibly (para 1.2(b)). The Guidelines PDF could not be fetched in the chat session; this is from the MAS–IMDA response. **Check each statement against the Guidelines text at ingestion.**
+**1.4b SRF Guidelines (read from the text; issued 24 October 2024, effective 16 December 2024)**
+- **Customer fault.** The Guidelines do not use the terms negligence, gross negligence or recklessness about the account user. "Negligence" appears once, in footnote 12, about the institution. Para 3.1 says the account-user duties in Section 3 of the EUPG apply, and that account users should never give away their credentials and should not click on links in SMS or emails unless they are informational links the user is expecting from the institution. Section 6, which allocates the loss, refers to the institution's duties in para 4.2 and the telco's duties in para 5.2. It does not refer to Section 3.
+- **Allocation (Section 6).** 6.2: the institution is expected to bear any loss arising from its non-compliance with a duty in 4.2. 6.3: notwithstanding 6.2, the institution is responsible for losses arising from its action or omission under EUPG 5.5(a) (fraud or negligence of the institution, its employee, agent or outsourcing provider) and 5.5(b) (non-compliance with any requirement imposed by MAS). 6.4: for a scam through SMS, the telco is expected to bear the loss where the institution complied with 4.2 and the loss arises from the telco's non-compliance with 5.2. 6.5: the institution bears the loss under 6.2 even if the telco also did not comply. 6.7: otherwise the account holder bears the loss. 6.8, 7.11: the account holder may seek recourse, such as FIDReC or IMDA.
+- **Scope.** A "seemingly authorised transaction" meets all of limbs (a)–(d) of para 2.1: impersonation of a legitimate business or government entity; the scammer uses a digital messaging platform to obtain the account credentials; the account user enters the credentials on a fabricated digital platform; the credentials are used for transactions the user did not intend. Footnote 1: the responsibility sharing does not apply to transactions on credit, charge and debit cards issued in Singapore. "Protected account": held by individuals, able to hold more than S$1,000 or a credit facility, usable for electronic payments (footnote 2: opened with the retail unit, or not usable for business).
+- **Institution duties (4.2).** 4.2.1 cooling-off of at least 12 hours in which high-risk activities cannot be performed, when a digital security token is activated on a device, **or, for an account issued by a relevant payment service provider, on a login on a new device** (footnote 5: where the token is activated through a non-straight-through process such as a mailed code, that time counts). 4.2.2 real-time alerts for token activation, such a new-device login, and high-risk activities. 4.2.3 real-time outgoing transaction alerts (footnote 7: in line with the default threshold or the one the account holder set). 4.2.4 a reporting channel available at all times with a self-service feature to block further mobile and online access. 4.2.5 real-time fraud surveillance: where a protected account is rapidly drained of a material sum, the institution must (a) block the online banking payment that would cross the threshold, and all later online banking payments to the scammer, until it obtains further verification from the account holder, or (b) notify the account holder and block or hold those payments for at least 24 hours. **Footnote 8:** "rapidly drained of a material sum" means (a) an account balance of S$50,000 or more immediately before the transaction and (b) more than 50% of that balance transferred out within the last 24 hours; not counted: recurring standing instructions, recurring GIRO/eGIRO deductions, bill payments to billing organisations maintained by the institution (other than bills for credit cards issued by other institutions), debit card transactions, and intrabank transfers to the account holder's own accounts. 4.4: 4.2.5 takes effect six months after the Guidelines, that is 16 June 2025. 4.3: 4.2 applies during scheduled downtime.
+- **"High-risk activities" (2.1)** is a closed definition here ("means"): adding payees; increasing transaction limits; disabling transaction notifications; changing contact information. It does not name adding a card to a mobile wallet.
+- **Workflow (Section 7).** 7.3: the account holder reports as soon as practicable and no later than 30 calendar days from when the institution sends the alerts, and gives a valid email address and supporting information (police report, communication trail) within 3 calendar days of notifying. 7.5: on enquiry the institution provides the information it has on the transactions, including dates, timestamps and parties. 7.6: a claim outside the SRF goes through the institution's existing process. 7.8: investigation involves representatives independent of business units. 7.9: 21 business days, or 45 for complex cases (footnote 16: logs and documents to assess SRF claims are to be retained for a reasonable period). 7.10: a written reply of the outcome and the assessment of the account holder's responsibility. 7.13: the institution credits the total loss where Section 6 puts it on the institution.
+- **MAS's operational-workflow infographic.** Shows the same four stages and outcomes ("responsible FI expected to bear the loss in full" / "responsible Telco expected to bear the loss in full" / "consumer bears the loss in full"). At the recourse stage it states that FIDReC's assessment includes non-SRF related obligations, for example obligations under statute, common law, or duties under the EUPG.
+
+Check `assessSrf` in `rules/srf.ts` against the scope limbs, footnotes 1 and 2, and the duty wording above when its cites move to `clause_key`.
 
 **ABS Code of Practice for Banks – Credit Cards (rev. 2 July 2020).** The term is **gross negligence** (paras 5(a), 5(b), 5(c), 6). The code does not define it and gives no examples. Para 4 gives card and PIN security advice and does not say that not following it is gross negligence. The issuer "finds" it (5(b), 5(c)); the code does not say who must show it. Effects: no fraud, no gross negligence, reported as soon as reasonably practicable → S$100 cap before the report (5(a)); card details used without the card being stolen, or unauthorised PIN transactions → not liable (6); fraud or gross negligence → 100% (5(b)). Also covers debit cards used like credit cards (5(e)). It is an industry code, a sub-code of the Code of Consumer Banking Practice; it is not legislation and not an MAS instrument.
 
@@ -158,6 +173,7 @@ standard_document_versions    one row per version; never updated except to close
   content_sha256
   provenance                  publisher_site | web_archive | provided_by_user | provided_by_institution
   supersedes_version_id
+  coverage                    full | selected_sections   (selected_sections: manifest_path lists the sections held)
   status                      draft | verified | withdrawn
   verified_by, verified_at
 
@@ -191,7 +207,7 @@ Migrate the existing 10 documents into this shape (one version each); keep the o
 | Layer | Source | Standing sentence printed above the group |
 |---|---|---|
 | 1 | SRF Guidelines; EUPG | "MAS guidelines that set out the duties of institutions and account holders and how losses are shared." |
-| 2 | MAS notices (FSM-N05/N06 banks; N07/N08 card licensees; N13/N14 payment-system licensees); MAS circular on MPI anti-scam measures; TRM Guidelines | "MAS notices set duties the institution owes to MAS. This section sets the institution's records beside those duties. It does not say whether a duty was met." |
+| 2 | MAS notices (FSM-N05/N06 banks; N07/N08 card licensees; N13/N14 payment-system licensees); MAS circular on MPI anti-scam measures; TRM Guidelines | "MAS notices set requirements that MAS imposes on the institution. This section sets the institution's records beside those requirements. It does not say whether a requirement was met." For account payments, followed by the `bridge.mas_requirement` statement (4b) |
 | 3 | ABS card code; ABS and MAS–ABS announced measures; MAS written replies | "An industry code, announced industry measures and MAS's stated positions. They are not legislation." |
 | 4 | The institution's own terms | "The institution's own terms, in the version in force on the date shown." |
 | 5 | Visa / Mastercard rules | "Card scheme rules are an agreement between the card scheme and the card issuer. The cardholder is not a party to them. They are shown here as the process available to the issuer." |
@@ -206,29 +222,39 @@ Endings, chosen by code:
 - `differs` — "The document expects [X]. The record shows [Y]."
 - `matches` — "The record shows [X], as the document expects."
 - `not_shown` — "The records provided do not show whether [X]."
+- `not_applicable` — "The document's condition for this duty is [C]. The record shows [Y]." Used where the duty arises only on a condition (an alert threshold, the fraud-surveillance threshold) and the record shows the condition was not reached.
 
 **No verdict wording.** The pack never states, as its own finding, that anyone breached, violated, failed to meet, did not comply with, is liable for, or was negligent, grossly negligent or reckless. These patterns are added to the `forbidden` list for model output (as `SRF_VERDICT` is today), and a template test asserts that no server-written template or statement contains them as an assertion. The words negligence, gross negligence and recklessness do appear as the documents' own terms and inside quotation marks from the institution's letter with an evidence ID.
 
 ### 4a. `rules/duty-time-checks.ts` — layer 1 (EUPG, SRF)
 
-Route by instrument. For card payments only the rows marked "cards" apply (EUPG 4.1).
+Route by instrument. For card payments only the rows marked "cards" apply, and only their EUPG clause (EUPG 4.1; SRF footnote 1). SRF clauses are cited only where `assessSrf` places the payment in SRF scope; otherwise the EUPG clause alone.
 
 | Check | Compares | Clause | Applies to |
 |---|---|---|---|
-| Cooling-off | `token_activated` or `new_device_login` → each high-risk activity (`payee_added`, `limit_changed`, notifications disabled, `contact_details_changed`) within 12 hours. The time to the first disputed payment is printed in the Record line as a fact | EUPG 4.7, 2.1; SRF duty 1 | account |
-| Alerts: token and high-risk activity | an `alert_sent` at each such event, and `sentTo` | EUPG 4.9; SRF duty 2 | account |
-| Alerts: outgoing payments | an `alert_sent` for each disputed payment | EUPG 4.10–4.12; SRF duty 3 | account, cards |
-| Reporting channel and kill switch | report time, `account_blocked` time, payments after the report | EUPG 4.14–4.16; SRF duty 4 | account, cards |
-| Fraud surveillance | pattern and thresholds from the SRF text; payments on or after 16 Jun 2025 | EUPG 4.21; SRF duty 5 | account |
-| Investigation time | `reported_to_bank` → `bank_reply`; 21 / 45 business days | EUPG 4.26 | account |
-| Information on enquiry | `access_record_requested` = yes and what was supplied | EUPG 4.25 | account |
-| Account holder's reporting time | first alert → `reported_to_bank`; as soon as practicable, within 30 calendar days | EUPG 3.14 | account |
+| Cooling-off | trigger → each high-risk activity (`payee_added`, `limit_changed`, `notifications_disabled`, `contact_details_changed`) within 12 hours. Trigger is `token_activated` for any institution; `new_device_login` only for an account issued by a payment service provider. Where the token was activated by a mailed code or similar, that time counts (SRF footnote 5). The time to the first disputed payment is printed in the Record line as a fact | SRF 4.2.1, 2.1; EUPG 4.7 | account |
+| Alerts: token, new device, high-risk activity | a real-time `alert_sent` at each such event, and `sentTo` | SRF 4.2.2; EUPG 4.9 | account |
+| Alerts: outgoing payments | an `alert_sent` for each disputed payment at or above the alert threshold (default, or set by the account holder: SRF footnote 7). Threshold not known → `not_shown`; payment below it → `not_applicable` | SRF 4.2.3; EUPG 4.10–4.12 | account, cards |
+| Reporting channel and self-service block | report time, `account_blocked` time, payments after the report; channel availability where the facts record it | SRF 4.2.4, 4.3; EUPG 4.14–4.16 | account, cards |
+| Fraud surveillance | Condition (SRF footnote 8): balance of S$50,000 or more immediately before the first disputed payment, and more than 50% of that balance transferred out within 24 hours, leaving out the excluded payment types. Where the record shows the condition: whether the payment that crossed 50%, and later payments, were blocked until verification, or the account holder was notified and they were blocked or held for at least 24 hours. Payments on or after 16 June 2025 only (SRF 4.4). Condition not reached → `not_applicable`, printing the balance and percentage | SRF 4.2.5, footnote 8, 4.4; EUPG 4.21 | account |
+| Investigation time | `reported_to_bank` → `bank_reply`; 21 / 45 business days | SRF 7.9; EUPG 4.26 | account |
+| Written outcome | whether the institution's reply gives the investigation outcome and its assessment of the account holder's responsibility, with reasons | SRF 7.10; EUPG 7.7 | account |
+| Information on enquiry | `access_record_requested` = yes and what was supplied | SRF 7.5; EUPG 4.25 | account |
+| Account holder's reporting time | first alert → `reported_to_bank`; as soon as practicable and no later than 30 calendar days; supporting information within 3 calendar days of notifying | SRF 7.3; EUPG 3.14 | account |
 
-Where a card was added to a wallet inside the 12 hours after a token activation, the cooling-off check prints, as fixed text: "The guideline's list of high-risk activities names adding payees, increasing transaction limits, disabling transaction notifications and changing contact details, and says the list is not exhaustive. It does not name adding a card to a mobile wallet (R2)."
+New facts these need (add in Phase 3b): `balance_before_first_disputed_payment` (from `bank_statement` only), `transaction_alert_threshold` (answer or the institution's record), `token_activation_method` (in-app, SMS code, mailed code, not known), and per payment an `excluded_from_drain_test` flag set by code from the payment type.
+
+Where a card was added to a wallet inside the 12 hours after a token activation, the cooling-off check prints, as a reviewed statement: "The definition of high-risk activities names adding payees, increasing transaction limits, disabling transaction notifications and changing contact details. It does not name adding a card to a mobile wallet (R2)." The SRF definition is closed ("means"). The chat session's reading of EUPG 2.1 was that its list is introduced as non-exhaustive; confirm from the EUPG text and, if so, add that sentence to the EUPG version of the statement only.
 
 ### 4b. `rules/mas-notice-checks.ts` — layer 2
 
 Route by institution type (`institutions.ts`): bank → FSM-N05, FSM-N06; non-bank card licensee → FSM-N07, FSM-N08; payment-system licensee → FSM-N13, FSM-N14; e-wallet major payment institution → the MAS circular on MPI anti-scam measures.
+
+For account payments the group opens with the statement `bridge.mas_requirement` (a `definition_statement`, clauses `mas.eupg/5.4`, `mas.eupg/5.5`, `mas.srf/6.3`):
+
+> "Under paragraphs 5.4 and 5.5(b) of the E-Payments User Protection Guidelines, an account holder is not liable for a loss that arises from the institution's non-compliance with a requirement imposed by MAS in respect of its provision of a financial service, where the loss does not arise from an account user's failure to comply with Section 3. Paragraph 6.3 of the Shared Responsibility Framework Guidelines says the institution is responsible for a loss from a seemingly authorised transaction that arises from such non-compliance."
+
+For card payments the group opens instead with: "Section 5 of the E-Payments User Protection Guidelines and the Shared Responsibility Framework do not apply to card transactions."
 
 | Check | Record | Expected (clause) |
 |---|---|---|
@@ -285,8 +311,12 @@ EUPG — account payments only:
 - `eupg.fault.cards` (card payments) — "Section 5 of the Guidelines does not apply to credit, charge or debit card transactions (paragraph 5.1). For those the Guidelines refer to the ABS Code of Practice for Banks – Credit Cards (footnote 3)."
 
 SRF — account payments:
-- `srf.fault.none` — "The Shared Responsibility Framework Guidelines do not apply a customer-fault test. Under them the loss for a covered phishing scam is borne according to whether the institution, and then the telecommunications operator, met the duties set for them."
-- `srf.fault.cards` (card payments) — "Credit, charge and debit card transactions are outside the Shared Responsibility Framework."
+- `srf.fault.terms` — "The Shared Responsibility Framework Guidelines do not use the terms negligence, gross negligence or recklessness about the account user."
+- `srf.fault.userduties` — "Paragraph 3.1 says the account-user duties in Section 3 of the E-Payments User Protection Guidelines apply, and that account users should never give away their credentials and should not click on links in SMS or emails unless they are informational links they are expecting from the institution."
+- `srf.fault.allocation` — "Section 6 allocates the loss. The institution is expected to bear a loss arising from its non-compliance with a duty in paragraph 4.2 (paragraph 6.2), and is responsible for a loss arising from its fraud or negligence or its non-compliance with a requirement imposed by MAS (paragraph 6.3). Where the institution has complied and the scam was carried out through SMS, the telecommunications operator is expected to bear a loss arising from its non-compliance with a duty in paragraph 5.2 (paragraph 6.4). Otherwise the account holder bears the loss (paragraph 6.7) and may seek recourse, such as FIDReC (paragraphs 6.8 and 7.11)."
+- `srf.fault.section6` — "Section 6 refers to the institution's duties in paragraph 4.2 and the operator's duties in paragraph 5.2. It does not refer to the account-user duties in Section 3."
+- `srf.fidrec.scope` — "MAS's operational workflow for the Framework states that FIDReC's assessment includes non-SRF related obligations, for example obligations under statute, common law, or duties under the E-Payments User Protection Guidelines." (clause from the infographic)
+- `srf.fault.cards` (card payments) — "The responsibility sharing in the Shared Responsibility Framework Guidelines does not apply to transactions on credit, charge and debit cards issued in Singapore (footnote 1)."
 
 ABS card code — card payments:
 - `abs.fault.term` — "The ABS Code of Practice for Banks – Credit Cards uses the term 'gross negligence' (paragraphs 5 and 6)."
@@ -420,7 +450,8 @@ Each loaded from the publisher's own site with `source_url`, snapshot and hash.
 
 | Add | Notes |
 |---|---|
-| SRF Guidelines, full text, checked against the MAS PDF | The five institution duties; the fraud-surveillance thresholds from the text; card exclusion; confirm `srf.fault.*` statements |
+| SRF Guidelines, full text (`mas.srf`; issued 24 Oct 2024, effective 16 Dec 2024) | Clause per numbered paragraph and per footnote (`mas.srf/4.2.5`, `mas.srf/fn8`); `effective_from_override` of 16 June 2025 on 4.2.5; replaces the 44 existing rows after a clause-by-clause check. Elena holds the PDF; fetch the same file from the MAS page and record its hash |
+| MAS infographic, operational workflow for the SRF (`mas.srf.workflow`) | `binding_level = announcement`; one clause per box, so `srf.fidrec.scope` can link to the FIDReC box |
 | MAS–IMDA response to consultation on the SRF | Paras 1.2(b), 3.4–3.6, 4.6–4.7, 5.6–5.7, 6.7–6.11, 8.3–8.4 |
 | MAS Notice FSM-N05 and FSM-N06 (verify existing clauses), FSM-N07, FSM-N08 | Para numbers from the text |
 | MAS Guidelines on Technology Risk Management (Jan 2021) | Online financial services and fraud monitoring sections first |
@@ -472,13 +503,13 @@ Only the two new document types can supply or contradict `access_events` and `ca
 
 ### Phase 4 — Server-written sections
 
-Build 4a–4i. Every check returns `{ clauseKey, record, expected, outcome: differs | matches | not_shown, evidenceIds }`.
+Build 4a–4i. Every check returns `{ clauseKey, record, expected, outcome: differs | matches | not_shown | not_applicable, evidenceIds }`.
 
-**Gate:** boundary tests (11 h 59 min / 12 h; 30 / 31 days; 21 / 22 business days); instrument routing (a card payment never gets an EUPG 4.7, 4.21, 4.25, 4.26 or Section 5 line); the sequence section with `linked` and `not_shown` fixtures; a statement whose clause hash no longer matches does not print; every forbidden pattern rejected; a case with no technical record yields `not_shown` throughout.
+**Gate:** boundary tests (11 h 59 min / 12 h; 30 / 31 days; 21 / 22 business days; a balance of S$49,999.99 / S$50,000; exactly 50% / over 50% out within 24 hours; a payment on 15 / 16 June 2025; an excluded payment type left out of the percentage; `new_device_login` as a trigger for a payment service provider and not for a bank); instrument routing (a card payment never gets an EUPG 4.7, 4.21, 4.25, 4.26 or Section 5 line); the sequence section with `linked` and `not_shown` fixtures; a statement whose clause hash no longer matches does not print; every forbidden pattern rejected; a case with no technical record yields `not_shown` throughout.
 
 ### Phase 5 — "Standards" section by retrieval
 
-For clauses no rule or statement cites. Server builds the query from confirmed facts (regime, institution, earliest payment date, card scheme), calls `match_standards_v1` once per layer, numbers results R1…, prints reference, version, effective dates and link. The model may cite only those IDs. Golden set of at least 20 questions with the expected document and clause; CI fails on a superseded version, a wrong-institution contract, or a missing layer.
+For clauses no rule or statement cites. For layer 5 it runs over the selected scheme sections only (Phase 7). Server builds the query from confirmed facts (regime, institution, earliest payment date, card scheme), calls `match_standards_v1` once per layer, numbers results R1…, prints reference, version, effective dates and link. The model may cite only those IDs. Golden set of at least 20 questions with the expected document and clause; CI fails on a superseded version, a wrong-institution contract, or a missing layer.
 
 ### Phase 6 — Institutions' own terms
 
@@ -488,13 +519,50 @@ Per institution: account terms; electronic and digital banking terms; credit and
 - Each version per section 3.2, with the historic-version rule (rule 6).
 - Create `institution_term_requests` rows (4e) for each institution and product; a person confirms the `fault_definition` clause keys.
 - **Why this is the larger job:** each institution publishes several documents, each needs every version back to the earliest payment date a case can have, and each clause needs tagging. The regulators' texts are about a dozen documents with one or two versions each.
-- **Quoting.** `quote_mode` defaults to `quote` for the institution's own terms: a short clause, attributed, with version and link, in the complainant's own complaint about her own contract. Elena's lawyer confirms this default; if advised otherwise, switch rows to `reference_only` (clause number, version, link and the fixed line). Loading, tagging and the rules do not wait on this.
+- **Quoting (decision 15: on).** `quote_mode = quote` for the institution's own terms: a short clause, attributed, with version and link, in the complainant's own complaint about her own contract. The switch stays per row, so a row can be set to `reference_only` (clause number, version, link and the fixed line) if advice changes.
 
 ### Phase 7 — Card scheme rules and the dispute comparison (decision 5)
 
-Load the current public editions: Visa Core Rules and Visa Product and Service Rules; Mastercard Chargeback Guide and Mastercard Rules. The Visa public edition read was about 1.8 million characters. Load the sections in 1.5 first and verify them clause by clause; load the rest for retrieval after.
+**Selected sections only (decision 16).** The rulebooks are not loaded or embedded in full (the Visa public edition read was about 1.8 million characters). Each scheme document version has `coverage = selected_sections` and a manifest file in the repo (`supabase/standards/manifests/visa.core_rules.json`, `…/mastercard.chargeback_guide.json`) listing the sections held. A person extracts those sections from the current public edition, and each becomes a clause with its section number, rule ID where the scheme gives one, edition date and hash. The monthly change check re-extracts the manifest sections from the new edition and compares hashes section by section.
 
-**Quoting.** Scheme rules default to `reference_only`: section number, edition date, link and the reviewed statement in our own words. The cardholder is not a party to these documents and they are the scheme's copyright. Switch to `quote` if Elena's lawyer agrees.
+Selection test, applied to both schemes. A section is held only if it answers one of:
+1. Who the rules bind, and whether they give rights to cardholders.
+2. What the issuer must do when a cardholder reports a payment as unauthorised (resolve the dispute; report the fraud to the scheme, and by when).
+3. Whether raising a dispute with the merchant's bank is required or permitted, on what conditions, and within what time.
+4. Which fraudulent payments the issuer cannot pass back to the merchant's bank: authenticated through 3-D Secure; authentication attempted; authenticated wallet or token payments; chip and PIN.
+5. Which it can: card-absent without 3-D Secure; key-entered.
+6. The definitions those sections rely on.
+
+Visa manifest, from the public edition dated 13 April 2024 (re-locate each in the current edition):
+
+| Section | Covers | Test |
+|---|---|---|
+| 1.1.1.6 | Rules govern Visa and its members; no rights for third parties | 1 |
+| 11.1.2 (ID 0030208) | Issuer must resolve cardholder disputes; must not process invalid disputes | 2 |
+| 10.6.1 and its Asia-Pacific sub-section 10.6.1.6 | Fraud reporting; consequence of issuer non-compliance in Asia-Pacific. The general reporting requirement and its time limit were not in the excerpt read: locate them | 2 |
+| 11.7.1 | Fraud dispute category, general | 3 |
+| 11.7.2, 11.7.3 | Conditions 10.1 and 10.2 (EMV liability shift, counterfeit and non-counterfeit) | 4 |
+| 11.7.4 (IDs 0030245–0030249) | Condition 10.3, key-entered card-present fraud: why, pre-conditions, invalid disputes, time limit, documents | 3, 5 |
+| 11.7.5 (IDs 0030252–0030256) | Condition 10.4, card-absent fraud: why, pre-conditions, invalid disputes (Visa Secure ECI 5 with CAVV; attempted authentication ECI 6 with CAVV; authenticated token with TAVV), time limit, documents | 3, 4, 5 |
+| The Visa Secure section(s) stating which party bears an authenticated or attempted-authentication payment | Not read in the chat session: locate | 4 |
+| Glossary entries: Fraud Activity, Dispute, Card-Absent Environment, Visa Secure, Electronic Commerce Indicator, CAVV, TAVV, Token, Payment Credential, Issuer, Acquirer | | 6 |
+
+Mastercard manifest: the same six tests against the current Chargeback Guide and Mastercard Rules. Targets to locate: the statement of who the Standards bind; fraud-related chargebacks (no cardholder authorisation; chip liability shift); the fraud-reporting pre-condition; chargeback time frames; the Identity Check (3-D Secure) liability provisions; the definitions. No Mastercard statement or check is written until those sections are held and read.
+
+**Quoting (decision 15: on).** Scheme sections are `reference_only`: section number, edition date, link and the reviewed statement in our own words. The cardholder is not a party to these documents and they are the scheme's copyright. Under the layer-5 standing sentence the pack prints: "This pack holds selected sections of [scheme]'s rules, edition dated [date], on how unauthorised payments are handled. It does not hold the full rules."
+
+**Seed statements, Visa** (`definition_statements`, `framework = scheme`; drafted from the 2024 edition; the agent checks each against the current edition; Elena approves):
+- `visa.parties` — "Visa's rules govern Visa and its member institutions and state that they give no rights to third parties (section 1.1.1.6)."
+- `visa.resolve` — "Visa's rules require an issuer to resolve cardholder disputes under the rules (section 11.1.2)."
+- `visa.report` — "Before an issuer disputes a payment as fraud, Visa's rules require it to report the fraud to Visa (sections 11.7.4.2 and 11.7.5.2)."
+- `visa.dispute.permitted` — "Visa's rules say an issuer may dispute a card-absent payment, or a key-entered card-present payment, that the cardholder denies authorising or taking part in, within 120 calendar days of the transaction processing date (sections 11.7.4 and 11.7.5). The rules read do not require an issuer to raise a dispute when a cardholder asks."
+- `visa.3ds.authenticated` — "Visa's rules list an e-commerce payment authenticated through Visa Secure as one an issuer cannot dispute under the card-absent fraud condition (section 11.7.5.3). The issuer cannot pass such a payment back to the merchant's bank on that ground."
+- `visa.3ds.attempted` — "The same section lists a payment where authentication through Visa Secure was attempted and the issuer, or Visa on its behalf, answered the attempt."
+- `visa.token.authenticated` — "The same section lists an authenticated token payment where cardholder verification was approved."
+- `visa.no3ds` — "Where a card-absent payment was not authenticated through Visa Secure and no other exclusion in section 11.7.5.3 applies, the rules allow the issuer to dispute it as fraud, which passes the payment back to the merchant's bank."
+- `visa.cardholder` — "These rules allocate a payment between the issuer and the merchant's bank. They do not set out how a loss is shared between the issuer and the cardholder."
+
+The scheme lines in 4f and the lines below print these statements; replace the inline wording in 4f with the statement keys.
 
 `rules/card-dispute-checks.ts` → `card_dispute_comparison`, per disputed card payment, Visa first:
 
@@ -520,7 +588,7 @@ Then fixed lines chosen by code:
 
 1. **Versioning before any load or statement.** Every quoted clause and every statement depends on it (decision 14).
 2. **Evidence before comparisons.** A comparison has nothing to compare until the access and card records are facts.
-3. **Regulators' texts before institutions' terms and scheme rules.** They are few, public, stable and already half-loaded, and they are what 4a–4d cite. The terms and scheme rules are far more text, differ by institution and date, and need historic versions.
+3. **Regulators' texts before institutions' terms and scheme rules.** They are few, public, stable and already half-loaded, and they are what 4a–4d cite. The institutions' terms differ by institution and date and need historic versions. The scheme rules are now a small selected set (decision 16), but their checks depend on the card authentication record from Phase 3 and on a person locating each section in the current edition.
 4. **Coded sections before open retrieval.** They are the part of the pack an adjudicator can check line by line, and they work on a small, verified corpus.
 
 Phases 0–4 give a pack with the sequence, the time checks, the MAS notice comparison and the definitions section for EUPG, SRF, ABS and the MAS reply. Phases 6–7 fill in the institution's terms and the scheme lines; until then those lines print "not held".
@@ -532,13 +600,17 @@ Phases 0–4 give a pack with the sequence, the time checks, the MAS notice comp
 - The same case without a card authentication record produces `not_shown` and the bank-pack request.
 - The definitions section prints each approved statement with its clause reference and version; changing a linked clause in a draft version blocks `verified` until the statement is reviewed.
 - An institution with a configured `fault_definition` request prints its clause as of the payment date; one without prints "not held".
+- A synthetic account case in SRF scope with a balance of S$50,000 or more and over 50% out within 24 hours on or after 16 June 2025 produces the fraud-surveillance comparison; the same case below either figure produces `not_applicable` with the figures.
+- The MAS notice group opens with `bridge.mas_requirement` for account payments and with the card sentence for card payments.
+- Scheme documents hold only manifest sections; the pack prints the coverage sentence; no scheme text is quoted.
 - IP lookups run against the local database only; each printed location names the database and its date.
 - No server template, statement or model output contains verdict wording. All existing gates pass.
 
 ## 8. Open items
 
-- Lawyer: the standing sentences in section 4; the quoting defaults in Phases 6 and 7; the reading of FSM-N06 4.6; whether to say anything on the general-law meaning of "gross negligence" where a document leaves it undefined (the pack states only that the document does not define it).
-- SRF Guidelines text: confirm `srf.fault.*`, the five duties and the fraud-surveillance thresholds.
+- Lawyer: the standing sentences in section 4; whether an MAS notice (FSM-N05, FSM-N06 and the others) is a "requirement imposed by MAS … in respect of its provision of any financial service" within EUPG 5.5(b) and SRF 6.3, which is what `bridge.mas_requirement` rests on; the reading of FSM-N06 4.6; whether to say anything on the general-law meaning of "gross negligence" where a document leaves it undefined (the pack states only that the document does not define it). The quoting defaults are decided (decision 15) and can be changed per row.
+- EUPG 2.1: whether its list of high-risk activities is introduced as non-exhaustive (the SRF's is closed).
+- Visa: the general fraud-reporting requirement and its time limit, and the Visa Secure liability section, in the current edition.
 - FSM-N05 paragraph numbers; current Visa edition section numbers; current Mastercard edition; whether FSM-N13/N14 reach e-wallet providers in SRF scope.
 - Whether any institution's record states the token or device that approved a 3-D Secure payment in a form that supports the `linked` test; adjust the extraction after the first real records (kept outside the repo).
 - Choice of IP database and its licence.
@@ -550,7 +622,9 @@ Phases 0–4 give a pack with the sequence, the time checks, the MAS notice comp
 - MAS Notice FSM-N07: https://www.mas.gov.sg/-/media/mas-media-library/regulation/notices/trpd/notice-fsm-n07/mas-notice-fsm-n07.pdf
 - MAS, E-Payments User Protection Guidelines, effective 16 December 2024: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/pso/e-payments-user-protection-guidelines-with-effect-from-16-dec-2024/e-payments-user-protection-guidelines-with-effect-from-16-december-2024.pdf
 - MAS, response to feedback on the proposed EUPG (2018): https://www.mas.gov.sg/-/media/mas/resource/publications/consult_papers/2018/p0042018-response-to-feedback-received-on-proposed-epayments-user-protection-guidelines.pdf
-- MAS, Guidelines on Shared Responsibility Framework (page; the PDF was not reachable from the chat session): https://www.mas.gov.sg/regulation/guidelines/guidelines-on-shared-responsibility-framework
+- MAS and IMDA, Guidelines on Shared Responsibility Framework, issued 24 October 2024, effective 16 December 2024 (PDF supplied by Elena, read in full): https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/pso/guidelines-on-shared-responsibility-framework/guidelines-on-shared-responsibility-framework.pdf
+- MAS, infographic on the operational workflow for the Shared Responsibility Framework (PDF supplied by Elena): https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/pso/guidelines-on-shared-responsibility-framework/infographic-on-operational-workflow-for-shared-responsibility-framework.pdf
+- MAS, Guidelines on Shared Responsibility Framework (page): https://www.mas.gov.sg/regulation/guidelines/guidelines-on-shared-responsibility-framework
 - MAS–IMDA, response to consultation on the SRF: https://www.mas.gov.sg/-/media/mas-media-library/publications/consultations/pd/2023/srf/mas-imda-response-to-consultation-on-shared-responsibility-framework.pdf
 - MAS, written reply on credit card fraud, 7 January 2025: https://www.mas.gov.sg/news/parliamentary-replies/2025/written-reply-to-pq-on-credit-card-fraud
 - MAS, written reply on requirements imposed on banks to protect consumers from scams, 13 January 2026: https://www.mas.gov.sg/news/parliamentary-replies/2026/written-reply-on-effectiveness-of-requirements-imposed-by-mas-on-banks-to-protect-against-scams
