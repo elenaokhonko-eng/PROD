@@ -413,6 +413,11 @@ jobs:
           HARBOR_AUTH_STORAGE_STATE_USER_A_BASE64=tests/e2e/.auth/harbor-user-a.json
           HARBOR_AUTH_STORAGE_STATE_USER_B_BASE64=tests/e2e/.auth/harbor-user-b.json
           HARBOR_AUTH_STORAGE_STATE_DELETION_USER_BASE64=tests/e2e/.auth/harbor-deletion-user.json
+      # Stage 1 or stage 2 expectations follow staging's own PAID_STAGES_ENABLED (sets HARBOR_PAID_STAGES_ENABLED).
+      - name: Read whether staging takes payments
+        env:
+          HARBOR_PREVIEW_AUTH_STORAGE_STATE: tests/e2e/.auth/harbor-user-a.json
+        run: pnpm exec tsx scripts/read-preview-paid-stages.ts
       - run: pnpm exec playwright test --config=tests/e2e/playwright.authenticated.config.ts
       - name: Playwright preview five-service handshakes
         env:
