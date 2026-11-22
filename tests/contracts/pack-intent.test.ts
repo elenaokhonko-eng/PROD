@@ -53,6 +53,8 @@ test('sign-in and sign-up remember the intent; the dashboard offers the bank pac
   }
   const dashboard = readFileSync('app/(case)/app/case/[id]/dashboard/_components/dashboard-client.tsx', 'utf8')
   assert.match(dashboard, /packIntent === 'bank' &&\s*reportCapability\?\.entitled !== true &&\s*reportCapability\?\.canCheckout === true &&\s*BEFORE_FREE_EVALUATION\.has\(node\)/)
-  assert.match(dashboard, /if \(productKey === 'self_serve_report' && packIntent === 'bank'\) clearPackIntent\(\)/)
+  assert.match(dashboard, /\(productKey === 'self_serve_report' && packIntent === 'bank'\) \|\| \(productKey === 'fidrec_tier2_pack' && packIntent === 'fidrec'\)\) \{\s*clearPackIntent\(\)/)
+  // ?intent=fidrec: the route question and the FIDReC pack at the top, before the free evaluation.
+  assert.match(dashboard, /packIntent === 'fidrec' && showFidrecOffer && BEFORE_FREE_EVALUATION\.has\(node\)/)
   assert.match(readFileSync('lib/harbor/packs.ts', 'utf8'), /`\/sign-in\?intent=\$\{pack\}`/)
 })

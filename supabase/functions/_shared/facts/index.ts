@@ -13,4 +13,6 @@ export * from "./recommend.ts";
 export * from "./free-sections.ts";
 export * from "./rules/fidrec.ts";
 export * from "./rules/srf.ts";
+export * from "./rules/instrument-scope.ts";
 export * from "./bank-pack.ts";
+export * from "./fidrec-pack.ts";

@@ -58,7 +58,12 @@ const cases: Array<[string, Partial<StateMachineInput>, string]> = [
   ['Layer 2 confirm bank facts, whatever an old job did', { entitlementPlan: 'self_serve_report', decision: { id: 'run1' } as never, jobStatus: { status: 'failed' } }, 'L2-ConfirmBankFacts'],
   ['Layer 2 bank pack bought on its own', { entitlementPlan: 'free', bankPackOwned: true }, 'L2-ConfirmBankFacts'],
   ['Layer 3 form', { entitlementPlan: 'self_serve_report', report: { status: 'COMPLETED' } as never }, 'L3-FormFilling'],
-  ['Layer 3 Tier 2', { entitlementPlan: 'escalation_pack' }, 'L3-Tier2Ready'],
+  // Stage 2: the FIDReC pack is generated after its facts are confirmed, and each pack is its own entitlement.
+  ['Layer 3 confirm FIDReC facts after payment', { entitlementPlan: 'escalation_pack' }, 'L3-ConfirmFidrecFacts'],
+  ['Layer 3 FIDReC pack ready', { entitlementPlan: 'escalation_pack', fidrecPackOwned: true, fidrecReport: { status: 'COMPLETED' } as never }, 'L3-Tier2Ready'],
+  ['Layer 3 FIDReC bought on its own, no bank pack', { entitlementPlan: 'escalation_pack', fidrecPackOwned: true, bankPackOwned: false, fidrecReport: { status: 'COMPLETED' } as never }, 'L3-Tier2Ready'],
+  ['both packs: the bank pack follows the FIDReC pack', { entitlementPlan: 'escalation_pack', fidrecPackOwned: true, bankPackOwned: true, fidrecReport: { status: 'COMPLETED' } as never }, 'L2-ConfirmBankFacts'],
+  ['both packs generated', { entitlementPlan: 'escalation_pack', fidrecPackOwned: true, bankPackOwned: true, fidrecReport: { status: 'COMPLETED' } as never, report: { status: 'COMPLETED' } as never }, 'L3-Tier2Ready'],
   ['Layer 3 submitting', { isContactSubmitting: true }, 'L3-Submitting'],
   ['Layer 3 confirmed', { isContactSubmitted: true }, 'L3-Confirmed'],
 ]

@@ -29,6 +29,12 @@ const ALIASES: Alias[] = [
   { pattern: /\bmaybank\b/i, name: "Maybank", type: "bank" },
   { pattern: /\btrust bank\b/i, name: "Trust Bank", type: "bank" },
   { pattern: /\bgxs\b/i, name: "GXS Bank", type: "bank" },
+  // More retail banks in Singapore (Elena, 20 Nov 2026). ICBC comes before Bank of China, whose name it contains.
+  { pattern: /\bicbc\b|industrial and commercial bank of china/i, name: "ICBC", type: "bank" },
+  { pattern: /\bbank of china\b/i, name: "Bank of China", type: "bank" },
+  { pattern: /\bcimb\b/i, name: "CIMB", type: "bank" },
+  { pattern: /\bmari\s?bank\b/i, name: "MariBank", type: "bank" },
+  { pattern: /\brhb\b/i, name: "RHB", type: "bank" },
   { pattern: /\bsingtel\b/i, name: "Singtel", type: "telco" },
   { pattern: /\bstarhub\b/i, name: "StarHub", type: "telco" },
   { pattern: /\bm1\b/i, name: "M1", type: "telco" },
@@ -54,7 +60,9 @@ export function normaliseInstitution(input: unknown): Institution | null {
 export function institutionsIn(text: unknown): Institution[] {
   if (typeof text !== "string" || !text.trim()) return [];
   const found = new Map<string, Institution>();
-  for (const part of text.split(/\s*(?:,|\/|&|\band\b|;|\+)\s*/i)) {
+  // A name with "and" in it is shortened first, so the split below doesn't cut it in two.
+  const shortened = text.replace(/industrial and commercial bank of china/gi, "ICBC");
+  for (const part of shortened.split(/\s*(?:,|\/|&|\band\b|;|\+)\s*/i)) {
     const institution = normaliseInstitution(part);
     if (institution) found.set(institution.name.toLowerCase(), institution);
   }

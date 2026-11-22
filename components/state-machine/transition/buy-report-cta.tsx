@@ -38,7 +38,7 @@ export function BuyReportCTA({
           <ShieldCheck className="h-5 w-5" aria-hidden />
         </div>
         <div className="flex-1">
-          <CardTitle>Get your Bank Pack</CardTitle>
+          <CardTitle>Get your Bank dispute pack</CardTitle>
           <CardDescription>
             A structured complaint report organised against Singapore&apos;s Shared Responsibility
             Framework, ready for you to review before sending.
@@ -75,7 +75,7 @@ export function BuyReportCTA({
               'Checkout unavailable'
             ) : (
               <>
-                Get Bank Pack
+                Get Bank dispute pack
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
               </>
             )}

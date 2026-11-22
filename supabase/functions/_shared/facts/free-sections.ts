@@ -43,7 +43,7 @@ function chosenValues(finding: EvidenceFinding): FindingValue[] {
 
 // Documents are named by kind, never by file name: file names can carry other people's names and references, and the
 // evaluation is shared and downloaded (walkthrough, 8 Nov).
-const DOCUMENT_LABELS: Record<string, string> = {
+export const DOCUMENT_LABELS: Record<string, string> = {
   police_report: "your police report (uploaded)",
   bank_statement: "your bank statement (uploaded)",
   card_statement: "your card statement (uploaded)",

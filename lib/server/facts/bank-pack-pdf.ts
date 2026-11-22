@@ -10,7 +10,7 @@ export async function buildBankPackPdf(report: ReportJson, createdAt: string | n
   const builder = new PdfBuilder()
   await builder.init()
 
-  await builder.addHeading(report.title ?? "Your bank pack")
+  await builder.addHeading(report.title ?? "Your bank dispute pack")
   await builder.addParagraph(
     `Generated: ${createdAt ? new Date(createdAt).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" }) : "n/a"}`,
   )

@@ -10,13 +10,15 @@ export const expectedStateText = {
   layer1DraftPending: 'GuideBuoy can only point you to the right resolution path',
   layer1FreeDraft: /^Your free evaluation$/,
   // Stage 1 (paid stages off): the evaluation is followed by the next steps instead of a buy button.
-  transitionBuyReport: paidStagesEnabled ? 'Get your Bank Pack' : 'Your next steps',
+  transitionBuyReport: paidStagesEnabled ? 'Get your Bank dispute pack' : 'Your next steps',
   // Stage 2 (Elena, 13 Nov 2026): pay first, then confirm the bank facts; the pack is generated from them, so a paid
   // case without its pack is on the confirm step (the old running, drafting and failed report-job states are gone).
   layer2ConfirmBankFacts: 'Confirm your facts',
   layer2Ready: 'Your complaint report',
   layer3Unavailable: 'Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.',
-  layer3Tier2: /FIDReC Tier 2 pack/i,
+  // Stage 2: the FIDReC pack is paid for first, then its facts are confirmed and the pack is generated and stored.
+  layer3Tier2: 'Confirm your facts',
+  layer3FidrecReady: 'Points for the institution',
 } as const
 
 export type StateCases = Record<keyof typeof expectedStateText, StateFixture>

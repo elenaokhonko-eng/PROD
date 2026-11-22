@@ -33,10 +33,16 @@ export interface ValidateOptions {
   // the claimant's own account of a fact they have no document for needs no "you told us". Facts marked "not sure"
   // must still be qualified.
   firstPerson?: boolean;
+  // Text about the claimant in the third person ("the complainant"), such as the FIDReC pack: a fact without a document
+  // is attributed with "The complainant states that" rather than "You told us that".
+  thirdPerson?: boolean;
   // Topics this output may not cover, e.g. an SRF verdict the server writes itself.
   forbidden?: Array<{ pattern: RegExp; detail: string }>;
   // Text shown to the person: no internal names or input field names, and a sensible length in words.
   userFacing?: { minWords: number; maxWords: number };
+  // References the output may quote that are not case facts: codes in the documents themselves, such as a device ID
+  // or a reference in the bank's records (the FIDReC pack, 20 Nov 2026).
+  extraReferences?: string[];
   // Facts whose value comes from a document (snapshot.ts documentedFacts).
   documented?: readonly FactKey[];
 }
@@ -83,10 +89,10 @@ function allowedAmounts(facts: SnapshotFacts, extra: number[]): number[] {
   return amounts;
 }
 
-const MONEY_PATTERN = /(?:S\$|SGD\s?|US\$|USD\s?|\$)\s?(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/gi;
+export const MONEY_PATTERN = /(?:S\$|SGD\s?|US\$|USD\s?|\$)\s?(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/gi;
 export const DATE_PATTERN = /\b(\d{4}-\d{2}-\d{2}|\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?,?\s+\d{4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4})\b/gi;
 
-function factDates(facts: SnapshotFacts): string[] {
+export function factDates(facts: SnapshotFacts): string[] {
   const dates: string[] = [];
   for (const t of factValue<Transaction[]>(facts, "transactions") ?? []) if (t.date) dates.push(t.date);
   for (const key of ["reported_to_bank", "reported_to_police", "written_complaint_sent", "fidrec_filed"] as const) {
@@ -145,7 +151,7 @@ const REFERENCE_CODE = /\b(?=[A-Z0-9/-]*\d)[A-Z][A-Z0-9]*(?:[/-][A-Z0-9]+)+\b/g;
 const REFERENCE_LABELLED = /\b(?:report|reference|case|ref)(?:\s+(?:number|no\.?))?(?:\s+(?:of|is))?:?\s+(?=[A-Z0-9/-]*\d)([A-Z0-9][A-Z0-9/-]{3,})\b/gi;
 const normaliseRef = (ref: string) => ref.toUpperCase().replace(/\s+/g, "");
 
-function referencesMentioned(text: string): string[] {
+export function referencesMentioned(text: string): string[] {
   const found = [...text.matchAll(REFERENCE_CODE)].map((m) => m[0]).concat([...text.matchAll(REFERENCE_LABELLED)].map((m) => m[1]));
   return [...new Set(found.map(normaliseRef))]
     // Dates and amounts are checked on their own.
@@ -196,7 +202,7 @@ function statesClaimedAmount(sentence: string, facts: SnapshotFacts): boolean {
 
 const amountAttributed = (sentence: string) => ATTRIBUTED.test(sentence) || AMOUNT_ATTRIBUTED.test(sentence) || UNCERTAIN.test(sentence);
 
-const ATTRIBUTED = /\b(according to|the claimant (states|says|reports)|i state|i do not have|no copy|not (yet )?provided|unable to provide|without a (copy|document)|you (say|said|told us|have told us|mentioned|state|stated)|based on what you told us)\b/i;
+const ATTRIBUTED = /\b(according to|the claimant (states|says|reports)|the complainant (states|says|stated|said)|i state|i do not have|no copy|not (yet )?provided|unable to provide|without a (copy|document)|you (say|said|told us|have told us|mentioned|state|stated)|based on what you told us)\b/i;
 // Only sentences that say the event happened need a qualifier; "provide a copy of your police report" asserts nothing.
 // The bank is the one told ("reported it to your bank", "called the bank"), not "a loss from your bank account".
 // The bank may be named ("reported it to DBS", "called OCBC"; corpus, 8 Nov).
@@ -262,7 +268,7 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
 
   // Bank, police and FIDReC references must be ones the person confirmed (corpus, 8 Nov: a report number taken from
   // the story that the confirm screen never showed).
-  const references = factReferences(facts);
+  const references = [...factReferences(facts), ...(options.extraReferences ?? []).map(normaliseRef)];
   for (const ref of referencesMentioned(text)) {
     if (!references.includes(ref)) failures.push({ check: "reference", detail: ref });
   }
@@ -347,12 +353,18 @@ export function describeFailures(failures: readonly OutputFailure[]): string {
 // Fallback when the model keeps stating a fact the user marked "not sure", or kept without a document, as certain:
 // the server prefixes exactly those sentences ("You told us that ...", "It is not confirmed that ..."). Only the
 // "unqualified" check is repaired this way; any other failure still refuses the output.
-export function qualifyUnsupportedStatements(text: string, facts: SnapshotFacts, documented: readonly FactKey[] = []): string {
+export function qualifyUnsupportedStatements(
+  text: string,
+  facts: SnapshotFacts,
+  documented: readonly FactKey[] = [],
+  thirdPerson = false,
+): string {
   let out = text;
+  const told = thirdPerson ? "The complainant states that " : "You told us that ";
   const lowerFirst = (s: string) => (/^[A-Z][a-z]/.test(s) && !/^I\b/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
   for (const sentence of sentences(text)) {
     if (statesClaimedAmount(sentence, facts) && !amountAttributed(sentence)) {
-      out = out.replace(sentence, "You told us that " + lowerFirst(sentence));
+      out = out.replace(sentence, told + lowerFirst(sentence));
       continue;
     }
     for (const [key, asserts] of ASSERTS) {
@@ -360,7 +372,7 @@ export function qualifyUnsupportedStatements(text: string, facts: SnapshotFacts,
       if (!fact || !asserts.test(sentence) || ATTRIBUTED.test(sentence) || qualified(sentence, key)) continue;
       if (fact.label !== "claimant_only" && fact.label !== "not_sure") continue;
       if (fact.label === "claimant_only" && documentedElsewhere(facts, key, documented)) continue;
-      const prefix = fact.label === "claimant_only" ? "You told us that " : "It is not confirmed that ";
+      const prefix = fact.label === "claimant_only" ? told : "It is not confirmed that ";
       const rest = /^[A-Z][a-z]/.test(sentence) && !/^I\b/.test(sentence) ? sentence[0].toLowerCase() + sentence.slice(1) : sentence;
       out = out.replace(sentence, prefix + rest);
       break;

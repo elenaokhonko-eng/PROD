@@ -8,6 +8,25 @@ import {
 } from "../_shared/edge-auth.ts";
 import { safeErrorText } from "../_shared/safe-error.ts";
 import { DEFAULT_OPENAI_MODEL, responsesParams } from "../_shared/openai-params.ts";
+import { appliesToCase, instrumentsOf } from "../_shared/facts/rules/instrument-scope.ts";
+import type { Instrument } from "../_shared/facts/keys.ts";
+// The kinds of payment in the case's latest confirmed facts (any stage); empty when nothing has been confirmed yet,
+// which leaves the clause routing below unfiltered.
+async function confirmedInstruments(supabase, caseId: string): Promise<Array<Instrument | null>> {
+  const { data, error } = await supabase.from("case_fact_snapshots").select("facts").eq("case_id", caseId).order("created_at", {
+    ascending: false
+  }).limit(1).maybeSingle();
+  if (error || !data) return [];
+  return instrumentsOf(data.facts?.transactions?.value ?? []);
+}
+function clauseLocator(c: any) {
+  return {
+    title: c?.title ?? null,
+    source_ref: c?.source_ref ?? c?.source_name ?? null,
+    clause_ref: c?.clause_ref ?? null,
+    text: c?.text_content ?? c?.excerpt ?? null
+  };
+}
 function nowIso() {
   return new Date().toISOString();
 }
@@ -913,12 +932,17 @@ function buildEvidenceFromDoc(d, maxItems = 6) {
     const retrievalText = `CASE_FACTS:\n${JSON.stringify(facts, null, 2)}\n\n` + `EVIDENCE_SNIPPETS:\n${evidenceLines}`;
     /** 7) Embed + vector literal */ const embArr = await openaiEmbed(OPENAI_API_KEY, retrievalText);
     const query_embedding = toVectorLiteral(embArr);
-    /** 8) RPC matches */ const { data: clauseMatches, error: cmErr } = await supabase.rpc("match_regulatory_clauses_threshold", {
+    /** 8) RPC matches */ const { data: rawClauseMatches, error: cmErr } = await supabase.rpc("match_regulatory_clauses_threshold", {
       query_embedding,
       match_count: topKClauses,
       similarity_threshold: clauseThreshold
     });
     if (cmErr) throw new Error(`match_regulatory_clauses_threshold RPC error: ${JSON.stringify(cmErr)}`);
+    // FIDReC standards brief v5, Phase 0b: only clauses that apply to the confirmed kinds of payment. A card-only case
+    // gets no SRF clause and no EUPG paragraph outside 4.2-4.6, 4.10-4.12 and 4.14-4.16 (EUPG 4.1, 5.1; SRF footnote 1).
+    const instruments = await confirmedInstruments(supabase, case_id);
+    const cardOnly = instruments.length > 0 && instruments.every((i)=>i === "sg_card");
+    const clauseMatches = (rawClauseMatches ?? []).filter((c)=>appliesToCase(clauseLocator(c), instruments));
     const { data: decisionMatches, error: dmErr } = await supabase.rpc("match_public_decisions", {
       query_embedding,
       match_count: topKDecisions
@@ -990,7 +1014,8 @@ function buildEvidenceFromDoc(d, maxItems = 6) {
         plain_english_summary: matched.plain_english_summary ?? null
       };
     });
-    if (isUnauthorisedCase) {
+    // Not for a card-only case: EUPG Section 5 and most of Section 4 do not apply to card transactions (EUPG 4.1, 5.1).
+    if (isUnauthorisedCase && !cardOnly) {
       const hasEUPG = selectedClauses.some(isEUPGClause);
       let fallbackRows: any[] = [];
       if (!hasEUPG) {
@@ -1025,6 +1050,8 @@ function buildEvidenceFromDoc(d, maxItems = 6) {
         }
       }
     }
+    // The model may also cite a clause that does not apply to these payments; drop it with the rest of the routing.
+    selectedClauses = selectedClauses.filter((c)=>appliesToCase(clauseLocator(c), instruments));
     const eupg = selectedClauses.filter(isEUPGClause).sort((a, b)=>scoreEUPGClauseForCase(b, extractJson) - scoreEUPGClauseForCase(a, extractJson));
     const rest = selectedClauses.filter((c)=>!isEUPGClause(c));
     const topRelevantEUPG = eupg.slice(0, 2);

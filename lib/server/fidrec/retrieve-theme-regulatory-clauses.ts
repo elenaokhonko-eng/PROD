@@ -2,6 +2,7 @@ import { generateEmbedding, toVectorLiteral } from "@/lib/server/ai/generate-emb
 import { loadOpenThemeContexts, type OpenThemeContext } from "@/lib/server/fidrec/load-open-theme-contexts"
 import { logger } from "@/lib/logger"
 import { createServiceClient } from "@/lib/supabase/service"
+import { appliesToCase, instrumentsOf, type Instrument } from "@/lib/facts"
 
 const log = logger.withContext({ module: "fidrec-retrieve-theme-regulatory-clauses" })
 
@@ -178,6 +179,7 @@ async function retrieveClausesForTheme(input: {
   investigationIssue: string | null
   matchCount: number
   similarityThreshold: number
+  instruments: Array<Instrument | null>
 }): Promise<ThemeRegulatoryRetrievalResult> {
   const retrievalQuery = buildThemeRegulatoryRetrievalQuery({
     theme_title: input.themeContext.theme.theme_title,
@@ -205,7 +207,20 @@ async function retrieveClausesForTheme(input: {
     )
   }
 
-  const clauses = await hydrateClauseMatches((data ?? []) as RpcClauseMatch[])
+  // FIDReC standards brief v5, Phase 0b: only clauses that apply to the case's confirmed kinds of payment.
+  const clauses = (await hydrateClauseMatches((data ?? []) as RpcClauseMatch[])).filter((clause) =>
+    appliesToCase(
+      {
+        document_title: clause.document_title,
+        source: clause.document_source,
+        source_ref: clause.source_ref,
+        title: clause.title,
+        clause_ref: clause.clause_ref,
+        text: clause.text_content,
+      },
+      input.instruments,
+    ),
+  )
 
   log.info("Retrieved regulatory clauses for theme", {
     caseId: input.caseId,
@@ -231,9 +246,10 @@ export async function retrieveThemeRegulatoryClauses(
   const matchCount = input.matchCount ?? DEFAULT_MATCH_COUNT
   const similarityThreshold = input.similarityThreshold ?? DEFAULT_SIMILARITY_THRESHOLD
 
-  const [themeContexts, investigationIssuesByThemeId] = await Promise.all([
+  const [themeContexts, investigationIssuesByThemeId, instruments] = await Promise.all([
     loadOpenThemeContexts(input.caseId),
     loadInvestigationIssuesByThemeId(input.caseId),
+    loadConfirmedInstruments(input.caseId),
   ])
 
   if (themeContexts.length === 0) {
@@ -250,9 +266,25 @@ export async function retrieveThemeRegulatoryClauses(
         investigationIssue: investigationIssuesByThemeId.get(themeContext.theme.id) ?? null,
         matchCount,
         similarityThreshold,
+        instruments,
       }),
     )
   }
 
   return results
+}
+
+// The kinds of payment in the case's latest confirmed facts (any stage); none when nothing is confirmed yet, which
+// leaves the routing unfiltered.
+async function loadConfirmedInstruments(caseId: string): Promise<Array<Instrument | null>> {
+  const { data, error } = await createServiceClient()
+    .from("case_fact_snapshots")
+    .select("facts")
+    .eq("case_id", caseId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error || !data) return []
+  const facts = data.facts as { transactions?: { value?: Array<{ instrument?: Instrument | null }> | null } } | null
+  return instrumentsOf(facts?.transactions?.value ?? [])
 }

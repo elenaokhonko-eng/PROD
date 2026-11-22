@@ -4,11 +4,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { qk } from '@/hooks/state-machine/query-keys'
 import { FactsRequestError } from '@/hooks/state-machine/facts/use-case-facts'
 
-export type GeneratedStage = 'free' | 'bank'
+export type GeneratedStage = 'free' | 'bank' | 'fidrec'
 
 const ROUTES: Record<GeneratedStage, { path: string; failure: string }> = {
   free: { path: '/api/edge/tier0', failure: 'Failed to generate the free evaluation' },
   bank: { path: '/api/edge/bank-pack', failure: 'Failed to generate the bank pack' },
+  fidrec: { path: '/api/edge/fidrec-pack', failure: 'Failed to generate the FIDReC pack' },
 }
 
 // Generates a stage's output from its confirmed snapshot: the free evaluation, or the bank pack once it is paid for.
@@ -30,14 +31,14 @@ export function useGenerateStage(caseId: string, stage: GeneratedStage) {
     },
     onSuccess: async () => {
       // The free evaluation makes the case ready to buy (report.purchaseReady in the capabilities response); the bank
-      // pack is read as the case's latest report.
+      // and FIDReC packs are read as the case's latest report of their kind.
       await Promise.all(
         stage === 'free'
           ? [
               queryClient.invalidateQueries({ queryKey: qk.case.narratives(caseId) }),
               queryClient.invalidateQueries({ queryKey: qk.entitlement(caseId) }),
             ]
-          : [queryClient.invalidateQueries({ queryKey: qk.case.report(caseId) })],
+          : [queryClient.invalidateQueries({ queryKey: stage === 'fidrec' ? qk.case.fidrecReport(caseId) : qk.case.report(caseId) })],
       )
     },
   })

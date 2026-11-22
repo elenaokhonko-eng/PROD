@@ -281,19 +281,14 @@ function resolveScamTypePhrase(input: BuildExecutiveSummaryNarrativeInput, corpu
 
 function resolveProducts(input: BuildExecutiveSummaryNarrativeInput, corpus: string): FactValue<string[]> {
   const products = new Set<string>()
-  const institution = resolveInstitutionName(input).value ?? "DBS"
+  // F4 (stage 2 plan): no default institution and no named products in code.
+  const institution = resolveInstitutionName(input).value ?? "the institution"
 
   if (/\bdeposit account\b/i.test(corpus) || /\bsavings plus account\b/i.test(corpus) || /\bpaynow\b/i.test(corpus)) {
     products.add(`${institution} deposit account`)
   }
   if (/\bcredit card\b/i.test(corpus)) {
     products.add(`${institution} credit card`)
-  }
-  if (/\bDBS Savings Plus Account\b/i.test(corpus)) {
-    products.add("DBS Savings Plus Account")
-  }
-  if (/\bDBS Altitude Visa Signature Card\b/i.test(corpus)) {
-    products.add("DBS Altitude Visa Signature Card")
   }
 
   const cardEndingMatch = corpus.match(/\bcard ending\s+(\d{4})\b/i)
@@ -318,7 +313,6 @@ function resolveProducts(input: BuildExecutiveSummaryNarrativeInput, corpus: str
 
 function normalizeInstitutionLabel(value: string | null | undefined): string {
   if (!value?.trim()) return "The bank"
-  if (/^DBS/i.test(value.trim())) return "DBS"
   return value.trim()
 }
 
@@ -428,10 +422,6 @@ function resolveInstitutionName(input: BuildExecutiveSummaryNarrativeInput): Fac
   const primaryMatch = input.primaryNarrative?.match(BANK_NAME_PATTERN)
   if (primaryMatch?.[1]) {
     return fact(primaryMatch[1], "cases.primary_narrative", "high")
-  }
-
-  if (input.primaryNarrative && /\bDBS(?:\s*\/\s*POSB)?\b/i.test(input.primaryNarrative)) {
-    return fact("DBS", "cases.primary_narrative", "high")
   }
 
   const assertionMatch = assertionsCorpus(input.assertions).match(BANK_NAME_PATTERN)

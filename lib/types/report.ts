@@ -23,6 +23,28 @@ export interface ReportJson {
   [extra: string]: unknown
 }
 
+/** FIDReC pack (fidrec_pack_v1, run_fidrec_pack_v1). Mirrors FidrecPackReport in _shared/facts/fidrec-pack.ts. */
+export interface FidrecPackJson {
+  report_version?: string
+  title?: string
+  executive_summary?: string
+  claimant_position?: string
+  institution_position?: string
+  arguments_for_claimant?: Array<{ text: string; evidence_ids: string[] }>
+  arguments_for_institution?: Array<{ text: string; evidence_ids: string[] }>
+  institution_duties?: Array<{ text: string; clause_ids: string[]; evidence_ids: string[] }>
+  regulatory_sources?: Array<{ id: string; source: string; clause_ref: string | null; title: string | null }>
+  timeline?: Array<{ date?: string; event: string }>
+  disputed_transactions?: Array<Record<string, string>>
+  total_loss?: string | null
+  evidence_index?: Array<{ id: string; document: string }>
+  evidence_checklist?: Array<{ label: string; present: boolean }>
+  route?: string
+  rules_assessment?: string
+  final_reply_used?: boolean
+  prose_source?: 'model' | 'fallback'
+}
+
 export interface ReportRow {
   id: string
   user_id: string | null
