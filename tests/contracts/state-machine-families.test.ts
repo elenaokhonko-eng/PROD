@@ -48,7 +48,8 @@ const cases: Array<[string, Partial<StateMachineInput>, string]> = [
   ['Layer 1 confirm step stays once shown', { isIntakeSubmitted: true, documents: readyDocument, validation: gapValidation, gapItems: [], confirmStepShown: true }, 'S1-Tier0DraftPending'],
   ['eligibility transition', { narratives: tier0 }, 'T-EligibilityGate'],
   ['blocked before purchase', { narratives: tier0, reportPurchase: { ready: false }, documents: readyDocument }, 'T-EligibilityGate'],
-  ['buy transition', { narratives: tier0, reportPurchase: purchasable }, 'T-BuyReportCTA'],
+  // Elena, 22 Nov 2026: the evaluation stays on screen with the buy button even when no document is ready.
+  ['free draft without a ready document', { narratives: tier0, reportPurchase: purchasable }, 'S1-Tier0Draft'],
   ['checkout transition', { narratives: tier0, reportPurchase: purchasable, isCheckoutRedirecting: true }, 'T-CheckoutRedirect'],
   // A free case, no paid entitlement anywhere: the free draft with the S$18 buy button.
   ['Layer 1 free draft', { narratives: tier0, reportPurchase: purchasable, documents: readyDocument }, 'S1-Tier0Draft'],

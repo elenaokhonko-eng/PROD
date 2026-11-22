@@ -217,7 +217,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const deletingDocumentId = deleteEvidence.isPending ? deleteEvidence.variables ?? null : null
   const factsHref = `/app/case/${caseId}/facts?stage=free`
   const showStageOneNextSteps =
-    paidStagesOff && (node === 'S1-Tier0Draft' || node === 'T-BuyReportCTA' || node === 'T-EligibilityGate')
+    paidStagesOff && (node === 'S1-Tier0Draft' || node === 'T-EligibilityGate')
   // An evaluation made from facts that have since changed says so (edge cases, 8 Nov): the confirmed snapshot no
   // longer matches the current facts.
   const showsEvaluation = showStageOneNextSteps || node === 'S1-Tier0Draft'
@@ -626,15 +626,6 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               />
             ) : null}
           </>
-        ) : node === 'T-BuyReportCTA' ? (
-          <BuyReportCTA
-            priceLabel={priceLabels.report}
-            disabled={reportCapability?.canCheckout !== true}
-            unavailableReason={reportCheckoutUnavailableReason}
-            isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
-            errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
-            onClick={() => void handleCheckout('self_serve_report')}
-          />
         ) : node === 'T-CheckoutRedirect' ? (
           <CheckoutRedirect />
         ) : node === 'L3-ConfirmFidrecFacts' ? (
