@@ -16,7 +16,6 @@ export type StateMachineNode =
   | 'S1-Tier0DraftPending'
   | 'S1-Tier0Draft'
   | 'T-EligibilityGate'
-  | 'T-BuyReportCTA'
   | 'T-CheckoutRedirect'
   | 'T-PaymentSuccessLanding'
   | 'L2-ConfirmBankFacts'
@@ -131,8 +130,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   // "Can buy", not get_case_eligibility's run_report_selfserve, which is only true once the report is paid for.
   if (!reportPurchase || !reportPurchase.ready) return 'T-EligibilityGate'
 
-  // The free draft with the buy button underneath; the button alone while no document is ready.
-  if (documents?.some((d) => d.processing_status === 'ready')) return 'S1-Tier0Draft'
-
-  return 'T-BuyReportCTA'
+  // The free evaluation with the buy button underneath, documents or not (Elena, 22 Nov 2026): someone who skipped or
+  // removed their documents still sees the evaluation they came for, and its out-of-date warning.
+  return 'S1-Tier0Draft'
 }

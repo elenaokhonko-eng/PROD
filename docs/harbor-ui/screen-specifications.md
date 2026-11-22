@@ -62,7 +62,7 @@ Public header/footer are specified in [component system](./component-and-sensory
 | `S1-FreshnessCheck` | D finalising banner |
 | `S1-Tier0DraftPending`, `S1-Tier0Draft` | D draft preparing/ready/partial |
 | `T-EligibilityGate` | E eligibility check on free-draft screen |
-| `T-BuyReportCTA` | E eligible S$18 report card |
+| `T-BuyReportCTA` | E eligible S$18 report card, under the free evaluation (`S1-Tier0Draft`), documents or not |
 | `T-BlockedOnPrereq` | E prerequisite card with one resolve action |
 | `T-CheckoutRedirect`, `T-StripeCheckout` | E branded redirect / provider-owned checkout handoff |
 | `T-PaymentSuccessLanding`, `T-PaymentCancelled` | E returned/delayed confirmation / cancelled state |
