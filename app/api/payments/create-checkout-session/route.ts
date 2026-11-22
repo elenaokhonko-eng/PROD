@@ -18,6 +18,11 @@ import { safeErrorText } from "@/lib/server/safe-error"
 
 export type ProductKey = CheckoutProductKey
 
+// Prices are shown and charged in SGD only (Elena, 23 Nov 2026). Stripe's Adaptive Pricing showed visitors abroad a
+// converted price (US$14.51 for S$18) and can't be switched off for the account, so each Checkout Session turns it off.
+// API 2024-06-20 accepts the field (checked in test mode); stripe-node 16's types predate it.
+const SGD_ONLY: { adaptive_pricing: { enabled: false } } = { adaptive_pricing: { enabled: false } }
+
 const checkoutSchema = z
   .object({
     caseId: z.string().uuid(),
@@ -253,6 +258,7 @@ export async function POST(request: NextRequest) {
           try {
             const session = await stripe.checkout.sessions.create(
               {
+                ...SGD_ONLY,
                 mode: "payment",
                 payment_method_types: ["card"],
                 client_reference_id: purchaseRow.case_purchase_id,
