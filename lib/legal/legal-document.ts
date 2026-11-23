@@ -80,7 +80,20 @@ export function parseLegalDocument(source: string, effective = legalEffectiveDat
     } else if (lines.some((line) => /^(#|- |\|)/.test(line))) throw new Error(`Unsupported Markdown in legal document: ${lines[0]}`)
     else blocks.push({ kind: 'paragraph', inlines: inlines(lines.join(' ')) })
   }
-  return { meta: parseMeta(match[1]), blocks }
+  const meta = parseMeta(match[1])
+  // A version can't take effect before the one it replaces (staging showed v2.2 effective 10 Nov replacing v2.1 of
+  // 14 Nov, 23 Nov 2026): the build stops until the date is set right.
+  const replacedOn = /\((\d{1,2} \w+ \d{4})\)$/.exec(meta.replaces)?.[1]
+  if (replacedOn && dayOf(meta.effective) !== null && dayOf(meta.effective)! < dayOf(replacedOn)!) {
+    throw new Error(`${meta.title} v${meta.version} is effective ${meta.effective}, before version ${meta.replaces} it replaces: fix its effective date`)
+  }
+  return { meta, blocks }
+}
+
+function dayOf(date: string): number | null {
+  const match = /^(\d{1,2}) (\w+) (\d{4})$/.exec(date)
+  const month = match ? MONTHS.indexOf(match[2]) : -1
+  return match && month >= 0 ? Date.UTC(Number(match[3]), month, Number(match[1])) : null
 }
 
 // Each document may take effect on its own day: LEGAL_EFFECTIVE_DATE_TERMS or LEGAL_EFFECTIVE_DATE_PRIVACY overrides

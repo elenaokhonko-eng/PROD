@@ -75,9 +75,13 @@ test('F: the effective date comes from LEGAL_EFFECTIVE_DATE, never from the text
     const source = readFileSync(path, 'utf8')
     assert.equal(source.split(EFFECTIVE_PLACEHOLDER).length - 1, 2, `${path}: header and version line both use the placeholder`)
     assert.doesNotMatch(source, /Effective \d/, `${path}: no fixed effective date`)
-    const terms = parseLegalDocument(source, legalEffectiveDate({ LEGAL_EFFECTIVE_DATE: '2026-11-10', HARBOR_DEPLOYMENT_ENVIRONMENT: 'production' }))
-    assert.equal(terms.meta.effective, '10 November 2026')
-    assert.match(JSON.stringify(terms.blocks[1]), /Effective 10 November 2026 · /)
+    const terms = parseLegalDocument(source, legalEffectiveDate({ LEGAL_EFFECTIVE_DATE: '2026-11-20', HARBOR_DEPLOYMENT_ENVIRONMENT: 'production' }))
+    assert.equal(terms.meta.effective, '20 November 2026')
+    assert.match(JSON.stringify(terms.blocks[1]), /Effective 20 November 2026 · /)
+    // Never before the version it replaces (v2.1 of 14 Nov); the same day is allowed.
+    assert.equal(parseLegalDocument(source, '14 November 2026').meta.effective, '14 November 2026')
+    assert.throws(() => parseLegalDocument(source, '10 November 2026'), /effective 10 November 2026, before version 2\.1 \(14 November 2026\)/)
+    assert.equal(parseLegalDocument(source, EFFECTIVE_UNSET).meta.effective, EFFECTIVE_UNSET)
   }
   assert.equal(legalEffectiveDate({ LEGAL_EFFECTIVE_DATE: '2027-01-05' }), '5 January 2027')
   assert.equal(legalEffectiveDate({}), EFFECTIVE_UNSET, 'staging and CI show a neutral placeholder')
