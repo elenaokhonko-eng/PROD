@@ -38,6 +38,12 @@ test('checkout refuses both products with product_not_available before any reser
   assert.ok(route.indexOf('paidStagesEnabled()') < route.indexOf('"reserve_checkout_purchase_v1"'))
 })
 
+test('checkout shows and charges SGD only: Adaptive Pricing is off on every session', () => {
+  const route = readFileSync('app/api/payments/create-checkout-session/route.ts', 'utf8')
+  assert.match(route, /const SGD_ONLY[^=]*= \{ adaptive_pricing: \{ enabled: false \} \}/)
+  assert.match(route, /stripe\.checkout\.sessions\.create\(\s*\{\s*\.\.\.SGD_ONLY,/)
+})
+
 test('no buy button while paid stages are off, even when the case is ready to buy', () => {
   const free = { plan: 'free', features: {}, purchased_at: null }
   const off = buildCaseCapabilityBillingResponse({

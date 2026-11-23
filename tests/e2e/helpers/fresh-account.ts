@@ -211,6 +211,9 @@ export async function payWithTestCard(page: Page, email: string) {
     if (!field) throw new Error(`Stripe Checkout field not found: ${placeholder}`)
     await field.fill(value)
   }
+  // GitHub's runners are in the US, where Stripe asks for a US ZIP code; the release tests pay as a Singapore customer.
+  const country = page.locator('#billingCountry')
+  if (await country.isVisible().catch(() => false)) await country.selectOption('SG')
   const postal = page.locator('#billingPostalCode')
   if (await postal.isVisible().catch(() => false)) await postal.fill('123456')
   // The Pay button can sit inside Stripe's frame too.
