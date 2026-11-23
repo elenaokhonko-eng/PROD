@@ -6,6 +6,7 @@ import {
   verifyHarborEdgeRequest,
 } from "../_shared/edge-auth.ts";
 import { safeErrorText } from "../_shared/safe-error.ts";
+import { checkPackEvidence, EVIDENCE_DOCUMENT_SELECT, type EvidenceDocument } from "../_shared/evidence-minimums.ts";
 import { openAiUsage, OUTPUT_CAPS, recordModelUsage, type UsageClient, usageEnvironment } from "../_shared/model-usage.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/openai-params.ts";
 import {
@@ -118,6 +119,17 @@ Deno.serve(async (req) => {
       }, 409);
     }
 
+    // Evidence minimums (Elena, 23 Nov 2026): the same check as the generate screen and the web route.
+    const { data: evidenceRows, error: evidenceErr } = await supabase
+      .from("case_documents")
+      .select(EVIDENCE_DOCUMENT_SELECT)
+      .eq("case_id", case_id);
+    if (evidenceErr) return json({ ok: false, error: "documents_unavailable", code: evidenceErr.code ?? null }, 500);
+    const evidence = checkPackEvidence("fidrec", (evidenceRows ?? []) as EvidenceDocument[]);
+    if (!evidence.ready) {
+      return json({ ok: false, reason: "evidence_missing", missing: evidence.missing, error: "Add the documents this pack needs first" }, 409);
+    }
+
     const { data: storyRow, error: storyErr } = await supabase
       .from("case_story_revisions")
       .select("story_text")
@@ -160,7 +172,7 @@ Deno.serve(async (req) => {
     // device and IP records). The model gets a capped excerpt of each.
     const { data: documentRows, error: documentsErr } = await supabase
       .from("case_documents")
-      .select("id, verified_document_type, content_latest_id, processing_status, upload_date")
+      .select("id, verified_document_type, complainant_item, content_latest_id, processing_status, upload_date")
       .eq("case_id", case_id)
       .eq("processing_status", "ready")
       .order("upload_date", { ascending: true });
@@ -174,6 +186,7 @@ Deno.serve(async (req) => {
     const caseDocuments: CaseDocument[] = (documentRows ?? []).map((d) => ({
       id: d.id as string,
       evidenceType: (d.verified_document_type as string | null) ?? null,
+      complainantItem: (d.complainant_item as string | null) ?? null,
       text: d.content_latest_id ? contentText.get(d.content_latest_id as string) ?? null : null,
     }));
 
