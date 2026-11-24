@@ -29,6 +29,8 @@ import { UploadRefusedError, UsageLimitError, useUploadEvidence } from '@/hooks/
 import { useDeleteEvidence } from '@/hooks/state-machine/layer1/use-delete-evidence'
 import { EVIDENCE_SKIPPED_KEY, useEvidenceSkipped } from '@/hooks/state-machine/facts/use-evidence-skipped'
 import { useCaseDocumentsRealtime } from '@/hooks/state-machine/layer1/use-case-documents-realtime'
+import { PackEvidenceChecklist } from '@/components/state-machine/facts/pack-evidence'
+import { checkPackEvidence, type EvidenceItem, type PackProduct } from '@/lib/billing/evidence-minimums'
 import { useTier0Draft } from '@/hooks/state-machine/layer1/use-tier0-draft'
 import { useQueryClient } from '@tanstack/react-query'
 import { useJourneyAnswered } from '@/hooks/state-machine/facts/use-journey-answered'
@@ -319,6 +321,35 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     } finally {
       setIsSavingGap(false)
     }
+  }
+
+  // Evidence minimums (Elena, 23 Nov 2026): the same check the pack routes and functions enforce.
+  const packEvidence = useMemo(() => {
+    const documents = (documentsQuery.data ?? []).map((d) => ({ ...d, complainant_item: d.complainant_item ?? null }))
+    return { bank: checkPackEvidence('bank', documents), fidrec: checkPackEvidence('fidrec', documents) }
+  }, [documentsQuery.data])
+
+  async function handleIdentifyDocument(documentId: string, item: EvidenceItem) {
+    const response = await fetch(`/api/cases/${caseId}/documents/${documentId}/identify`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ item }),
+    })
+    if (!response.ok) throw new Error('identify_failed')
+    await documentsQuery.refetch()
+  }
+
+  function packEvidenceChecklist(product: PackProduct) {
+    return (
+      <PackEvidenceChecklist
+        product={product}
+        check={packEvidence[product]}
+        documents={documentsQuery.data ?? []}
+        isUploading={uploadEvidence.isPending}
+        onUpload={handleUpload}
+        onIdentify={handleIdentifyDocument}
+      />
+    )
   }
 
   function handleUpload(files: File[]) {
@@ -634,9 +665,11 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               If your bank has sent its final reply, upload the letter below before you confirm: the FIDReC pack uses it
               for the bank’s position.
             </p>
+            {packEvidenceChecklist('fidrec')}
             <ConfirmAndEvaluate
               caseId={caseId}
               stage="fidrec"
+              evidenceReady={packEvidence.fidrec.ready}
               readyDocumentsKey={(documentsQuery.data ?? []).filter((d) => d.processing_status === 'ready').map((d) => d.id).sort().join(',')}
             />
             <EvidenceUploadPanel
@@ -652,9 +685,11 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
         ) : node === 'L2-ConfirmBankFacts' ? (
           // Stage 2: after payment, confirm the bank facts and add evidence; the bank pack is generated from them.
           <div className="space-y-8">
+            {packEvidenceChecklist('bank')}
             <ConfirmAndEvaluate
               caseId={caseId}
               stage="bank"
+              evidenceReady={packEvidence.bank.ready}
               readyDocumentsKey={(documentsQuery.data ?? []).filter((d) => d.processing_status === 'ready').map((d) => d.id).sort().join(',')}
             />
             <EvidenceUploadPanel

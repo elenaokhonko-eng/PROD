@@ -13,6 +13,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tier2PackPanel } from '@/components/state-machine/layer3/tier2-pack-panel'
+import { PackEvidenceNote } from '@/components/state-machine/facts/pack-evidence'
 import type { ProductReadinessReason } from '@/lib/billing/product-readiness'
 
 export type FidrecRoute = 'final_reply' | 'no_reply' | 'not_complained'
@@ -170,6 +171,7 @@ export function FidrecOffer(props: FidrecOfferProps) {
         errorMessage={props.errorMessage}
         onClick={props.onBuy}
       />
+      <PackEvidenceNote product="fidrec" />
     </div>
   )
 }

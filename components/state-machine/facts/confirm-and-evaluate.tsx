@@ -12,6 +12,7 @@ import { qk } from '@/hooks/state-machine/query-keys'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmFactsPanel } from '@/components/state-machine/facts/confirm-facts-panel'
+import { PACK_NAMES } from '@/components/state-machine/facts/pack-evidence'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { FactsRequestError } from '@/hooks/state-machine/facts/use-case-facts'
 import { type GeneratedStage, useGenerateStage } from '@/hooks/state-machine/facts/use-generate-free-evaluation'
@@ -53,10 +54,13 @@ export function ConfirmAndEvaluate({
   caseId,
   readyDocumentsKey,
   stage = 'free',
+  evidenceReady,
 }: {
   caseId: string
   readyDocumentsKey: string
   stage?: GeneratedStage
+  /** Paid packs only: whether the documents the pack needs are in (evidence-minimums.ts). Undefined: no check. */
+  evidenceReady?: boolean
 }) {
   const generate = useGenerateStage(caseId, stage)
   const copy = COPY[stage]
@@ -80,8 +84,31 @@ export function ConfirmAndEvaluate({
     )
   }
 
+  const failedReason = generate.error instanceof FactsRequestError ? generate.error.reason : null
+
+  // Evidence minimums (Elena, 23 Nov 2026): confirmed, but generated only once the documents the pack needs are in.
+  if (snapshotId && stage !== 'free' && (generate.isIdle || failedReason === 'evidence_missing')) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Thank you, your facts are confirmed</CardTitle>
+          <CardDescription>
+            {evidenceReady
+              ? `Your documents are in. You can generate your ${PACK_NAMES[stage]} now.`
+              : `When the documents listed above are added, you can generate your ${PACK_NAMES[stage]}.`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button disabled={!evidenceReady} onClick={() => generate.mutate(snapshotId)}>
+            Generate your {PACK_NAMES[stage]}
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
   if (snapshotId && generate.isError) {
-    const reason = generate.error instanceof FactsRequestError ? generate.error.reason : null
+    const reason = failedReason
     const checks = generate.error instanceof FactsRequestError ? generate.error.checks : []
     return (
       <Card role="alert">
@@ -130,7 +157,7 @@ export function ConfirmAndEvaluate({
         showIntro={false}
         onConfirmed={(id) => {
           setSnapshotId(id)
-          generate.mutate(id)
+          if (evidenceReady !== false) generate.mutate(id)
         }}
       />
     </div>

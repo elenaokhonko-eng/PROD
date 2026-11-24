@@ -28,7 +28,9 @@ test('the dashboard runs the confirm step inline and shows next steps while paid
   assert.match(dashboard, /const paidStagesOff = capabilityBilling\?\.access\.paidStagesEnabled === false/)
   assert.match(dashboard, /<NextSteps caseId=\{caseId\} priceLabels=\{priceLabels\} \/>/)
   const confirm = readFileSync('components/state-machine/facts/confirm-and-evaluate.tsx', 'utf8')
-  assert.match(confirm, /onConfirmed=\{\(id\) => \{\s*setSnapshotId\(id\)\s*generate\.mutate\(id\)/)
+  // The free evaluation is generated as soon as the facts are confirmed; only the paid packs wait for documents.
+  assert.match(confirm, /onConfirmed=\{\(id\) => \{\s*setSnapshotId\(id\)\s*if \(evidenceReady !== false\) generate\.mutate\(id\)/)
+  assert.match(dashboard, /node === 'S1-Tier0DraftPending' \? \([\s\S]{0,200}?<ConfirmAndEvaluate\s+caseId=\{caseId\}\s+readyDocumentsKey=/, 'no evidence check on the free evaluation')
 })
 
 test('email interest uses the account address and a service-role write to the existing waitlist', () => {

@@ -34,6 +34,8 @@ export interface CaseDocumentRow {
   verified_document_type: string | null
   verification_status: string | null
   verification_confidence: number | null
+  // The pack evidence item the customer marked this document as (evidence-minimums.ts), or null.
+  complainant_item?: string | null
   content_latest_id: string | null
   storage_provider: string | null
   storage_bucket: string | null
@@ -70,4 +72,4 @@ export interface EvidenceResponse {
 // tests/database/client-columns.test.sql checks each one exists in the migrated schema (the table has no created_at;
 // upload_date is the upload time).
 export const CASE_DOCUMENT_SELECT =
-  'id, case_id, updated_at, filename, original_filename, file_size, mime_type, document_type, exhibit_label, upload_date, file_url, is_processed, sha256, processing_status, processing_error, verified_document_type, verification_status, verification_confidence, content_latest_id, storage_provider, storage_bucket, storage_path'
+  'id, case_id, updated_at, filename, original_filename, file_size, mime_type, document_type, exhibit_label, upload_date, file_url, is_processed, sha256, processing_status, processing_error, verified_document_type, verification_status, verification_confidence, content_latest_id, storage_provider, storage_bucket, storage_path, complainant_item'
