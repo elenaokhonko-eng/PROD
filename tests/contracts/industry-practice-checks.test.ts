@@ -18,6 +18,7 @@ import {
   createFakeClauseProvider,
   type FakeCorpus,
   NAMED_CLAUSE_KEYS,
+  type QuotationLine,
   type SectionResult,
   type StatementLine,
 } from '../../supabase/functions/_shared/facts/update/contract.ts'
@@ -108,8 +109,7 @@ function testCorpus(): FakeCorpus {
 const UOB_ROW: WalletProvisioningRequestRow = {
   institution: 'uob',
   product: 'credit_card',
-  // `wallet_provisioning` is not in Lane 4's TermPurpose yet (contract TERM_REQUEST_PURPOSES, PR #56).
-  purpose: 'wallet_provisioning' as never,
+  purpose: 'wallet_provisioning',
   document_key: 'uob.wallet_provisioning',
   selector: { clause_keys: [UOB_PAGE_KEY] },
   quote_mode: 'quote',
@@ -128,6 +128,7 @@ const clone = (data: CaseSectionData): CaseSectionData => structuredClone(data)
 const comparisons = (r: SectionResult): ComparisonLine[] => r.lines.flatMap((l) => (l.kind === 'comparison' ? [l.comparison] : []))
 const withKey = (r: SectionResult, key: string) => comparisons(r).filter((c) => c.clauseKey === key)
 const statements = (r: SectionResult): StatementLine[] => r.lines.flatMap((l) => (l.kind === 'statement' ? [l.statement] : []))
+const quotations = (r: SectionResult): QuotationLine[] => r.lines.flatMap((l) => (l.kind === 'quotation' ? [l.quotation] : []))
 const texts = (r: SectionResult) => r.lines.flatMap((l) => (l.kind === 'text' ? [l.text] : []))
 
 /** The synthetic card-only case as a case against a UOB-coded institution. */
@@ -309,7 +310,7 @@ test('Decision 5: no page held prints "not held" and still prints Parts B and C;
   const r = await run(cardOnlyCase.data, withUobPage)
   assert.ok(texts(r).includes("Example Bank A's published practice on adding cards to mobile wallets is not held."))
   assert.equal(withKey(r, UOB_PAGE_KEY).length, 0)
-  assert.ok(statements(r).some((s) => s.statementKey === 'mas.reply.20260113.wallet' && s.text !== null), 'Part B')
+  assert.ok(quotations(r).some((q) => q.intro?.statementKey === 'mas.reply.20260113.wallet' && q.intro.text !== null), 'Part B')
   assert.equal(withKey(r, KEYS.walletProvisioningVerification).length, 1, 'Part C')
   assert.equal(withKey(r, KEYS.walletTokenRemoval).length, 1, 'Part C')
   // Part D: the pointer and the card loss-sharing statement.
@@ -317,20 +318,29 @@ test('Decision 5: no page held prints "not held" and still prints Parts B and C;
   assert.ok(statements(r).some((s) => s.statementKey === 'bridge.card_loss_sharing'))
 })
 
-test('Decision 5, Part B: a 2025 event prints the reply of 13 January 2026 with the after-the-events date (Decision 6)', async () => {
+test('Decision 5, Part B: a 2025 event prints the reply of 13 January 2026 as a quotation, with the after-the-events date (Decision 6)', async () => {
   const r = await run(cardOnlyCase.data)
-  const reply = statements(r).find((s) => s.statementKey === 'mas.reply.20260113.wallet')
-  assert.ok(reply)
-  assert.equal(reply.text, 'Placeholder statement mas.reply.20260113.wallet.')
-  assert.equal(reply.onDate, GENERATED_ON, 'read as of the day the pack is generated')
+  const [reply] = quotations(r)
+  assert.equal(quotations(r).length, 1)
+  assert.equal(reply.documentKey, 'mas.reply.20260113')
+  assert.equal(reply.documentDate, '2026-01-13')
+  assert.equal(reply.readOn, GENERATED_ON, 'read as of the day the pack is generated')
+  assert.equal(reply.intro?.statementKey, 'mas.reply.20260113.wallet')
+  assert.equal(reply.intro?.text, 'Placeholder statement mas.reply.20260113.wallet.')
+  assert.deepEqual(reply.passages.map((x) => [x.clauseKey, x.text]), [[REPLY_KEY, REPLY_TEXT]], 'the words of the reply, from the provider')
   assert.equal(reply.documentDatedAfterEvents, '2026-01-13')
+  assert.deepEqual(reply.evidenceIds, ['E6'])
   // An event after the reply: no after-the-events date.
   const later = clone(cardOnlyCase.data)
   later.payments.forEach((p) => (p.date = '2026-03-02'))
   later.facts.card_auth_events!.value![0].walletProvisionedAt = '2026-03-02T20:32:00+08:00'
   later.facts.reported_to_bank!.value!.date = '2026-03-03'
-  const after = statements(await run(later)).find((s) => s.statementKey === 'mas.reply.20260113.wallet')
-  assert.equal(after?.documentDatedAfterEvents, null)
+  assert.equal(quotations(await run(later))[0].documentDatedAfterEvents, null)
+  // With no approved statement naming the reply's clauses, the statement prints by key as under review.
+  const bare = await withKeys({ ...cardOnlyCase.data, provider: createFakeClauseProvider(syntheticCorpus) })
+  assert.equal(quotations(bare).length, 0)
+  const underReview = statements(bare).find((x) => x.statementKey === 'mas.reply.20260113.wallet')
+  assert.ok(underReview && underReview.text === null)
 })
 
 test('the wallet group prints only where the record shows a card added to a wallet', async () => {
@@ -339,6 +349,7 @@ test('the wallet group prints only where the record shows a card added to a wall
   const r = await run(d)
   assert.ok(!texts(r).includes(WALLET_CHECK_HEADING))
   assert.equal(statements(r).length, 0)
+  assert.equal(quotations(r).length, 0)
 })
 
 // Changed with Decision 5: the wallet check prints the MAS reply (Part B) and the card loss-sharing pointer (Part D) as
@@ -347,7 +358,7 @@ test('no link statement follows an industry-practice line, and no record carries
   const VERDICT = /\b(?:breach(?:ed|es)?|violat\w*|fail(?:ed|s)? to|did not comply|non-?complian\w*|liable|liability|negligen\w*|reckless\w*|grossly)\b/i
   for (const c of FIDREC_UPDATE_CASES) {
     const r = await run(c.data, withUobPage)
-    for (const s of statements(r)) assert.ok(['mas.reply.20260113.wallet', 'bridge.card_loss_sharing'].includes(s.statementKey), `${c.id}: ${s.statementKey}`)
+    for (const s of statements(r)) assert.ok(['bridge.card_loss_sharing'].includes(s.statementKey), `${c.id}: ${s.statementKey}`)
     for (const line of comparisons(r)) assert.doesNotMatch(line.record, VERDICT, `${c.id}: ${line.record}`)
     for (const text of [...texts(r), ...comparisons(r).map((l) => l.record)]) assert.doesNotMatch(text.replace(/'[^']*'/g, "''"), GENDERED_PRONOUNS, `${c.id}: ${text}`)
   }

@@ -10,7 +10,8 @@
 //   from the loaded clause text, never written here.
 // - Card added to a mobile wallet (Decision 5): a record line, then
 //   Part A: the institution's own published page (term request, purpose `wallet_provisioning`), with an outcome;
-//   Part B: the MAS written reply of 13 January 2026, quoted through `mas.reply.20260113.wallet`, any date, no outcome;
+//   Part B: the MAS written reply of 13 January 2026, a quotation line introduced by `mas.reply.20260113.wallet`, any
+//           date, no outcome;
 //   Part C: the ABS media statement of 17 February 2025 (verification; removal), the existing 4c rows;
 //   Part D: pointers.
 
@@ -21,7 +22,6 @@ import {
   type ClauseAsOf,
   type ComparisonOutcome,
   type DisputedPayment,
-  documentDatedAfterEvents,
   type IsoDate,
   NAMED_CLAUSE_KEYS,
   readDateFor,
@@ -39,7 +39,6 @@ import {
   NO_TERM_REQUESTS,
   productsForPayment,
   resolveTermRequest,
-  type TermPurpose,
   type TermRequestRow,
   type TermRequestSource,
 } from "./institution-terms.ts";
@@ -231,6 +230,7 @@ export function createIndustryPracticeChecks(options: IndustryPracticeCheckOptio
     const cardWords = last4s.length === 1 ? `the card ending ${last4s[0]}` : "the card";
     const accountTypes: AccountType[] = factValue(input.facts, "account_types") ?? [];
 
+    let printedReply = false;
     for (const provisioning of provisionings) {
       const onDate = localDate(provisioning.walletProvisionedAt!);
       const addedAt = ms(provisioning.walletProvisionedAt)!;
@@ -260,19 +260,28 @@ export function createIndustryPracticeChecks(options: IndustryPracticeCheckOptio
       });
 
       // Part B: the MAS written reply of 13 January 2026, whatever the date of the event (Decision 6).
-      const rule = await input.provider.getAsOfRule(WALLET_REPLY_DOCUMENT_KEY);
-      const readOn = readDateFor(rule, onDate, generatedOn);
-      const reply = await w.readStatement(WALLET_REPLY_STATEMENT_KEY, readOn);
-      let after: IsoDate | null = null;
-      for (const key of reply.clauseKeys) {
-        const clause = await input.provider.getClauseAsOf(key, readOn);
-        if (clause) {
-          const eventDates = [...input.payments.map((p) => p.date), onDate, report?.value === "yes" ? report.date : null];
-          after = documentDatedAfterEvents(clause.effective_from, eventDates);
-          break;
-        }
+      // A quotation line (no outcome): the statement introduces it ("In a written reply to Parliament on 13 January 2026,
+      // MAS stated:") and the passages are the reply's own words, the clauses the statement rests on. Where no approved
+      // statement names them yet, the statement prints by key as under review.
+      if (!printedReply) {
+        printedReply = true;
+        const rule = await input.provider.getAsOfRule(WALLET_REPLY_DOCUMENT_KEY);
+        const readOn = readDateFor(rule, onDate, generatedOn);
+        const intro = await input.provider.getStatementAsOf(WALLET_REPLY_STATEMENT_KEY, readOn);
+        const caseEventDates = [...input.payments.map((p) => p.date), onDate, report?.value === "yes" ? report.date : null];
+        const quoted = intro?.clause_keys.length
+          ? await w.quotation({
+            documentKey: WALLET_REPLY_DOCUMENT_KEY,
+            clauseKeys: intro.clause_keys,
+            eventDate: onDate,
+            generatedOn,
+            caseEventDates,
+            introStatementKey: WALLET_REPLY_STATEMENT_KEY,
+            evidenceIds: cardEv,
+          })
+          : false;
+        if (!quoted) await w.statement(WALLET_REPLY_STATEMENT_KEY, readOn, cardEv);
       }
-      await w.statement(WALLET_REPLY_STATEMENT_KEY, readOn, cardEv, { documentDatedAfterEvents: after });
 
       // Part C: the ABS media statement of 17 February 2025 (the existing 4c rows).
       const added = `The record shows the card added to a mobile wallet at ${formatTime(provisioning.walletProvisionedAt!)}${labelled(provisioning.walletDeviceLabel)}`;
@@ -323,11 +332,10 @@ interface PartAArgs {
 async function partA(w: ComparisonWriter, a: PartAArgs): Promise<void> {
   let held: { row: WalletProvisioningRequestRow; clauses: ClauseAsOf[] } | null = null;
   for (const product of a.products) {
-    // `wallet_provisioning` is not in Lane 4's TermPurpose yet (contract TERM_REQUEST_PURPOSES, PR #56, will carry it).
     const resolved = await resolveTermRequest(a.termRequests, a.provider, {
       institution: a.institutionCode,
       product,
-      purpose: WALLET_PROVISIONING_PURPOSE as unknown as TermPurpose,
+      purpose: WALLET_PROVISIONING_PURPOSE,
       onDate: a.onDate,
     });
     if (resolved.status !== "held") continue;
