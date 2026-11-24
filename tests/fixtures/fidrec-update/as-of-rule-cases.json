@@ -1,0 +1,113 @@
+{
+  "$comment": "Synthetic cases for the as-of rule (review of 24 Nov 2026, Decision 6). One table for both implementations: the fake provider's test (tests/contracts/fidrec-update-contract.test.ts) and Lane 1's SQL test for the database functions run every case. Keys use the test. prefix so they never collide with a loaded document; each case says which real paragraph it stands for. Procedure: rule = the document's as_of_rule; readDate = generatedOn when rule is any_date, else eventDate; read the clause as of readDate (a verified version whose effective_from, or the clause's own start, is on or before readDate). No clause -> not_held. A clause from an any_date document whose version date (documentDate) is after eventDate -> held_after_the_events. Otherwise held.",
+  "cases": [
+    {
+      "id": "eupg-4.21-before-start",
+      "standsFor": "EUPG 4.21, which starts on 16 June 2025: never printed for a March 2025 event",
+      "documentKey": "test.eupg",
+      "clauseKey": "test.eupg/4.21",
+      "asOfRule": "event_date",
+      "documentDate": "2024-12-16",
+      "clauseStart": "2025-06-16",
+      "eventDate": "2025-03-10",
+      "generatedOn": "2026-11-24",
+      "expected": "not_held"
+    },
+    {
+      "id": "eupg-4.21-day-before-start",
+      "standsFor": "EUPG 4.21: the day before it starts",
+      "documentKey": "test.eupg",
+      "clauseKey": "test.eupg/4.21",
+      "asOfRule": "event_date",
+      "documentDate": "2024-12-16",
+      "clauseStart": "2025-06-16",
+      "eventDate": "2025-06-15",
+      "generatedOn": "2026-11-24",
+      "expected": "not_held"
+    },
+    {
+      "id": "eupg-4.21-on-start",
+      "standsFor": "EUPG 4.21: the day it starts",
+      "documentKey": "test.eupg",
+      "clauseKey": "test.eupg/4.21",
+      "asOfRule": "event_date",
+      "documentDate": "2024-12-16",
+      "clauseStart": "2025-06-16",
+      "eventDate": "2025-06-16",
+      "generatedOn": "2026-11-24",
+      "expected": "held"
+    },
+    {
+      "id": "eupg-before-document",
+      "standsFor": "An EUPG paragraph with no start of its own, for an event before the Guidelines",
+      "documentKey": "test.eupg",
+      "clauseKey": "test.eupg/4.7",
+      "asOfRule": "event_date",
+      "documentDate": "2024-12-16",
+      "clauseStart": null,
+      "eventDate": "2024-12-15",
+      "generatedOn": "2026-11-24",
+      "expected": "not_held"
+    },
+    {
+      "id": "reply-2026-for-2025-event",
+      "standsFor": "The MAS reply of 13 January 2026, for a 2025 event: printed, with the after-the-events line",
+      "documentKey": "test.reply_20260113",
+      "clauseKey": "test.reply_20260113/wallet",
+      "asOfRule": "any_date",
+      "documentDate": "2026-01-13",
+      "clauseStart": null,
+      "eventDate": "2025-09-12",
+      "generatedOn": "2026-11-24",
+      "expected": "held_after_the_events"
+    },
+    {
+      "id": "reply-2026-same-day",
+      "standsFor": "The MAS reply of 13 January 2026, for an event on the same day: printed, not after the events",
+      "documentKey": "test.reply_20260113",
+      "clauseKey": "test.reply_20260113/wallet",
+      "asOfRule": "any_date",
+      "documentDate": "2026-01-13",
+      "clauseStart": null,
+      "eventDate": "2026-01-13",
+      "generatedOn": "2026-11-24",
+      "expected": "held"
+    },
+    {
+      "id": "reply-2026-generated-before-reply",
+      "standsFor": "The MAS reply of 13 January 2026, in a pack generated before the reply existed",
+      "documentKey": "test.reply_20260113",
+      "clauseKey": "test.reply_20260113/wallet",
+      "asOfRule": "any_date",
+      "documentDate": "2026-01-13",
+      "clauseStart": null,
+      "eventDate": "2025-09-12",
+      "generatedOn": "2026-01-12",
+      "expected": "not_held"
+    },
+    {
+      "id": "reply-2025-for-later-event",
+      "standsFor": "The MAS reply of 7 January 2025, for a September 2025 event: printed, dated before the events",
+      "documentKey": "test.reply_20250107",
+      "clauseKey": "test.reply_20250107/3(a).3ds",
+      "asOfRule": "any_date",
+      "documentDate": "2025-01-07",
+      "clauseStart": null,
+      "eventDate": "2025-09-12",
+      "generatedOn": "2026-11-24",
+      "expected": "held"
+    },
+    {
+      "id": "reply-2025-for-earlier-event",
+      "standsFor": "The MAS reply of 7 January 2025, for a 2024 event: printed whatever the event date, after the events",
+      "documentKey": "test.reply_20250107",
+      "clauseKey": "test.reply_20250107/3(a).3ds",
+      "asOfRule": "any_date",
+      "documentDate": "2025-01-07",
+      "clauseStart": null,
+      "eventDate": "2024-11-30",
+      "generatedOn": "2026-11-24",
+      "expected": "held_after_the_events"
+    }
+  ]
+}
