@@ -1,0 +1,57 @@
+{
+  "manifest_format": 1,
+  "owner": "Lane 5 (bank terms and card networks); loader and format owned by Lane 1",
+  "storage": "Source files are kept outside the repo under C:\\guidebuoy-backups\\standards-sources\\; snapshot_key is relative to that folder. Only keys, hashes, URLs and section references are committed.",
+  "document": {
+    "document_key": "mastercard.rules",
+    "title": "Mastercard Rules",
+    "publisher": "Mastercard",
+    "binding_level": "scheme_rule",
+    "applies_to": [
+      "bank",
+      "card_issuer"
+    ],
+    "instrument_scope": [
+      "sg_card"
+    ],
+    "institution": null,
+    "card_scheme": "mastercard",
+    "canonical_url": "https://www.mastercard.com/content/dam/mccom/shared/business/support/rules-pdfs/mastercard-rules.pdf"
+  },
+  "quote_mode": "reference_only",
+  "versions": [
+    {
+      "version_label": "current edition (listed by a search engine as 2 June 2026; not opened)",
+      "issued_on": null,
+      "effective_from": null,
+      "effective_to": null,
+      "source_url": "https://www.mastercard.com/content/dam/mccom/shared/business/support/rules-pdfs/mastercard-rules.pdf",
+      "snapshot_key": null,
+      "content_sha256": null,
+      "provenance": "publisher_site",
+      "coverage": "selected_sections",
+      "status": "draft",
+      "obtained": false,
+      "blocked": {
+        "on": "2026-11-24",
+        "reason": "HTTP 403 \"Access Denied\" to automated download from mastercard.com and mastercard.us; the copy formerly on www.dm.mastercard.us returns 404. Needs a browser download by a person.",
+        "next_step": "Elena downloads it to C:\\guidebuoy-backups\\standards-sources\\mastercard\\; Lane 5 locates the statement of who the Standards bind and the Definitions of \"Customer\" and \"Standards\"."
+      }
+    }
+  ],
+  "sections": [],
+  "sections_to_locate": [
+    {
+      "purpose": "Who the Standards bind, and whether they give rights to cardholders",
+      "selection_tests": [
+        1
+      ]
+    },
+    {
+      "purpose": "Definitions: Customer, Standards, Issuer, Acquirer",
+      "selection_tests": [
+        6
+      ]
+    }
+  ]
+}

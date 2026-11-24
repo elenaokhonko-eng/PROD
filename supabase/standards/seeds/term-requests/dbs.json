@@ -1,0 +1,435 @@
+{
+  "$comment": "institution_term_requests rows (brief 4e). Drafts: selectors are tags until a person confirms clause keys; term_outcome and term are set by that person. candidate_clauses are pointers for that review (clause references in the version named), not decisions.",
+  "institution_code_note": "Institution codes must match standard_institutions.code seeded by Lane 1 from institutions.ts.",
+  "rows": [
+    {
+      "institution": "dbs",
+      "product": "account",
+      "purpose": "fault_definition",
+      "document_key": "dbs.accounts",
+      "selector": {
+        "tags": [
+          "definition_gross_negligence",
+          "definition_negligence",
+          "definition_recklessness"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "account",
+      "purpose": "customer_security_duty",
+      "document_key": "dbs.accounts",
+      "selector": {
+        "tags": [
+          "customer_security_duty"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "account",
+      "purpose": "liability_unauthorised",
+      "document_key": "dbs.accounts",
+      "selector": {
+        "tags": [
+          "liability_unauthorised"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "account",
+      "purpose": "notification_deadline",
+      "document_key": "dbs.accounts",
+      "selector": {
+        "tags": [
+          "notification_deadline"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "account",
+      "purpose": "conclusive_evidence",
+      "document_key": "dbs.accounts",
+      "selector": {
+        "tags": [
+          "conclusive_evidence"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "digital_banking",
+      "purpose": "fault_definition",
+      "document_key": "dbs.electronic_services",
+      "selector": {
+        "tags": [
+          "definition_gross_negligence",
+          "definition_negligence",
+          "definition_recklessness"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "digital_banking",
+      "purpose": "customer_security_duty",
+      "document_key": "dbs.electronic_services",
+      "selector": {
+        "tags": [
+          "customer_security_duty"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "digital_banking",
+      "purpose": "liability_unauthorised",
+      "document_key": "dbs.electronic_services",
+      "selector": {
+        "tags": [
+          "liability_unauthorised"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "digital_banking",
+      "purpose": "notification_deadline",
+      "document_key": "dbs.electronic_services",
+      "selector": {
+        "tags": [
+          "notification_deadline"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "digital_banking",
+      "purpose": "conclusive_evidence",
+      "document_key": "dbs.electronic_services",
+      "selector": {
+        "tags": [
+          "conclusive_evidence"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "credit_card",
+      "purpose": "fault_definition",
+      "document_key": "dbs.credit_card_agreement",
+      "selector": {
+        "tags": [
+          "definition_gross_negligence",
+          "definition_negligence",
+          "definition_recklessness"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "credit_card",
+      "purpose": "customer_security_duty",
+      "document_key": "dbs.credit_card_agreement",
+      "selector": {
+        "tags": [
+          "customer_security_duty"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "credit_card",
+      "purpose": "liability_unauthorised",
+      "document_key": "dbs.credit_card_agreement",
+      "selector": {
+        "tags": [
+          "liability_unauthorised"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "credit_card",
+      "purpose": "notification_deadline",
+      "document_key": "dbs.credit_card_agreement",
+      "selector": {
+        "tags": [
+          "notification_deadline"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "credit_card",
+      "purpose": "dispute_chargeback",
+      "document_key": "dbs.credit_card_agreement",
+      "selector": {
+        "tags": [
+          "dispute_chargeback"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "credit_card",
+      "purpose": "conclusive_evidence",
+      "document_key": "dbs.credit_card_agreement",
+      "selector": {
+        "tags": [
+          "conclusive_evidence"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "debit_card",
+      "purpose": "fault_definition",
+      "document_key": "dbs.debit_card_agreement",
+      "selector": {
+        "tags": [
+          "definition_gross_negligence",
+          "definition_negligence",
+          "definition_recklessness"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "debit_card",
+      "purpose": "customer_security_duty",
+      "document_key": "dbs.debit_card_agreement",
+      "selector": {
+        "tags": [
+          "customer_security_duty"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "debit_card",
+      "purpose": "liability_unauthorised",
+      "document_key": "dbs.debit_card_agreement",
+      "selector": {
+        "tags": [
+          "liability_unauthorised"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "debit_card",
+      "purpose": "notification_deadline",
+      "document_key": "dbs.debit_card_agreement",
+      "selector": {
+        "tags": [
+          "notification_deadline"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "debit_card",
+      "purpose": "dispute_chargeback",
+      "document_key": "dbs.debit_card_agreement",
+      "selector": {
+        "tags": [
+          "dispute_chargeback"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "dbs",
+      "product": "debit_card",
+      "purpose": "conclusive_evidence",
+      "document_key": "dbs.debit_card_agreement",
+      "selector": {
+        "tags": [
+          "conclusive_evidence"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    }
+  ],
+  "candidate_clauses": [
+    {
+      "document_key": "dbs.electronic_services",
+      "version_label": "effective 17 December 2024",
+      "clause_ref": "5.7",
+      "proposed_tags": [
+        "definition_recklessness",
+        "liability_unauthorised"
+      ],
+      "observation": "uses \"recklessness\" about the customer and describes what it includes"
+    },
+    {
+      "document_key": "dbs.electronic_services",
+      "version_label": "effective 17 December 2024",
+      "clause_ref": "5.4",
+      "proposed_tags": [
+        "notification_deadline"
+      ],
+      "observation": "report suspected unauthorised transactions"
+    },
+    {
+      "document_key": "dbs.credit_card_agreement",
+      "version_label": "Last updated 30 June 2026",
+      "clause_ref": "3.2",
+      "proposed_tags": [
+        "notification_deadline"
+      ],
+      "observation": "duty to notify"
+    },
+    {
+      "document_key": "dbs.credit_card_agreement",
+      "version_label": "Last updated 30 June 2026",
+      "clause_ref": "3.3",
+      "proposed_tags": [
+        "liability_unauthorised",
+        "definition_negligence"
+      ],
+      "observation": "liability for lost or stolen cards; 3.3.4 uses \"negligence or default\" about the cardholder; \"gross negligence\" appears only about the bank"
+    },
+    {
+      "document_key": "dbs.credit_card_agreement",
+      "version_label": "Last updated 30 June 2026",
+      "clause_ref": "4.1",
+      "proposed_tags": [
+        "liability_unauthorised"
+      ],
+      "observation": "responsibility for unauthorised transactions up to an amount"
+    },
+    {
+      "document_key": "dbs.debit_card_agreement",
+      "version_label": "undated (file dated 2020-10-08)",
+      "clause_ref": "3.3",
+      "proposed_tags": [
+        "liability_unauthorised",
+        "definition_negligence"
+      ],
+      "observation": "liability for lost or stolen cards; uses \"negligence\" about the cardholder"
+    },
+    {
+      "document_key": "dbs.debit_card_agreement",
+      "version_label": "undated (file dated 2020-10-08)",
+      "clause_ref": "1.4",
+      "proposed_tags": [
+        "customer_security_duty",
+        "liability_unauthorised"
+      ],
+      "observation": "safeguarding card and PIN; liability until notification"
+    }
+  ]
+}

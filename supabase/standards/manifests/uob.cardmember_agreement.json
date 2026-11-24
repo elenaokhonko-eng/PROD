@@ -1,0 +1,58 @@
+{
+  "manifest_format": 1,
+  "owner": "Lane 5 (bank terms and card networks); loader and format owned by Lane 1",
+  "storage": "Source files are kept outside the repo under C:\\guidebuoy-backups\\standards-sources\\; snapshot_key is relative to that folder. Only keys, hashes, URLs and section references are committed.",
+  "document": {
+    "document_key": "uob.cardmember_agreement",
+    "title": "UOB Cardmember Agreement",
+    "publisher": "United Overseas Bank Limited",
+    "binding_level": "contract",
+    "applies_to": [
+      "bank"
+    ],
+    "instrument_scope": [
+      "sg_card"
+    ],
+    "institution": "uob",
+    "card_scheme": null,
+    "canonical_url": "https://www.uob.com.sg/personal/cards/credit-cards/terms-and-conditions.page"
+  },
+  "quote_mode": "quote",
+  "coverage_note": "Contracts are held in full and chunked by numbered clause (brief Phase 6); tags are proposed below and confirmed by a person.",
+  "versions": [
+    {
+      "effective_from": null,
+      "effective_to": null,
+      "provenance": "publisher_site",
+      "coverage": "full",
+      "status": "draft",
+      "version_label": "web page as retrieved 24 November 2026",
+      "version_evidence": "no version label; the page notes the agreement was updated with effect from 16 December 2024 for the revised EUPG",
+      "retrieved_at": "2026-11-24T04:28:00Z",
+      "source_url": "https://www.uob.com.sg/personal/cards/credit-cards/terms-and-conditions.page",
+      "snapshot_key": "uob/cardmember-agreement.html",
+      "content_sha256": "d827ae776acb80b2b9beb2114e9d3176739ad2f979c89e058539e76eccf9ee23",
+      "obtained": true,
+      "notes": [
+        "An HTML page: the file hash covers the whole page and may change without the terms changing."
+      ]
+    },
+    {
+      "effective_from": null,
+      "effective_to": null,
+      "provenance": "publisher_site",
+      "coverage": "full",
+      "status": "draft",
+      "version_label": "CC-Ver4.9 201506 (June 2015)",
+      "source_url": "https://pib.uob.com.sg/assets/pdfs/cma.pdf",
+      "snapshot_key": null,
+      "content_sha256": null,
+      "obtained": false,
+      "blocked": {
+        "on": "2026-11-24",
+        "reason": "Listed by a search engine; the bank's server now returns 404. Not public any more.",
+        "next_step": "Web-archive copy, if Elena wants versions before December 2024."
+      }
+    }
+  ]
+}

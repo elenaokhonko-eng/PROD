@@ -1,0 +1,426 @@
+{
+  "$comment": "institution_term_requests rows (brief 4e). Drafts: selectors are tags until a person confirms clause keys; term_outcome and term are set by that person. candidate_clauses are pointers for that review (clause references in the version named), not decisions.",
+  "institution_code_note": "Institution codes must match standard_institutions.code seeded by Lane 1 from institutions.ts.",
+  "rows": [
+    {
+      "institution": "uob",
+      "product": "account",
+      "purpose": "fault_definition",
+      "document_key": "uob.accounts_services",
+      "selector": {
+        "tags": [
+          "definition_gross_negligence",
+          "definition_negligence",
+          "definition_recklessness"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "account",
+      "purpose": "customer_security_duty",
+      "document_key": "uob.accounts_services",
+      "selector": {
+        "tags": [
+          "customer_security_duty"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "account",
+      "purpose": "liability_unauthorised",
+      "document_key": "uob.accounts_services",
+      "selector": {
+        "tags": [
+          "liability_unauthorised"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "account",
+      "purpose": "notification_deadline",
+      "document_key": "uob.accounts_services",
+      "selector": {
+        "tags": [
+          "notification_deadline"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "account",
+      "purpose": "conclusive_evidence",
+      "document_key": "uob.accounts_services",
+      "selector": {
+        "tags": [
+          "conclusive_evidence"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "digital_banking",
+      "purpose": "fault_definition",
+      "document_key": "uob.digital_services",
+      "selector": {
+        "tags": [
+          "definition_gross_negligence",
+          "definition_negligence",
+          "definition_recklessness"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "digital_banking",
+      "purpose": "customer_security_duty",
+      "document_key": "uob.digital_services",
+      "selector": {
+        "tags": [
+          "customer_security_duty"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "digital_banking",
+      "purpose": "liability_unauthorised",
+      "document_key": "uob.digital_services",
+      "selector": {
+        "tags": [
+          "liability_unauthorised"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "digital_banking",
+      "purpose": "notification_deadline",
+      "document_key": "uob.digital_services",
+      "selector": {
+        "tags": [
+          "notification_deadline"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "digital_banking",
+      "purpose": "conclusive_evidence",
+      "document_key": "uob.digital_services",
+      "selector": {
+        "tags": [
+          "conclusive_evidence"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "credit_card",
+      "purpose": "fault_definition",
+      "document_key": "uob.cardmember_agreement",
+      "selector": {
+        "tags": [
+          "definition_gross_negligence",
+          "definition_negligence",
+          "definition_recklessness"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "credit_card",
+      "purpose": "customer_security_duty",
+      "document_key": "uob.cardmember_agreement",
+      "selector": {
+        "tags": [
+          "customer_security_duty"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "credit_card",
+      "purpose": "liability_unauthorised",
+      "document_key": "uob.cardmember_agreement",
+      "selector": {
+        "tags": [
+          "liability_unauthorised"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "credit_card",
+      "purpose": "notification_deadline",
+      "document_key": "uob.cardmember_agreement",
+      "selector": {
+        "tags": [
+          "notification_deadline"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "credit_card",
+      "purpose": "dispute_chargeback",
+      "document_key": "uob.cardmember_agreement",
+      "selector": {
+        "tags": [
+          "dispute_chargeback"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "credit_card",
+      "purpose": "conclusive_evidence",
+      "document_key": "uob.cardmember_agreement",
+      "selector": {
+        "tags": [
+          "conclusive_evidence"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "debit_card",
+      "purpose": "fault_definition",
+      "document_key": "uob.debit_cardmember_agreement",
+      "selector": {
+        "tags": [
+          "definition_gross_negligence",
+          "definition_negligence",
+          "definition_recklessness"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "debit_card",
+      "purpose": "customer_security_duty",
+      "document_key": "uob.debit_cardmember_agreement",
+      "selector": {
+        "tags": [
+          "customer_security_duty"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "debit_card",
+      "purpose": "liability_unauthorised",
+      "document_key": "uob.debit_cardmember_agreement",
+      "selector": {
+        "tags": [
+          "liability_unauthorised"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "debit_card",
+      "purpose": "notification_deadline",
+      "document_key": "uob.debit_cardmember_agreement",
+      "selector": {
+        "tags": [
+          "notification_deadline"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "debit_card",
+      "purpose": "dispute_chargeback",
+      "document_key": "uob.debit_cardmember_agreement",
+      "selector": {
+        "tags": [
+          "dispute_chargeback"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "institution": "uob",
+      "product": "debit_card",
+      "purpose": "conclusive_evidence",
+      "document_key": "uob.debit_cardmember_agreement",
+      "selector": {
+        "tags": [
+          "conclusive_evidence"
+        ]
+      },
+      "quote_mode": "quote",
+      "term_outcome": null,
+      "term": null,
+      "confirmed_by": null,
+      "confirmed_at": null
+    }
+  ],
+  "candidate_clauses": [
+    {
+      "document_key": "uob.cardmember_agreement",
+      "version_label": "web page as retrieved 24 November 2026",
+      "clause_ref": "3.4",
+      "proposed_tags": [
+        "notification_deadline",
+        "liability_unauthorised",
+        "definition_negligence"
+      ],
+      "observation": "steps on unauthorised transactions, 30-day reporting, capped liability for lost or stolen physical cards where not caused by the cardmember’s \"negligence, fraud, or default\"; \"gross negligence\" not used"
+    },
+    {
+      "document_key": "uob.cardmember_agreement",
+      "version_label": "web page as retrieved 24 November 2026",
+      "clause_ref": "3.6",
+      "proposed_tags": [
+        "liability_unauthorised"
+      ],
+      "observation": "responsibility until notification"
+    },
+    {
+      "document_key": "uob.cardmember_agreement",
+      "version_label": "web page as retrieved 24 November 2026",
+      "clause_ref": "3.2–3.3",
+      "proposed_tags": [
+        "customer_security_duty"
+      ],
+      "observation": "security duties, kill switch"
+    },
+    {
+      "document_key": "uob.debit_cardmember_agreement",
+      "version_label": "Updated as of 1 October 2026 (R10.26)",
+      "clause_ref": "11.2–11.6",
+      "proposed_tags": [
+        "notification_deadline",
+        "liability_unauthorised",
+        "customer_security_duty",
+        "definition_negligence"
+      ],
+      "observation": "reporting, capped liability where not caused by the cardmember’s \"negligence, fraud, or default\", responsibility until notification"
+    },
+    {
+      "document_key": "uob.digital_services",
+      "version_label": "file dated 2026-05-20",
+      "clause_ref": "6.3–6.4",
+      "proposed_tags": [
+        "customer_security_duty",
+        "notification_deadline"
+      ],
+      "observation": "security precautions; report within 30 calendar days of the alert"
+    },
+    {
+      "document_key": "uob.accounts_services",
+      "version_label": "BR-333 /F(R004.26)",
+      "clause_ref": null,
+      "proposed_tags": [],
+      "observation": "text search: \"gross negligence\" and \"recklessness\" do not appear; \"negligence\" appears only about the bank; clauses not yet reviewed"
+    }
+  ]
+}

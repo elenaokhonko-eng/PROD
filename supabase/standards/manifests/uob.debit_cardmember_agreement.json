@@ -1,0 +1,39 @@
+{
+  "manifest_format": 1,
+  "owner": "Lane 5 (bank terms and card networks); loader and format owned by Lane 1",
+  "storage": "Source files are kept outside the repo under C:\\guidebuoy-backups\\standards-sources\\; snapshot_key is relative to that folder. Only keys, hashes, URLs and section references are committed.",
+  "document": {
+    "document_key": "uob.debit_cardmember_agreement",
+    "title": "UOB Debit Cardmember Agreement",
+    "publisher": "United Overseas Bank Limited",
+    "binding_level": "contract",
+    "applies_to": [
+      "bank"
+    ],
+    "instrument_scope": [
+      "sg_card"
+    ],
+    "institution": "uob",
+    "card_scheme": null,
+    "canonical_url": "https://www.uob.com.sg/assets/pdfs/personal/cards/uob-debit-cardmember-agreement.pdf"
+  },
+  "quote_mode": "quote",
+  "coverage_note": "Contracts are held in full and chunked by numbered clause (brief Phase 6); tags are proposed below and confirmed by a person.",
+  "versions": [
+    {
+      "effective_from": null,
+      "effective_to": null,
+      "provenance": "publisher_site",
+      "coverage": "full",
+      "status": "draft",
+      "version_label": "Updated as of 1 October 2026 (R10.26)",
+      "version_evidence": "last-page footer",
+      "effective_from_proposed": "2026-10-01",
+      "retrieved_at": "2026-11-24T04:27:00Z",
+      "source_url": "https://www.uob.com.sg/assets/pdfs/personal/cards/uob-debit-cardmember-agreement.pdf",
+      "snapshot_key": "uob/debit-cardmember-agreement.pdf",
+      "content_sha256": "d5d5e8cbb068eb75c6de96eeced93d2134856ad1d0f9d2c7978dde52ea6eeee7",
+      "obtained": true
+    }
+  ]
+}

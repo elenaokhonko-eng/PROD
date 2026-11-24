@@ -1,0 +1,38 @@
+{
+  "manifest_format": 1,
+  "owner": "Lane 5 (bank terms and card networks); loader and format owned by Lane 1",
+  "storage": "Source files are kept outside the repo under C:\\guidebuoy-backups\\standards-sources\\; snapshot_key is relative to that folder. Only keys, hashes, URLs and section references are committed.",
+  "document": {
+    "document_key": "dbs.debit_card_agreement",
+    "title": "DBS Debit Card Agreement",
+    "publisher": "DBS Bank Ltd",
+    "binding_level": "contract",
+    "applies_to": [
+      "bank"
+    ],
+    "instrument_scope": [
+      "sg_card"
+    ],
+    "institution": "dbs",
+    "card_scheme": null,
+    "canonical_url": "https://www.dbs.com.sg/iwov-resources/pdf/cards/dbs_debit_card_agreement%5B1%5D.pdf"
+  },
+  "quote_mode": "quote",
+  "coverage_note": "Contracts are held in full and chunked by numbered clause (brief Phase 6); tags are proposed below and confirmed by a person.",
+  "versions": [
+    {
+      "effective_from": null,
+      "effective_to": null,
+      "provenance": "publisher_site",
+      "coverage": "full",
+      "status": "draft",
+      "version_label": "undated (file dated 2020-10-08)",
+      "version_evidence": "no date in the text; PDF metadata 2020-10-08; server Last-Modified 2024-03-05",
+      "retrieved_at": "2026-11-24T04:26:00Z",
+      "source_url": "https://www.dbs.com.sg/iwov-resources/pdf/cards/dbs_debit_card_agreement%5B1%5D.pdf",
+      "snapshot_key": "dbs/debit-card-agreement.pdf",
+      "content_sha256": "7f7224052c242a10062a146ea47d332b3f55b29920ac76d8ab9d48afb0881ca1",
+      "obtained": true
+    }
+  ]
+}

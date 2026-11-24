@@ -1,0 +1,38 @@
+{
+  "manifest_format": 1,
+  "owner": "Lane 5 (bank terms and card networks); loader and format owned by Lane 1",
+  "storage": "Source files are kept outside the repo under C:\\guidebuoy-backups\\standards-sources\\; snapshot_key is relative to that folder. Only keys, hashes, URLs and section references are committed.",
+  "document": {
+    "document_key": "dbs.debit_card_declaration",
+    "title": "DBS / POSB Debit Card Declaration",
+    "publisher": "DBS Bank Ltd",
+    "binding_level": "contract",
+    "applies_to": [
+      "bank"
+    ],
+    "instrument_scope": [
+      "sg_card"
+    ],
+    "institution": "dbs",
+    "card_scheme": null,
+    "canonical_url": "https://www.dbs.com.sg/iwov-resources/pdf/cards/debit-card-declaration.pdf"
+  },
+  "quote_mode": "quote",
+  "coverage_note": "Contracts are held in full and chunked by numbered clause (brief Phase 6); tags are proposed below and confirmed by a person.",
+  "versions": [
+    {
+      "effective_from": null,
+      "effective_to": null,
+      "provenance": "publisher_site",
+      "coverage": "full",
+      "status": "draft",
+      "version_label": "Updated as of 12 June 2026",
+      "version_evidence": "page footer",
+      "retrieved_at": "2026-11-24T04:26:00Z",
+      "source_url": "https://www.dbs.com.sg/iwov-resources/pdf/cards/debit-card-declaration.pdf",
+      "snapshot_key": "dbs/debit-card-declaration.pdf",
+      "content_sha256": "be074d080995de66f807fad20f49f87cf7509dc6e8735a97070e18946fc19217",
+      "obtained": true
+    }
+  ]
+}

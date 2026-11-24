@@ -1,0 +1,94 @@
+{
+  "$comment": "Draft for Elena. Wording rule (decision 19): the scheme's own short terms in quotation marks, with the section number; \"list\", \"say\", \"require\"; no \"cannot\" or \"bears\".",
+  "statements": [
+    {
+      "statement_key": "mc.dispute.permitted",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "Mastercard's Chargeback Guide says the issuer 'may chargeback the transaction' under 'No Cardholder Authorization' (message reason code 4837) where the cardholder contacted the issuer claiming that the cardholder did not authorise the transaction, and the transaction is not ineligible. The time frame is 120 calendar days from the transaction's 'Central Site Business Date'.",
+      "clause_keys": [
+        "mastercard.chargeback_guide/dms.4837.issuer-chargeback",
+        "mastercard.chargeback_guide/dms.4837.ineligible"
+      ],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "mastercard.chargeback_guide, 13 May 2025 edition. Not approvable until checked against the 19 May 2026 edition (blocked: see the manifest).",
+      "check_notes": "The brief's draft quoted 'may use this chargeback'. In the 2025 text that phrase introduces special cases (instalments, European Maestro); the general permission reads 'may chargeback the transaction' under Issuer Chargeback."
+    },
+    {
+      "statement_key": "mc.report",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "The guide says that before processing the chargeback the issuer 'must report the transaction as fraud' on or before the date of the chargeback, for most transactions to the Fraud and Loss Database.",
+      "clause_keys": [
+        "mastercard.chargeback_guide/dms.4837.issuer-chargeback"
+      ],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "mastercard.chargeback_guide, 13 May 2025 edition. Not approvable until checked against the 19 May 2026 edition (blocked: see the manifest)."
+    },
+    {
+      "statement_key": "mc.authenticated",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "The guide lists, under 'Transactions ineligible for chargeback' for reason code 4837, 'Properly authenticated transactions' identified by listed security level indicator values, and gives Identity Check and Digital Secure Remote Payment as examples.",
+      "clause_keys": [
+        "mastercard.chargeback_guide/dms.4837.ineligible"
+      ],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "mastercard.chargeback_guide, 13 May 2025 edition. Not approvable until checked against the 19 May 2026 edition (blocked: see the manifest)."
+    },
+    {
+      "statement_key": "mc.pin",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "The same list includes 'A transaction with PIN or CDCVM performed' (cardholder verification on the consumer's device), and face-to-face transactions at an attended terminal where the card was read, not key-entered, with listed exceptions.",
+      "clause_keys": [
+        "mastercard.chargeback_guide/dms.4837.ineligible"
+      ],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "mastercard.chargeback_guide, 13 May 2025 edition. Not approvable until checked against the 19 May 2026 edition (blocked: see the manifest).",
+      "check_notes": "The gloss on CDCVM is ours."
+    },
+    {
+      "statement_key": "mc.cardholder",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "A chargeback under the guide is passed by the issuer back to the merchant's bank (the acquirer). The sections held do not set out how a loss is shared between the issuer and the cardholder.",
+      "clause_keys": [
+        "mastercard.chargeback_guide/1.chargeback"
+      ],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "mastercard.chargeback_guide, 13 May 2025 edition. Not approvable until checked against the 19 May 2026 edition (blocked: see the manifest).",
+      "check_notes": "Mastercard Rules (who the Standards bind) is blocked; this statement rests on the guide only."
+    }
+  ]
+}
