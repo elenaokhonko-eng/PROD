@@ -13,13 +13,20 @@
 
 import type { FactKey } from "../keys.ts";
 import type { OutputFailure, SnapshotFacts } from "../validate-output.ts";
-import type { AccessEvent, CardAuthEvent, DeviceRecognition, IpLocation } from "./contract.ts";
+import type { AccessEvent, CardAuthEvent, CreditAccountStatus, DeviceRecognition, IpLocation } from "./contract.ts";
 
 /** Facts whose values are records: printed by the server, never given to the model. */
-export const SERVER_ONLY_FACT_KEYS = ["access_events", "card_auth_events", "device_recognition"] as const satisfies readonly FactKey[];
+export const SERVER_ONLY_FACT_KEYS = ["access_events", "card_auth_events", "device_recognition", "credit_account_status"] as const satisfies readonly FactKey[];
 
 /** evidence_processed_v2 types of the institution's technical records (brief 3a): never excerpted for the model. */
 export const TECHNICAL_RECORD_EVIDENCE_TYPES = ["RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA", "CARD_AUTHENTICATION_RECORD"] as const;
+
+/** Documents never excerpted for the model: the technical records and credit bureau reports (25 Nov 2026). */
+export const SERVER_ONLY_EVIDENCE_TYPES = [...TECHNICAL_RECORD_EVIDENCE_TYPES, "CREDIT_BUREAU_REPORT"] as const;
+
+export function isServerOnlyDocument(evidenceType: string | null | undefined): boolean {
+  return (SERVER_ONLY_EVIDENCE_TYPES as readonly string[]).includes(evidenceType ?? "");
+}
 
 /** What replaces a record value in a text given to the model. The model is told what it means. */
 export const RECORD_PLACEHOLDER = "[record detail]";
@@ -51,6 +58,10 @@ export function serverOnlyValues(facts: SnapshotFacts, ipLocations: readonly IpL
     add(e.deviceLabel);
     add(e.tokenRef);
     add(e.walletDeviceLabel);
+  }
+  for (const s of valuesOf<CreditAccountStatus>(facts, "credit_account_status")) {
+    add(s.quote);
+    add(s.statusText);
   }
   for (const d of valuesOf<DeviceRecognition>(facts, "device_recognition")) {
     add(d.deviceRef);

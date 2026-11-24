@@ -1,0 +1,99 @@
+// The "account overdue" fact (Elena, 25 Nov 2026): the contract part. A credit bureau report (or the institution's
+// letter) can show the card account overdue without naming the disputed amount. The fact is behind the update's switch
+// like the other update facts and never reaches the model; it prints beside EUPG 8.3 and 8.4 as a line with no outcome;
+// and CREDIT_RECORDS_RULE decides when 8.3 and 8.4(a) may read "matches". Lanes 2 (extraction) and 3 (printing)
+// build on this. Synthetic data only.
+
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import { buildBankPackInput, buildFidrecPackInput, FACT_LABELS, PAID_STAGE_ONLY_FACT_KEYS, type SnapshotFacts } from '../../lib/facts'
+import {
+  CREDIT_ACCOUNT_STATUS_SOURCES,
+  type CreditAccountStatus,
+  createFakeClauseProvider,
+  creditRecordsReading,
+  NO_OUTCOME_LINE_KINDS,
+  showsOverdue,
+  UPDATE_FACT_KEYS,
+} from '../../supabase/functions/_shared/facts/update/contract.ts'
+import { factsForModel, isServerOnlyDocument, SERVER_ONLY_FACT_KEYS, serverOnlyValues } from '../../supabase/functions/_shared/facts/update/model-guard.ts'
+import { renderUpdateSections } from '../../supabase/functions/_shared/facts/update/render.ts'
+import { creditAccountStatusLine, SectionWriter } from '../../supabase/functions/_shared/facts/update/section-writer.ts'
+import { cardOnlyCase, syntheticCorpus } from '../fixtures/fidrec-update/index.ts'
+import { CREDIT_BUREAU_OVERDUE_TEXT, OVERDUE_LINE } from '../fixtures/evidence/credit-bureau-overdue.ts'
+
+/** The status Lane 2's overdue fixture shows (synthetic). */
+const OVERDUE: CreditAccountStatus = {
+  asOf: '2025-10-15',
+  statusText: '30 days overdue',
+  facility: 'credit card ending 0001',
+  bureau: 'Example Credit Information Bureau',
+  source: 'credit_bureau_report',
+  evidenceId: 'E7',
+  quote: OVERDUE_LINE,
+}
+const PAID: CreditAccountStatus = { ...OVERDUE, statusText: 'paid as agreed', quote: 'Payment status as at 15 Oct 2025: paid as agreed' }
+
+test('the fact: credit_account_status is an update fact, paid stages only, and never sent to the model', () => {
+  assert.ok((UPDATE_FACT_KEYS as readonly string[]).includes('credit_account_status'))
+  assert.ok(PAID_STAGE_ONLY_FACT_KEYS.has('credit_account_status'), 'behind the switch, like the other update facts')
+  assert.ok((SERVER_ONLY_FACT_KEYS as readonly string[]).includes('credit_account_status'))
+  assert.deepEqual([...CREDIT_ACCOUNT_STATUS_SOURCES], ['credit_bureau_report', 'institution_letter'])
+  assert.equal(typeof FACT_LABELS.credit_account_status, 'string')
+  // The status text is the document's own words, inside its quote (the fixture's line).
+  assert.ok(OVERDUE.quote.includes(OVERDUE.statusText) && CREDIT_BUREAU_OVERDUE_TEXT.includes(OVERDUE.quote))
+  const facts = { ...cardOnlyCase.data.facts, credit_account_status: { value: [OVERDUE], label: 'confirmed' } } as unknown as SnapshotFacts
+  assert.equal(factsForModel(facts).credit_account_status, undefined)
+  assert.ok(serverOnlyValues(facts).includes(OVERDUE.quote))
+  assert.ok(isServerOnlyDocument('CREDIT_BUREAU_REPORT'), 'the report itself is never excerpted for the model')
+  // With the switch off the fact never reaches a paid snapshot (facts-service; fidrec-pack-switch-off.test.ts). With it
+  // on, the model input holds neither the fact nor its words.
+  for (const input of [
+    buildFidrecPackInput({ facts, findings: [], storyText: null, finalReplyText: null, evidenceIndex: [], update: { sections: [], clauses: [], redact: serverOnlyValues(facts) } }),
+    buildBankPackInput({ facts, findings: [], storyText: null, update: { redact: serverOnlyValues(facts) } }),
+  ]) {
+    const text = JSON.stringify(input)
+    assert.ok(!text.includes('30 days overdue') && !text.includes('credit_account_status'))
+  }
+})
+
+test("the line: printed beside 8.3 and 8.4 with no outcome, in the document's own words", () => {
+  assert.equal(creditAccountStatusLine(OVERDUE), 'The credit bureau report from Example Credit Information Bureau shows the card account as 30 days overdue as at 15 October 2025.')
+  assert.equal(creditAccountStatusLine({ ...OVERDUE, bureau: null, asOf: null }), 'The credit bureau report shows the card account as 30 days overdue.')
+  assert.equal(creditAccountStatusLine({ ...OVERDUE, source: 'institution_letter', bureau: null }), "The institution's letter shows the card account as 30 days overdue as at 15 October 2025.")
+  assert.ok((NO_OUTCOME_LINE_KINDS as readonly string[]).includes('account_status'))
+  const w = new SectionWriter('disputed_amount_charges', { provider: createFakeClauseProvider(syntheticCorpus), evidenceIds: {} })
+  w.accountStatus(OVERDUE, 'mas.eupg/8.3', ['E7'])
+  const printed = renderUpdateSections([w.result()]).sections[0].lines.map((l) => l.text)
+  assert.deepEqual(printed, ['The credit bureau report from Example Credit Information Bureau shows the card account as 30 days overdue as at 15 October 2025. (E7)'])
+  assert.ok(printed.every((t) => !/Side by side|as the documents? expects?|differs/.test(t)))
+})
+
+test('CREDIT_RECORDS_RULE: "matches" only if a bureau report was read and shows no overdue status between those dates', () => {
+  const period = { from: '2025-09-13', until: '2025-10-20', today: '2026-11-24' }
+  // Read, nothing overdue in the period: matches.
+  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [] }), { kind: 'matches' })
+  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [PAID] }), { kind: 'matches' })
+  // Read, overdue in the period: the overdue line, no outcome.
+  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [OVERDUE, PAID] }), { kind: 'overdue', statuses: [OVERDUE] })
+  // Overdue with no date cannot be placed outside the period.
+  assert.equal(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [{ ...OVERDUE, asOf: null }] }).kind, 'overdue')
+  // From is inclusive, until exclusive.
+  assert.equal(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [{ ...OVERDUE, asOf: '2025-10-20' }] }).kind, 'matches')
+  assert.equal(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [{ ...OVERDUE, asOf: '2025-09-13' }] }).kind, 'overdue')
+  assert.equal(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [{ ...OVERDUE, asOf: '2025-09-12' }] }).kind, 'matches')
+  // A period still running is read up to today.
+  assert.equal(creditRecordsReading({ ...period, until: null, bureauReportRead: true, statuses: [{ ...OVERDUE, asOf: '2026-11-24' }] }).kind, 'overdue')
+  // Not read: never matches; an overdue status from the institution's letter still prints.
+  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: false, statuses: [] }), { kind: 'not_read' })
+  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: false, statuses: [PAID] }), { kind: 'not_read' })
+  const letter = { ...OVERDUE, source: 'institution_letter' as const, bureau: null }
+  assert.equal(creditRecordsReading({ ...period, bureauReportRead: false, statuses: [letter] }).kind, 'overdue')
+})
+
+test('overdue words: wide on purpose (the only effect is that the row is not "matches")', () => {
+  for (const t of ['30 days overdue', 'Past due', 'in arrears', 'delinquent', 'defaulted', '60 DPD', 'written off', 'late payment', 'no overdue amount']) {
+    assert.ok(showsOverdue({ statusText: t }), t)
+  }
+  for (const t of ['paid as agreed', 'current', 'account closed', 'no adverse record']) assert.ok(!showsOverdue({ statusText: t }), t)
+})
