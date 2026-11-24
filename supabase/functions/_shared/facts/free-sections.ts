@@ -59,12 +59,12 @@ export const DOCUMENT_LABELS: Record<string, string> = {
   // Brief v5, 3a.
   bank_access_record: "the institution's record of logins, devices and alerts (uploaded)",
   card_authentication_record: "the institution's record of how card payments were authenticated (uploaded)",
-  // Decision 8: DRAFT wording for Elena.
+  // Decision 8: approved by Elena, 24 Nov.
   credit_bureau_report: "your credit bureau report (uploaded)",
 };
 
 // Decision 8: a credit bureau report is optional. It is never required to buy or generate a pack and is not part of
-// the evidence check; the checklist only suggests it in credit card cases. DRAFT wording for Elena.
+// the evidence check; the checklist only suggests it in credit card cases. Wording approved by Elena, 24 Nov.
 export const CREDIT_BUREAU_REPORT_SUGGESTION =
   "If your bank reported the disputed amount to a credit bureau, a copy of your credit bureau report can show it. This is optional.";
 

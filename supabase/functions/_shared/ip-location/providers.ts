@@ -37,7 +37,7 @@ export function providerForDatabase(databaseName: string): IpDatabaseProvider | 
 
 /**
  * The attribution line printed with the lookups.
- * DRAFT wording for Elena's approval: only "IP Geolocation by DB-IP" and the link are DB-IP's own words.
+ * Approved by Elena, 24 Nov. "IP Geolocation by DB-IP" and the link are DB-IP's own words.
  */
 export function ipLocationAttribution(databaseName: string): string | null {
   const p = providerForDatabase(databaseName);

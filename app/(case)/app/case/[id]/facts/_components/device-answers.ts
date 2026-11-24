@@ -10,11 +10,11 @@ import {
 } from '@/lib/facts'
 import type { DeviceRecognition, DeviceRecognitionAnswer } from '../../../../../../../supabase/functions/_shared/facts/update/contract'
 
-// Draft wording for Elena (FIDReC update, Lane 2). Every string the screen shows is here.
+// Draft wording for Elena (FIDReC update, Lane 2), except the intro (approved 24 Nov). Every string the screen shows is here.
 export const DEVICE_SCREEN_TEXT = {
   title: 'Is this one of your devices?',
   intro:
-    'Your bank’s records show these devices on your account. For each one, tell us whether it’s yours. Your report will give each answer as what you state.',
+    'Your bank’s records show these devices on your account. For each one, tell us whether it’s yours. Your pack will show each answer as your own statement.',
   firstSeen: 'First seen in the records:',
   reference: 'Reference in the records:',
   save: 'Save my answers',

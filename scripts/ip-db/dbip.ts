@@ -158,10 +158,13 @@ export function neutralLine(r: MergedRange): string {
   ].map(csvCell).join(',')
 }
 
-export function linesOf(path: string): AsyncIterable<string> {
+// The file is opened only when the first line is asked for, and read through the interface's own iterator from the
+// start. Opening both files up front let one interface emit lines before anything read them, and those lines were
+// lost (seen as a short output under load).
+export async function* linesOf(path: string): AsyncGenerator<string> {
   const stream = createReadStream(path)
   const input = /\.gz$/i.test(path) ? stream.pipe(createGunzip()) : stream
-  return createInterface({ input, crlfDelay: Infinity })
+  yield* createInterface({ input, crlfDelay: Infinity })
 }
 
 export function linesOfText(text: string): AsyncIterable<string> {

@@ -237,6 +237,27 @@ test('a DB-IP build writes our copy outside the repository, with the licence and
   }
 })
 
+test('a DB-IP build from files keeps every line of both files', async () => {
+  // Regression: both files were opened before either was read, and lines of one could be lost (a short output under
+  // load). The documentation blocks are too small for 4,096 addresses, so this uses the RFC 2544 benchmarking range
+  // 198.18.0.0/15, also never routed: one city range and one ASN range per address.
+  const dir = mkdtempSync(join(tmpdir(), 'gb-dbip-many-'))
+  try {
+    const ips = Array.from({ length: 4096 }, (_, i) => `198.18.${i >> 8}.${i & 255}`)
+    const city = join(dir, 'dbip-city-lite-2026-11.csv')
+    const asn = join(dir, 'dbip-asn-lite-2026-11.csv')
+    writeFileSync(city, `${ips.map((ip) => `${ip},${ip},AS,SG,,"Example City",0,0`).join('\n')}\n`)
+    writeFileSync(asn, `${ips.map((ip) => `${ip},${ip},64500,Example Network`).join('\n')}\n`)
+    const out = join(dir, 'build')
+    const meta = await run(['--format', 'dbip', '--city', city, '--asn', asn, '--out', out], process.cwd())
+    assert.equal(meta.ranges, ips.length)
+    const ranges = parseNeutralCsv(readFileSync(join(out, 'ip-db.csv'), 'utf8'))
+    assert.ok(ranges.every((r) => r.city === 'Example City' && r.asn === 64500))
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
 test('the attribution the licence asks for prints after the lookups, with each database date', async () => {
   const database = createRangeDatabase({ name: DBIP_LITE.databaseName, edition: '2026-11-01' }, SYNTHETIC_IP_RANGES)
   const locations = await lookupIpLocations(['203.0.113.24', '198.51.100.7'], database)

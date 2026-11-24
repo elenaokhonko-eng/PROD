@@ -273,21 +273,21 @@ export const FACT_LABELS: Record<FactKey, string> = {
   fidrec_filed: "Whether you have filed with FIDReC",
   date_discovered: "When you found out",
   impersonated_entity_type: "Who the scammer pretended to be",
-  // FIDReC update (Lane 2): draft wording for Elena.
+  // FIDReC update (Lane 2): draft wording for Elena, except institution_fault_label (approved 24 Nov).
   access_events: "Your bank's record of logins, devices and alerts",
   card_auth_events: "Your bank's record of how the card payments were approved",
   device_recognition: "Which devices in the records are yours",
   access_record_requested: "Whether you asked your bank for its records of logins and devices",
   card_dispute_requested: "Whether you asked your bank to dispute the card payments",
   card_dispute_response: "What your bank did about disputing the card payments",
-  institution_fault_label: "The word your bank used for what you did",
+  institution_fault_label: "The word your bank used to describe your actions",
   balance_before_first_disputed_payment: "Your balance before the first payment you dispute",
   transaction_alert_threshold: "The amount above which your bank sends a payment alert",
   token_activation_method: "How the digital token was activated",
-  // EUPG Section 8 (decision 8): DRAFT wording for Elena.
+  // EUPG Section 8 (decision 8): approved by Elena, 24 Nov.
   disputed_amount_payment_requests: "Your bank's requests to pay the disputed amount",
   charges_on_disputed_amount: "Fees or interest charged on the disputed amount",
-  credit_bureau_reports: "Reports of the disputed amount to a credit bureau",
+  credit_bureau_reports: "Reports to a credit bureau about the disputed amount",
   fidrec_dispute_dates: "Dates of your dispute with FIDReC",
 };
 

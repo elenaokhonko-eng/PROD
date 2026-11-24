@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import test from 'node:test'
+import { CASE_DOCUMENT_EXPORT_COLUMNS, caseDocumentsExport } from '../../app/api/privacy/export/case-documents'
 import { technicalRecordsExport } from '../../app/api/privacy/export/technical-records'
 import { scrubErrorText } from '../../lib/server/safe-error'
 import { accountSrfCase } from '../fixtures/fidrec-update/index.ts'
@@ -83,4 +84,55 @@ test('the export carries the Section 8 facts, the credit bureau reports with who
   assert.deepEqual(rows.map((r) => r.fact_key), ['charges_on_disputed_amount', 'credit_bureau_reports', 'disputed_amount_payment_requests', 'fidrec_dispute_dates'])
   assert.deepEqual(rows[1].values, [reports])
   assert.doesNotMatch(JSON.stringify(rows), /synthetic-report\.pdf/)
+})
+
+test('the export lists each uploaded document by name, type and upload date, never its contents or storage path', () => {
+  // Only these columns are read: no storage_path, file_url, filename (the stored name) or content.
+  assert.deepEqual(CASE_DOCUMENT_EXPORT_COLUMNS.split(', ').sort(), ['case_id', 'document_type', 'original_filename', 'upload_date', 'verified_document_type'])
+  const rows = caseDocumentsExport([
+    { case_id: 'case-b', original_filename: 'example-statement.pdf', document_type: 'BANK_STATEMENT', verified_document_type: 'BANK_ACCOUNT_STATEMENT_SHOWING_TRANSACTIONS', upload_date: '2025-09-20T02:00:00Z' },
+    { case_id: 'case-b', original_filename: 'example-credit-report.pdf', document_type: 'CREDIT_BUREAU_REPORT', verified_document_type: null, upload_date: '2025-09-18T02:00:00Z' },
+    { case_id: 'case-a', original_filename: 'example-letter.pdf', document_type: null, verified_document_type: null, upload_date: null },
+    { original_filename: 'no-case.pdf' },
+  ] as never)
+  assert.deepEqual(rows, [
+    { case_id: 'case-a', file_name: 'example-letter.pdf', document_type: null, uploaded_at: null },
+    { case_id: 'case-b', file_name: 'example-credit-report.pdf', document_type: 'CREDIT_BUREAU_REPORT', uploaded_at: '2025-09-18T02:00:00Z' },
+    { case_id: 'case-b', file_name: 'example-statement.pdf', document_type: 'BANK_ACCOUNT_STATEMENT_SHOWING_TRANSACTIONS', uploaded_at: '2025-09-20T02:00:00Z' },
+  ])
+  // A row carrying more than was asked for still exports only the four fields.
+  const extra = caseDocumentsExport([{ case_id: 'c', original_filename: 'x.pdf', storage_path: 'c/x.pdf', file_url: 'https://example.invalid/x' } as never])
+  assert.deepEqual(Object.keys(extra[0]).sort(), ['case_id', 'document_type', 'file_name', 'uploaded_at'])
+  assert.doesNotMatch(JSON.stringify(extra), /storage|example\.invalid/)
+})
+
+test('the export route lists the case documents and the IP lookups', () => {
+  const route = read('app/api/privacy/export/route.ts')
+  assert.match(route, /from\("case_documents"\)\.select\(CASE_DOCUMENT_EXPORT_COLUMNS\)/)
+  assert.match(route, /case_documents: caseDocumentsExport\(/)
+  assert.match(route, /from\("case_ip_locations"\)/)
+  assert.doesNotMatch(route, /case_documents_content/)
+})
+
+test('document names reach only the person\'s own export: never logs, error text, analytics or model usage', () => {
+  // The helper has no logging and is used by the export route alone.
+  const helper = read('app/api/privacy/export/case-documents.ts')
+  assert.doesNotMatch(helper, /console\.|logger\.|log\.(?:info|warn|error|debug)\(|track|analytics|model_usage|insert|upsert/)
+  const walk = (d: string): string[] =>
+    readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? (e.name === 'node_modules' || e.name.startsWith('.') ? [] : walk(join(d, e.name))) : /\.tsx?$/.test(e.name) ? [join(d, e.name)] : [])
+  const users = [...walk('app'), ...walk('lib'), ...walk('components')]
+    .filter((f) => !/case-documents\.ts$/.test(f) && /caseDocumentsExport|privacy\/export\/case-documents/.test(read(f)))
+  assert.deepEqual(users.map((f) => f.split(sep).join('/')), ['app/api/privacy/export/route.ts'])
+  // The route reads the user's own cases with the user's client, and logs a fixed label and an error code only.
+  const route = read('app/api/privacy/export/route.ts')
+  assert.match(route, /supabase\.from\("case_documents"\)\.select\(CASE_DOCUMENT_EXPORT_COLUMNS\)\.in\("case_id", ownedCaseIds\)/)
+  const logs = route.match(/console\.\w+\([^\r\n]*/g) ?? []
+  assert.equal(logs.length, 3)
+  for (const line of logs) assert.match(line, /^console\.error\((?:"\[privacy\][^"]*"|`\[privacy\] failed to export \$\{failedQuery\.label\}:`), errorCodeOnly\(\w+(?:\.error)?\)\)$/, line)
+  assert.doesNotMatch(route, /safeErrorText|track\(|analytics|\.insert\(|\.upsert\(/)
+  // Analytics and model metering code never reads the documents' names.
+  for (const file of [...walk('lib/analytics'), 'lib/server/model-usage.ts', 'supabase/functions/_shared/model-usage.ts']) {
+    assert.doesNotMatch(read(file), /original_filename|caseDocumentsExport/, file)
+  }
 })
