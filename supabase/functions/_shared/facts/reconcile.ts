@@ -336,6 +336,7 @@ function equivalent(key: FactKey, a: unknown, b: unknown): boolean {
     case "disputed_amount_payment_requests":
     case "charges_on_disputed_amount":
     case "credit_bureau_reports":
+    case "credit_account_status":
       return true;
     case "fidrec_dispute_dates": {
       const x = a as FidrecDisputeDates;
@@ -348,14 +349,15 @@ function equivalent(key: FactKey, a: unknown, b: unknown): boolean {
   }
 }
 
-// Section 8 list entries (requests, charges, credit bureau reports): the union, one entry per distinct entry, by date.
+// Section 8 list entries (requests, charges, credit bureau reports, account statuses): the union, one entry per distinct
+// entry, by date (an account status by its "as at" date).
 // A report stated both by a letter and by the complainant stays twice, each with its own label.
 function combineListEntries(a: readonly unknown[], b: readonly unknown[]): unknown[] {
   const byKey = new Map<string, unknown>();
   for (const entry of [...a, ...b]) byKey.set(stableStringify(entry), entry);
   return [...byKey.values()].sort((x, y) => {
-    const dx = (x as { date?: string | null }).date ?? "";
-    const dy = (y as { date?: string | null }).date ?? "";
+    const dx = (x as { date?: string | null; asOf?: string | null }).date ?? (x as { asOf?: string | null }).asOf ?? "";
+    const dy = (y as { date?: string | null; asOf?: string | null }).date ?? (y as { asOf?: string | null }).asOf ?? "";
     return dx < dy ? -1 : dx > dy ? 1 : 0;
   });
 }
