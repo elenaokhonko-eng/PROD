@@ -103,10 +103,10 @@ Expected: The text of paragraph 7.3 of the Shared Responsibility Framework Guide
 Expected: The text of paragraph 3.14 of the E-Payments User Protection Guidelines in force on 3 July 2025 is not held in a verified version.
 Side by side: The records provided do not show whether what paragraph 7.3 of the Shared Responsibility Framework Guidelines and paragraph 3.14 of the E-Payments User Protection Guidelines set out took place.
 ## disputed_amount_charges: Charges and credit records while a transaction is disputed
-Record: The complainant reported to the institution on 4 July 2025. The institution's final reply is dated 28 July 2025. The records provided do not show requests to pay the disputed amount or charges on it. (E2)
+Record: The complainant reported the disputed transactions to the institution on 4 July 2025. The institution's final reply is dated 28 July 2025. The records provided do not show requests to pay the disputed amount or charges on it. (E2)
 Expected: The text of paragraph 8.1 of the E-Payments User Protection Guidelines in force on 4 July 2025 is not held in a verified version.
 Side by side: The records provided do not show whether what paragraph 8.1 of the E-Payments User Protection Guidelines sets out took place.
-Record: The institution's final reply is dated 28 July 2025. The reply states an outcome (rejected). The period after the reply runs from 28 July 2025 to 27 August 2025. The records provided do not show dispute resolution with FIDReC starting. The records provided do not show requests to pay the disputed amount or charges on it. (E2)
+Record: The institution's final reply is dated 28 July 2025. The reply rejects the claim. Counted from the date of the final reply, the 30 calendar days run from 28 July 2025 to 27 August 2025. The records provided do not show dispute resolution with FIDReC starting. The records provided do not show requests to pay the disputed amount or charges on it. (E2)
 Expected: The text of paragraph 8.2 of the E-Payments User Protection Guidelines in force on 4 July 2025 is not held in a verified version.
 Side by side: The records provided do not show whether what paragraph 8.2 of the E-Payments User Protection Guidelines sets out took place.
 ## mas_notice_comparison: MAS notices
