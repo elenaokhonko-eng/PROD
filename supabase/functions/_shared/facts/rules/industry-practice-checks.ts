@@ -7,9 +7,9 @@
 //
 // - Token activation (MAS–ABS releases of 2022): the delay before a new soft token is activated is compared against
 //   the release of 19 January 2022, paragraph 3(c) (Lane 1, #59); the number of hours is read from the loaded clause
-//   text, never written here. The alert to the existing contact has no key: 3(d) of that release is about a request
-//   to change the contact details, not a token activation, and no clause of the 2 June 2022 release (#60) is named
-//   for it yet. It stays flagged as not held.
+//   text, never written here. There is no alert row here (Elena, 24 Nov 2026): the alert on a token activation is
+//   EUPG 4.9 and SRF 4.2.2, compared in duty_time_checks; 3(d) of the January 2022 release is about notifying the
+//   existing contact when contact details change, and is not used for a token activation.
 // - Card added to a mobile wallet (Decision 5): a record line, then
 //   Part A: the institution's own published page (term request, purpose `wallet_provisioning`), with an outcome;
 //   Part B: the MAS written reply of 13 January 2026, a quotation line introduced by `mas.reply.20260113.wallet`, any
@@ -36,7 +36,7 @@ import {
   type WalletProvisioningPractice,
 } from "../update/contract.ts";
 import { formatDate, formatDateTime as formatTime, formatGap } from "../update/section-writer.ts";
-import { alertFor, eventWords } from "./duty-time-checks.ts";
+import { eventWords } from "./duty-time-checks.ts";
 import {
   NO_TERM_REQUESTS,
   productsForPayment,
@@ -61,8 +61,6 @@ import {
 export interface IndustryPracticeClauseKeys {
   /** MAS–ABS release of 19 Jan 2022, 3(c): a delay before a new soft token is activated. */
   tokenActivationDelay: string | null;
-  /** MAS–ABS releases of 2022: an alert to the existing contact on a token activation (no clause named yet). */
-  tokenActivationAlert: string | null;
   /** ABS media statement of 17 Feb 2025: verification beyond the SMS one-time code to add a card to a mobile wallet. */
   walletProvisioningVerification: string | null;
   /** ABS media statement of 17 Feb 2025: removal of provisioned cards where there are signs of fraud. */
@@ -74,7 +72,6 @@ export const TOKEN_ACTIVATION_DELAY_CLAUSE_KEY = "mas.media_2022_01_digital_bank
 
 export const INDUSTRY_PRACTICE_CLAUSE_KEYS: Readonly<IndustryPracticeClauseKeys> = {
   tokenActivationDelay: TOKEN_ACTIVATION_DELAY_CLAUSE_KEY,
-  tokenActivationAlert: null,
   walletProvisioningVerification: NAMED_CLAUSE_KEYS.absProvisioningVerification,
   walletTokenRemoval: NAMED_CLAUSE_KEYS.absProvisioningRemoval,
 };
@@ -191,17 +188,16 @@ export function createIndustryPracticeChecks(options: IndustryPracticeCheckOptio
       return (await input.provider.getClauseAsOf(key, onDate)) ? key : null;
     };
 
-    // Token activation: delay and alert to the existing contact.
+    // Token activation: the delay before a new soft token is activated. (The alert on activation is compared in
+    // duty_time_checks against EUPG 4.9 and SRF 4.2.2; Elena's decision of 24 Nov 2026.)
     const tokenGroup: PaymentGroup = account.length ? "account" : "card";
     const tokenPayments: readonly DisputedPayment[] = account.length ? account : card;
     const accessEv = evidenceFor(input, "access_events");
     const activations = (access ?? []).filter((e) => e.kind === "token_activated" && e.timestamp).sort((a, b) => ms(a.timestamp)! - ms(b.timestamp)!);
     if (!access) {
-      for (const name of ["tokenActivationDelay", "tokenActivationAlert"] as const) {
-        const clauseKey = await inForce(name, firstDate);
-        if (clauseKey) {
-          await w.compare({ clauseKey, onDate: firstDate, record: "The records provided include no record from the institution of logins, devices and alerts.", outcome: "not_shown", evidenceIds: [], group: tokenGroup, payments: tokenPayments });
-        }
+      const clauseKey = await inForce("tokenActivationDelay", firstDate);
+      if (clauseKey) {
+        await w.compare({ clauseKey, onDate: firstDate, record: "The records provided include no record from the institution of logins, devices and alerts.", outcome: "not_shown", evidenceIds: [], group: tokenGroup, payments: tokenPayments });
       }
     }
     for (const activation of activations) {
@@ -221,14 +217,6 @@ export function createIndustryPracticeChecks(options: IndustryPracticeCheckOptio
           const outcome = !request ? "not_shown" : ms(activation.timestamp)! - ms(request.timestamp)! < hours * HOUR ? "differs" : "matches";
           await w.compare({ clauseKey: delayKey, onDate, record, outcome, evidenceIds: accessEv, group: tokenGroup, payments: tokenPayments });
         }
-      }
-      const alertKey = await inForce("tokenActivationAlert", onDate);
-      if (alertKey) {
-        const alert = alertFor(activation, access!);
-        const record = alert
-          ? `The record shows ${eventWords(activation)} and an alert sent at ${formatTime(alert.timestamp!)}${alert.sentTo ? ` to ${alert.sentTo}` : ""}.`
-          : `The record shows ${eventWords(activation)} and no alert between it and the next recorded event.`;
-        await w.compare({ clauseKey: alertKey, onDate, record, outcome: alert ? "matches" : "differs", evidenceIds: accessEv, group: tokenGroup, payments: tokenPayments });
       }
     }
 
