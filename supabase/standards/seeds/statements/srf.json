@@ -69,6 +69,16 @@
       "clause_keys": ["mas.srf/4.2.1", "mas.srf/4.2.2", "mas.eupg/4.7", "mas.eupg/4.9"],
       "exclusion_clause_keys": [],
       "note": "Reworded from the brief (4a): the cooling-off is triggered by the token activation and bars high-risk activities; it is not set 'for high-risk activities'. EUPG 4.9 sets no new-device alert for any account; SRF 4.2.1, 4.2.2 and EUPG 4.7 name the new-device login for accounts issued by a relevant payment service provider."
+    },
+    {
+      "statement_key": "srf.highrisk.definition",
+      "revision": 1,
+      "framework": "srf",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "Paragraph 2.1 of the SRF Guidelines says 'high-risk activities' means adding payees, increasing transaction limits, disabling transaction notifications and changing contact information. Paragraph 4.2.1 sets a cooling-off period of at least 12 hours, when a digital security token is activated on a device, in which high-risk activities cannot be performed.",
+      "clause_keys": ["mas.srf/2.1(high-risk-activities)", "mas.srf/4.2.1"],
+      "exclusion_clause_keys": [],
+      "note": "Review wording, unchanged. Checked against mas.srf 24 Oct 2024: 2.1 is a closed definition ('means') with the four activities in longer form; 4.2.1 also covers a login on a new device to an account issued by a relevant payment service provider, which the draft leaves out; the text writes 'cooling off' without a hyphen. Decision 4 prints this in card-only cases; SRF footnote 1 leaves out only the responsibility sharing for cards, so the scope is for Elena. Replaces the proposed srf.highrisk.wallet (never seeded)."
     }
   ]
 }
