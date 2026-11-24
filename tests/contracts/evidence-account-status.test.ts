@@ -46,6 +46,10 @@ test('the overdue report gives one account status entry and no credit bureau rep
     lender: null,
     last4: null,
     reportDate: null,
+    // And by Lane 6's #100 (the bureau table layout): none of them on this line.
+    productType: null,
+    overdueBalance: null,
+    cycleCodes: null,
   }
   assert.deepEqual(status.value, [expected])
   assert.equal(status.sourceRef.documentType, 'credit_bureau_report')

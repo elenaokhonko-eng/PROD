@@ -232,8 +232,11 @@ const DOCUMENT_TEMPLATE = {
   // A credit bureau report or the institution's letter only (Elena, 25 Nov 2026).
   credit_account_status: [{
     as_of: "YYYY-MM-DD|null",
-    status_text: "string",
+    status_text: "string|null",
     account_name: "string|null",
+    product_type: "string|null",
+    overdue_balance: "string|null",
+    cycle_codes: "string|null",
     lender: "string|null",
     last4: "string|null",
     facility: "string|null",
@@ -293,6 +296,10 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
       "  account_name is the account as the line names it, lender the lender it names, last4 the card's last four digits",
       "  where given; copy each exactly as written, null when not given. report_date: the document's own date (the report's",
       "  date of issue; for a letter, the letter's date), with the line that gives it as quote.",
+      "  A report laid out as an account status history table (one row per account: Product Type, Grantor Bank, Account",
+      "  Type, Date Open/Close, Overdue Balance, Last 12 cycles): one entry per row, quote = the whole row. lender = the",
+      "  Grantor Bank cell; product_type, overdue_balance and cycle_codes copied exactly from the row's cells; status_text",
+      "  only if the row itself has status words, otherwise null. Never interpret the cycle letters.",
     ]
     : [];
   return [
@@ -717,6 +724,24 @@ export function namesDisputedAmountReport(quote: string, source: CreditBureauRep
   return NAMES_REPORTING.test(quote) && (amount || NAMES_BUREAU.test(quote));
 }
 
+/** A "Last 12 cycles" string as written: one token of letters, digits or symbols, no spaces; null otherwise. */
+export function cycleCodesText(value: unknown): string | null {
+  const text = typeof value === "string" ? value.trim() : "";
+  return /^[A-Za-z0-9*#\-]{1,24}$/.test(text) ? text : null;
+}
+
+/**
+ * A row's "Overdue Balance": the amount, kept only where the row writes that figure (with or without thousands
+ * separators); zero when it shows 0.00; null when the row shows none or the figure is not in it.
+ */
+export function overdueBalanceInQuote(value: unknown, quote: string): Money | null {
+  if (value === null || value === undefined || value === "") return null;
+  const money = normaliseMoney(typeof value === "number" ? value : String(value).trim());
+  if (!money) return null;
+  const figures = (quote.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map((n) => Number(n.replace(/,/g, "")));
+  return figures.some((n) => Math.abs(n - money.amount) < 0.005) ? money : null;
+}
+
 /** A card's last four digits, kept only when the document has those four digits standing alone ("ending 0001"). */
 export function last4InDocument(value: unknown, sourceText: string): string | null {
   const digits = typeof value === "string" || typeof value === "number" ? String(value).replace(/\D/g, "") : "";
@@ -802,8 +827,16 @@ function parseSection8Facts(
     const reportDate = documentDateIn(out.report_date, sourceText);
     const statuses = entries<CreditAccountStatus>("credit_account_status", (e) => {
       const quote = quoted(sourceText, e);
-      const statusText = shortText(e.status_text, 120);
-      if (!quote || !statusText || !squash(quote).includes(squash(statusText))) return null;
+      if (!quote) return null;
+      const inQuote = (value: string | null) => (value && squash(quote).includes(squash(value)) ? value : null);
+      // Status words the model gives must be the row's own; words not in the quote drop the entry (never paraphrased).
+      const words = shortText(e.status_text, 120);
+      if (words && !inQuote(words)) return null;
+      // Gap c (a Credit Bureau Singapore row): the codes as written, one token, never read for meaning.
+      const cycleCodes = inQuote(cycleCodesText(e.cycle_codes));
+      // The row's own words if any, else the code string verbatim, else empty.
+      const statusText = words ?? cycleCodes ?? "";
+      if (!statusText && !cycleCodes && !inQuote(shortText(e.account_name, 160)) && !inQuote(shortText(e.lender, 120))) return null;
       return {
         asOf: normaliseDate(e.as_of),
         statusText,
@@ -816,6 +849,9 @@ function parseSection8Facts(
         lender: inDocument(shortText(e.lender, 120)),
         last4: last4InDocument(e.last4, sourceText),
         reportDate,
+        productType: inQuote(shortText(e.product_type, 80)),
+        overdueBalance: overdueBalanceInQuote(e.overdue_balance, quote),
+        cycleCodes,
       };
     });
     if (statuses.length) add("credit_account_status", statuses.map((x) => x.value), statuses.map((x) => x.quote), statuses.map((x) => x.raw));
