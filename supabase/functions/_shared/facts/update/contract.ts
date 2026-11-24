@@ -623,6 +623,10 @@ export const AS_OF_FUNCTIONS = {
 export const CORPUS_INSTRUMENTS = ["account_transfer", "sg_card", "ewallet"] as const;
 export type CorpusInstrument = (typeof CORPUS_INSTRUMENTS)[number];
 
+/**
+ * `published_page` (review of 24 Nov 2026, Decision 7; Lane 1, #68): an institution's published web page, such as its
+ * page on adding cards to mobile wallets. Never printed as a contract. The database CHECK gains it in Lane 1's migration.
+ */
 export const BINDING_LEVELS = [
   "guideline",
   "notice",
@@ -632,6 +636,7 @@ export const BINDING_LEVELS = [
   "contract",
   "scheme_rule",
   "forum_rules",
+  "published_page",
 ] as const;
 export type BindingLevel = (typeof BINDING_LEVELS)[number];
 

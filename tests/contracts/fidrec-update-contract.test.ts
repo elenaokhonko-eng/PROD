@@ -14,6 +14,7 @@ import {
   AS_OF_RULE_OUTCOMES,
   AS_OF_RULES,
   type AsOfRuleCase,
+  BINDING_LEVELS,
   CLAUSE_KEYS,
   COMPARISON_OUTCOMES,
   complainantRecognisesDevice,
@@ -563,4 +564,10 @@ test('a section builder runs on every fixture with the fake provider', async () 
     assert.equal(line.kind, 'comparison')
     if (line.kind === 'comparison') assert.equal(line.comparison.outcome, c.shape.hasAccessRecord ? 'differs' : 'not_shown', c.id)
   }
+})
+
+test('Decision 7: a published page is its own binding level, never a contract', () => {
+  assert.ok((BINDING_LEVELS as readonly string[]).includes('published_page'))
+  assert.ok((BINDING_LEVELS as readonly string[]).includes('contract'))
+  assert.equal(new Set(BINDING_LEVELS).size, BINDING_LEVELS.length)
 })
