@@ -7,7 +7,6 @@ import {
   createCustomerConductBuilder,
   NOT_SHOWN,
   termFamily,
-  WHO_APPROVED_NOT_SHOWN,
 } from '../../supabase/functions/_shared/facts/rules/customer-conduct.ts'
 import { createStaticTermRequestSource, parseTermRequestRows } from '../../supabase/functions/_shared/facts/rules/institution-terms.ts'
 import {
@@ -20,7 +19,7 @@ import {
   type SectionLine,
   type SectionResult,
 } from '../../supabase/functions/_shared/facts/update/contract.ts'
-import { afterTheEventsLine, GENDERED_PRONOUNS } from '../../supabase/functions/_shared/facts/update/section-writer.ts'
+import { afterTheEventsLine, GENDERED_PRONOUNS, RECORDS_DO_NOT_SHOW_WHO_APPROVED } from '../../supabase/functions/_shared/facts/update/section-writer.ts'
 import {
   accountSrfCase,
   cardOnlyCase,
@@ -132,8 +131,8 @@ test('Decision 1, synthetic line 2: card payments approved on a device that is n
     "The record shows 3 card payments authenticated by 3-D Secure with the digital token on the device labelled 'Phone model EX-300'. The complainant states that the device labelled 'Phone model EX-300' is not theirs."
   const i = lines.indexOf(record)
   assert.ok(i >= 0, lines.join('\n'))
-  assert.equal(lines[i + 1], WHO_APPROVED_NOT_SHOWN)
-  assert.equal(WHO_APPROVED_NOT_SHOWN, 'The records do not show who approved these payments.')
+  assert.equal(lines[i + 1], RECORDS_DO_NOT_SHOW_WHO_APPROVED)
+  assert.equal(RECORDS_DO_NOT_SHOW_WHO_APPROVED, 'The records do not show who approved these payments.')
   // No document line for that marker, and the MAS reply of 7 January 2025 is not in this section at all (it stays in 4d).
   assert.ok(!conduct(r).some((c) => c.marker === 'card_payment_approved'))
   assert.ok(!conduct(r).some((c) => c.documentKey === CONDUCT_FRAMEWORKS.mas_reply.documentKey))
@@ -141,7 +140,7 @@ test('Decision 1, synthetic line 2: card payments approved on a device that is n
   assert.ok(!r.citations.some((c) => c.clauseKey === NAMED_CLAUSE_KEYS.masReply3ds))
 })
 
-test('not_sure, no answer, a not_sure-labelled recognition fact, or no device named: the same "who approved" line', async () => {
+test('device state not_shown (not_sure, no answer, a not_sure-labelled fact, no device named): the same "who approved" line', async () => {
   const variants: object[] = [
     { device_recognition: { value: [{ ...cardOnlyCase.data.facts.device_recognition!.value![0], answer: 'not_sure' }], label: 'confirmed' } },
     { device_recognition: undefined },
@@ -153,7 +152,7 @@ test('not_sure, no answer, a not_sure-labelled recognition fact, or no device na
   ]
   for (const facts of variants) {
     const r = await buildCustomerConduct(withFacts(cardOnlyCase, facts, held))
-    assert.ok(texts(r).includes(WHO_APPROVED_NOT_SHOWN), JSON.stringify(facts).slice(0, 80))
+    assert.ok(texts(r).includes(RECORDS_DO_NOT_SHOW_WHO_APPROVED), JSON.stringify(facts).slice(0, 80))
     assert.ok(!conduct(r).some((c) => c.marker === 'card_payment_approved'))
   }
   const notSure = await buildCustomerConduct(withFacts(cardOnlyCase, variants[0], held))
@@ -162,7 +161,7 @@ test('not_sure, no answer, a not_sure-labelled recognition fact, or no device na
 
 test('where the complainant recognises the approving device, the "refers to" line prints as usual', async () => {
   const r = await buildCustomerConduct(withFacts(cardOnlyCase, recognised(cardOnlyCase), held))
-  assert.ok(!texts(r).includes(WHO_APPROVED_NOT_SHOWN))
+  assert.ok(!texts(r).includes(RECORDS_DO_NOT_SHOW_WHO_APPROVED))
   const line = conduct(r).find((c) => c.marker === 'card_payment_approved' && c.documentKey === 'mas.reply.20250107')!
   assert.equal(line.kind, 'refers_to')
   assert.equal(line.clauseKey, 'mas.reply.20250107/3(a).3ds')
@@ -342,4 +341,32 @@ test('no verdict wording, no gendered pronoun, and no line says the institution\
       }
     }
   }
+})
+
+test('device states: not_sure is not_shown, never not_mine; mixed states are not_shown; only mine gives document lines', () => {
+  const ownership = (answer: 'mine' | 'not_mine' | 'not_sure', label = 'confirmed') =>
+    conductMarkers(withFacts(cardOnlyCase, {
+      device_recognition: { value: [{ ...cardOnlyCase.data.facts.device_recognition!.value![0], answer }], label },
+    })).find((m) => m.marker === 'card_payment_approved')!.approvalOwnership
+  assert.equal(ownership('mine'), 'mine')
+  assert.equal(ownership('not_mine'), 'not_mine')
+  assert.equal(ownership('not_sure'), 'not_shown')
+  assert.equal(ownership('mine', 'not_sure'), 'not_shown')
+  assert.equal(ownership('not_mine', 'not_sure'), 'not_shown')
+  // Two approving devices, one mine and one not: not_shown.
+  const firstPayment = cardOnlyCase.data.facts.card_auth_events.value.findIndex((e) => e.transactionIndex !== null)
+  const events = cardOnlyCase.data.facts.card_auth_events.value.map((e, i) =>
+    i === firstPayment ? { ...e, deviceRef: 'dev-ex-second', deviceLabel: 'Phone model EX-301' } : e
+  )
+  const mixed = conductMarkers(withFacts(cardOnlyCase, {
+    card_auth_events: { value: events, label: 'confirmed' },
+    device_recognition: {
+      value: [
+        { ...cardOnlyCase.data.facts.device_recognition!.value![0], answer: 'mine' },
+        { deviceRef: 'dev-ex-second', deviceLabel: 'Phone model EX-301', firstSeenAt: null, answer: 'not_mine' },
+      ],
+      label: 'confirmed',
+    },
+  })).find((m) => m.marker === 'card_payment_approved')!
+  assert.equal(mixed.approvalOwnership, 'not_shown')
 })

@@ -6,9 +6,10 @@
 // - what the record shows (a text line), or "The records provided do not show [X]." (`records_do_not_show`);
 // - per document, whether the document refers to that kind of conduct: `refers_to` (with the clause it rests on),
 //   `does_not_refer_to`, or, for the SRF Guidelines, `no_conduct_test`.
-// Card payments approved on a device the complainant does not recognise (answer `not_mine` or `not_sure`, no answer,
-// or no device named; the contract's not-sure rule): the record line, then "The records do not show who approved these
-// payments.", and no document line for that marker. The MAS reply of 7 January 2025 then prints only in 4d.
+// Card payments approved on a device whose state (contract `deviceOwnership`) is anything but `mine` (`not_mine`, or
+// `not_shown`: answer `not_sure`, no answer, a `not_sure`-labelled fact, or no device named): the record line, then
+// "The records do not show who approved these payments." (`RECORDS_DO_NOT_SHOW_WHO_APPROVED`), and no document line
+// for that marker. The MAS reply of 7 January 2025 then prints only in 4d.
 //
 // Then the institution's own words, each document's term, and the institution's own terms (4e). No line says the
 // institution's label is right or wrong, and no line says the complainant was or was not negligent, grossly negligent
@@ -20,6 +21,7 @@ import type {
   CardAuthEvent,
   ConductLine,
   ConductMarker,
+  DeviceOwnership,
   IsoDate,
   SectionBuilder,
   SectionInput,
@@ -27,7 +29,7 @@ import type {
 } from "../update/contract.ts";
 import {
   CLAUSE_KEYS,
-  complainantRecognisesDevice,
+  deviceOwnership,
   CONDUCT_MARKERS,
   documentDatedAfterEvents,
   NAMED_CLAUSE_KEYS,
@@ -41,6 +43,7 @@ import {
   formatDate,
   formatDateTime,
   formatCalendarDays,
+  RECORDS_DO_NOT_SHOW_WHO_APPROVED,
   SectionWriter,
 } from "../update/section-writer.ts";
 import {
@@ -79,19 +82,21 @@ export const NOT_SHOWN: Record<ConductMarker, string> = {
   police_report: "whether or when a police report was made",
 };
 
-/** Decision 1, verbatim: after the record line for card payments approved on a device the complainant does not recognise. */
-export const WHO_APPROVED_NOT_SHOWN = "The records do not show who approved these payments.";
-
 export interface MarkerRecord {
   marker: ConductMarker;
   /** null: the records do not show it. */
   record: string | null;
   evidenceIds: string[];
   /**
-   * `card_payment_approved` only: true when every approving device is one the complainant recognises (`mine`, on a
-   * fact labelled `confirmed` or `claimant_only`; contract `complainantRecognisesDevice`).
+   * `card_payment_approved` only: the approving devices' state (contract `deviceOwnership`). `mine` or `not_mine` only
+   * when every approving device has that state; otherwise `not_shown`.
    */
-  approvalRecognised?: boolean;
+  approvalOwnership?: DeviceOwnership;
+}
+
+/** One state for several devices: the shared state when all agree, otherwise `not_shown`. */
+function combinedOwnership(states: DeviceOwnership[]): DeviceOwnership {
+  return states.length > 0 && states.every((s) => s === states[0]) ? states[0] : "not_shown";
 }
 
 /**
@@ -134,7 +139,7 @@ export function conductMarkers(input: SectionInput): MarkerRecord[] {
           marker: "card_payment_approved",
           record: approvedRecord(input, approved),
           evidenceIds: evidenceFor(input, "card_auth_events", "device_recognition"),
-          approvalRecognised: approved.every((e) => complainantRecognisesDevice(input.facts.device_recognition, e)),
+          approvalOwnership: combinedOwnership(approved.map((e) => deviceOwnership(input.facts.device_recognition, e))),
         });
       }
     }
@@ -357,9 +362,9 @@ async function buildConduct(input: SectionInput, options: CustomerConductOptions
   const anyDate = earliestDate([accountDate, cardDate]);
   const markers = conductMarkers(input);
 
-  // The MAS reply of 7 January 2025 prints here only where the complainant recognises the approving device.
+  // The MAS reply of 7 January 2025 prints here only where the approving device's state is `mine`.
   const approval = markers.find((m) => m.marker === "card_payment_approved");
-  const masReplyHere = cardDate !== null && approval?.record != null && approval.approvalRecognised === true;
+  const masReplyHere = cardDate !== null && approval?.record != null && approval.approvalOwnership === "mine";
   const replySpec = CONDUCT_FRAMEWORKS.mas_reply;
   const replyRule = await input.provider.getAsOfRule(replySpec.documentKey);
   const replyDate = cardDate ? readDateFor(replyRule, cardDate, generatedOn) : null;
@@ -377,9 +382,9 @@ async function buildConduct(input: SectionInput, options: CustomerConductOptions
       out.conduct({ kind: "records_do_not_show", marker: m.marker, documentKey: null, clauseKey: null, notShown: NOT_SHOWN[m.marker], onDate: anyDate! });
     } else out.text(m.record, { evidenceIds: m.evidenceIds });
 
-    // Card payments approved on a device the complainant does not recognise: no document line for this marker.
-    if (m.marker === "card_payment_approved" && !(m.record !== null && m.approvalRecognised)) {
-      if (m.record !== null) out.text(WHO_APPROVED_NOT_SHOWN, { evidenceIds: m.evidenceIds });
+    // Card payments approved on a device whose state is anything but `mine`: no document line for this marker.
+    if (m.marker === "card_payment_approved" && !(m.record !== null && m.approvalOwnership === "mine")) {
+      if (m.record !== null) out.text(RECORDS_DO_NOT_SHOW_WHO_APPROVED, { evidenceIds: m.evidenceIds });
       continue;
     }
 
