@@ -1,0 +1,365 @@
+{
+  "$comment": "MAS Notice FSM-N05, Notice on Technology Risk Management, to banks in Singapore (was MAS Notice 644). Issued 9 May 2024, in force from 10 May 2024 (para 10). Clause text is cut from the private source file.",
+  "document": {
+    "document_key": "mas.fsm-n05",
+    "title": "Notice on Technology Risk Management (FSM-N05)",
+    "publisher": "Monetary Authority of Singapore",
+    "binding_level": "notice",
+    "applies_to": ["bank"],
+    "instrument_scope": ["account_transfer", "sg_card", "ewallet"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/regulation/notices/notice-fsm-n05"
+  },
+  "version": {
+    "version_label": "9 May 2024",
+    "effective_from": "2024-05-10",
+    "issued_on": "2024-05-09",
+    "retrieved_at": "2026-11-24T04:20:00Z",
+    "source_url": "https://www.mas.gov.sg/-/media/mas-media-library/regulation/notices/trpd/notice-fsm-n05/mas-notice-fsm-n05.pdf",
+    "snapshot_path": "mas.fsm-n05/current/mas-notice-fsm-n05.pdf",
+    "content_sha256": "4db66f0feabb9e24e017b3d96fdf0306c3b7c02bc7945b0b49ffb8727d2d26b6",
+    "provenance": "publisher_site",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "^1$",
+      "clause": "mas.fsm-n05/1",
+      "skip": true
+    },
+    {
+      "at": "^Definitions$",
+      "clause": null
+    },
+    {
+      "at": "^2$",
+      "clause": "mas.fsm-n05/2",
+      "skip": true
+    },
+    {
+      "at": "^“banking business”",
+      "clause": "mas.fsm-n05/2(banking-business)"
+    },
+    {
+      "at": "(?<=; )“bank in Singapore”",
+      "clause": "mas.fsm-n05/2(bank-in-singapore)"
+    },
+    {
+      "at": "^“critical system”",
+      "clause": "mas.fsm-n05/2(critical-system)"
+    },
+    {
+      "at": "^“customer”",
+      "clause": "mas.fsm-n05/2(customer)"
+    },
+    {
+      "at": "^“customer information”",
+      "clause": "mas.fsm-n05/2(customer-information)"
+    },
+    {
+      "at": "^“deposit information”",
+      "clause": "mas.fsm-n05/2(deposit-information)"
+    },
+    {
+      "at": "^“funds of a customer under management”",
+      "clause": "mas.fsm-n05/2(funds-of-a-customer-under-management)"
+    },
+    {
+      "at": "^“IT security incident”",
+      "clause": "mas.fsm-n05/2(it-security-incident)"
+    },
+    {
+      "at": "^“permitted business”",
+      "clause": "mas.fsm-n05/2(permitted-business)"
+    },
+    {
+      "at": "^“relevant incident”",
+      "clause": "mas.fsm-n05/2(relevant-incident)"
+    },
+    {
+      "at": "^“system”",
+      "clause": "mas.fsm-n05/2(system)"
+    },
+    {
+      "at": "^“system malfunction”",
+      "clause": "mas.fsm-n05/2(system-malfunction)"
+    },
+    {
+      "at": "^3$",
+      "clause": "mas.fsm-n05/3",
+      "skip": true
+    },
+    {
+      "at": "^Technology Risk Management$",
+      "clause": null
+    },
+    {
+      "at": "^4$",
+      "clause": "mas.fsm-n05/4",
+      "skip": true
+    },
+    {
+      "at": "^5$",
+      "clause": "mas.fsm-n05/5",
+      "skip": true
+    },
+    {
+      "at": "^6$",
+      "clause": "mas.fsm-n05/6",
+      "skip": true
+    },
+    {
+      "at": "^7$",
+      "clause": "mas.fsm-n05/7",
+      "skip": true
+    },
+    {
+      "at": "^8$",
+      "clause": "mas.fsm-n05/8",
+      "skip": true
+    },
+    {
+      "at": "^9$",
+      "clause": "mas.fsm-n05/9",
+      "skip": true
+    },
+    {
+      "at": "^Effective Date$",
+      "clause": null
+    },
+    {
+      "at": "^10 ",
+      "clause": "mas.fsm-n05/10",
+      "skip": true
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.fsm-n05/1",
+      "clause_ref": "1",
+      "heading_path": ["Introduction"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "b9cc34ecec80974c895b4ed145e623527067b133e8f3a1f2f69cfe3468d559e5"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2",
+      "clause_ref": "2",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "41cfbc4fa4725a995925564e1f0110906a1bea4012a05f1acf2a16082ddd0c18"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2(banking-business)",
+      "clause_ref": "2 \"banking business\"",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "386f13ef78c0519c4ad3e5af76a7218102a19a83ca005658e8530b8b556ea92d"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2(bank-in-singapore)",
+      "clause_ref": "2 \"bank in Singapore\"",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "2d66a8f5a813a6aa2b5121319457232098b9cfb287534c71d380b97aa9a289f4"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2(critical-system)",
+      "clause_ref": "2 \"critical system\"",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "024cfa87069ee4898903df54d45d1471f6b1bacefd474b71eeef1b3b087b5755"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2(customer)",
+      "clause_ref": "2 \"customer\"",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "00c0af715f80dd5f29d92eaba1b76e9526ac8892595e8d0880c90c26d3e10e4f"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2(customer-information)",
+      "clause_ref": "2 \"customer information\"",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1, 2],
+      "text_sha256": "c7b4ffe7fe01a3c1d7192e03c6d157d2f5b23f52f1af95fc8f66d06a382f7e9a"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2(deposit-information)",
+      "clause_ref": "2 \"deposit information\"",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "47c8f9a6beef0f70f86c0d8e4f17b705f5ebc79064fb7f6c57620823038f5031"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2(funds-of-a-customer-under-management)",
+      "clause_ref": "2 \"funds of a customer under management\"",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "361f87c67ec5c92445f3f49b4b43f4f9fea4a94a1c53c5676852e37ce4c6be0e"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2(it-security-incident)",
+      "clause_ref": "2 \"IT security incident\"",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "3aac450a0da5a0ab6a3f8181fed1facd940ed5b6c8496c17e3005019cf72737a"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2(permitted-business)",
+      "clause_ref": "2 \"permitted business\"",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "eb59d6bb6d5a6c4a7067c38c6030f33f85f51bbfe48614c31530af62887ba993"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2(relevant-incident)",
+      "clause_ref": "2 \"relevant incident\"",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "05712ab9aa1cc62c88afd0641176598e168b4ceb7e112606c262a0bdfe882c48"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2(system)",
+      "clause_ref": "2 \"system\"",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "0a5dbc86de7f5c1eea49a54f5226cdebea8f2e9e124eb7abbe390e9dd490a8bc"
+    },
+    {
+      "clause_key": "mas.fsm-n05/2(system-malfunction)",
+      "clause_ref": "2 \"system malfunction\"",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "7cda4fffd8f19cd445c3190707e86182680a0b31f41d27153a7bea05b3726b75"
+    },
+    {
+      "clause_key": "mas.fsm-n05/3",
+      "clause_ref": "3",
+      "heading_path": ["Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "83783682af5ea8383108259ae4f4d88d916a72ec613cafabe94e3c9149f295b0"
+    },
+    {
+      "clause_key": "mas.fsm-n05/4",
+      "clause_ref": "4",
+      "heading_path": ["Technology Risk Management"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "0ee043ef3314a6f317ae7d6dbe91fd843e739625e167f6758bc01c7c11681812"
+    },
+    {
+      "clause_key": "mas.fsm-n05/5",
+      "clause_ref": "5",
+      "heading_path": ["Technology Risk Management"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "611c351fa3a1e63502b876a649e1628c4a55be11a9f03ec651a442e638040416"
+    },
+    {
+      "clause_key": "mas.fsm-n05/6",
+      "clause_ref": "6",
+      "heading_path": ["Technology Risk Management"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "304cc5a0931cf009f6f082e12d8564ba4d0b0fe283da4c36f8e604c63143c649"
+    },
+    {
+      "clause_key": "mas.fsm-n05/7",
+      "clause_ref": "7",
+      "heading_path": ["Technology Risk Management"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "c233e5aa0a3349b4e99caa9cd0abc5f5052098fe3ecf1ecb13cadded6cf26bf7"
+    },
+    {
+      "clause_key": "mas.fsm-n05/8",
+      "clause_ref": "8",
+      "heading_path": ["Technology Risk Management"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "22e9d1ed5a38f8715886de5e3926ff833f52798e80c0b5abd671d0d6a8bf51ba"
+    },
+    {
+      "clause_key": "mas.fsm-n05/9",
+      "clause_ref": "9",
+      "heading_path": ["Technology Risk Management"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "05ffc765a9b00d1c0f7be0b188b14f8f18cee47d97c83ceb072fc612514e5d45",
+      "note": "The customer-information paragraph of the bank technology-risk notice (brief 1.3, 4b): paragraph 9 in FSM-N05, as in FSM-N07."
+    },
+    {
+      "clause_key": "mas.fsm-n05/10",
+      "clause_ref": "10",
+      "heading_path": ["Effective Date"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "77ad6148a8f0b85f2248dbe06e2762d1e6cf0205a25996e2448f23e5d9c38e8a"
+    }
+  ]
+}
