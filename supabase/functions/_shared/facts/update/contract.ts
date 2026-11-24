@@ -393,26 +393,26 @@ export function showsOverdue(status: Pick<CreditAccountStatus, "statusText">): b
  *
  * A status from the institution's letter counts towards `overdue`, never towards `matches`.
  *
- * With `dispute` given (review of 25 Nov 2026; Lane 3 passes it), two more conditions apply:
+ * `dispute` is required (review of 25 Nov 2026, enforced by Lane 3), and two more conditions always apply:
  * - (a) account: only statuses about the disputed account count (`statusBelongsToDispute`); the others neither block
  *   nor print;
  * - (b) coverage: `matches` also needs the period to have ended (`until` set and on or before `today`) and a read
  *   bureau report dated on or after the period's last day (a status's `reportDate`, from a `credit_bureau_report`).
  *   Otherwise the reading is `not_read` with its `reason`, printed as `not_shown`, never "matches".
- *   With `dispute`, `matches` also needs at least one status of the disputed account from a bureau report (otherwise
- *   `not_read`, reason `account_not_listed`).
- * Without `dispute` (Lane 3's call before it adopts this), (a) and (b) do not apply.
+ *   `matches` also needs at least one status of the disputed account from a bureau report (otherwise `not_read`,
+ *   reason `account_not_listed`).
  *
- * Gap c (review of 25 Nov 2026), with or without `dispute`: a status counts towards `matches` only when it states good
- * standing in words from GOOD_STANDING_WORDS (`showsGoodStanding`). Every other status in the period, or with no date
- * (a code string such as a Credit Bureau Singapore "Last 12 cycles" row, a non-zero overdue balance, words not on the
- * list, or the overdue words above; the allowlist decides, so "no overdue amount" is good standing), makes the reading `overdue`: the row carries no outcome and each such status prints
- * beside it. The kind keeps its name for the callers; read it as "no outcome: print these statuses".
+ * Gap c (review of 25 Nov 2026): a status counts towards `matches` only when it states good standing in words from
+ * GOOD_STANDING_WORDS (`showsGoodStanding`); the allowlist decides, so "no overdue amount" is good standing. Every other
+ * status of the disputed account in the period, or with no date (a code string such as a Credit Bureau Singapore "Last
+ * 12 cycles" row, a non-zero overdue balance, words not on the list, the overdue words above), makes the reading
+ * `overdue`: the row carries no outcome and each such status prints beside it. The kind keeps its name for the
+ * callers; read it as "no outcome: print these statuses". Codes are never interpreted: no legend is held.
  */
 export type CreditRecordsReading =
   | { kind: "matches" }
   | { kind: "overdue"; statuses: CreditAccountStatus[] }
-  | { kind: "not_read"; reason?: "no_report_read" | "period_running" | "report_before_period_end" | "account_not_listed" };
+  | { kind: "not_read"; reason: "no_report_read" | "period_running" | "report_before_period_end" | "account_not_listed" };
 
 export function creditRecordsReading(args: {
   bureauReportRead: boolean;
@@ -420,18 +420,17 @@ export function creditRecordsReading(args: {
   from: IsoDate;
   until: IsoDate | null;
   today: IsoDate;
-  /** The dispute's institution and cards (gaps a and b). Absent: the rule as first written. */
-  dispute?: DisputeAccounts;
+  /** The dispute's institution and cards (gaps a and b). Required: there is no reading without it. */
+  dispute: DisputeAccounts;
 }): CreditRecordsReading {
   const end = args.until ?? args.today;
   const inPeriod = (s: CreditAccountStatus) => s.asOf === null || (s.asOf >= args.from && (args.until === null ? s.asOf <= end : s.asOf < end));
   const dispute = args.dispute;
-  const relevant = dispute ? args.statuses.filter((s) => statusBelongsToDispute(s, dispute)) : args.statuses;
+  const relevant = args.statuses.filter((s) => statusBelongsToDispute(s, dispute));
   // Gap c: every status in the period that does not state good standing in words is printed with no outcome.
   const noOutcome = relevant.filter((s) => inPeriod(s) && !showsGoodStanding(s));
   if (noOutcome.length) return { kind: "overdue", statuses: noOutcome };
-  if (!args.bureauReportRead) return dispute ? { kind: "not_read", reason: "no_report_read" } : { kind: "not_read" };
-  if (!dispute) return { kind: "matches" };
+  if (!args.bureauReportRead) return { kind: "not_read", reason: "no_report_read" };
   if (args.until === null || args.until > args.today) return { kind: "not_read", reason: "period_running" };
   if (!relevant.some((s) => s.source === "credit_bureau_report")) return { kind: "not_read", reason: "account_not_listed" };
   const lastDay = dayBefore(args.until);
