@@ -28,7 +28,7 @@ import {
 import type { AccessEvent, IpLocation } from '../../supabase/functions/_shared/facts/update/contract.ts'
 import { buildDbip, buildIpDb, isInside, main, run } from '../../scripts/ip-db/build-ip-db.ts'
 import { dbipEditionFromFileName, dbipToNeutral, linesOfText } from '../../scripts/ip-db/dbip.ts'
-import { assertLocalDatabaseUrl, editionIdOf, load } from '../../scripts/ip-db/load-ip-db.ts'
+import { assertLocalDatabaseUrl, load, pushNeutralLine } from '../../scripts/ip-db/load-ip-db.ts'
 import { SYNTHETIC_IP_DATABASE, SYNTHETIC_IP_RANGES } from '../../scripts/ip-db/synthetic.ts'
 import { FIDREC_UPDATE_CASES } from '../fixtures/fidrec-update/index.ts'
 
@@ -272,23 +272,27 @@ test('the attribution the licence asks for prints after the lookups, with each d
   assert.deepEqual(ipLocationFooterLines(await lookupIpLocations(['203.0.113.24'], db())), [ipLocationNote(SYNTHETIC_IP_DATABASE.edition)])
 })
 
-test('the Postgres lookup asks for the range that holds the address in the current edition', async () => {
+test('the Postgres lookup calls lookup_ip_location_v1 for the latest edition of the database', async () => {
   const calls: Array<{ sql: string; params: readonly unknown[] }> = []
   const query = async (sql: string, params: readonly unknown[]) => {
     calls.push({ sql, params })
-    if (sql === CURRENT_EDITION_SQL) return [{ edition_id: 'dbip-lite:2026-11-01', database_name: 'DB-IP Lite', edition: '2026-11-01' }]
-    return params[1] === '192.0.2.70'
+    if (sql === CURRENT_EDITION_SQL) return [{ edition: '2026-11-01' }]
+    return params[0] === '192.0.2.70'
       ? [{ country: 'Singapore', region: null, city: 'Example City', accuracy_radius_km: null, asn: '64500', organisation: 'Example Network', flags: '{}' }]
       : []
   }
-  const database = await openCurrentSqlIpDatabase(query)
+  const database = await openCurrentSqlIpDatabase('DB-IP Lite', query)
   assert.ok(database)
+  assert.equal(database!.name, 'DB-IP Lite')
   const [found, missing] = await lookupIpLocations(['192.0.2.70', '198.51.100.7'], database!)
-  assert.deepEqual([found.city, found.asn, found.flags, found.databaseEdition], ['Example City', 64500, [], '2026-11-01'])
+  assert.deepEqual([found.city, found.asn, found.flags, found.database, found.databaseEdition], ['Example City', 64500, [], 'DB-IP Lite', '2026-11-01'])
   assert.equal(missing.city, null)
-  assert.deepEqual(calls.slice(1).map((c) => c.params), [['dbip-lite:2026-11-01', '192.0.2.70'], ['dbip-lite:2026-11-01', '198.51.100.7']])
-  assert.match(IP_RANGE_LOOKUP_SQL, /family\(range_start\) = family\(\$2::inet\)/)
-  assert.equal(await openCurrentSqlIpDatabase(async () => []), null)
+  assert.deepEqual(calls[0].params, ['DB-IP Lite'])
+  assert.deepEqual(calls.slice(1).map((c) => c.params), [['192.0.2.70', 'DB-IP Lite', '2026-11-01'], ['198.51.100.7', 'DB-IP Lite', '2026-11-01']])
+  assert.match(IP_RANGE_LOOKUP_SQL, /public\.lookup_ip_location_v1\(\$1::inet, \$2, \$3::date\)/)
+  assert.match(CURRENT_EDITION_SQL, /max\(database_edition\)/)
+  assert.equal(await openCurrentSqlIpDatabase('DB-IP Lite', async () => [{ edition: null }]), null)
+  assert.equal(await openCurrentSqlIpDatabase('DB-IP Lite', async () => []), null)
   assert.deepEqual(rangeRecordFromRow({ flags: ['vpn', 'tor'] }).flags, ['vpn'])
 })
 
@@ -299,31 +303,63 @@ test('the loader refuses any database but a local one, and the shared port 54322
   assert.throws(() => assertLocalDatabaseUrl('postgres://u:p@127.0.0.1/postgres'), /port/)
   assert.throws(() => assertLocalDatabaseUrl('https://127.0.0.1:55820/'), /postgres URL/)
   assert.equal(assertLocalDatabaseUrl('postgres://u:p@127.0.0.1:55820/postgres').port, '55820')
-  assert.equal(
-    editionIdOf({ name: 'DB-IP Lite', edition: '2026-11-01', format: 'dbip', provider: 'dbip-lite', ranges: 1, sha256: 'x' }),
-    'dbip-lite:2026-11-01',
-  )
 })
 
-// Runs only against a lane's own throwaway local database (it replaces the IP tables' contents there):
-// IP_DB_TEST_DATABASE_URL=postgres://…@127.0.0.1:<558xx>/<database>. Skipped otherwise.
-test('load and look up against a local Postgres', { skip: !process.env.IP_DB_TEST_DATABASE_URL }, async () => {
+test('the loader writes the columns of Lane 1\'s table; an AS number of 0 is none', () => {
+  const cols = { start: [], end: [], country: [], region: [], city: [], radius: [], asn: [], organisation: [], flags: [] }
+  pushNeutralLine(cols, '198.18.0.0,198.18.0.255,Singapore,,Example City,,0,,hosting|vpn', 2)
+  pushNeutralLine(cols, '198.18.1.0,198.18.1.255,,,,,64500,"Example Network, Ltd",', 3)
+  assert.deepEqual(cols.asn, [null, '64500'])
+  assert.deepEqual(cols.flags, ['{hosting,vpn}', '{}'])
+  assert.deepEqual(cols.organisation, [null, 'Example Network, Ltd'])
+  assert.throws(() => pushNeutralLine(cols, '198.18.2.0,198.18.2.255', 4), /expected 9 fields/)
+})
+
+// Runs only against a lane's own local database with the repo's migrations applied (Lane 1's ip_location_ranges and
+// lookup_ip_location_v1): IP_DB_TEST_DATABASE_URL=postgres://…@127.0.0.1:<558xx>/postgres. Skipped otherwise. It uses its
+// own database name and removes its rows afterwards. Addresses from 198.18.0.0/15 (RFC 2544 benchmarking, never routed).
+test('load and look up against the real migrations on a local Postgres', { skip: !process.env.IP_DB_TEST_DATABASE_URL }, async () => {
   const url = assertLocalDatabaseUrl(process.env.IP_DB_TEST_DATABASE_URL)
   const { default: pg } = await import('pg')
   const client = new pg.Client({ connectionString: url.toString() })
   await client.connect()
+  const name = 'Example Benchmark IP Database'
   const dir = mkdtempSync(join(tmpdir(), 'gb-ip-load-'))
+  const csv = (org: string) => [
+    'start,end,country,region,city,accuracy_radius_km,asn,organisation,flags',
+    `198.18.0.0,198.18.0.255,Exampleland,Example Region,Example City,50,64500,${org},hosting`,
+    '198.18.2.0,198.18.2.255,Exampleland,,,,0,,',
+    '2001:db8::,2001:db8::ffff,Exampleland,,Example Town,,64501,Example IPv6 Network,',
+  ].join('\n') + '\n'
   try {
-    main(['--synthetic', '--out', dir], process.cwd())
-    const loaded = await load(dir, client as never, { createLocalTables: true })
-    assert.equal(loaded.ranges, SYNTHETIC_IP_RANGES.length)
     const query = async (sql: string, params: readonly unknown[]) => (await client.query(sql, params as unknown[])).rows
-    const database = (await openCurrentSqlIpDatabase(query))!
-    assert.equal(database.edition, SYNTHETIC_IP_DATABASE.edition)
-    const found = await lookupIpLocations(['203.0.113.24', '2001:db8::1', '192.0.2.100'], database)
-    assert.deepEqual(found.map((l) => l.organisation), ['Example Hosting Network', 'Example IPv6 Network', null])
+    for (const [edition, org] of [['2026-10-01', 'Example Old Network'], ['2026-11-01', 'Example Network']]) {
+      const input = join(dir, `${edition}.csv`)
+      writeFileSync(input, csv(org))
+      const out = join(dir, edition)
+      main(['--input', input, '--name', name, '--edition', edition, '--out', out], process.cwd())
+      assert.deepEqual(await load(out, client as never), { database: name, edition, ranges: 3 })
+    }
+    // Loading the same copy again replaces it rather than failing on the unique key.
+    assert.equal((await load(join(dir, '2026-11-01'), client as never)).ranges, 3)
+    // The latest edition is current; the older one is gone.
+    const editions = await query('select distinct database_edition::text as e from public.ip_location_ranges where database = $1', [name])
+    assert.deepEqual(editions.map((r) => r.e), ['2026-11-01'])
+    const database = (await openCurrentSqlIpDatabase(name, query))!
+    assert.equal(database.edition, '2026-11-01')
+    const found = await lookupIpLocations(['198.18.0.77', '198.18.2.1', '198.18.1.1', '2001:db8::1'], database)
+    assert.deepEqual(found.map((l) => [l.organisation, l.asn, l.city]), [
+      ['Example Network', 64500, 'Example City'],
+      [null, null, null],
+      [null, null, null],
+      ['Example IPv6 Network', 64501, 'Example Town'],
+    ])
     assert.deepEqual(found[0].flags, ['hosting'])
+    assert.equal(found[0].accuracyRadiusKm, 50)
+    assert.equal(found[1].country, 'Exampleland')
+    assert.ok(found.every((l) => l.database === name && l.databaseEdition === '2026-11-01'))
   } finally {
+    await client.query('delete from public.ip_location_ranges where database = $1', [name])
     rmSync(dir, { recursive: true, force: true })
     await client.end()
   }

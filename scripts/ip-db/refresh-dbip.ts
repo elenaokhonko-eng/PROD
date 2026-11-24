@@ -7,7 +7,8 @@
 // 1. Downloads dbip-city-lite-YYYY-MM.csv.gz and dbip-asn-lite-YYYY-MM.csv.gz into <data-dir>/YYYY-MM/ (skipped when
 //    already there). The data directory must be outside the repository: the files are never committed.
 // 2. Converts them with build-ip-db.ts into <data-dir>/YYYY-MM/build/.
-// 3. Loads the result with load-ip-db.ts (local databases only) unless --no-load, and marks it current.
+// 3. Loads the result into ip_location_ranges with load-ip-db.ts (local databases only) unless --no-load; the latest
+//    edition is the one lookups use.
 //
 // Prints file names, counts and hashes only.
 
@@ -77,7 +78,7 @@ if (invokedDirectly) {
     await client.connect()
     try {
       const result = await load(buildDir, client as never)
-      console.log(`ip-db: loaded ${result.editionId}: ${result.ranges} ranges (now current)`)
+      console.log(`ip-db: loaded ${result.database} ${result.edition}: ${result.ranges} ranges (now the latest edition)`)
     } finally {
       await client.end()
     }
