@@ -116,8 +116,11 @@ test('the same document with a line that names the dispute keeps that entry; 8.3
   // 16 Oct 2025 is inside the investigation (13 Sep to 20 Oct 2025), before 8.4(a)'s period (20 Oct to 19 Nov 2025).
   assert.equal(row(r, SECTION_8_CLAUSES.p8_3)[0].outcome, 'differs')
   const [p84] = row(r, SECTION_8_CLAUSES.p8_4)
-  assert.equal(p84.outcome, 'matches')
-  assert.match(p84.record ?? '', /The records show no report of non-payment of the disputed amount to a credit bureau between those dates\./)
+  // Changed by Lane 3 (review of 25 Nov 2026, coverage now enforced): "matches" also needs a read report dated on or
+  // after 8.4(a)'s last day. This case carries no account status with the report's date, so 8.4(a) is not_shown; it
+  // still does not differ.
+  assert.equal(p84.outcome, 'not_shown')
+  assert.match(p84.record ?? '', /The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau\./)
 })
 
 test('which quoted words can stand for a report of the disputed amount, by who states it', () => {

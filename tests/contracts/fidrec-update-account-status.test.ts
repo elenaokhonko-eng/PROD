@@ -13,6 +13,7 @@ import {
   createFakeClauseProvider,
   creditRecordsReading,
   NO_OUTCOME_LINE_KINDS,
+  showsGoodStanding,
   showsOverdue,
   statusBelongsToDispute,
   UPDATE_FACT_KEYS,
@@ -74,24 +75,31 @@ test("the line (approved 25 Nov 2026): the account as the document names it, the
   assert.ok(printed.every((t) => !/Side by side|as the documents? expects?|differs/.test(t)))
 })
 
+// Changed by Lane 3 (review of 25 Nov 2026): `dispute` is required, so every reading is scoped to the disputed account
+// and needs a covering report. The statuses here name the case's account and carry the report's date.
 test('CREDIT_RECORDS_RULE: "matches" only if a bureau report was read and shows no overdue status between those dates', () => {
-  const period = { from: '2025-09-13', until: '2025-10-20', today: '2026-11-24' }
+  const period = { from: '2025-09-13', until: '2025-10-20', today: '2026-11-24', dispute: DISPUTE }
+  const account = { accountName: 'Example Bank A credit card ending 0001', lender: 'Example Bank A', last4: '0001', reportDate: REPORT_DATE }
+  const paid: CreditAccountStatus = { ...PAID, ...account }
+  const overdue: CreditAccountStatus = { ...OVERDUE, ...account }
   // Read, nothing overdue in the period: matches.
-  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [] }), { kind: 'matches' })
-  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [PAID] }), { kind: 'matches' })
+  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [paid] }), { kind: 'matches' })
+  // Read, but nothing read from the report to date it: never matches.
+  // (Gap c, Lane 6: with nothing read from the report the disputed account is not listed, which decides first.)
+  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [] }), { kind: 'not_read', reason: 'account_not_listed' })
   // Read, overdue in the period: the overdue line, no outcome.
-  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [OVERDUE, PAID] }), { kind: 'overdue', statuses: [OVERDUE] })
+  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [overdue, paid] }), { kind: 'overdue', statuses: [overdue] })
   // Overdue with no date cannot be placed outside the period.
-  assert.equal(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [{ ...OVERDUE, asOf: null }] }).kind, 'overdue')
+  assert.equal(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [{ ...overdue, asOf: null }] }).kind, 'overdue')
   // From is inclusive, until exclusive.
-  assert.equal(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [{ ...OVERDUE, asOf: '2025-10-20' }] }).kind, 'matches')
-  assert.equal(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [{ ...OVERDUE, asOf: '2025-09-13' }] }).kind, 'overdue')
-  assert.equal(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [{ ...OVERDUE, asOf: '2025-09-12' }] }).kind, 'matches')
+  assert.equal(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [{ ...overdue, asOf: '2025-10-20' }] }).kind, 'matches')
+  assert.equal(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [{ ...overdue, asOf: '2025-09-13' }] }).kind, 'overdue')
+  assert.equal(creditRecordsReading({ ...period, bureauReportRead: true, statuses: [{ ...overdue, asOf: '2025-09-12' }] }).kind, 'matches')
   // A period still running is read up to today.
-  assert.equal(creditRecordsReading({ ...period, until: null, bureauReportRead: true, statuses: [{ ...OVERDUE, asOf: '2026-11-24' }] }).kind, 'overdue')
+  assert.equal(creditRecordsReading({ ...period, until: null, bureauReportRead: true, statuses: [{ ...overdue, asOf: '2026-11-24' }] }).kind, 'overdue')
   // Not read: never matches; an overdue status from the institution's letter still prints.
-  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: false, statuses: [] }), { kind: 'not_read' })
-  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: false, statuses: [PAID] }), { kind: 'not_read' })
+  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: false, statuses: [] }), { kind: 'not_read', reason: 'no_report_read' })
+  assert.deepEqual(creditRecordsReading({ ...period, bureauReportRead: false, statuses: [paid] }), { kind: 'not_read', reason: 'no_report_read' })
   const letter = { ...OVERDUE, source: 'institution_letter' as const, bureau: null }
   assert.equal(creditRecordsReading({ ...period, bureauReportRead: false, statuses: [letter] }).kind, 'overdue')
 })
@@ -134,9 +142,11 @@ test('(b) coverage: "matches" only for a read report dated on or after the perio
   assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [ours({ reportDate: '2025-10-19' })], dispute: DISPUTE }), { kind: 'matches' })
   assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [ours({ reportDate: '2025-10-18' })], dispute: DISPUTE }), { kind: 'not_read', reason: 'report_before_period_end' })
   assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [ours({ reportDate: null })], dispute: DISPUTE }), { kind: 'not_read', reason: 'report_before_period_end' }, 'no report date')
-  assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [], dispute: DISPUTE }), { kind: 'not_read', reason: 'report_before_period_end' }, 'nothing read from the report')
+  assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [], dispute: DISPUTE }), { kind: 'not_read', reason: 'account_not_listed' }, 'nothing read from the report: the account is not listed (gap c)')
   // The report's date counts whatever account the status is about (it is the report's own date).
-  assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [theirs({ statusText: 'paid as agreed' })], dispute: DISPUTE }), { kind: 'matches' })
+  assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [ours({ reportDate: null }), theirs({ statusText: 'paid as agreed' })], dispute: DISPUTE }), { kind: 'matches' })
+  // Gap c: the disputed account must be listed in the report for "matches".
+  assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [theirs({ statusText: 'paid as agreed' })], dispute: DISPUTE }), { kind: 'not_read', reason: 'account_not_listed' })
   // A letter's date never makes "matches".
   assert.equal(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [ours({ source: 'institution_letter', bureau: null })], dispute: DISPUTE }).kind, 'not_read')
   // A period still running: until null, or after today.
@@ -144,6 +154,63 @@ test('(b) coverage: "matches" only for a read report dated on or after the perio
   assert.deepEqual(creditRecordsReading({ ...ended, until: '2026-12-01', bureauReportRead: true, statuses: [ours({ reportDate: '2026-12-05' })], dispute: DISPUTE }), { kind: 'not_read', reason: 'period_running' })
   // Not read at all.
   assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: false, statuses: [ours()], dispute: DISPUTE }), { kind: 'not_read', reason: 'no_report_read' })
-  // Without `dispute` the rule is as first written (Lane 3's call until it passes the dispute).
-  assert.deepEqual(creditRecordsReading({ ...ended, until: null, bureauReportRead: true, statuses: [] }), { kind: 'matches' })
+  // Changed by Lane 3: `dispute` is required, so there is no reading "as first written". The same call with the
+  // dispute is a running period, never "matches".
+  assert.deepEqual(creditRecordsReading({ ...ended, until: null, bureauReportRead: true, statuses: [], dispute: DISPUTE }), { kind: 'not_read', reason: 'period_running' })
+})
+
+
+// Gap c (review of 25 Nov 2026): the layout of a Credit Bureau Singapore report. One "Account Status History" row per
+// account: product type, grantor bank, overdue balance and a 12-letter "Last 12 cycles" code string; no status words,
+// no per-status date and no legend. Synthetic row only.
+const sgd = (amount: number) => ({ amount, currency: 'SGD', amountSgd: amount })
+const cbsRow = (over: Partial<CreditAccountStatus> = {}): CreditAccountStatus => ({
+  asOf: null,
+  statusText: 'AAAAAABAAAAA',
+  facility: null,
+  bureau: 'Example Credit Bureau (synthetic)',
+  source: 'credit_bureau_report',
+  evidenceId: 'E7',
+  quote: 'Credit Card  Example Bank A  Revolving  01/2019  -  0.00  AAAAAABAAAAA',
+  accountName: 'Credit Card, Example Bank A',
+  lender: 'Example Bank A',
+  last4: null,
+  reportDate: REPORT_DATE,
+  productType: 'Credit Card',
+  overdueBalance: sgd(0),
+  cycleCodes: 'AAAAAABAAAAA',
+  ...over,
+})
+
+test('(c) a CBS-layout row (codes, zero overdue balance) never yields "matches": no outcome, and the row prints as shown', () => {
+  const row = cbsRow()
+  assert.ok(!showsGoodStanding(row), 'codes are never read as good standing')
+  const reading = creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [row], dispute: DISPUTE })
+  assert.deepEqual(reading, { kind: 'overdue', statuses: [row] }, 'no outcome: the row prints beside 8.3 and 8.4(a)')
+  assert.equal(creditAccountStatusLine(row), "The credit bureau report from Example Credit Bureau (synthetic) shows Credit Card, Example Bank A with overdue balance S$0 and the last 12 cycles 'AAAAAABAAAAA' as at 2 November 2025.")
+  // Even with a good-standing word beside the codes, the codes are not interpreted.
+  assert.equal(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [cbsRow({ statusText: 'current' })], dispute: DISPUTE }).kind, 'overdue')
+})
+
+test('(c) a row with an overdue balance: no outcome, and the line prints the balance', () => {
+  const row = cbsRow({ overdueBalance: sgd(1250), cycleCodes: null, statusText: '' })
+  assert.ok(!showsGoodStanding(row))
+  assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [row], dispute: DISPUTE }), { kind: 'overdue', statuses: [row] })
+  assert.equal(creditAccountStatusLine(row), 'The credit bureau report from Example Credit Bureau (synthetic) shows Credit Card, Example Bank A with overdue balance S$1,250 as at 2 November 2025.')
+  // A good-standing word with a non-zero overdue balance is not good standing either.
+  assert.ok(!showsGoodStanding({ statusText: 'current', overdueBalance: sgd(10) }))
+})
+
+test('(c) good standing only in words from the allowlist; covered and listed, those words still yield "matches"', () => {
+  for (const words of ['current', 'Paid as agreed.', 'no overdue amount', 'Up to date', 'up-to-date']) {
+    assert.ok(showsGoodStanding({ statusText: words }), words)
+    assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [ours({ statusText: words })], dispute: DISPUTE }), { kind: 'matches' }, words)
+  }
+  for (const words of ['account closed', 'no adverse record', 'satisfactory', 'AAAAAAAAAAAA', '', 'current, 1 payment late']) {
+    assert.ok(!showsGoodStanding({ statusText: words }), words)
+    assert.equal(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [ours({ statusText: words })], dispute: DISPUTE }).kind, 'overdue', words)
+  }
+  // Another bank's CBS row neither blocks nor prints (gap a still applies).
+  const other = cbsRow({ lender: 'Example Bank B', accountName: 'Credit Card, Example Bank B', overdueBalance: sgd(500) })
+  assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [ours(), other], dispute: DISPUTE }), { kind: 'matches' })
 })

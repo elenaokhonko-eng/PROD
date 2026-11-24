@@ -22,8 +22,12 @@ const SECOND_TEXT = [
   SECOND_LINE,
 ].join('\n')
 
+// The statuses name the case's account (Example Bank A, card ending 0001), as the scoped rule needs (gap a).
 const status = (quote: string, statusText: string, asOf: string, bureau: string): CreditAccountStatus =>
-  ({ asOf, statusText, facility: 'credit card ending 0001', bureau, source: 'credit_bureau_report', evidenceId: null, quote })
+  ({
+    asOf, statusText, facility: 'credit card ending 0001', bureau, source: 'credit_bureau_report', evidenceId: null, quote,
+    accountName: 'Example Bank A credit card ending 0001', lender: 'Example Bank A', last4: '0001', reportDate: '2025-11-02',
+  })
 const FIRST = status(OVERDUE_LINE, '30 days overdue', '2025-10-15', 'Example Credit Information Bureau')
 const SECOND = status(SECOND_LINE, 'payment past due', '2025-10-10', 'Second Example Bureau')
 

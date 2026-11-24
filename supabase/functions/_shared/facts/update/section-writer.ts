@@ -208,14 +208,28 @@ export const afterTheEventsLine = (documentDate: IsoDate): string =>
 // '[status]' as at [date]." Without a bureau name: "The credit bureau report shows …"; without a date the "as at" part
 // is left out; from the institution's letter: "The institution's letter shows [account] as '[status]' as at [date]."
 // Where the document names no account, "the card account".
+//
+// wording awaiting Elena's approval (gap c, 25 Nov 2026): a row of a Credit Bureau Singapore "Account Status History",
+// which has no status words, printed as the report shows it: "The credit bureau report from [bureau] shows [account]
+// with overdue balance [amount] and the last 12 cycles '[codes]' as at [report date]." A part the row does not show is
+// left out; the codes are quoted verbatim and never explained.
 export function creditAccountStatusLine(
-  status: Pick<CreditAccountStatus, "asOf" | "statusText" | "bureau" | "source"> & Partial<Pick<CreditAccountStatus, "accountName">>,
+  status: Pick<CreditAccountStatus, "asOf" | "statusText" | "bureau" | "source"> &
+    Partial<Pick<CreditAccountStatus, "accountName" | "overdueBalance" | "cycleCodes" | "reportDate">>,
 ): string {
-  const asAt = status.asOf ? ` as at ${formatDate(status.asOf)}` : "";
   const who = status.source === "institution_letter"
     ? "The institution's letter"
     : `The credit bureau report${status.bureau ? ` from ${status.bureau}` : ""}`;
   const account = status.accountName?.trim() || "the card account";
+  const codes = status.cycleCodes?.trim() || null;
+  const balance = status.overdueBalance ?? null;
+  if (codes || balance) {
+    const parts = [balance ? `overdue balance ${formatMoney(balance)}` : null, codes ? `the last 12 cycles '${codes}'` : null]
+      .filter((p): p is string => p !== null);
+    const date = status.reportDate ?? status.asOf;
+    return `${who} shows ${account} with ${parts.join(" and ")}${date ? ` as at ${formatDate(date)}` : ""}.`;
+  }
+  const asAt = status.asOf ? ` as at ${formatDate(status.asOf)}` : "";
   return `${who} shows ${account} as '${status.statusText}'${asAt}.`;
 }
 
