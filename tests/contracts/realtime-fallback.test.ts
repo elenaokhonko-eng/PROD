@@ -38,7 +38,8 @@ test('uploading or a document changing status refreshes the confirm step facts',
   assert.match(readFileSync('hooks/state-machine/layer1/use-delete-evidence.ts', 'utf8'), facts)
   const realtime = readFileSync('hooks/state-machine/layer1/use-case-documents-realtime.ts', 'utf8')
   assert.match(realtime, facts)
-  assert.match(realtime, /const statusKey = documentStatusKey\(query\.data\)/)
+  assert.match(realtime, /const statusKey = query\.data \? documentStatusKey\(query\.data\) : null/)
+  assert.match(realtime, /if \(firstLoad\) return/, 'the first load of the list refreshes nothing')
 
   const a = { id: 'doc-a', processing_status: 'pending' }
   const b = { id: 'doc-b', processing_status: 'ready' }

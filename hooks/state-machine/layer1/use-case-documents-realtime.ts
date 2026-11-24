@@ -51,12 +51,15 @@ export function useCaseDocumentsRealtime(
   })
 
   // When a document starts, finishes or fails, the facts are read again with it: refresh them, whether the change came
-  // by realtime or by the poll above, so a new question appears without the customer pressing anything.
-  const statusKey = documentStatusKey(query.data)
-  const lastStatusKey = useRef(statusKey)
+  // by realtime or by the poll above, so a new question appears without the customer pressing anything. The first load
+  // of the list is not a change, so it refreshes nothing.
+  const statusKey = query.data ? documentStatusKey(query.data) : null
+  const lastStatusKey = useRef<string | null>(null)
   useEffect(() => {
-    if (!caseId || lastStatusKey.current === statusKey) return
+    if (!caseId || statusKey === null || lastStatusKey.current === statusKey) return
+    const firstLoad = lastStatusKey.current === null
     lastStatusKey.current = statusKey
+    if (firstLoad) return
     void queryClient.invalidateQueries({ queryKey: ['case', caseId, 'facts'] })
   }, [caseId, queryClient, statusKey])
 
