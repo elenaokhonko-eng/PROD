@@ -384,18 +384,18 @@ export function walletPracticeRows(
 ): Array<{ record: string; outcome: ComparisonOutcome }> {
   const addedOn = localDate(provisioning.walletProvisionedAt!);
   if (practice.appliesFrom && addedOn < practice.appliesFrom) {
-    // wording awaiting Elena's approval
+    // W-5, approved by Elena on 24 Nov 2026
     return [{ record: `The card was added to a mobile wallet on ${formatDate(addedOn)}. The page states a start date of ${formatDate(practice.appliesFrom)}.`, outcome: "not_applicable" }];
   }
   const rows: Array<{ record: string; outcome: ComparisonOutcome }> = [];
   const addedAt = formatTime(provisioning.walletProvisionedAt!);
   if (practice.waitingPeriodHours !== "none_stated") {
     if (!activation) {
-      // wording awaiting Elena's approval
+      // W-2, approved by Elena on 24 Nov 2026
       rows.push({ record: `The record shows the card added to a mobile wallet at ${addedAt}. It does not show when the digital token was activated.`, outcome: "not_shown" });
     } else {
       const gap = ms(provisioning.walletProvisionedAt)! - ms(activation.timestamp)!;
-      // wording awaiting Elena's approval
+      // W-1, approved by Elena on 24 Nov 2026
       rows.push({
         record: `The record shows a digital token activated at ${formatTime(activation.timestamp!)} and the card added to a mobile wallet at ${addedAt}, ${formatGap(gap)} later.`,
         outcome: gap < practice.waitingPeriodHours * HOUR ? "differs" : "matches",
@@ -405,7 +405,7 @@ export function walletPracticeRows(
   // `not_known`: the person could not tell which method the page requires, so there is nothing to set the record against.
   if (practice.authenticationRequired !== "none_stated" && practice.authenticationRequired !== "not_known") {
     const method = methodWords(provisioning.walletProvisioningAuthentication);
-    // wording awaiting Elena's approval
+    // W-3 and W-4, approved by Elena on 24 Nov 2026
     rows.push(
       method
         ? {
