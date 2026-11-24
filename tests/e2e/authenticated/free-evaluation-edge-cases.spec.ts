@@ -260,7 +260,11 @@ async function expectCrossUserDenied(browser: Browser, caseId: string) {
       ['POST share', () => context.request.post(`/api/cases/${caseId}/share`, { data: { email: 'release-test@example.com' } })],
     ]
     for (const [name, call] of calls) {
-      const response = await call()
+      // A request that gets no answer (a dropped connection) makes Playwright's error carry its call log, which prints
+      // the request's cookie header into the public CI log (24 Nov 2026). Report the route and the error code only.
+      const response = await call().catch((error: unknown) => {
+        throw new Error(`${name}: the request got no answer (${transportErrorCode(error)})`)
+      })
       const body = await response.text()
       const emptyList = response.status() === 200 && /^\{"items":\[\]\}$/.test(body)
       expect([401, 403, 404].includes(response.status()) || emptyList, `${name}: HTTP ${response.status()} ${body.slice(0, 200)}`).toBe(true)
@@ -273,6 +277,12 @@ async function expectCrossUserDenied(browser: Browser, caseId: string) {
     expectNoProductionTraffic(context)
     await context.close()
   }
+}
+
+/** The error's code (ECONNRESET, ETIMEDOUT, …) or name, never its message: the message holds the request headers. */
+function transportErrorCode(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  return /\b(E[A-Z]{3,})\b/.exec(message)?.[1] ?? (/timeout/i.test(message) ? 'timeout' : error instanceof Error ? error.name : 'unknown')
 }
 
 async function supabaseToken(page: Page): Promise<string> {
