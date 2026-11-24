@@ -87,7 +87,7 @@ function testCorpus(): FakeCorpus {
     [KEYS.walletTokenRemoval, `Placeholder text of ${KEYS.walletTokenRemoval}.`],
   ])
   document('mas.reply.20260113', '2026-01-13', [[REPLY_KEY, REPLY_TEXT]], { as_of_rule: 'any_date' })
-  document('uob.wallet_provisioning', '2025-06-01', [[UOB_PAGE_KEY, 'Placeholder text of the synthetic UOB-coded page.']], { institution: 'uob', binding_level: 'contract' })
+  document('uob.wallet_provisioning', '2025-06-01', [[UOB_PAGE_KEY, 'Placeholder text of the synthetic UOB-coded page.']], { institution: 'uob', binding_level: 'published_page' })
   const approve = (statementKey: string, clauseKey: string, text: string) =>
     corpus.statements.push({
       statement_id: `t-${statementKey}`,
