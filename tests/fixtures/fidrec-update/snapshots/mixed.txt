@@ -1,0 +1,214 @@
+## access_records: The institution's record of logins, devices and alerts
+- Time: 10:02 on 20 May 2025; Entry: Login; Device: Browser on laptop EX-LT; Device reference: dev-ex-0201; IP address: 192.0.2.33; Channel: internet banking; Authorised by: password and SMS one-time code; Sent to: registered mobile number (E4)
+- Time: 10:05 on 20 May 2025; Entry: Transaction limit changed; Device: Browser on laptop EX-LT; Device reference: dev-ex-0201; IP address: 192.0.2.33; Channel: internet banking; Authorised by: SMS one-time code; Sent to: registered mobile number (E4)
+- Time: 10:12 on 20 May 2025; Entry: Payment authenticated; Device: Browser on laptop EX-LT; Device reference: dev-ex-0201; IP address: 192.0.2.33; Channel: internet banking; Authorised by: SMS one-time code; Sent to: registered mobile number (E4)
+- Time: 10:20 on 20 May 2025; Entry: Payment authenticated; Device: Browser on laptop EX-LT; Device reference: dev-ex-0201; IP address: 192.0.2.33; Channel: internet banking; Authorised by: SMS one-time code; Sent to: registered mobile number (E4)
+- Time: 09:15 on 22 May 2025; Entry: Access blocked; Channel: branch (E4)
+## card_authentication_records: The institution's record of how the card payments were approved
+- Time: 11:00 on 20 May 2025; Card scheme: Mastercard; Entry mode: mobile wallet; Added to a mobile wallet: 11:00 on 20 May 2025; Wallet device: Phone model EX-400; Wallet authentication: SMS one-time code (E6)
+- Time: 11:30 on 20 May 2025; Payment: Payment 3 of S$860; Merchant: Example Online Marketplace; Amount in the record: S$860; Card scheme: Mastercard; Entry mode: online; Authentication: 3-D Secure with a one-time code; Result: authenticated; Sent to: registered mobile number (E6)
+- Time: 01:10 on 21 May 2025; Payment: Payment 4 of S$415.50; Merchant: Example Game Credits; Amount in the record: S$415.50; Card scheme: Mastercard; Entry mode: online (E6)
+- Time: 13:45 on 21 May 2025; Payment: Payment 5 of S$1,240; Merchant: Example Department Store; Amount in the record: S$1,240; Card scheme: Mastercard; Entry mode: mobile wallet; Authentication: the mobile wallet; Result: authenticated; Device: Phone model EX-400 (E6)
+## ip_locations: Where the IP addresses in the records are registered
+IP address 192.0.2.33 — according to Example IP Database, 2025-10-01: registered to Example Cloud Hosting (AS64504), location Example Port, Exampleland (accuracy about 200 km). (E4)
+The database lists this network as a hosting or VPN provider. (E4)
+An IP location is the provider's estimate of where the network is registered or used. It can differ from where the person was, for example on mobile data, a VPN or a hosting service. Addresses can be reassigned over time; this lookup used a database dated 2025-10-01.
+## account_access_sequence: The sequence the records show
+- 1. The complainant states that they entered their credentials, card details or a one-time code on a fake website or app.
+- 2. The records provided do not show a digital token activated or a device registered.
+- 6. The record shows the card ending 0002 added to a mobile wallet at 11:00 on 20 May 2025 on a device labelled 'Phone model EX-400', authorised by an SMS one-time code, sent to registered mobile number. (E6)
+- 7. The record shows 1 card payment of S$860 at 11:30 on 20 May 2025, authenticated by 3-D Secure with a one-time code. (E6)
+- 7. The record shows 1 card payment of S$415.50 at 01:10 on 21 May 2025, with no authentication recorded. (E6)
+- 7. The record shows 1 card payment of S$1,240 at 13:45 on 21 May 2025, authenticated by the mobile wallet on the device labelled 'Phone model EX-400'. (E6)
+- 8. The records provided do not show which device or token authenticated these payments.
+- 9. The complainant reported to the institution on 22 May 2025. The record shows access to the account blocked at 09:15 on 22 May 2025. (E4)
+Card scheme rules are an agreement between the card scheme and the card issuer. The cardholder is not a party to them. They are shown here as the process available to the issuer.
+This pack holds selected sections of Mastercard's rules, edition dated 1 March 2025, on how unauthorised payments are handled. It does not hold the full rules. (R1)
+A reviewed summary of this point is not yet available.
+The institution's letters do not say whether it raised a dispute.
+## duty_time_checks: Time-stamped points in the SRF Guidelines and the E-Payments User Protection Guidelines
+MAS guidelines that set out the duties of institutions and account holders and how losses are shared.
+Record: The record shows no digital token activation. (E4)
+Expected: Paragraph 4.2.1 of the Synthetic SRF Guidelines, version Issued 2024: "Placeholder text of 4.2.1." (R2)
+Expected: Paragraph 4.7 of the Synthetic EUPG, version A: "Placeholder text of 4.7, version A." (R3)
+Side by side: The document's condition for this duty is in paragraph 4.2.1 of the Synthetic SRF Guidelines and paragraph 4.7 of the Synthetic EUPG (R2, R3). The record shows no digital token activation.
+Record: The record shows a transaction limit changed at 10:05 on 20 May 2025 from a device labelled 'Browser on laptop EX-LT'. The record shows no alert between this event and the next recorded event. (E4)
+Expected: The text of paragraph 4.2.2 of the Shared Responsibility Framework Guidelines in force on 20 May 2025 is not held in a verified version.
+Expected: The text of paragraph 4.9 of the E-Payments User Protection Guidelines in force on 20 May 2025 is not held in a verified version.
+Side by side: The documents expect what paragraph 4.2.2 of the Shared Responsibility Framework Guidelines and paragraph 4.9 of the E-Payments User Protection Guidelines set out. The record shows a transaction limit changed at 10:05 on 20 May 2025 from a device labelled 'Browser on laptop EX-LT'. The record shows no alert between this event and the next recorded event.
+A reviewed summary of this point is not yet available.
+Placeholder statement link.eupg_s4, revision 1. (R3, E4)
+Record: The records provided do not show the alert threshold that applied to payment 1 of S$4,000 on 20 May 2025. (E1, E4)
+Expected: The text of paragraph 4.2.3 of the Shared Responsibility Framework Guidelines in force on 20 May 2025 is not held in a verified version.
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 20 May 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 4.2.3 of the Shared Responsibility Framework Guidelines and paragraph 4.10 of the E-Payments User Protection Guidelines set out took place.
+Record: The records provided do not show the alert threshold that applied to payment 2 of S$5,000 on 20 May 2025. (E1, E4)
+Expected: The text of paragraph 4.2.3 of the Shared Responsibility Framework Guidelines in force on 20 May 2025 is not held in a verified version.
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 20 May 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 4.2.3 of the Shared Responsibility Framework Guidelines and paragraph 4.10 of the E-Payments User Protection Guidelines set out took place.
+Record: The complainant reported to the institution on 22 May 2025 (branch). The record shows access blocked at 09:15 on 22 May 2025. The record shows no disputed payment after the report or the block. (E1, E4)
+Expected: The text of paragraph 4.2.4 of the Shared Responsibility Framework Guidelines in force on 20 May 2025 is not held in a verified version.
+Expected: The text of paragraph 4.14 of the E-Payments User Protection Guidelines in force on 20 May 2025 is not held in a verified version.
+Side by side: The complainant reported to the institution on 22 May 2025 (branch). The record shows access blocked at 09:15 on 22 May 2025. The record shows no disputed payment after the report or the block. The record shows this, as the documents expect.
+Record: The first disputed payment from the account is dated 20 May 2025. (E1)
+Expected: The text of paragraph 4.4 of the Shared Responsibility Framework Guidelines in force on 20 May 2025 is not held in a verified version.
+Expected: The text of paragraph 4.21 of the E-Payments User Protection Guidelines in force on 16 June 2025 is not held in a verified version.
+Side by side: The document's condition for this duty is in paragraph 4.4 of the Shared Responsibility Framework Guidelines and paragraph 4.21 of the E-Payments User Protection Guidelines. The first disputed payment from the account is dated 20 May 2025.
+Record: The complainant reported to the institution on 22 May 2025. The records provided do not show a final reply. (E2)
+Expected: The text of paragraph 7.9 of the Shared Responsibility Framework Guidelines in force on 20 May 2025 is not held in a verified version.
+Expected: The text of paragraph 4.26 of the E-Payments User Protection Guidelines in force on 20 May 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 7.9 of the Shared Responsibility Framework Guidelines and paragraph 4.26 of the E-Payments User Protection Guidelines set out took place.
+Record: The records provided do not show a final reply from the institution. (E2)
+Expected: The text of paragraph 7.10 of the Shared Responsibility Framework Guidelines in force on 20 May 2025 is not held in a verified version.
+Expected: The text of paragraph 7.7 of the E-Payments User Protection Guidelines in force on 20 May 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 7.10 of the Shared Responsibility Framework Guidelines and paragraph 7.7 of the E-Payments User Protection Guidelines set out took place.
+Record: The records show the complainant did not ask the institution for its records of the payments. (E4)
+Expected: The text of paragraph 7.5 of the Shared Responsibility Framework Guidelines in force on 20 May 2025 is not held in a verified version.
+Expected: The text of paragraph 4.25 of the E-Payments User Protection Guidelines in force on 20 May 2025 is not held in a verified version.
+Side by side: The document's condition for this duty is in paragraph 7.5 of the Shared Responsibility Framework Guidelines and paragraph 4.25 of the E-Payments User Protection Guidelines. The records show the complainant did not ask the institution for its records of the payments.
+Record: The record shows no alert. (E4)
+Expected: The text of paragraph 7.3 of the Shared Responsibility Framework Guidelines in force on 20 May 2025 is not held in a verified version.
+Expected: The text of paragraph 3.14 of the E-Payments User Protection Guidelines in force on 20 May 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 7.3 of the Shared Responsibility Framework Guidelines and paragraph 3.14 of the E-Payments User Protection Guidelines set out took place.
+Record: The records provided do not show when supporting information was given to the institution. (E4)
+Expected: The text of paragraph 7.3 of the Shared Responsibility Framework Guidelines in force on 20 May 2025 is not held in a verified version.
+Expected: The text of paragraph 3.14 of the E-Payments User Protection Guidelines in force on 20 May 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 7.3 of the Shared Responsibility Framework Guidelines and paragraph 3.14 of the E-Payments User Protection Guidelines set out took place.
+Record: The records provided do not show the alert threshold that applied to payment 3 of S$860 on 20 May 2025. (E1, E4)
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 20 May 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 4.10 of the E-Payments User Protection Guidelines sets out took place.
+Record: The records provided do not show the alert threshold that applied to payment 4 of S$415.50 on 21 May 2025. (E1, E4)
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 21 May 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 4.10 of the E-Payments User Protection Guidelines sets out took place.
+Record: The records provided do not show the alert threshold that applied to payment 5 of S$1,240 on 21 May 2025. (E1, E4)
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 21 May 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 4.10 of the E-Payments User Protection Guidelines sets out took place.
+Record: The complainant reported to the institution on 22 May 2025 (branch). The record shows access blocked at 09:15 on 22 May 2025. The record shows no disputed payment after the report or the block. (E1, E4)
+Expected: The text of paragraph 4.14 of the E-Payments User Protection Guidelines in force on 20 May 2025 is not held in a verified version.
+Side by side: The complainant reported to the institution on 22 May 2025 (branch). The record shows access blocked at 09:15 on 22 May 2025. The record shows no disputed payment after the report or the block. The record shows this, as the document expects.
+## disputed_amount_charges: Charges and credit records while a transaction is disputed
+Record: The complainant reported the disputed transactions to the institution on 22 May 2025.
+Expected: The text of paragraph 8.1 of the E-Payments User Protection Guidelines in force on 16 June 2025 is not held in a verified version.
+Side by side: The document's condition for this duty is in paragraph 8.1 of the E-Payments User Protection Guidelines. The complainant reported the disputed transactions to the institution on 22 May 2025.
+Record: The complainant reported the disputed transactions to the institution on 22 May 2025.
+Expected: The text of paragraph 8.2 of the E-Payments User Protection Guidelines in force on 16 June 2025 is not held in a verified version.
+Side by side: The document's condition for this duty is in paragraph 8.2 of the E-Payments User Protection Guidelines. The complainant reported the disputed transactions to the institution on 22 May 2025.
+## mas_notice_comparison: MAS notices
+MAS notices set requirements that MAS imposes on the institution. This section sets the institution's records beside those requirements. It does not say whether a requirement was met.
+A reviewed summary of this point is not yet available.
+Record: The institution's record shows a login at 10:02 on 20 May 2025 from a device labelled 'Browser on laptop EX-LT'. The complainant states that this device is not theirs. The record shows the login was authorised by password and SMS one-time code. (E4)
+Expected: The text of paragraph 9 of MAS Notice FSM-N05 in force on 20 May 2025 is not held in a verified version.
+Side by side: The document expects what paragraph 9 of MAS Notice FSM-N05 sets out. The institution's record shows a login at 10:02 on 20 May 2025 from a device labelled 'Browser on laptop EX-LT'. The complainant states that this device is not theirs. The record shows the login was authorised by password and SMS one-time code.
+Record: The institution's record shows a transaction limit changed at 10:05 on 20 May 2025 from a device labelled 'Browser on laptop EX-LT'. The complainant states that this device is not theirs. The record shows no alert between this change and the next recorded event. (E4)
+Expected: The text of paragraph 9 of MAS Notice FSM-N05 in force on 20 May 2025 is not held in a verified version.
+Side by side: The document expects what paragraph 9 of MAS Notice FSM-N05 sets out. The institution's record shows a transaction limit changed at 10:05 on 20 May 2025 from a device labelled 'Browser on laptop EX-LT'. The complainant states that this device is not theirs. The record shows no alert between this change and the next recorded event.
+## industry_practice_comparison: Industry codes, announced measures and MAS's stated positions
+An industry code, announced industry measures and MAS's stated positions. They are not legislation.
+Card added to a mobile wallet (E6)
+The record shows the card ending 0002 added to a mobile wallet at 11:00 on 20 May 2025 on a device labelled 'Phone model EX-400', authorised by an SMS one-time code (E6). (E6)
+Example Bank A's published practice on adding cards to mobile wallets is not held.
+A reviewed summary of this point is not yet available.
+The definitions of high-risk activities in the SRF Guidelines and the E-Payments User Protection Guidelines are set out under 'The 12 hours after the digital token was activated'.
+A reviewed summary of this point is not yet available.
+## card_dispute_comparison: Card scheme rules on disputing the card payments
+Card scheme rules are an agreement between the card scheme and the card issuer. The cardholder is not a party to them. They are shown here as the process available to the issuer.
+This pack holds selected sections of Mastercard's rules (Synthetic scheme rules M), edition dated Synthetic edition, on how unauthorised payments are handled. It does not hold the full rules. (R1)
+- Date: 20 May 2025; Payment: S$860; Merchant: Example Online Marketplace; Card ending: 0002; Card scheme: Mastercard; Entry mode: an online (card-absent) payment; Authentication: 3-D Secure with a one-time code; Result: authenticated (E1, E6)
+- Date: 21 May 2025; Payment: S$415.50; Merchant: Example Game Credits; Card ending: 0002; Card scheme: Mastercard; Entry mode: an online (card-absent) payment; Authentication: no authentication recorded; Result: not_known (E1, E6)
+- Date: 21 May 2025; Payment: S$1,240; Merchant: Example Department Store; Card ending: 0002; Card scheme: Mastercard; Entry mode: made with a mobile wallet token; Authentication: the mobile wallet on the device; Result: authenticated; Device: Phone model EX-400 (E1, E6)
+The complainant asked the institution to dispute these payments on 22 May 2025. (E5)
+The institution's letters do not say whether it raised a dispute.
+## customer_fault_definitions: What each framework says about customer fault
+Placeholder statement eupg.fault.term, revision 1. (R4)
+A reviewed summary of this point is not yet available.
+Example Bank A's terms in force on 20 May 2025 are not held.
+## customer_conduct_comparison: The conduct the records show, and what each document refers to
+The complainant states that they entered their credentials, card details or a one-time code on a fake website or app.
+The E-Payments User Protection Guidelines do not refer to entering credentials, card details or a code on a website or app.
+The ABS Code of Practice for Banks – Credit Cards does not refer to entering credentials, card details or a code on a website or app.
+The record shows 1 card payment authenticated by 3-D Secure with a one-time code, sent to registered mobile number. The record shows 1 card payment authenticated by the mobile wallet on the device labelled 'Phone model EX-400'. (E6)
+The records do not show who approved these payments. (E6)
+The records provided do not show whether alerts were sent, or the time from the first alert to the report.
+The E-Payments User Protection Guidelines refer to notifications and alerts from the institution in footnote 20 (R5).
+The ABS Code of Practice for Banks – Credit Cards does not refer to notifications and alerts from the institution.
+The record shows access blocked at 09:15 on 22 May 2025, channel recorded as 'branch'. (E4)
+The E-Payments User Protection Guidelines do not refer to blocking access.
+The ABS Code of Practice for Banks – Credit Cards does not refer to blocking access.
+The records provided do not show whether or when a police report was made.
+The E-Payments User Protection Guidelines do not refer to reporting to the police.
+The ABS Code of Practice for Banks – Credit Cards does not refer to reporting to the police.
+The Shared Responsibility Framework Guidelines have no test of the account user's conduct.
+The records provided do not show a word the institution's letters use for the complainant's conduct.
+The E-Payments User Protection Guidelines use the term 'recklessness'.
+The ABS Code of Practice for Banks – Credit Cards uses the term 'gross negligence'. (R6)
+The institution's own terms in force on 20 May 2025 are not held for that date.
+## citations
+R1 mastercard.chargeback_guide/dms.4837.issuer-chargeback version Synthetic edition on 2025-05-20, 2025-05-21
+R2 mas.srf/4.2.1 version Issued 2024 on 2025-05-20
+R3 mas.eupg/4.7 version A on 2025-05-20
+R4 mas.eupg/5.2 version A on 2025-05-20
+R5 mas.eupg/fn20 version A on 2025-05-20
+R6 abs.card_code/5 version 2024 edition on 2025-05-20
+R7 mas.srf/3.1 version Issued 2024 on 2025-05-20
+## statements
+duty_time_checks link.eupg_s4 r1 on 2025-05-20
+customer_fault_definitions eupg.fault.term r1 on 2025-05-20
+## flags
+account_access_sequence statement_under_review mc.authenticated 2025-05-20
+account_access_sequence statement_under_review mc.dispute.permitted 2025-05-20
+account_access_sequence statement_under_review mc.report 2025-05-20
+account_access_sequence statement_under_review mc.cardholder 2025-05-20
+account_access_sequence statement_under_review bridge.card_loss_sharing 2025-05-20
+duty_time_checks clause_not_held mas.srf/4.2.2 2025-05-20
+duty_time_checks statement_under_review link.srf_4_2 2025-05-20
+duty_time_checks clause_not_held mas.eupg/4.9 2025-05-20
+duty_time_checks clause_not_held mas.srf/4.2.3 2025-05-20
+duty_time_checks clause_not_held mas.eupg/4.10 2025-05-20
+duty_time_checks clause_not_held mas.srf/4.2.4 2025-05-20
+duty_time_checks clause_not_held mas.eupg/4.14 2025-05-20
+duty_time_checks clause_not_held mas.srf/4.4 2025-05-20
+duty_time_checks clause_not_held mas.eupg/4.21 2025-06-16
+duty_time_checks clause_not_held mas.srf/7.9 2025-05-20
+duty_time_checks clause_not_held mas.eupg/4.26 2025-05-20
+duty_time_checks clause_not_held mas.srf/7.10 2025-05-20
+duty_time_checks clause_not_held mas.eupg/7.7 2025-05-20
+duty_time_checks clause_not_held mas.srf/7.5 2025-05-20
+duty_time_checks clause_not_held mas.eupg/4.25 2025-05-20
+duty_time_checks clause_not_held mas.srf/7.3 2025-05-20
+duty_time_checks clause_not_held mas.eupg/3.14 2025-05-20
+duty_time_checks clause_not_held mas.eupg/4.10 2025-05-21
+disputed_amount_charges clause_not_held mas.eupg/8.1 2025-06-16
+disputed_amount_charges clause_not_held mas.eupg/8.2 2025-06-16
+mas_notice_comparison statement_under_review bridge.mas_requirement 2025-05-20
+mas_notice_comparison statement_under_review bridge.mas_requirement.cards 2025-05-20
+mas_notice_comparison clause_not_held mas.fsm-n05/9 2025-05-20
+industry_practice_comparison statement_under_review mas.reply.20260113.wallet 2025-05-20
+industry_practice_comparison statement_under_review bridge.card_loss_sharing 2025-05-20
+card_dispute_comparison clause_not_held mastercard.chargeback_guide/dms.4837.ineligible 2025-05-20
+card_dispute_comparison clause_not_held mastercard.chargeback_guide/dms.4837.ineligible 2025-05-21
+customer_fault_definitions statement_under_review eupg.fault.examples 2025-05-20
+customer_fault_definitions statement_under_review eupg.fault.level1 2025-05-20
+customer_fault_definitions statement_under_review eupg.fault.level2 2025-05-20
+customer_fault_definitions statement_under_review eupg.fault.institution 2025-05-20
+customer_fault_definitions statement_under_review eupg.fault.reasons 2025-05-20
+customer_fault_definitions statement_under_review eupg.fault.cards 2025-05-20
+customer_fault_definitions statement_under_review eupg.fault.cards 2025-05-21
+customer_fault_definitions statement_under_review srf.fault.terms 2025-05-20
+customer_fault_definitions statement_under_review srf.fault.userduties 2025-05-20
+customer_fault_definitions statement_under_review srf.fault.allocation 2025-05-20
+customer_fault_definitions statement_under_review srf.fault.section6 2025-05-20
+customer_fault_definitions statement_under_review srf.fidrec.scope 2025-05-20
+customer_fault_definitions statement_under_review srf.fault.cards 2025-05-20
+customer_fault_definitions statement_under_review srf.fault.cards 2025-05-21
+customer_fault_definitions statement_under_review abs.fault.term 2025-05-20
+customer_fault_definitions statement_under_review abs.fault.term 2025-05-21
+customer_fault_definitions statement_under_review abs.fault.undefined 2025-05-20
+customer_fault_definitions statement_under_review abs.fault.undefined 2025-05-21
+customer_fault_definitions statement_under_review abs.fault.finder 2025-05-20
+customer_fault_definitions statement_under_review abs.fault.finder 2025-05-21
+customer_fault_definitions statement_under_review abs.fault.effect 2025-05-20
+customer_fault_definitions statement_under_review abs.fault.effect 2025-05-21
+customer_fault_definitions statement_under_review abs.fault.status 2025-05-20
+customer_fault_definitions statement_under_review abs.fault.status 2025-05-21
+customer_fault_definitions statement_under_review mas.reply.20250107.3ds 2026-11-24
+customer_fault_definitions statement_under_review mas.reply.20250107.no3ds 2026-11-24

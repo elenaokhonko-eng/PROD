@@ -15,6 +15,8 @@ import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.
 import { bankPackTransactions } from "./bank-pack.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
 import { normaliseDate } from "./normalise.ts";
+import { factsForModel, isTechnicalRecordDocument, redactServerOnly } from "./update/model-guard.ts";
+import type { PinnedCitation, PinnedStatement, PrintedSection, RenderedUpdate } from "./update/render.ts";
 import {
   DATE_PATTERN,
   MONEY_PATTERN,
@@ -48,6 +50,8 @@ export function fidrecPackChecks(extraDates: string[], documents: DocumentQuotab
 export interface FidrecArgument {
   text: string;
   evidence_ids: string[];
+  /** Only with the update's sections on (FIDREC_UPDATE_SECTIONS_ENABLED; brief 4h): the clause IDs (R…) it cites. */
+  clause_ids?: string[];
 }
 
 /** A duty the institution had, from a retrieved clause (R1…), set against what the evidence (E1…) shows. */
@@ -79,24 +83,29 @@ function parseDuties(value: unknown): FidrecDuty[] {
   });
 }
 
-function parseArguments(value: unknown): FidrecArgument[] | null {
+function parseArguments(value: unknown, clauseIds = false): FidrecArgument[] | null {
   if (!Array.isArray(value)) return null;
   const out: FidrecArgument[] = [];
+  const idList = (v: unknown) =>
+    [...new Set((Array.isArray(v) ? v.filter((id): id is string => typeof id === "string") : []).map((id) => id.trim().toUpperCase()))];
   for (const item of value.slice(0, 12)) {
     const row = (item ?? {}) as Record<string, unknown>;
     const text = typeof row.text === "string" ? row.text.trim() : "";
     if (!text) continue;
     const ids = Array.isArray(row.evidence_ids) ? row.evidence_ids.filter((id): id is string => typeof id === "string") : [];
-    out.push({ text, evidence_ids: [...new Set(ids.map((id) => id.trim().toUpperCase()))] });
+    const argument: FidrecArgument = { text, evidence_ids: [...new Set(ids.map((id) => id.trim().toUpperCase()))] };
+    if (clauseIds) argument.clause_ids = idList(row.clause_ids);
+    out.push(argument);
   }
   return out;
 }
 
-export function parseFidrecPackProse(parsed: unknown): FidrecPackProse | null {
+/** With `{ clauseIds: true }` (the update's sections on) each argument also keeps the clause IDs it cites. */
+export function parseFidrecPackProse(parsed: unknown, options: { clauseIds?: boolean } = {}): FidrecPackProse | null {
   const row = (parsed ?? {}) as Record<string, unknown>;
   const text = (key: string) => (typeof row[key] === "string" ? (row[key] as string).trim() : "");
-  const forClaimant = parseArguments(row.arguments_for_claimant);
-  const forInstitution = parseArguments(row.arguments_for_institution);
+  const forClaimant = parseArguments(row.arguments_for_claimant, options.clauseIds === true);
+  const forInstitution = parseArguments(row.arguments_for_institution, options.clauseIds === true);
   const prose = {
     title: text("title"),
     executive_summary: text("executive_summary"),
@@ -144,6 +153,15 @@ export function evidenceIdFailures(prose: FidrecPackProse, index: readonly Evide
     }
   }
   return failures;
+}
+
+/** With the update's sections on: an argument cites only clause IDs the pack prints (R…). */
+export function argumentClauseIdFailures(prose: FidrecPackProse, knownClauseIds: readonly string[]): OutputFailure[] {
+  const known = new Set(knownClauseIds);
+  return [...prose.arguments_for_claimant, ...prose.arguments_for_institution].flatMap((argument) => {
+    const unknown = (argument.clause_ids ?? []).filter((id) => !known.has(id));
+    return unknown.length ? [{ check: "reference" as const, detail: `clause IDs not in the pack: ${unknown.join(", ")}` }] : [];
+  });
 }
 
 // The duties section may name the SRF, the E-Payments Guidelines and the MAS notices: that is its job. It may not
@@ -424,6 +442,33 @@ export function fidrecRouteFromFacts(facts: SnapshotFacts, today: string): Fidre
   );
 }
 
+/**
+ * What the model is given about the update's server-written sections (switch on only; brief 4h): their names and the
+ * clause IDs they cite, never their lines. `redact` holds the case's record values (update/model-guard.ts
+ * serverOnlyValues), replaced in every text the model is given.
+ */
+export interface FidrecPromptUpdate {
+  sections: Array<{ id: string; title: string }>;
+  clauses: Array<{ id: string; reference: string }>;
+  redact: readonly string[];
+}
+
+/**
+ * The documents' excerpts for the model. With the update's sections on, the institution's technical records are left
+ * out and record values in the other documents are replaced (condition B); otherwise exactly documentExcerpts.
+ */
+export function modelDocumentExcerpts(
+  index: readonly EvidenceIndexEntry[],
+  documents: readonly CaseDocument[],
+  update: Pick<FidrecPromptUpdate, "redact"> | null = null,
+) {
+  if (!update) return documentExcerpts(index, documents);
+  const kept = documents
+    .filter((d) => !isTechnicalRecordDocument(d.evidenceType))
+    .map((d) => ({ ...d, text: d.text === null ? null : redactServerOnly(d.text, update.redact) }));
+  return documentExcerpts(index.filter((e) => kept.some((d) => d.id === e.documentId)), kept);
+}
+
 export function buildFidrecPackInput(args: {
   facts: SnapshotFacts;
   findings: readonly Tier0Finding[];
@@ -434,20 +479,58 @@ export function buildFidrecPackInput(args: {
   clauses?: readonly RegulatoryClause[];
   /** Every date the text may state: the confirmed facts', the documents' and the filing deadline. */
   allowedDates?: readonly string[];
+  /** The update's sections, when FIDREC_UPDATE_SECTIONS_ENABLED is on. Absent: the input is unchanged. */
+  update?: FidrecPromptUpdate | null;
 }) {
-  const { fidrec_check: _fidrec, ...input } = buildTier0Input({ facts: args.facts, findings: args.findings, storyText: args.storyText, fidrecCheck: null });
+  const update = args.update ?? null;
+  const redact = (text: string | null) => (update && text !== null ? redactServerOnly(text, update.redact) : text);
+  const { fidrec_check: _fidrec, ...input } = buildTier0Input({
+    facts: update ? factsForModel(args.facts) : args.facts,
+    findings: args.findings,
+    storyText: redact(args.storyText),
+    fidrecCheck: null,
+  });
+  const finalReply = redact(args.finalReplyText);
   return {
     ...input,
     // The institution's own words, from a qualifying final-reply letter only; null when there is none.
-    final_reply_letter: args.finalReplyText ? args.finalReplyText.slice(0, FINAL_REPLY_MAX_CHARS) : null,
+    final_reply_letter: finalReply ? finalReply.slice(0, FINAL_REPLY_MAX_CHARS) : null,
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label, supports: e.facts })),
     documents: args.documents ?? [],
     allowed_dates: [...new Set(args.allowedDates ?? [])].sort(),
     regulatory_clauses: (args.clauses ?? []).map((c) => ({ id: c.id, source: c.source, clause: c.clause_ref, title: c.title, text: c.text, dates: c.dates, applies_to: c.applies_to })),
+    ...(update ? { server_sections: update.sections, server_clauses: update.clauses } : {}),
   };
 }
 
-export function fidrecPackSystem(previousFailures: string | null): string {
+/**
+ * Brief 4h, with the update's sections on: the model may cite the sections' clause IDs; the institution's arguments
+ * include the credentials or code used and its customer-fault term where the facts support it; the complainant's may
+ * point to the sequence and definitions sections, never restating them as a verdict. Records are not in the input.
+ */
+export const FIDREC_UPDATE_PROMPT = `SERVER-WRITTEN SECTIONS
+server_sections names the sections GuideBuoy writes itself from the institution's records and the documents: the institution's records of logins, devices, IP addresses and card authentication, the sequence the records show, the time-stamped points, the MAS notices, industry practice, card scheme rules, what each framework says about customer fault, and the conduct the records show. They are printed beside your text; do not repeat or summarise them. The institution's records themselves are not in the input; any detail from them is shown as [record detail]. Never write a device, token, IP address or location.
+server_clauses lists the clause IDs (R…) those sections cite. An argument may cite them in clause_ids, and only those or the IDs in regulatory_clauses.
+The arguments for the institution must include, where the confirmed facts support it, that the correct credentials or a one-time code were used, and that the customer-fault term it relies on appears in its terms or the code.
+The arguments for the complainant may point to the sequence section and the customer-fault definitions section by name. They may not restate them as a finding.
+Never state, as a finding, that anyone breached, violated, failed to meet or did not comply with a duty or a rule, is liable, or was negligent, grossly negligent or reckless. The documents' own terms may appear only inside quotation marks, as the document's or the institution's words.`;
+
+export function fidrecPackSystem(previousFailures: string | null, options: { updateSections?: boolean } = {}): string {
+  const base = fidrecPackSystemBase(previousFailures);
+  if (!options.updateSections) return base;
+  return base
+    .replace(
+      " Use what the documents show, including the institution's own records of logins, devices, IP addresses, alerts and limits.",
+      " Use what the documents show.",
+    )
+    .replace("\n\nOUTPUT\n", `\n\n${FIDREC_UPDATE_PROMPT}\n\nOUTPUT\n`)
+    .replace(
+      '"arguments_for_claimant": [{ "text": "one point", "evidence_ids": ["E1"] }],\n"arguments_for_institution": [{ "text": "one point", "evidence_ids": ["E2"] }],',
+      '"arguments_for_claimant": [{ "text": "one point", "evidence_ids": ["E1"], "clause_ids": [] }],\n"arguments_for_institution": [{ "text": "one point", "evidence_ids": ["E2"], "clause_ids": [] }],',
+    );
+}
+
+function fidrecPackSystemBase(previousFailures: string | null): string {
   return `You are preparing a complaint for FIDReC, Singapore's dispute resolution centre for financial services, on behalf of someone who lost money to a scam. The reader is FIDReC's case officer. Write in the third person: "the complainant" and "the institution". Be factual, neutral and precise. It is not legal advice and makes no legal conclusion.
 
 GROUND RULES
@@ -605,6 +688,19 @@ export interface FidrecPackReport {
   /** Whether the institution's position was written from its final-reply letter. */
   final_reply_used: boolean;
   prose_source: "model" | "fallback";
+  /**
+   * The update's server-written sections, printed between the existing sections and the arguments (brief 4i). Only
+   * with FIDREC_UPDATE_SECTIONS_ENABLED on; absent otherwise, so the report is exactly as before.
+   */
+  update_sections?: PrintedSection[];
+  /** Pinned citations (3.2 rule 4): each clause the sections cited, with its id, text hash and version. */
+  update_citations?: PinnedCitation[];
+  /** The statement revisions the sections printed (3.2 rule 4). */
+  update_statements?: PinnedStatement[];
+  /** Where a section printed a fallback: clause not held, statement under review, nearest version held. */
+  update_flags?: RenderedUpdate["flags"];
+  /** The day the sections were generated (the as-of date for documents read on any date, Decision 6). */
+  update_generated_on?: string;
 }
 
 export function assembleFidrecPack(args: {
@@ -616,10 +712,21 @@ export function assembleFidrecPack(args: {
   route: FidrecAvailability;
   finalReplyUsed: boolean;
   clauses?: readonly RegulatoryClause[];
+  /** The rendered update sections, when FIDREC_UPDATE_SECTIONS_ENABLED is on. Absent: the report is unchanged. */
+  update?: (RenderedUpdate & { generatedOn: string }) | null;
 }): FidrecPackReport {
   const { facts } = args;
   const { shown, missing } = evidenceLists(facts, args.findings);
   const loss = confirmedValue<Money>(facts, "total_loss");
+  const update = args.update
+    ? {
+      update_sections: args.update.sections,
+      update_citations: args.update.citations,
+      update_statements: args.update.statements,
+      update_flags: args.update.flags,
+      update_generated_on: args.update.generatedOn,
+    }
+    : {};
   return {
     report_version: FIDREC_PACK_VERSION,
     ...args.prose,
@@ -635,5 +742,6 @@ export function assembleFidrecPack(args: {
     rules_assessment: srfAssessmentText(assessSrf(srfFactsFromSnapshot(facts))),
     final_reply_used: args.finalReplyUsed,
     prose_source: args.source,
+    ...update,
   };
 }

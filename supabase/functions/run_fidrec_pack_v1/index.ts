@@ -14,7 +14,6 @@ import {
   buildEvidenceIndex,
   buildFidrecPackInput,
   type CaseDocument,
-  documentExcerpts,
   documentQuotables,
   dutyFailures,
   numberClauses,
@@ -36,7 +35,18 @@ import {
   produceChecked,
   qualifyingFinalReplyDocumentId,
   type SnapshotFacts,
+  argumentClauseIdFailures,
+  modelDocumentExcerpts,
 } from "../_shared/facts/index.ts";
+import { buildFidrecUpdate, type FidrecUpdate } from "../_shared/facts/update/assemble.ts";
+import type { AccessEvent, IpLocation } from "../_shared/facts/update/contract.ts";
+import { createDbClauseProvider, createDbTermRequestSource } from "../_shared/facts/update/db-clause-provider.ts";
+import { verdictFailures } from "../_shared/facts/update/model-guard.ts";
+import { ipLocationFromRow } from "../_shared/facts/update/section-input.ts";
+import { fidrecUpdateSectionsEnabled } from "../_shared/facts/update/switch.ts";
+import { ipsInAccessEvents, lookupIpLocations } from "../_shared/ip-location/lookup.ts";
+import { DBIP_LITE } from "../_shared/ip-location/providers.ts";
+import { rangeRecordFromRow } from "../_shared/ip-location/sql-database.ts";
 
 // The FIDReC pack (S$188), generated once the person has paid and confirmed the FIDReC facts (stage2-plan §3a,
 // milestone 3; design C4). Called by the case owner through /api/edge/fidrec-pack, like run_bank_pack_v1. The model
@@ -57,6 +67,9 @@ const FIDREC_PACK_BUDGET_MS = 140_000;
 const EMBEDDING_MODEL = "text-embedding-3-small";
 const CLAUSE_COUNT = 12;
 const CLAUSE_SIMILARITY = 0.25;
+// The FIDReC update's server-written sections (Elena's condition A): off unless FIDREC_UPDATE_SECTIONS_ENABLED is
+// "true". With it off, nothing below differs from the pack before the update.
+const UPDATE_SECTIONS = fidrecUpdateSectionsEnabled((name) => Deno.env.get(name));
 
 Deno.serve(async (req) => {
   try {
@@ -191,7 +204,6 @@ Deno.serve(async (req) => {
     }));
 
     const evidenceIndex = buildEvidenceIndex(findings ?? [], caseDocuments);
-    const excerpts = documentExcerpts(evidenceIndex, caseDocuments);
 
     const usageEnv = usageEnvironment(Deno.env.toObject());
     const usageClient = supabase as unknown as UsageClient;
@@ -207,6 +219,40 @@ Deno.serve(async (req) => {
       console.warn(`FIDReC pack clause retrieval failed: ${safeErrorText(error)}`);
     }
 
+    // The update's server-written sections (switch on only), read from the corpus through the as-of functions. A
+    // failure stops the pack rather than leaving a section out: one pack per case.
+    let update: FidrecUpdate | null = null;
+    if (UPDATE_SECTIONS) {
+      try {
+        update = await buildFidrecUpdate({
+          facts,
+          evidenceIndex,
+          institutionCode: await institutionCode(supabase, facts),
+          ipLocations: await caseIpLocations(supabase, case_id, facts),
+          provider: createDbClauseProvider((fn, args) => supabase.rpc(fn, args)),
+          termRequests: createDbTermRequestSource(async (institution, product, purpose) => {
+            const { data, error } = await supabase
+              .from("institution_term_requests")
+              .select("*")
+              .eq("institution", institution)
+              .eq("product", product)
+              .eq("purpose", purpose)
+              .maybeSingle();
+            if (error) throw new Error(`term request read failed (${error.code ?? "unknown"})`);
+            return (data as Record<string, unknown> | null) ?? null;
+          }),
+          generatedOn: today,
+          firstClauseNumber: clauses.length + 1,
+        });
+      } catch (error) {
+        console.error(`FIDReC pack update sections failed: ${safeErrorText(error)}`);
+        return json({ ok: false, error: "update_sections_unavailable" }, 500);
+      }
+    }
+
+    // With the update on, the institution's technical records stay out of the excerpts and record values are
+    // replaced in every other text (condition B); otherwise exactly the excerpts as before.
+    const excerpts = modelDocumentExcerpts(evidenceIndex, caseDocuments, update?.prompt ?? null);
     const quotables = documentQuotables(excerpts);
     const checkDates = [...(route.route === "final_reply" ? [route.deadline] : []), ...quotables.dates, ...clauses.flatMap((c) => c.dates)];
     const input = buildFidrecPackInput({
@@ -218,6 +264,7 @@ Deno.serve(async (req) => {
       documents: excerpts,
       clauses,
       allowedDates: [...factDates(facts), ...checkDates],
+      update: update?.prompt ?? null,
     });
     const checks = {
       ...fidrecPackChecks(checkDates, quotables),
@@ -233,7 +280,17 @@ ${JSON.stringify(input, null, 2)}`;
       mapText: mapFidrecPackProse,
       texts: fidrecPackTexts,
       fallback: fidrecPackFallback,
-      extraChecks: (prose) => [...evidenceIdFailures(prose, evidenceIndex), ...dutyFailures(prose, clauses, facts, checks)],
+      extraChecks: (prose) => [
+        ...evidenceIdFailures(prose, evidenceIndex),
+        ...dutyFailures(prose, clauses, facts, checks),
+        // The verdict guard (brief section 4, 4h) and the clause IDs the arguments may cite: switch on only.
+        ...(update
+          ? [
+            ...verdictFailures([...fidrecPackTexts(prose), ...prose.institution_duties.map((d) => d.text)]),
+            ...argumentClauseIdFailures(prose, [...clauses.map((c) => c.id), ...update.rendered.citations.map((c) => c.id)]),
+          ]
+          : []),
+      ],
       generate: (previousFailures) =>
         chatJson(
           {
@@ -242,7 +299,7 @@ ${JSON.stringify(input, null, 2)}`;
             model: FIDREC_PACK_MODEL,
             secondaryModel: FIDREC_PACK_SECONDARY_MODEL,
             maxTokens: OUTPUT_CAPS.fidrec_pack,
-            system: fidrecPackSystem(previousFailures),
+            system: fidrecPackSystem(previousFailures, { updateSections: update !== null }),
             user,
             deadline,
             onCall: (call) =>
@@ -255,7 +312,7 @@ ${JSON.stringify(input, null, 2)}`;
                 outcome: call.kind === "ok" ? "ok" : call.kind === "refusal" ? "refused" : "error",
               }),
           },
-          parseFidrecPackProse,
+          (parsed) => parseFidrecPackProse(parsed, { clauseIds: update !== null }),
         ),
     });
 
@@ -272,6 +329,10 @@ ${JSON.stringify(input, null, 2)}`;
       evidence_documents: evidenceIndex.length,
       clauses_retrieved: clauses.length,
       duties: result.output.institution_duties.length,
+      // Counts only (switch on): sections printed, clauses pinned, run flags.
+      ...(update
+        ? { update_sections: update.rendered.sections.length, update_citations: update.rendered.citations.length, update_flags: update.rendered.flags.length }
+        : {}),
       model: FIDREC_PACK_MODEL,
       release: typeof body.release === "string" ? body.release.slice(0, 40) : null,
     };
@@ -295,6 +356,7 @@ ${JSON.stringify(input, null, 2)}`;
       route,
       finalReplyUsed: Boolean(finalReplyText),
       clauses,
+      update: update?.rendered ?? null,
     });
     const { data: committed, error: commitErr } = await supabase.rpc("commit_fidrec_pack_v1", {
       p_case_id: case_id,
@@ -356,6 +418,86 @@ async function retrieveClauses(
     source: (r.document_id && titles.get(r.document_id)) || "Regulatory source",
     dates: (r.document_id && dates.get(r.document_id)) || [],
   })), instruments, CLAUSE_COUNT));
+}
+
+type ServiceClient = ReturnType<typeof createClient>;
+
+// The update's sections (switch on only): the institution's code as the corpus knows it, for its own terms.
+async function institutionCode(supabase: ServiceClient, facts: SnapshotFacts): Promise<string | null> {
+  const fact = facts.institution_names;
+  const name = fact && (fact.label === "confirmed" || fact.label === "claimant_only")
+    ? ((fact.value as Array<{ name?: string }> | null) ?? [])[0]?.name ?? null
+    : null;
+  if (!name) return null;
+  const { data, error } = await supabase.rpc("standard_institution_code_v1", { p_name: name });
+  if (error) throw new Error(`institution code failed (${error.code ?? "unknown"})`);
+  return typeof data === "string" && data ? data : null;
+}
+
+// The update's sections (switch on only): the stored lookup for each IP address in the access record; an address not
+// yet looked up is looked up in the latest DB-IP Lite copy held in our own database (never a third party) and kept
+// with the case, with the database date (Decision 10). No address is logged.
+async function caseIpLocations(supabase: ServiceClient, caseId: string, facts: SnapshotFacts): Promise<IpLocation[]> {
+  const fact = facts.access_events;
+  const events = fact && (fact.label === "confirmed" || fact.label === "claimant_only") ? (fact.value as AccessEvent[] | null) ?? [] : [];
+  const ips = ipsInAccessEvents(events);
+  if (!ips.length) return [];
+  const { data: stored, error: storedErr } = await supabase
+    .from("case_ip_locations")
+    .select("ip, country, region, city, accuracy_radius_km, asn, organisation, flags, database, database_edition, institution_stated_location")
+    .eq("case_id", caseId);
+  if (storedErr) throw new Error(`ip locations read failed (${storedErr.code ?? "unknown"})`);
+  const have = ((stored ?? []) as Array<Record<string, unknown>>).map(ipLocationFromRow);
+  const missing = ips.filter((ip) => !have.some((l) => l.ip === ip));
+  let found: IpLocation[] = [];
+  if (missing.length) {
+    const name = DBIP_LITE.databaseName;
+    const { data: latest, error: editionErr } = await supabase
+      .from("ip_location_ranges")
+      .select("database_edition")
+      .eq("database", name)
+      .order("database_edition", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (editionErr) throw new Error(`ip database read failed (${editionErr.code ?? "unknown"})`);
+    const edition = typeof latest?.database_edition === "string" ? latest.database_edition.slice(0, 10) : null;
+    if (edition) {
+      found = await lookupIpLocations(missing, {
+        name,
+        edition,
+        async lookup(ip) {
+          const { data, error } = await supabase.rpc("lookup_ip_location_v1", { p_ip: ip.text, p_database: name, p_database_edition: edition });
+          if (error) throw new Error(`ip lookup failed (${error.code ?? "unknown"})`);
+          const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | undefined;
+          return row ? rangeRecordFromRow(row) : null;
+        },
+      });
+      const { error: insertErr } = await supabase.from("case_ip_locations").upsert(
+        found.map((l) => ({
+          case_id: caseId,
+          ip: l.ip,
+          country: l.country,
+          region: l.region,
+          city: l.city,
+          accuracy_radius_km: l.accuracyRadiusKm,
+          asn: l.asn,
+          organisation: l.organisation,
+          flags: l.flags,
+          database: l.database,
+          database_edition: l.databaseEdition,
+          institution_stated_location: l.institutionStatedLocation,
+        })),
+        { onConflict: "case_id,ip,database,database_edition", ignoreDuplicates: true },
+      );
+      if (insertErr) throw new Error(`ip locations write failed (${insertErr.code ?? "unknown"})`);
+    }
+  }
+  const all = [...have, ...found];
+  // In the order the access record first shows each address; one row per address.
+  return ips.flatMap((ip) => {
+    const row = all.find((l) => l.ip === ip);
+    return row ? [row] : [];
+  });
 }
 
 // The old report's wording rule, kept: "disputed", never "unauthorised" (run_report_selfserve_v1).

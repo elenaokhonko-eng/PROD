@@ -1,0 +1,193 @@
+## access_records: The institution's record of logins, devices and alerts
+- Time: 20:10 on 12 September 2025; Entry: Digital token activated; Device: Phone model EX-300; Device reference: dev-ex-0102; IP address: 198.51.100.40; Channel: mobile app; Authorised by: SMS one-time code; Sent to: registered mobile number; Token reference: tok-ex-0102 (E4)
+- Time: 20:10 on 12 September 2025; Entry: Alert sent; Channel: email; Sent to: cardholder@example.com (E4)
+- Time: 20:15 on 12 September 2025; Entry: Login; Device: Phone model EX-300; Device reference: dev-ex-0102; IP address: 198.51.100.40; Channel: mobile app; Authorised by: digital token (E4)
+- Time: 08:45 on 13 September 2025; Entry: Access blocked; Channel: hotline (E4)
+## card_authentication_records: The institution's record of how the card payments were approved
+- Time: 20:32 on 12 September 2025; Card scheme: Visa; Entry mode: mobile wallet; Authentication: the mobile wallet; Result: authenticated; Device: Phone model EX-300; Device reference: dev-ex-0102; Token reference: tok-ex-0102; Added to a mobile wallet: 20:32 on 12 September 2025; Wallet device: Phone model EX-300; Wallet authentication: digital token; Removed from the wallet: 09:00 on 13 September 2025 (E6)
+- Time: 20:48 on 12 September 2025; Payment: Payment 1 of S$1,980; Merchant: Example Electronics Store; Amount in the record: S$1,980; Card scheme: Visa; Entry mode: online; Authentication: 3-D Secure with the digital token; Result: authenticated; Device: Phone model EX-300; Device reference: dev-ex-0102; Token reference: tok-ex-0102 (E6)
+- Time: 21:02 on 12 September 2025; Payment: Payment 2 of S$2,450; Merchant: Example Travel Agency; Amount in the record: S$2,450; Card scheme: Visa; Entry mode: online; Authentication: 3-D Secure with the digital token; Result: authenticated; Device: Phone model EX-300; Device reference: dev-ex-0102; Token reference: tok-ex-0102 (E6)
+- Time: 00:15 on 13 September 2025; Payment: Payment 3 of S$3,120; Merchant: Example Luxury Goods; Amount in the record: S$3,120; Card scheme: Visa; Entry mode: online; Authentication: 3-D Secure with the digital token; Result: authenticated; Device: Phone model EX-300; Device reference: dev-ex-0102; Token reference: tok-ex-0102 (E6)
+## ip_locations: Where the IP addresses in the records are registered
+IP address 198.51.100.40 — according to Example IP Database, 2025-10-01: registered to Example Broadband (AS64503), location Example City, Example Region, Exampleland (accuracy about 20 km). (E4)
+An IP location is the provider's estimate of where the network is registered or used. It can differ from where the person was, for example on mobile data, a VPN or a hosting service. Addresses can be reassigned over time; this lookup used a database dated 2025-10-01.
+## account_access_sequence: The sequence the records show
+- 1. The complainant states that they entered their credentials, card details or a one-time code on a fake website or app.
+- 2. The institution's record shows a digital token activated at 20:10 on 12 September 2025 on a device labelled 'Phone model EX-300'. The record shows the activation was authorised by SMS one-time code, sent to registered mobile number. (E4)
+- 3. The complainant states that this device is not theirs.
+- 4. The record shows an alert about the activation sent at 20:10 on 12 September 2025 to cardholder@example.com. (E4)
+- 5. The record shows a login at 20:15 on 12 September 2025 from this device, authorised by digital token. (E4)
+- 6. The record shows the card ending 0001 added to a mobile wallet at 20:32 on 12 September 2025 on a device labelled 'Phone model EX-300', authorised by the digital token. (E6)
+- 7. The record shows 3 card payments totalling S$7,550 between 20:48 on 12 September 2025 and 00:15 on 13 September 2025, authenticated by 3-D Secure with the digital token. (E6)
+- 8. On the records provided, 3 of these payments were authenticated through 3-D Secure using the digital token activated at 20:10 on 12 September 2025. (E4, E6)
+- 9. The complainant reported to the institution on 13 September 2025. The record shows the card blocked at 08:45 on 13 September 2025. (E4)
+Card scheme rules are an agreement between the card scheme and the card issuer. The cardholder is not a party to them. They are shown here as the process available to the issuer.
+This pack holds selected sections of Visa's rules, edition dated 1 March 2025, on how unauthorised payments are handled. It does not hold the full rules. (R1)
+A reviewed summary of this point is not yet available.
+The institution's letter states that it did not raise a dispute because 'the payments were authenticated with the registered digital token'. (E2)
+## duty_time_checks: Time-stamped points in the SRF Guidelines and the E-Payments User Protection Guidelines
+MAS guidelines that set out the duties of institutions and account holders and how losses are shared.
+### The 12 hours after the digital token was activated
+The record shows a digital token activated at 20:10 on 12 September 2025 on a device labelled 'Phone model EX-300'. (E4)
+### Activities the definitions name
+The records provided show none.
+### Other activities the record shows in the 12 hours
+- 20:15 on 12 September 2025 (5 minutes after): Login: device labelled 'Phone model EX-300' (E4)
+- 20:32 on 12 September 2025 (22 minutes after): Card added to a mobile wallet: device labelled 'Phone model EX-300' (E6)
+- 20:48 on 12 September 2025 (38 minutes after): Card payment at Example Electronics Store of S$1,980: device labelled 'Phone model EX-300' (E6)
+- 21:02 on 12 September 2025 (52 minutes after): Card payment at Example Travel Agency of S$2,450: device labelled 'Phone model EX-300' (E6)
+- 00:15 on 13 September 2025 (4 hours 5 minutes after): Card payment at Example Luxury Goods of S$3,120: device labelled 'Phone model EX-300' (E6)
+Synthetic wording of srf.highrisk.definition, revision 1. (R2)
+Synthetic wording of eupg.highrisk.definition, revision 1. (R3)
+A reviewed summary of this point is not yet available.
+The record shows a card added to a mobile wallet. See 'Card added to a mobile wallet'.
+Record: Payment 1 of S$1,980 on 12 September 2025 is at or above the threshold the account holder set, S$500. The record shows no alert for it. (E1, E4)
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 12 September 2025 is not held in a verified version.
+Side by side: The document expects what paragraph 4.10 of the E-Payments User Protection Guidelines sets out. Payment 1 of S$1,980 on 12 September 2025 is at or above the threshold the account holder set, S$500. The record shows no alert for it.
+Record: Payment 2 of S$2,450 on 12 September 2025 is at or above the threshold the account holder set, S$500. The record shows no alert for it. (E1, E4)
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 12 September 2025 is not held in a verified version.
+Side by side: The document expects what paragraph 4.10 of the E-Payments User Protection Guidelines sets out. Payment 2 of S$2,450 on 12 September 2025 is at or above the threshold the account holder set, S$500. The record shows no alert for it.
+Record: Payment 3 of S$3,120 on 13 September 2025 is at or above the threshold the account holder set, S$500. The record shows no alert for it. (E1, E4)
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 13 September 2025 is not held in a verified version.
+Side by side: The document expects what paragraph 4.10 of the E-Payments User Protection Guidelines sets out. Payment 3 of S$3,120 on 13 September 2025 is at or above the threshold the account holder set, S$500. The record shows no alert for it.
+Record: The complainant reported to the institution on 13 September 2025 (hotline). The record shows access blocked at 08:45 on 13 September 2025. The record shows no disputed payment after the report or the block. (E1, E4)
+Expected: The text of paragraph 4.14 of the E-Payments User Protection Guidelines in force on 12 September 2025 is not held in a verified version.
+Side by side: The complainant reported to the institution on 13 September 2025 (hotline). The record shows access blocked at 08:45 on 13 September 2025. The record shows no disputed payment after the report or the block. The record shows this, as the document expects.
+## disputed_amount_charges: Charges and credit records while a transaction is disputed
+Record: The complainant reported the disputed transactions to the institution on 13 September 2025. The institution's final reply is dated 20 October 2025. The records provided do not show requests to pay the disputed amount or charges on it. (E2)
+Expected: The text of paragraph 8.1 of the E-Payments User Protection Guidelines in force on 13 September 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 8.1 of the E-Payments User Protection Guidelines sets out took place.
+Record: The institution's final reply is dated 20 October 2025. The reply rejects the claim. Counted from the date of the final reply, the 30 calendar days run from 20 October 2025 to 19 November 2025. The records provided do not show dispute resolution with FIDReC starting. The records provided do not show requests to pay the disputed amount or charges on it. (E2)
+Expected: The text of paragraph 8.2 of the E-Payments User Protection Guidelines in force on 13 September 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 8.2 of the E-Payments User Protection Guidelines sets out took place.
+Record: The complainant reported the disputed transactions to the institution on 13 September 2025. The institution's final reply is dated 20 October 2025. The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau. (E2)
+Expected: The text of paragraph 8.3 of the E-Payments User Protection Guidelines in force on 13 September 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 8.3 of the E-Payments User Protection Guidelines sets out took place.
+The records provided do not show dispute resolution with FIDReC starting. The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau.
+The records provided do not show requests to pay the disputed amount. The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau. The records provided do not show dispute resolution with FIDReC starting.
+## mas_notice_comparison: MAS notices
+MAS notices set requirements that MAS imposes on the institution. This section sets the institution's records beside those requirements. It does not say whether a requirement was met.
+A reviewed summary of this point is not yet available.
+Record: The institution's record shows a login at 20:15 on 12 September 2025 from a device labelled 'Phone model EX-300'. The complainant states that this device is not theirs. The record shows the login was authorised by digital token. (E4)
+Expected: The text of paragraph 9 of MAS Notice FSM-N05 in force on 12 September 2025 is not held in a verified version.
+Side by side: The document expects what paragraph 9 of MAS Notice FSM-N05 sets out. The institution's record shows a login at 20:15 on 12 September 2025 from a device labelled 'Phone model EX-300'. The complainant states that this device is not theirs. The record shows the login was authorised by digital token.
+## industry_practice_comparison: Industry codes, announced measures and MAS's stated positions
+An industry code, announced industry measures and MAS's stated positions. They are not legislation.
+Card added to a mobile wallet (E6)
+The record shows the card ending 0001 added to a mobile wallet at 20:32 on 12 September 2025 on a device labelled 'Phone model EX-300', authorised by the digital token (E6). The record shows a digital token activated at 20:10 on 12 September 2025 on a device labelled 'Phone model EX-300' (E4), 22 minutes before. (E4, E6)
+Example Bank A's published practice on adding cards to mobile wallets is not held.
+A reviewed summary of this point is not yet available.
+The definitions of high-risk activities in the SRF Guidelines and the E-Payments User Protection Guidelines are set out under 'The 12 hours after the digital token was activated'.
+A reviewed summary of this point is not yet available.
+## card_dispute_comparison: Card scheme rules on disputing the card payments
+Card scheme rules are an agreement between the card scheme and the card issuer. The cardholder is not a party to them. They are shown here as the process available to the issuer.
+This pack holds selected sections of Visa's rules (Synthetic scheme rules V), edition dated Synthetic edition, on how unauthorised payments are handled. It does not hold the full rules. (R1)
+- Date: 12 September 2025; Payment: S$1,980; Merchant: Example Electronics Store; Card ending: 0001; Card scheme: Visa; Entry mode: an online (card-absent) payment; Authentication: 3-D Secure approved with a digital token; Result: authenticated; Device: Phone model EX-300 (E1, E6)
+Record: The complainant disputes the payment of S$1,980 on 12 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. (E1)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, Dispute Condition 10.4 applies where the cardholder denies authorising or taking part in the payment." (R1)
+Side by side: The complainant disputes the payment of S$1,980 on 12 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. The record shows this, as the document expects.
+Record: The record shows the payment was an online (card-absent) payment. (E6)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, Dispute Condition 10.4 covers payments in a card-absent environment." (R1)
+Side by side: The record shows the payment was an online (card-absent) payment, as the document expects.
+Record: The record shows the payment authenticated by 3-D Secure approved with a digital token, result 'authenticated'. The record does not show the electronic commerce indicator or the authentication values sent with the authorisation. (E6)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the invalid disputes for Dispute Condition 10.4 include payments authenticated through Visa Secure, payments where Visa Secure authentication was attempted, and payments with an authenticated token where cardholder verification was approved." (R1)
+Side by side: The document expects what section 11.8.5 of the Synthetic scheme rules V (R1) sets out. The record shows the payment authenticated by 3-D Secure approved with a digital token, result 'authenticated'. The record does not show the electronic commerce indicator or the authentication values sent with the authorisation.
+Record: The payment is dated 12 September 2025; the complainant asked the institution to dispute it on 14 September 2025, 2 calendar days later. The records do not show the date the payment was processed by the scheme; the count runs from the payment date. (E1, E5)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the time limit for Dispute Condition 10.4 is 120 calendar days from the date the payment was processed." (R1)
+Side by side: The payment is dated 12 September 2025; the complainant asked the institution to dispute it on 14 September 2025, 2 calendar days later. The records do not show the date the payment was processed by the scheme; the count runs from the payment date. The record shows this, as the document expects.
+Record: The records provided do not show whether the institution reported this payment to Visa as fraud. (E2)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the issuer is to report the payment to Visa as fraud before raising the dispute." (R1)
+Side by side: The records provided do not show whether what section 11.8.5 of the Synthetic scheme rules V (R1) sets out took place.
+- Date: 12 September 2025; Payment: S$2,450; Merchant: Example Travel Agency; Card ending: 0001; Card scheme: Visa; Entry mode: an online (card-absent) payment; Authentication: 3-D Secure approved with a digital token; Result: authenticated; Device: Phone model EX-300 (E1, E6)
+Record: The complainant disputes the payment of S$2,450 on 12 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. (E1)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, Dispute Condition 10.4 applies where the cardholder denies authorising or taking part in the payment." (R1)
+Side by side: The complainant disputes the payment of S$2,450 on 12 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. The record shows this, as the document expects.
+Record: The record shows the payment was an online (card-absent) payment. (E6)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, Dispute Condition 10.4 covers payments in a card-absent environment." (R1)
+Side by side: The record shows the payment was an online (card-absent) payment, as the document expects.
+Record: The record shows the payment authenticated by 3-D Secure approved with a digital token, result 'authenticated'. The record does not show the electronic commerce indicator or the authentication values sent with the authorisation. (E6)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the invalid disputes for Dispute Condition 10.4 include payments authenticated through Visa Secure, payments where Visa Secure authentication was attempted, and payments with an authenticated token where cardholder verification was approved." (R1)
+Side by side: The document expects what section 11.8.5 of the Synthetic scheme rules V (R1) sets out. The record shows the payment authenticated by 3-D Secure approved with a digital token, result 'authenticated'. The record does not show the electronic commerce indicator or the authentication values sent with the authorisation.
+Record: The payment is dated 12 September 2025; the complainant asked the institution to dispute it on 14 September 2025, 2 calendar days later. The records do not show the date the payment was processed by the scheme; the count runs from the payment date. (E1, E5)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the time limit for Dispute Condition 10.4 is 120 calendar days from the date the payment was processed." (R1)
+Side by side: The payment is dated 12 September 2025; the complainant asked the institution to dispute it on 14 September 2025, 2 calendar days later. The records do not show the date the payment was processed by the scheme; the count runs from the payment date. The record shows this, as the document expects.
+Record: The records provided do not show whether the institution reported this payment to Visa as fraud. (E2)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the issuer is to report the payment to Visa as fraud before raising the dispute." (R1)
+Side by side: The records provided do not show whether what section 11.8.5 of the Synthetic scheme rules V (R1) sets out took place.
+- Date: 13 September 2025; Payment: S$3,120; Merchant: Example Luxury Goods; Card ending: 0001; Card scheme: Visa; Entry mode: an online (card-absent) payment; Authentication: 3-D Secure approved with a digital token; Result: authenticated; Device: Phone model EX-300 (E1, E6)
+Record: The complainant disputes the payment of S$3,120 on 13 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. (E1)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, Dispute Condition 10.4 applies where the cardholder denies authorising or taking part in the payment." (R1)
+Side by side: The complainant disputes the payment of S$3,120 on 13 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. The record shows this, as the document expects.
+Record: The record shows the payment was an online (card-absent) payment. (E6)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, Dispute Condition 10.4 covers payments in a card-absent environment." (R1)
+Side by side: The record shows the payment was an online (card-absent) payment, as the document expects.
+Record: The record shows the payment authenticated by 3-D Secure approved with a digital token, result 'authenticated'. The record does not show the electronic commerce indicator or the authentication values sent with the authorisation. (E6)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the invalid disputes for Dispute Condition 10.4 include payments authenticated through Visa Secure, payments where Visa Secure authentication was attempted, and payments with an authenticated token where cardholder verification was approved." (R1)
+Side by side: The document expects what section 11.8.5 of the Synthetic scheme rules V (R1) sets out. The record shows the payment authenticated by 3-D Secure approved with a digital token, result 'authenticated'. The record does not show the electronic commerce indicator or the authentication values sent with the authorisation.
+Record: The payment is dated 13 September 2025; the complainant asked the institution to dispute it on 14 September 2025, 1 calendar day later. The records do not show the date the payment was processed by the scheme; the count runs from the payment date. (E1, E5)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the time limit for Dispute Condition 10.4 is 120 calendar days from the date the payment was processed." (R1)
+Side by side: The payment is dated 13 September 2025; the complainant asked the institution to dispute it on 14 September 2025, 1 calendar day later. The records do not show the date the payment was processed by the scheme; the count runs from the payment date. The record shows this, as the document expects.
+Record: The records provided do not show whether the institution reported this payment to Visa as fraud. (E2)
+Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the issuer is to report the payment to Visa as fraud before raising the dispute." (R1)
+Side by side: The records provided do not show whether what section 11.8.5 of the Synthetic scheme rules V (R1) sets out took place.
+A reviewed summary of this point is not yet available.
+The complainant asked the institution to dispute these payments on 14 September 2025. (E5)
+The institution's letter states that it did not raise a dispute because 'the payments were authenticated with the registered digital token'. (E2)
+## customer_fault_definitions: What each framework says about customer fault
+A reviewed summary of this point is not yet available.
+Example Bank A's terms in force on 12 September 2025 are not held.
+## customer_conduct_comparison: The conduct the records show, and what each document refers to
+The complainant states that they entered their credentials, card details or a one-time code on a fake website or app.
+The ABS Code of Practice for Banks – Credit Cards does not refer to entering credentials, card details or a code on a website or app.
+The record shows 3 card payments authenticated by 3-D Secure with the digital token on the device labelled 'Phone model EX-300'. The complainant states that the device labelled 'Phone model EX-300' is not theirs. (E6)
+The records do not show who approved these payments. (E6)
+The record shows 1 alert, the first sent at 20:10 on 12 September 2025 to cardholder@example.com. The complainant reported to the institution on 13 September 2025, 1 calendar day after the first alert. (E4)
+The ABS Code of Practice for Banks – Credit Cards does not refer to notifications and alerts from the institution.
+The record shows access blocked at 08:45 on 13 September 2025, channel recorded as 'hotline'. (E4)
+The ABS Code of Practice for Banks – Credit Cards does not refer to blocking access.
+The records provided do not show whether or when a police report was made.
+The ABS Code of Practice for Banks – Credit Cards does not refer to reporting to the police.
+The institution's letter describes the complainant's conduct as 'grossly negligent'. The conduct it cites is entered card details and a one-time code on a website reached from a message. (E2)
+The ABS Code of Practice for Banks – Credit Cards uses the term 'gross negligence'. (R4)
+The institution's own terms in force on 12 September 2025 are not held for that date.
+## citations
+R1 visa.core_rules/11.8.5 version Synthetic edition on 2025-09-12, 2025-09-13
+R2 mas.srf/4.2.1 version Issued 2024 on 2025-09-12
+R3 mas.eupg/4.7 version A on 2025-09-12
+R4 abs.card_code/5 version 2024 edition on 2025-09-12
+## statements
+duty_time_checks srf.highrisk.definition r1 on 2025-09-12
+duty_time_checks eupg.highrisk.definition r1 on 2025-09-12
+## flags
+account_access_sequence statement_under_review visa.3ds.authenticated 2025-09-12
+account_access_sequence statement_under_review visa.cardholder 2025-09-12
+account_access_sequence statement_under_review bridge.card_loss_sharing 2025-09-12
+duty_time_checks statement_under_review eupg.section4.cards 2025-09-12
+duty_time_checks clause_not_held mas.eupg/4.10 2025-09-12
+duty_time_checks clause_not_held mas.eupg/4.10 2025-09-13
+duty_time_checks clause_not_held mas.eupg/4.14 2025-09-12
+disputed_amount_charges clause_not_held mas.eupg/8.1 2025-09-13
+disputed_amount_charges clause_not_held mas.eupg/8.2 2025-09-13
+disputed_amount_charges clause_not_held mas.eupg/8.3 2025-09-13
+disputed_amount_charges clause_not_held mas.eupg/8.4 2025-09-13
+disputed_amount_charges clause_not_held mas.eupg/8.5 2025-09-13
+mas_notice_comparison statement_under_review bridge.mas_requirement.cards 2025-09-12
+mas_notice_comparison clause_not_held mas.fsm-n05/9 2025-09-12
+industry_practice_comparison statement_under_review mas.reply.20260113.wallet 2025-09-12
+industry_practice_comparison statement_under_review bridge.card_loss_sharing 2025-09-12
+card_dispute_comparison statement_under_review visa.3ds.authenticated 2025-09-12
+customer_fault_definitions statement_under_review eupg.fault.cards 2025-09-12
+customer_fault_definitions statement_under_review eupg.fault.cards 2025-09-13
+customer_fault_definitions statement_under_review srf.fault.cards 2025-09-12
+customer_fault_definitions statement_under_review srf.fault.cards 2025-09-13
+customer_fault_definitions statement_under_review abs.fault.term 2025-09-12
+customer_fault_definitions statement_under_review abs.fault.term 2025-09-13
+customer_fault_definitions statement_under_review abs.fault.undefined 2025-09-12
+customer_fault_definitions statement_under_review abs.fault.undefined 2025-09-13
+customer_fault_definitions statement_under_review abs.fault.finder 2025-09-12
+customer_fault_definitions statement_under_review abs.fault.finder 2025-09-13
+customer_fault_definitions statement_under_review abs.fault.effect 2025-09-12
+customer_fault_definitions statement_under_review abs.fault.effect 2025-09-13
+customer_fault_definitions statement_under_review abs.fault.status 2025-09-12
+customer_fault_definitions statement_under_review abs.fault.status 2025-09-13
+customer_fault_definitions statement_under_review mas.reply.20250107.3ds 2026-11-24

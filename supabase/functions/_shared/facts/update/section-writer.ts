@@ -191,12 +191,12 @@ export const SCHEME_STANDING_SENTENCE =
  */
 export const RECORDS_DO_NOT_SHOW_WHO_APPROVED = "The records do not show who approved these payments.";
 
-// wording awaiting Elena's approval (review of 24 Nov 2026, "Still open" item 1)
+// Approved by Elena (SW-1; review of 24 Nov 2026, "Still open" item 1).
 /** The fallback where the edition in force on the payment date is not held (brief 3.2 rule 6; Decision 12). */
 export const NEAREST_VERSION_FALLBACK = (scheme: string, paymentDate: IsoDate, nearestEditionDate: IsoDate): string =>
   `This pack does not hold ${scheme}'s rules as in force on ${formatDate(paymentDate)}. The nearest edition held is dated ${formatDate(nearestEditionDate)}. The lines below are from that edition.`;
 
-// wording awaiting Elena's approval (review of 24 Nov 2026, Decision 6 and "Still open" item 3)
+// Approved by Elena (SW-2; review of 24 Nov 2026, Decision 6 and "Still open" item 3).
 /** Added after a statement whose `documentDatedAfterEvents` is set. */
 export const afterTheEventsLine = (documentDate: IsoDate): string =>
   `This reply is dated ${formatDate(documentDate)}, after the events in this case.`;

@@ -1,0 +1,118 @@
+## account_access_sequence: The sequence the records show
+- 1. The complainant states that they entered their credentials, card details or a one-time code on a fake website or app.
+- 2. The records provided do not show a digital token activated or a device registered.
+- 9. The complainant reported to the institution on 3 August 2025. The records provided do not show access to the account blocked.
+## duty_time_checks: Time-stamped points in the SRF Guidelines and the E-Payments User Protection Guidelines
+MAS guidelines that set out the duties of institutions and account holders and how losses are shared.
+Record: The records provided include no record from the institution of logins, devices and alerts.
+Expected: Paragraph 4.2.1 of the Synthetic SRF Guidelines, version Issued 2024: "Placeholder text of 4.2.1." (R1)
+Expected: Paragraph 4.7 of the Synthetic EUPG, version A: "Placeholder text of 4.7, version A." (R2)
+Side by side: The records provided do not show whether what paragraph 4.2.1 of the Synthetic SRF Guidelines and paragraph 4.7 of the Synthetic EUPG (R1, R2) set out took place.
+Record: The records provided include no record from the institution of logins, devices and alerts.
+Expected: The text of paragraph 4.2.2 of the Shared Responsibility Framework Guidelines in force on 2 August 2025 is not held in a verified version.
+Expected: The text of paragraph 4.9 of the E-Payments User Protection Guidelines in force on 2 August 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 4.2.2 of the Shared Responsibility Framework Guidelines and paragraph 4.9 of the E-Payments User Protection Guidelines set out took place.
+Record: The records provided do not show the alert threshold that applied to payment 1 of S$2,300 on 2 August 2025. (E1)
+Expected: The text of paragraph 4.2.3 of the Shared Responsibility Framework Guidelines in force on 2 August 2025 is not held in a verified version.
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 2 August 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 4.2.3 of the Shared Responsibility Framework Guidelines and paragraph 4.10 of the E-Payments User Protection Guidelines set out took place.
+Record: The records provided do not show the alert threshold that applied to payment 2 of S$1,700 on 2 August 2025. (E1)
+Expected: The text of paragraph 4.2.3 of the Shared Responsibility Framework Guidelines in force on 2 August 2025 is not held in a verified version.
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 2 August 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 4.2.3 of the Shared Responsibility Framework Guidelines and paragraph 4.10 of the E-Payments User Protection Guidelines set out took place.
+Record: The complainant reported to the institution on 3 August 2025 (in-app chat). The records provided include no record from the institution of logins, devices and alerts. (E1)
+Expected: The text of paragraph 4.2.4 of the Shared Responsibility Framework Guidelines in force on 2 August 2025 is not held in a verified version.
+Expected: The text of paragraph 4.14 of the E-Payments User Protection Guidelines in force on 2 August 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 4.2.4 of the Shared Responsibility Framework Guidelines and paragraph 4.14 of the E-Payments User Protection Guidelines set out took place.
+Record: The records provided do not show the balance immediately before the first disputed payment. (E1)
+Expected: Paragraph 4.2.5 of the Synthetic SRF Guidelines, version Issued 2024: "Placeholder text of 4.2.5." (R3)
+Side by side: The records provided do not show whether what paragraph 4.2.5 of the Synthetic SRF Guidelines (R3) sets out took place.
+Record: The records show 2 disputed payments from the account. The records provided include no record from the institution of logins, devices and alerts. (E1)
+Expected: The text of paragraph 4.21 of the E-Payments User Protection Guidelines in force on 2 August 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 4.21 of the E-Payments User Protection Guidelines sets out took place.
+Record: The complainant reported to the institution on 3 August 2025. The records provided do not show a final reply.
+Expected: The text of paragraph 7.9 of the Shared Responsibility Framework Guidelines in force on 2 August 2025 is not held in a verified version.
+Expected: The text of paragraph 4.26 of the E-Payments User Protection Guidelines in force on 2 August 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 7.9 of the Shared Responsibility Framework Guidelines and paragraph 4.26 of the E-Payments User Protection Guidelines set out took place.
+Record: The records provided do not show a final reply from the institution.
+Expected: The text of paragraph 7.10 of the Shared Responsibility Framework Guidelines in force on 2 August 2025 is not held in a verified version.
+Expected: The text of paragraph 7.7 of the E-Payments User Protection Guidelines in force on 2 August 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 7.10 of the Shared Responsibility Framework Guidelines and paragraph 7.7 of the E-Payments User Protection Guidelines set out took place.
+Record: The records show the complainant did not ask the institution for its records of the payments.
+Expected: The text of paragraph 7.5 of the Shared Responsibility Framework Guidelines in force on 2 August 2025 is not held in a verified version.
+Expected: The text of paragraph 4.25 of the E-Payments User Protection Guidelines in force on 2 August 2025 is not held in a verified version.
+Side by side: The document's condition for this duty is in paragraph 7.5 of the Shared Responsibility Framework Guidelines and paragraph 4.25 of the E-Payments User Protection Guidelines. The records show the complainant did not ask the institution for its records of the payments.
+Record: The records provided include no record from the institution of logins, devices and alerts.
+Expected: The text of paragraph 7.3 of the Shared Responsibility Framework Guidelines in force on 2 August 2025 is not held in a verified version.
+Expected: The text of paragraph 3.14 of the E-Payments User Protection Guidelines in force on 2 August 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 7.3 of the Shared Responsibility Framework Guidelines and paragraph 3.14 of the E-Payments User Protection Guidelines set out took place.
+Record: The records provided do not show when supporting information was given to the institution.
+Expected: The text of paragraph 7.3 of the Shared Responsibility Framework Guidelines in force on 2 August 2025 is not held in a verified version.
+Expected: The text of paragraph 3.14 of the E-Payments User Protection Guidelines in force on 2 August 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 7.3 of the Shared Responsibility Framework Guidelines and paragraph 3.14 of the E-Payments User Protection Guidelines set out took place.
+## disputed_amount_charges: Charges and credit records while a transaction is disputed
+Record: The complainant reported the disputed transactions to the institution on 3 August 2025. The records provided do not show a final reply. The records provided do not show requests to pay the disputed amount or charges on it.
+Expected: The text of paragraph 8.1 of the E-Payments User Protection Guidelines in force on 3 August 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 8.1 of the E-Payments User Protection Guidelines sets out took place.
+Record: The complainant reported the disputed transactions to the institution on 3 August 2025. The records provided do not show a final reply.
+Expected: The text of paragraph 8.2 of the E-Payments User Protection Guidelines in force on 3 August 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 8.2 of the E-Payments User Protection Guidelines sets out took place.
+## mas_notice_comparison: MAS notices
+MAS notices set requirements that MAS imposes on the institution. This section sets the institution's records beside those requirements. It does not say whether a requirement was met.
+A reviewed summary of this point is not yet available.
+## customer_fault_definitions: What each framework says about customer fault
+Placeholder statement eupg.fault.term, revision 1. (R4)
+A reviewed summary of this point is not yet available.
+Example Pay's terms in force on 2 August 2025 are not held.
+## customer_conduct_comparison: The conduct the records show, and what each document refers to
+The complainant states that they entered their credentials, card details or a one-time code on a fake website or app.
+The E-Payments User Protection Guidelines do not refer to entering credentials, card details or a code on a website or app.
+The records provided do not show whether alerts were sent, or the time from the first alert to the report.
+The E-Payments User Protection Guidelines refer to notifications and alerts from the institution in footnote 20 (R5).
+The records provided do not show whether or when access was blocked.
+The E-Payments User Protection Guidelines do not refer to blocking access.
+The records provided do not show whether or when a police report was made.
+The E-Payments User Protection Guidelines do not refer to reporting to the police.
+The Shared Responsibility Framework Guidelines have no test of the account user's conduct.
+The records provided do not show a word the institution's letters use for the complainant's conduct.
+The E-Payments User Protection Guidelines use the term 'recklessness'.
+The institution's own terms in force on 2 August 2025 are not held for that date.
+## citations
+R1 mas.srf/4.2.1 version Issued 2024 on 2025-08-02
+R2 mas.eupg/4.7 version A on 2025-08-02
+R3 mas.srf/4.2.5 version Issued 2024 on 2025-08-02
+R4 mas.eupg/5.2 version A on 2025-08-02
+R5 mas.eupg/fn20 version A on 2025-08-02
+R6 mas.srf/3.1 version Issued 2024 on 2025-08-02
+## statements
+customer_fault_definitions eupg.fault.term r1 on 2025-08-02
+## flags
+duty_time_checks clause_not_held mas.srf/4.2.2 2025-08-02
+duty_time_checks clause_not_held mas.eupg/4.9 2025-08-02
+duty_time_checks clause_not_held mas.srf/4.2.3 2025-08-02
+duty_time_checks clause_not_held mas.eupg/4.10 2025-08-02
+duty_time_checks clause_not_held mas.srf/4.2.4 2025-08-02
+duty_time_checks clause_not_held mas.eupg/4.14 2025-08-02
+duty_time_checks clause_not_held mas.eupg/4.21 2025-08-02
+duty_time_checks clause_not_held mas.srf/7.9 2025-08-02
+duty_time_checks clause_not_held mas.eupg/4.26 2025-08-02
+duty_time_checks clause_not_held mas.srf/7.10 2025-08-02
+duty_time_checks clause_not_held mas.eupg/7.7 2025-08-02
+duty_time_checks clause_not_held mas.srf/7.5 2025-08-02
+duty_time_checks clause_not_held mas.eupg/4.25 2025-08-02
+duty_time_checks clause_not_held mas.srf/7.3 2025-08-02
+duty_time_checks clause_not_held mas.eupg/3.14 2025-08-02
+disputed_amount_charges clause_not_held mas.eupg/8.1 2025-08-03
+disputed_amount_charges clause_not_held mas.eupg/8.2 2025-08-03
+mas_notice_comparison statement_under_review bridge.mas_requirement 2025-08-02
+mas_notice_comparison clause_not_held mas.circular.mpi_anti_scam 2025-08-02
+customer_fault_definitions statement_under_review eupg.fault.examples 2025-08-02
+customer_fault_definitions statement_under_review eupg.fault.level1 2025-08-02
+customer_fault_definitions statement_under_review eupg.fault.level2 2025-08-02
+customer_fault_definitions statement_under_review eupg.fault.institution 2025-08-02
+customer_fault_definitions statement_under_review eupg.fault.reasons 2025-08-02
+customer_fault_definitions statement_under_review srf.fault.terms 2025-08-02
+customer_fault_definitions statement_under_review srf.fault.userduties 2025-08-02
+customer_fault_definitions statement_under_review srf.fault.allocation 2025-08-02
+customer_fault_definitions statement_under_review srf.fault.section6 2025-08-02
+customer_fault_definitions statement_under_review srf.fidrec.scope 2025-08-02
