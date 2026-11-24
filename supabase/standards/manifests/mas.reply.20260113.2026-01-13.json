@@ -9,7 +9,8 @@
     "instrument_scope": ["account_transfer", "sg_card"],
     "institution": null,
     "card_scheme": null,
-    "canonical_url": "https://www.mas.gov.sg/news/parliamentary-replies/2026/written-reply-on-effectiveness-of-requirements-imposed-by-mas-on-banks-to-protect-against-scams"
+    "canonical_url": "https://www.mas.gov.sg/news/parliamentary-replies/2026/written-reply-on-effectiveness-of-requirements-imposed-by-mas-on-banks-to-protect-against-scams",
+    "as_of_rule": "any_date"
   },
   "version": {
     "version_label": "13 January 2026",
