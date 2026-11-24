@@ -10,6 +10,7 @@ import {
   WALLET_CHECK_HEADING,
   WALLET_DEFINITIONS_POINTER,
   type WalletProvisioningRequestRow,
+  walletPracticeFromRow,
   walletPracticeRows,
 } from '../../supabase/functions/_shared/facts/rules/industry-practice-checks.ts'
 import { createStaticTermRequestSource } from '../../supabase/functions/_shared/facts/rules/institution-terms.ts'
@@ -39,8 +40,9 @@ import {
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex')
 const KEYS = {
-  tokenActivationDelay: 'mas.abs_release_20220119/delay',
-  tokenActivationAlert: 'mas.abs_release_20220119/alert',
+  tokenActivationDelay: 'mas.media_2022_01_digital_banking/3(c)',
+  // No clause is named for the alert yet; a synthetic key stands in for it.
+  tokenActivationAlert: 'mas.media_2022_01_digital_banking/synthetic-alert',
   walletProvisioningVerification: NAMED_CLAUSE_KEYS.absProvisioningVerification,
   walletTokenRemoval: NAMED_CLAUSE_KEYS.absProvisioningRemoval,
 }
@@ -76,8 +78,8 @@ function testCorpus(): FakeCorpus {
       ...extra,
     })
   // The delay clause states its own figure; the code reads it from the text (review of 24 Nov 2026, Lane 3 issue 2).
-  document('mas.abs_release_20220119', '2022-01-19', [
-    [KEYS.tokenActivationDelay, 'Placeholder text of the delay measure: a delay of 12 hours before a new token is activated.'],
+  document('mas.media_2022_01_digital_banking', '2022-01-19', [
+    [KEYS.tokenActivationDelay, 'Placeholder text of the delay measure: a delay of at least 12 hours before a new token is activated.'],
     [KEYS.tokenActivationAlert, `Placeholder text of ${KEYS.tokenActivationAlert}.`],
   ])
   document('abs.media_2025_02_card_provisioning', '2025-02-17', [
@@ -117,7 +119,10 @@ const UOB_ROW: WalletProvisioningRequestRow = {
   term: null,
   confirmed_by: 'synthetic-reviewer',
   confirmed_at: '2026-11-24T00:00:00Z',
-  wallet_practice: { waitingPeriodHours: 12, authenticationRequired: 'digital_token', appliesFrom: '2025-07-01' },
+  wallet_waiting_period_stated: true,
+  wallet_waiting_period_hours: '12',
+  wallet_authentication_required: 'digital_token',
+  wallet_applies_from: '2025-07-01',
 }
 
 const provider = createFakeClauseProvider(testCorpus())
@@ -138,20 +143,20 @@ function uobCase(): CaseSectionData {
   return d
 }
 
-// Changed with the review of 24 Nov 2026 (issue 2): the two ABS media statement keys are wired, so only the token
-// activation checks wait for their source.
-test('until the 2022 releases are loaded, the two token-activation checks print no line and are flagged', async () => {
+// Changed with the review of 24 Nov 2026 (issue 2) and Lane 1's #59: the ABS media statement keys and the soft-token
+// delay (19 Jan 2022, 3(c)) are wired; only the alert check waits for a clause.
+test('the default keys: the delay is 3(c) of the 19 January 2022 release; the alert check prints no line and is flagged', async () => {
   assert.deepEqual(INDUSTRY_PRACTICE_CLAUSE_KEYS, {
-    tokenActivationDelay: null,
+    tokenActivationDelay: 'mas.media_2022_01_digital_banking/3(c)',
     tokenActivationAlert: null,
     walletProvisioningVerification: 'abs.media_2025_02_card_provisioning/para4.verification',
     walletTokenRemoval: 'abs.media_2025_02_card_provisioning/para4.removal',
   })
-  const r = await run(cardOnlyCase.data, buildIndustryPracticeChecks)
+  const r = await run(cardOnlyCase.data, createIndustryPracticeChecks({ generatedOn: GENERATED_ON }))
   assert.equal(r.sectionId, 'industry_practice_comparison')
-  assert.deepEqual(comparisons(r).map((c) => c.clauseKey), [KEYS.walletProvisioningVerification, KEYS.walletTokenRemoval])
+  assert.deepEqual(comparisons(r).map((c) => c.clauseKey), [KEYS.tokenActivationDelay, KEYS.walletProvisioningVerification, KEYS.walletTokenRemoval])
   const waiting = r.flags.filter((f) => f.key.startsWith('industry_practice.'))
-  assert.deepEqual([...new Set(waiting.map((f) => f.key))].sort(), ['industry_practice.tokenActivationAlert', 'industry_practice.tokenActivationDelay'])
+  assert.deepEqual([...new Set(waiting.map((f) => f.key))], ['industry_practice.tokenActivationAlert'])
   assert.ok(waiting.every((f) => f.code === 'clause_not_held'))
 })
 
@@ -160,7 +165,7 @@ test('token activation: the time from the request to the activation, and the ale
   const [delay] = withKey(r, KEYS.tokenActivationDelay)
   assert.equal(delay.outcome, 'differs')
   assert.equal(delay.record, "The record shows a one-time code sent at 21:05 on 3 July 2025 and a digital token activated at 21:06 on 3 July 2025 on a device labelled 'Phone model EX-200', 1 minute later.")
-  assert.match(delay.expected, /a delay of 12 hours/)
+  assert.match(delay.expected, /a delay of at least 12 hours/)
   const [alert] = withKey(r, KEYS.tokenActivationAlert)
   assert.equal(alert.outcome, 'matches')
   assert.match(alert.record, /an alert sent at 21:06 on 3 July 2025 to registered mobile number\.$/)
@@ -184,7 +189,7 @@ test('the delay is never written in code: a clause stating no single figure prin
   assert.equal(hoursStatedIn('no figure'), null)
   assert.equal(hoursStatedIn('12 hours, or 24 hours for some'), null)
   const corpus = testCorpus()
-  corpus.versions.find((v) => v.document_key === 'mas.abs_release_20220119')!.clauses[0].text_content = 'Placeholder text with no figure.'
+  corpus.versions.find((v) => v.document_key === 'mas.media_2022_01_digital_banking')!.clauses[0].text_content = 'Placeholder text with no figure.'
   const r = await withKeys({ ...accountSrfCase.data, provider: createFakeClauseProvider(corpus) })
   assert.equal(withKey(r, KEYS.tokenActivationDelay).length, 0)
   assert.ok(r.flags.some((f) => f.code === 'clause_not_held' && f.key === KEYS.tokenActivationDelay))
@@ -285,6 +290,17 @@ test('Decision 5, Part A: a UOB-coded case with the card added 22 minutes after 
   assert.ok(!statements(r).some((s) => s.statementKey.startsWith('link.') || s.statementKey === 'bridge.mas_requirement'))
 })
 
+test('Decision 5, Part A: the practice is read from the columns of migration 20261204120100', () => {
+  assert.deepEqual(walletPracticeFromRow(UOB_ROW), { waitingPeriodHours: 12, authenticationRequired: 'digital_token', appliesFrom: '2025-07-01' })
+  assert.deepEqual(
+    walletPracticeFromRow({ ...UOB_ROW, wallet_waiting_period_stated: false, wallet_waiting_period_hours: null, wallet_authentication_required: 'none_stated', wallet_applies_from: null }),
+    { waitingPeriodHours: 'none_stated', authenticationRequired: 'none_stated', appliesFrom: null },
+  )
+  // Not yet recorded by a person: no practice, so no Part A row.
+  assert.equal(walletPracticeFromRow({ ...UOB_ROW, wallet_waiting_period_stated: null }), null)
+  assert.equal(walletPracticeFromRow({ ...UOB_ROW, wallet_authentication_required: null }), null)
+})
+
 test('Decision 5, Part A: outcomes chosen by code', () => {
   const wallet = cardOnlyCase.data.facts.card_auth_events!.value![0]
   const activation = cardOnlyCase.data.facts.access_events!.value![0]
@@ -301,6 +317,8 @@ test('Decision 5, Part A: outcomes chosen by code', () => {
   const [before] = walletPracticeRows({ ...practice, appliesFrom: '2025-10-01' }, wallet, activation)
   assert.equal(before.outcome, 'not_applicable')
   assert.match(before.record, /12 September 2025.*1 October 2025/)
+  // A method the person could not identify on the page: no authentication row.
+  assert.equal(walletPracticeRows({ ...practice, authenticationRequired: 'not_known' }, wallet, activation).length, 1)
   // Nothing stated: no row.
   assert.deepEqual(walletPracticeRows({ waitingPeriodHours: 'none_stated', authenticationRequired: 'none_stated', appliesFrom: null }, wallet, activation), [])
 })

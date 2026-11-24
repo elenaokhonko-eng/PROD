@@ -5,9 +5,11 @@
 // line reads its clause as of the event's own date, and a measure not yet in force on that date prints no line. No link
 // statement follows these lines: announced measures are not requirements imposed by MAS (4a, decision 20).
 //
-// - Token activation (MAS–ABS releases of 2022): delay before a new token is activated, and the alert to the existing
-//   contact. No source is loaded yet, so both checks have no key and the run flags them as not held. The delay is read
-//   from the loaded clause text, never written here.
+// - Token activation (MAS–ABS releases of 2022): the delay before a new soft token is activated is compared against
+//   the release of 19 January 2022, paragraph 3(c) (Lane 1, #59); the number of hours is read from the loaded clause
+//   text, never written here. The alert to the existing contact has no key: 3(d) of that release is about a request
+//   to change the contact details, not a token activation, and no clause of the 2 June 2022 release (#60) is named
+//   for it yet. It stays flagged as not held.
 // - Card added to a mobile wallet (Decision 5): a record line, then
 //   Part A: the institution's own published page (term request, purpose `wallet_provisioning`), with an outcome;
 //   Part B: the MAS written reply of 13 January 2026, a quotation line introduced by `mas.reply.20260113.wallet`, any
@@ -57,9 +59,9 @@ import {
 
 /** The clause each check compares against; null until the measure is loaded and keyed. */
 export interface IndustryPracticeClauseKeys {
-  /** MAS-ABS releases of 2022: a delay before a new soft token is activated (not loaded yet). */
+  /** MAS–ABS release of 19 Jan 2022, 3(c): a delay before a new soft token is activated. */
   tokenActivationDelay: string | null;
-  /** MAS-ABS releases of 2022: notification to the existing contact (not loaded yet). */
+  /** MAS–ABS releases of 2022: an alert to the existing contact on a token activation (no clause named yet). */
   tokenActivationAlert: string | null;
   /** ABS media statement of 17 Feb 2025: verification beyond the SMS one-time code to add a card to a mobile wallet. */
   walletProvisioningVerification: string | null;
@@ -67,8 +69,11 @@ export interface IndustryPracticeClauseKeys {
   walletTokenRemoval: string | null;
 }
 
+/** Lane 1's key for the soft-token delay (#59; manifest mas.media_2022_01_digital_banking.2022-01-19.json). */
+export const TOKEN_ACTIVATION_DELAY_CLAUSE_KEY = "mas.media_2022_01_digital_banking/3(c)";
+
 export const INDUSTRY_PRACTICE_CLAUSE_KEYS: Readonly<IndustryPracticeClauseKeys> = {
-  tokenActivationDelay: null,
+  tokenActivationDelay: TOKEN_ACTIVATION_DELAY_CLAUSE_KEY,
   tokenActivationAlert: null,
   walletProvisioningVerification: NAMED_CLAUSE_KEYS.absProvisioningVerification,
   walletTokenRemoval: NAMED_CLAUSE_KEYS.absProvisioningRemoval,
@@ -90,11 +95,30 @@ export const WALLET_DEFINITIONS_POINTER =
   `The definitions of high-risk activities in the SRF Guidelines and the E-Payments User Protection Guidelines are set out under '${TWELVE_HOUR_BLOCK_HEADINGS.block}'.`;
 
 /**
- * A `wallet_provisioning` term-request row: Lane 4's row plus what a person recorded from the page (Decision 5, Part
- * A; contract `WalletProvisioningPractice`). `wallet_practice` is null until a person has recorded it. The field name is
- * Lane 3's proposal; Lane 5's seed rows and Lane 1's table decide it.
+ * A `wallet_provisioning` term-request row: Lane 4's row plus the columns a person fills from the page (Decision 5,
+ * Part A), as Lane 1's migration 20261204120100 names them (#68). All null until a person has read the page.
  */
-export type WalletProvisioningRequestRow = TermRequestRow & { wallet_practice?: WalletProvisioningPractice | null };
+export type WalletProvisioningRequestRow = TermRequestRow & {
+  /** False: the page states no waiting period. */
+  wallet_waiting_period_stated?: boolean | null;
+  /** Set exactly when the period is stated. `numeric` in Postgres, so it may arrive as a string. */
+  wallet_waiting_period_hours?: number | string | null;
+  wallet_authentication_required?: WalletProvisioningAuthentication | "none_stated" | null;
+  wallet_applies_from?: IsoDate | null;
+};
+
+/**
+ * The contract's `WalletProvisioningPractice` from the row's columns, or null while a person has not recorded the
+ * waiting period and the authentication (the table's own rule for a confirmed row).
+ */
+export function walletPracticeFromRow(row: WalletProvisioningRequestRow): WalletProvisioningPractice | null {
+  const stated = row.wallet_waiting_period_stated;
+  const auth = row.wallet_authentication_required;
+  if (stated === null || stated === undefined || !auth) return null;
+  const hours = stated ? Number(row.wallet_waiting_period_hours) : null;
+  if (stated && !(hours !== null && Number.isFinite(hours) && hours > 0)) return null;
+  return { waitingPeriodHours: stated ? hours! : "none_stated", authenticationRequired: auth, appliesFrom: row.wallet_applies_from ?? null };
+}
 
 export interface IndustryPracticeCheckOptions {
   clauseKeys?: Partial<IndustryPracticeClauseKeys>;
@@ -350,7 +374,7 @@ async function partA(w: ComparisonWriter, a: PartAArgs): Promise<void> {
     w.text(`${a.institutionName ?? "The institution"}'s published practice on adding cards to mobile wallets is not held.`);
     return;
   }
-  const practice = held.row.wallet_practice ?? null;
+  const practice = walletPracticeFromRow(held.row);
   // A page held but with nothing recorded yet by a person: no comparison (open, see the PR).
   if (!practice) return;
   for (const clause of held.clauses) w.cite(clause, a.onDate);
@@ -390,7 +414,8 @@ export function walletPracticeRows(
       });
     }
   }
-  if (practice.authenticationRequired !== "none_stated") {
+  // `not_known`: the person could not tell which method the page requires, so there is nothing to set the record against.
+  if (practice.authenticationRequired !== "none_stated" && practice.authenticationRequired !== "not_known") {
     const method = methodWords(provisioning.walletProvisioningAuthentication);
     // wording awaiting Elena's approval
     rows.push(
