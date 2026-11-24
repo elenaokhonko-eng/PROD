@@ -14,6 +14,7 @@
   "version": {
     "version_label": "24 October 2026 edition",
     "effective_from": "2026-10-24",
+    "effective_from_basis": "document",
     "issued_on": "2026-10-24",
     "retrieved_at": "2026-11-24T04:19:00Z",
     "source_url": "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf",
@@ -29,11 +30,11 @@
   },
   "markers": [
     {
-      "at": "^1\\.1\\.1\\.1\\s+Applicability\\s+of\\s+Rules\\s+All",
+      "at": "^1\\.1\\.1\\.1",
       "clause": "visa.core_rules/1.1.1.1"
     },
     {
-      "at": "^1\\.1\\.1\\.2 Applicability of Processing Rules – Europe Region",
+      "at": "^1\\.1\\.1\\.2",
       "clause": null
     },
     {
@@ -41,19 +42,19 @@
       "clause": "visa.core_rules/1.1.1.5"
     },
     {
-      "at": "^1\\.1\\.1\\.6 Restricted Use of Visa Systems and Services",
+      "at": "^1\\.1\\.1\\.6",
       "clause": null
     },
     {
-      "at": "^1\\.9\\.4\\.3\\s+Issuer\\s+Fraud\\s+Activity\\s+Reporting",
+      "at": "^1\\.9\\.4\\.3",
       "clause": "visa.core_rules/1.9.4.3"
     },
     {
-      "at": "^1\\.9\\.4\\.4 Counterfeit Activity Reporting",
+      "at": "^1\\.9\\.4\\.4",
       "clause": null
     },
     {
-      "at": "^11\\.1\\.1\\s+Attempt\\s+to\\s+Settle\\s+Before",
+      "at": "^11\\.1\\.1",
       "clause": "visa.core_rules/11.1.1"
     },
     {
@@ -61,15 +62,15 @@
       "clause": null
     },
     {
-      "at": "^11\\.2\\.2\\s+Issuer\\s+and\\s+Acquirer\\s+Responsibilities",
+      "at": "^11\\.2\\.2",
       "clause": "visa.core_rules/11.2.2"
     },
     {
-      "at": "^11\\.2\\.3 Visa Right to Grant Exceptions to Dispute Processing",
+      "at": "^11\\.2\\.3",
       "clause": null
     },
     {
-      "at": "^11\\.3\\.2\\s+Dispute\\s+Resolution\\s+Process\\s+–",
+      "at": "^11\\.3\\.2",
       "clause": "visa.core_rules/11.3.2"
     },
     {
@@ -77,47 +78,47 @@
       "clause": null
     },
     {
-      "at": "^11\\.8\\.1\\s+Dispute\\s+Category\\s+10:\\s+Cardholder",
+      "at": "^11\\.8\\.1",
       "clause": "visa.core_rules/11.8.1"
     },
     {
-      "at": "^11\\.8\\.2\\s+Dispute\\s+Condition\\s+10\\.1:\\s+EMV",
+      "at": "^11\\.8\\.2",
       "clause": "visa.core_rules/11.8.2"
     },
     {
-      "at": "^11\\.8\\.2\\.5 Dispute Condition 10\\.1: EMV Liability Shift Counter",
+      "at": "^11\\.8\\.2\\.5",
       "clause": null
     },
     {
-      "at": "^11\\.8\\.3\\s+Dispute\\s+Condition\\s+10\\.2:\\s+EMV",
+      "at": "^11\\.8\\.3",
       "clause": "visa.core_rules/11.8.3"
     },
     {
-      "at": "^11\\.8\\.3\\.5 Dispute Condition 10\\.2: EMV Liability Shift Non-Cou",
+      "at": "^11\\.8\\.3\\.5",
       "clause": null
     },
     {
-      "at": "^11\\.8\\.4\\s+Dispute\\s+Condition\\s+10\\.3:\\s+Other",
+      "at": "^11\\.8\\.4",
       "clause": "visa.core_rules/11.8.4"
     },
     {
-      "at": "^11\\.8\\.4\\.6 Dispute Condition 10\\.3: Other Fraud – Card-Present",
+      "at": "^11\\.8\\.4\\.6",
       "clause": null
     },
     {
-      "at": "^11\\.8\\.5\\s+Dispute\\s+Condition\\s+10\\.4:\\s+Other",
+      "at": "^11\\.8\\.5",
       "clause": "visa.core_rules/11.8.5"
     },
     {
-      "at": "^11\\.8\\.5\\.6 Dispute Condition 10\\.4: Other Fraud – Card-Absent E",
+      "at": "^11\\.8\\.5\\.6",
       "clause": null
     },
     {
-      "at": "^12\\.2\\.1\\.1\\s+Issuer\\s+Fraud\\s+Activity\\s+Reporting",
+      "at": "^12\\.2\\.1\\.1",
       "clause": "visa.core_rules/12.2.1.1"
     },
     {
-      "at": "^12\\.2\\.1\\.2 Chip Interoperability Compliance Program Non-Compli",
+      "at": "^12\\.2\\.1\\.2",
       "clause": null
     },
     {
@@ -145,7 +146,7 @@
       "clause": null
     },
     {
-      "at": "^Authentication Confirmation\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "at": "^Authentication",
       "clause": "visa.core_rules/glossary.authentication-confirmation"
     },
     {
@@ -161,7 +162,7 @@
       "clause": null
     },
     {
-      "at": "^Cardholder Authentication A unique value",
+      "at": "^Cardholder",
       "clause": "visa.core_rules/glossary.cavv"
     },
     {
@@ -169,15 +170,15 @@
       "clause": null
     },
     {
-      "at": "^Cardholder Verification\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "at": "^Cardholder Verification",
       "clause": "visa.core_rules/glossary.cardholder-verification"
     },
     {
-      "at": "^Cardholder Verification Limit – Europe Region\\s*$",
+      "at": "^Cardholder",
       "clause": null
     },
     {
-      "at": "^Cardholder Verification Method\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "at": "^Cardholder",
       "clause": "visa.core_rules/glossary.cardholder-verification-method"
     },
     {
@@ -209,7 +210,7 @@
       "clause": null
     },
     {
-      "at": "^Electronic Commerce Indicator\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "at": "^Electronic",
       "clause": "visa.core_rules/glossary.electronic-commerce-indicator"
     },
     {
@@ -221,7 +222,7 @@
       "clause": "visa.core_rules/glossary.issuer"
     },
     {
-      "at": "^Issuers’ Clearinghouse Service – US Region\\s*$",
+      "at": "^Issuers’",
       "clause": null
     },
     {
@@ -233,11 +234,11 @@
       "clause": null
     },
     {
-      "at": "^Non-Authenticated Security Transaction\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "at": "^Non-Authenticated",
       "clause": "visa.core_rules/glossary.non-authenticated-security-transaction"
     },
     {
-      "at": "^Non-Confidential Enhanced Merchant-Level Data – US Region\\s*$",
+      "at": "^Non-Confidential",
       "clause": null
     },
     {
@@ -265,7 +266,7 @@
       "clause": null
     },
     {
-      "at": "^Secure Electronic Commerce Transaction\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "at": "^Secure",
       "clause": "visa.core_rules/glossary.secure-electronic-commerce-transaction"
     },
     {

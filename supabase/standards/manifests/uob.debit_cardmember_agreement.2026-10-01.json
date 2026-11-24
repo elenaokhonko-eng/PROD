@@ -14,6 +14,7 @@
   "version": {
     "version_label": "Updated as of 1 October 2026 (R10.26)",
     "effective_from": "2026-10-01",
+    "effective_from_basis": "document",
     "issued_on": null,
     "retrieved_at": "2026-11-24T04:27:00Z",
     "source_url": "https://www.uob.com.sg/assets/pdfs/personal/cards/uob-debit-cardmember-agreement.pdf",
@@ -53,7 +54,7 @@
       "clause": "uob.debit_cardmember_agreement/5"
     },
     {
-      "at": "TRANSACTIONS\\s+IN\\s+FOREIGN\\s+CURRENCY\\s+&\\s+TRANSACTIONS\\s+PROCESSED\\s+OUTSIDE\\s+SINGAPORE",
+      "at": "^TRANSACTIONS",
       "clause": "uob.debit_cardmember_agreement/6"
     },
     {
@@ -65,7 +66,7 @@
       "clause": "uob.debit_cardmember_agreement/8"
     },
     {
-      "at": "PIN\\s+AND\\s+USE\\s+AT\\s+ATMS\\s+AND\\s+FOR\\s+OTHER\\s+SERVICES",
+      "at": "^PIN",
       "clause": "uob.debit_cardmember_agreement/9"
     },
     {
@@ -73,7 +74,7 @@
       "clause": "uob.debit_cardmember_agreement/10"
     },
     {
-      "at": "11\\.\\s+SAFEGUARDING\\s+YOUR\\s+CARD,\\s+ATM\\s+CARD\\s+AND\\s+PIN\\s+AND\\s+REPORTING\\s+LOSS\\s+OR\\s+THEFT\\s+OF\\s+ATM\\s+CARD\\s+OR\\s+CARD\\s+/\\s+DISCLOSURE\\s+OF\\s+PIN",
+      "at": "^11\\.",
       "clause": "uob.debit_cardmember_agreement/11"
     },
     {
@@ -89,7 +90,7 @@
       "clause": "uob.debit_cardmember_agreement/14"
     },
     {
-      "at": "15\\.\\s+CONSENT\\s+TO\\s+DISCLOSURE\\s+OF\\s+INFORMATION",
+      "at": "^15\\.",
       "clause": "uob.debit_cardmember_agreement/15"
     },
     {
@@ -97,7 +98,7 @@
       "clause": "uob.debit_cardmember_agreement/16"
     },
     {
-      "at": "17\\.\\s+CONTACTLESS\\s+TRANSACTIONS\\s+\\(NOT\\s+APPLICABLE\\s+TO\\s+UOB\\s+VISA\\s+PLATINUM\\s+DEBIT\\s+CARD\\)",
+      "at": "^17\\.",
       "clause": "uob.debit_cardmember_agreement/17"
     },
     {
@@ -105,7 +106,7 @@
       "clause": "uob.debit_cardmember_agreement/18"
     },
     {
-      "at": "UOB\\s+Debit\\s+Card\\s+Fees\\s+and\\s+Charges",
+      "at": "^UOB",
       "clause": "uob.debit_cardmember_agreement/fees-and-charges"
     }
   ],

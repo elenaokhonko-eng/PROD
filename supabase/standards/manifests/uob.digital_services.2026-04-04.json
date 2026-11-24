@@ -14,6 +14,8 @@
   "version": {
     "version_label": "undated (PDF of 23 March 2026; first captured 4 April 2026)",
     "effective_from": "2026-04-04",
+    "effective_from_basis": "first_capture",
+    "held_from_at_least": "2026-04-04",
     "issued_on": null,
     "retrieved_at": "2026-04-04T08:01:33Z",
     "source_url": "https://web.archive.org/web/20260404080133/https://www.uob.com.sg/assets/pdfs/PIB_MBK_TC.pdf",
@@ -30,7 +32,7 @@
   },
   "markers": [
     {
-      "at": "THE\\s+ACCESS\\s+AND/OR\\s+USE\\s+OF\\s+THESE\\s+SERVICES",
+      "at": "^THE",
       "clause": "uob.digital_services/preamble"
     },
     {

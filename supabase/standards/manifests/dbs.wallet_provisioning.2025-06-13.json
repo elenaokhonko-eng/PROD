@@ -14,6 +14,8 @@
   "version": {
     "version_label": "as captured on 13 June 2025",
     "effective_from": "2025-06-13",
+    "effective_from_basis": "first_capture",
+    "held_from_at_least": "2025-06-13",
     "issued_on": null,
     "retrieved_at": "2025-06-13T03:13:52Z",
     "source_url": "https://web.archive.org/web/20250613031352/https://www.dbs.com.sg/personal/support/card-payment-mobile-wallet-application.html",
@@ -40,7 +42,7 @@
       "clause": "dbs.wallet_provisioning/important"
     },
     {
-      "at": "^\\s*How to enable mobile wallets on payment controls\\s*$",
+      "at": "^\\s*How",
       "clause": "dbs.wallet_provisioning/enable-control"
     },
     {

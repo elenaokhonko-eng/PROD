@@ -14,6 +14,8 @@
   "version": {
     "version_label": "text as first captured 15 November 2025 (page still says 'Effective 17 Dec 2024')",
     "effective_from": "2025-11-15",
+    "effective_from_basis": "first_capture",
+    "held_from_at_least": "2025-11-15",
     "issued_on": null,
     "retrieved_at": "2025-11-15T02:43:28Z",
     "source_url": "https://web.archive.org/web/20251115024328/https://www.dbs.com.sg/personal/deposits/terms-conditions-electronic-services.page",
@@ -44,11 +46,11 @@
       "clause": "dbs.electronic_services/2"
     },
     {
-      "at": "Who\\s+Can\\s+Use\\s+Our\\s+Electronic\\s+Services",
+      "at": "^Who",
       "clause": "dbs.electronic_services/3"
     },
     {
-      "at": "Your\\s+Use\\s+of\\s+Our\\s+Electronic\\s+Services",
+      "at": "^Your Use",
       "clause": "dbs.electronic_services/4"
     },
     {
@@ -56,7 +58,7 @@
       "clause": "dbs.electronic_services/5"
     },
     {
-      "at": "Warranties,\\s+Disclaimer\\s+and\\s+Limitations",
+      "at": "^Warranties,",
       "clause": "dbs.electronic_services/6"
     },
     {
@@ -72,7 +74,7 @@
       "clause": "dbs.electronic_services/9"
     },
     {
-      "at": "How\\s+We\\s+Use\\s+Information\\s+About\\s+You",
+      "at": "^How",
       "clause": "dbs.electronic_services/10"
     },
     {

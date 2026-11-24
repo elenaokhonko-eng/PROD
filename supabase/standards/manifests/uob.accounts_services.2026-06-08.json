@@ -1,5 +1,5 @@
 {
-  "$comment": "UOB Terms and Conditions Governing Accounts and Services (Individual Customers), form code 'BR-333 /F(R004.26)', PDF dated 18 May 2026, fetched from the bank's site on 24 November 2026; the Wayback Machine first captured this file on 8 June 2026, and effective_from is that date, for ordering. Its text differs from the earlier R004.26 file (for example an ATM card paragraph for joint accounts and the definition of 'you'). Elena sets the dates from the bank's notices. One clause per Part (A to K).",
+  "$comment": "UOB Terms and Conditions Governing Accounts and Services (Individual Customers), form code 'BR-333 /F(R004.26)', PDF dated 18 May 2026, fetched from the bank's site on 24 November 2026; the Wayback Machine first captured this file on 8 June 2026. Its text differs from the earlier R004.26 file in Part K only: one definition is extended to the customer's representatives, successors and assigns; the other Parts are identical. One clause per Part (A to K). UOB announced R004.26 with effect from 1 April 2026; that date is on the earlier R004.26 file (uob.accounts_services.2026-04-01.json). This later file under the same code is held from at least its first capture, 8 June 2026; when it replaced the earlier file is not stated.",
   "document": {
     "document_key": "uob.accounts_services",
     "title": "Terms and Conditions Governing Accounts and Services (Individual Customers)",
@@ -14,6 +14,8 @@
   "version": {
     "version_label": "BR-333 /F(R004.26), file of 18 May 2026",
     "effective_from": "2026-06-08",
+    "effective_from_basis": "first_capture",
+    "held_from_at_least": "2026-06-08",
     "issued_on": null,
     "retrieved_at": "2026-11-24T04:27:00Z",
     "source_url": "https://www.uob.com.sg/web-resources/personal/pdf/personal/save/tnc-cts.pdf",

@@ -506,3 +506,35 @@ test('wallet_provisioning: one row per bank and card product on its own publishe
     }
   }
 })
+
+// Markers locate a clause; they must not carry the page's wording (only keys, hashes and links are committed).
+const MARKER_MAX = 40
+
+test(`Lane 5 manifests: every text marker is at most ${MARKER_MAX} characters`, () => {
+  for (const { file, m } of manifests) {
+    for (const [i, marker] of m.markers.entries()) {
+      if (marker.at !== undefined) assert.ok(marker.at.length <= MARKER_MAX, `${file} marker ${i} is ${marker.at.length} characters`)
+    }
+    if (m.extraction.end !== undefined) assert.ok(m.extraction.end.length <= MARKER_MAX, `${file} end marker`)
+  }
+})
+
+// How each version's effective_from was set, so the pack can say "held from at least [date]" where only a capture
+// date is known. Proposed for the schema in #43; until Lane 1 adds a column it lives in the manifest.
+const BASES = ['document', 'announcement', 'first_capture', 'undated']
+
+test('Lane 5 manifests: every version records how its effective_from was set', () => {
+  for (const { file, m } of manifests) {
+    const v = m.version as typeof m.version & { effective_from_basis?: string; effective_from_source?: string; held_from_at_least?: string }
+    assert.ok(BASES.includes(v.effective_from_basis ?? ''), `${file}: effective_from_basis ${v.effective_from_basis}`)
+    if (v.effective_from_basis === 'undated') {
+      assert.equal(v.effective_from, null, file)
+      assert.match(v.held_from_at_least ?? '', /^\d{4}-\d{2}-\d{2}$/, `${file}: an undated version records the earliest date it is held from`)
+    } else {
+      assert.match(v.effective_from ?? '', /^\d{4}-\d{2}-\d{2}$/, file)
+    }
+    if (v.effective_from_basis === 'first_capture') assert.equal(v.held_from_at_least, v.effective_from, `${file}: held from at least the capture date`)
+    if (v.effective_from_basis === 'announcement') assert.match(v.effective_from_source ?? '', /^https:\/\//, `${file}: the announcement is linked`)
+    if (v.effective_from_basis !== 'first_capture' && v.effective_from_basis !== 'undated') assert.equal(v.held_from_at_least, undefined, file)
+  }
+})

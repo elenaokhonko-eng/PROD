@@ -14,6 +14,7 @@
   "version": {
     "version_label": "Last updated: May 2025",
     "effective_from": "2025-05-01",
+    "effective_from_basis": "document",
     "issued_on": null,
     "retrieved_at": "2025-07-09T15:28:42Z",
     "source_url": "https://web.archive.org/web/20250709152842/https://www.dbs.com.sg/iwov-resources/pdf/cards/dbs-agreement-2019.pdf",
@@ -42,7 +43,7 @@
       "clause": "dbs.credit_card_agreement/2"
     },
     {
-      "at": "3\\.\\s+LOSS/THEFT\\s+OF\\s+CARD/DISCLOSURE\\s+OF\\s+PIN/ACCOUNT\\s+NUMBER",
+      "at": "^3\\.",
       "clause": "dbs.credit_card_agreement/3"
     },
     {
@@ -50,7 +51,7 @@
       "clause": "dbs.credit_card_agreement/4"
     },
     {
-      "at": "5\\.\\s+TERMINATION\\s+OF\\s+USE\\s+OF\\s+CARD\\s+AND\\s+CARD\\s+ACCOUNT",
+      "at": "^5\\.",
       "clause": "dbs.credit_card_agreement/5"
     },
     {
@@ -66,7 +67,7 @@
       "clause": "dbs.credit_card_agreement/8"
     },
     {
-      "at": "9\\.\\s+TRANSACTIONS\\s+IN\\s+FOREIGN\\s+CURRENCIES\\s+AND\\s+TRANSACTIONS\\s+PROCESSED\\s+OUTSIDE\\s+SINGAPORE",
+      "at": "^9\\.",
       "clause": "dbs.credit_card_agreement/9"
     },
     {
@@ -90,11 +91,11 @@
       "clause": "dbs.credit_card_agreement/14"
     },
     {
-      "at": "15\\.\\s+COMMUNICATION\\s+AND\\s+SERVICE\\s+OF\\s+DOCUMENTS",
+      "at": "^15\\.",
       "clause": "dbs.credit_card_agreement/15"
     },
     {
-      "at": "16\\.\\s+THE\\s+EZ-LINK\\s+FACILITY\\s+\\(if\\s+applicable\\)",
+      "at": "^16\\.",
       "clause": "dbs.credit_card_agreement/16"
     },
     {
@@ -102,7 +103,7 @@
       "clause": "dbs.credit_card_agreement/17"
     },
     {
-      "at": "18\\.\\s+ELECTRONIC\\s+SIGNATURE\\s+INSTRUCTION\\s+SERVICE",
+      "at": "^18\\.",
       "clause": "dbs.credit_card_agreement/18"
     },
     {

@@ -14,6 +14,8 @@
   "version": {
     "version_label": "as captured on 13 August 2026",
     "effective_from": "2026-08-13",
+    "effective_from_basis": "first_capture",
+    "held_from_at_least": "2026-08-13",
     "issued_on": null,
     "retrieved_at": "2026-08-13T09:28:35Z",
     "source_url": "https://web.archive.org/web/20260813092835/https://www.uob.com.sg/personal/cards/services/mobile-wallet-digital-token-authentication.page",
@@ -32,15 +34,15 @@
   },
   "markers": [
     {
-      "at": "^\\s*From 1 July 2025, authentication through SMS One-Time-Password \\(OTP\\) when you add your UOB Mastercard or Visa Card\\(s\\) to your mobile wallets \\(for payments using Apple Pay, Google Pay and Samsung Pay\\) will be progressively changed to Digital Token Authentication via the UOB TMRW app to protect you against potential scams\\.\\s*$",
+      "at": "^\\s*From",
       "clause": "uob.wallet_provisioning/overview.from-1-july-2025-authentication-through"
     },
     {
-      "at": "^\\s*The adding of UOB American Express and UnionPay Card\\(s\\) to mobile wallets is currently not supported\\.\\s*$",
+      "at": "^\\s*The",
       "clause": "uob.wallet_provisioning/overview.the-adding-of-uob-american-express"
     },
     {
-      "at": "^\\s*Please note that SMS OTP authentication will no longer be available\\. Customers without digital access or digital token will be notified to set up their digital access and digital token before proceeding with mobile wallet provisioning\\.\\s*$",
+      "at": "^\\s*Please",
       "clause": "uob.wallet_provisioning/overview.please-note-that-sms-otp-authentication"
     },
     {
@@ -52,79 +54,79 @@
       "clause": null
     },
     {
-      "at": "^\\s*How to authenticate your mobile wallet provisioning request via Digital Token\\?\\s*$",
+      "at": "^\\s*How",
       "clause": "uob.wallet_provisioning/authenticate"
     },
     {
-      "at": "^\\s*Frequently Asked Questions \\(FAQs\\)\\s*$",
+      "at": "^\\s*Frequently",
       "clause": null
     },
     {
-      "at": "^\\s*Adding my UOB Card\\(s\\) to my new device\\(s\\)\\s*$",
+      "at": "^\\s*Adding",
       "clause": null
     },
     {
-      "at": "^\\s*How do I add my UOB Cards to my new device\\(s\\)\\?\\s*$",
+      "at": "^\\s*How",
       "clause": "uob.wallet_provisioning/faq.new-device.how-do-i-add-my-uob-cards-to"
     },
     {
-      "at": "^\\s*I've followed the steps above and activated my TMRW Digital Token, but I am still unable to activate my card in my mobile wallet\\. What should I do\\?\\s*$",
+      "at": "^\\s*I've",
       "clause": "uob.wallet_provisioning/faq.new-device.ive-followed-the-steps-above-and-activated-my"
     },
     {
-      "at": "^\\s*Why do I need to remove my card from the mobile wallet before adding it again\\?\\s*$",
+      "at": "^\\s*Why",
       "clause": "uob.wallet_provisioning/faq.new-device.why-do-i-need-to-remove-my-card"
     },
     {
-      "at": "^\\s*Authenticate your mobile wallet provisioning request with Digital Token\\s*$",
+      "at": "^\\s*Authenticate",
       "clause": null
     },
     {
-      "at": "^\\s*How do I add my UOB Cards into my mobile wallet \\(Apple Pay, Google Pay & Samsung Pay\\) via digital token authentication\\?\\s*$",
+      "at": "^\\s*How",
       "clause": "uob.wallet_provisioning/faq.authenticate.how-do-i-add-my-uob-cards-into"
     },
     {
-      "at": "^\\s*What UOB cards can I add to my mobile wallet\\?\\s*$",
+      "at": "^\\s*What",
       "clause": "uob.wallet_provisioning/faq.authenticate.what-uob-cards-can-i-add-to-my"
     },
     {
-      "at": "^\\s*Can I opt out of Digital Token authentication & continue to validate via SMS One-Time Password \\(OTP\\) authentication when I add my UOB Card to a mobile wallet\\?\\s*$",
+      "at": "^\\s*Can",
       "clause": "uob.wallet_provisioning/faq.authenticate.can-i-opt-out-of-digital-token-authentication"
     },
     {
-      "at": "^\\s*What happens if I do not have mobile banking access & digital token set up\\?\\s*$",
+      "at": "^\\s*What",
       "clause": "uob.wallet_provisioning/faq.authenticate.what-happens-if-i-do-not-have-mobile"
     },
     {
-      "at": "^\\s*Can I add my UOB Cards into my mobile wallet if I have UOB TMRW app installed but digital token is NOT set up\\?\\s*$",
+      "at": "^\\s*Can",
       "clause": "uob.wallet_provisioning/faq.authenticate.can-i-add-my-uob-cards-into-my"
     },
     {
-      "at": "^\\s*Can I add the same UOB Card to mobile wallets on multiple devices \\(such as tablet or other mobile phones\\) which do not have UOB TMRW app & digital token set up\\?\\s*$",
+      "at": "^\\s*Can",
       "clause": "uob.wallet_provisioning/faq.authenticate.can-i-add-the-same-uob-card-to"
     },
     {
-      "at": "^\\s*I am a supplementary cardholder\\. Can I add my UOB Supplementary Card into my mobile wallet\\?\\s*$",
+      "at": "^\\s*I am",
       "clause": "uob.wallet_provisioning/faq.authenticate.i-am-a-supplementary-cardholder-can-i-add"
     },
     {
-      "at": "^\\s*Why can’t I add my card to my mobile wallet\\?\\s*$",
+      "at": "^\\s*Why",
       "clause": "uob.wallet_provisioning/faq.authenticate.why-cant-i-add-my-card-to-my"
     },
     {
-      "at": "^\\s*Why am I not receiving any push notification to verify my request\\?\\s*$",
+      "at": "^\\s*Why",
       "clause": "uob.wallet_provisioning/faq.authenticate.why-am-i-not-receiving-any-push-notification"
     },
     {
-      "at": "^\\s*How do I turn on notifications on my mobile device\\?\\s*$",
+      "at": "^\\s*How",
       "clause": "uob.wallet_provisioning/faq.authenticate.how-do-i-turn-on-notifications-on-my"
     },
     {
-      "at": "^\\s*Why did I receive an email alert or TMRW notification that my UOB Card\\(s\\) have been removed from my Google Wallet when I didn’t remove the card\\?\\s*$",
+      "at": "^\\s*Why",
       "clause": "uob.wallet_provisioning/faq.authenticate.why-did-i-receive-an-email-alert-or"
     },
     {
-      "at": "^\\s*Can I add my UOB Cards to mobile wallets on devices that I do not personally own and control\\?\\s*$",
+      "at": "^\\s*Can",
       "clause": "uob.wallet_provisioning/faq.authenticate.can-i-add-my-uob-cards-to-mobile"
     },
     {
@@ -136,39 +138,39 @@
       "clause": "uob.wallet_provisioning/faq.digital-token.what-is-a-digital-token"
     },
     {
-      "at": "^\\s*Who can sign up for Digital Token\\? How do I set it up\\?\\s*$",
+      "at": "^\\s*Who",
       "clause": "uob.wallet_provisioning/faq.digital-token.who-can-sign-up-for-digital-token-how"
     },
     {
-      "at": "^\\s*I forgot my Digital Token code\\. What should I do\\?\\s*$",
+      "at": "^\\s*I",
       "clause": "uob.wallet_provisioning/faq.digital-token.i-forgot-my-digital-token-code-what-should"
     },
     {
-      "at": "^\\s*I’ve changed my mobile device\\. Do I need to set up my digital token again\\?\\s*$",
+      "at": "^\\s*I’ve",
       "clause": "uob.wallet_provisioning/faq.digital-token.ive-changed-my-mobile-device-do-i-need"
     },
     {
-      "at": "^\\s*My mobile device is lost or stolen\\. What should I do\\?\\s*$",
+      "at": "^\\s*My",
       "clause": "uob.wallet_provisioning/faq.digital-token.my-mobile-device-is-lost-or-stolen-what"
     },
     {
-      "at": "^\\s*Card Deletion from Google Pay due to device inactivity\\s*$",
+      "at": "^\\s*Card",
       "clause": null
     },
     {
-      "at": "^\\s*My UOB Card\\(s\\) has been removed from my Google Pay wallet and it was not initiated by me\\. Why is that so\\?\\s*$",
+      "at": "^\\s*My",
       "clause": "uob.wallet_provisioning/faq.google-inactivity.my-uob-card-s-has-been-removed-from"
     },
     {
-      "at": "^\\s*What constitutes as device inactivity\\?\\s*$",
+      "at": "^\\s*What",
       "clause": "uob.wallet_provisioning/faq.google-inactivity.what-constitutes-as-device-inactivity"
     },
     {
-      "at": "^\\s*How do I add my UOB Card back to my Google Pay\\?\\s*$",
+      "at": "^\\s*How",
       "clause": "uob.wallet_provisioning/faq.google-inactivity.how-do-i-add-my-uob-card-back"
     },
     {
-      "at": "^\\s*We use cookies to improve and customise your browsing experience\\. You are deemed to have consented to our cookies policy if you continue browsing our site\\.\\s*$",
+      "at": "^\\s*We",
       "clause": null
     }
   ],

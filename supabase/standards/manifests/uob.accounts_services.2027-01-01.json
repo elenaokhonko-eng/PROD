@@ -1,5 +1,5 @@
 {
-  "$comment": "UOB Terms and Conditions Governing Accounts and Services (Individual Customers), form code 'BR-333 /F(R007.25)', from the Wayback Machine (capture 21 November 2025, the first capture with this file; PDF dated 31 July 2025). The copy states no effective date; effective_from is the capture date, for ordering, and may be later than the date it took effect: Elena sets it from the bank's notices. One clause per Part (A to K), as for R004.25.",
+  "$comment": "UOB Terms and Conditions Governing Accounts and Services (Individual Customers), form BR-333 /F(R001.27), fetched from the link in UOB's announcement on 24 November 2026. UOB announced the revision (cessation of SGD corporate cheques) with effect from 1 January 2027; effective_from is that date. One clause per Part (A to K), as for the earlier versions.",
   "document": {
     "document_key": "uob.accounts_services",
     "title": "Terms and Conditions Governing Accounts and Services (Individual Customers)",
@@ -12,21 +12,22 @@
     "canonical_url": "https://www.uob.com.sg/web-resources/personal/pdf/personal/save/tnc-cts.pdf"
   },
   "version": {
-    "version_label": "BR-333 /F(R007.25)",
-    "effective_from": "2025-11-21",
+    "version_label": "BR-333 /F(R001.27)",
+    "effective_from": "2027-01-01",
+    "effective_from_basis": "announcement",
+    "effective_from_source": "https://www.uob.com.sg/personal/save/news-and-announcements.page",
     "issued_on": null,
-    "retrieved_at": "2025-11-21T05:53:59Z",
-    "source_url": "https://web.archive.org/web/20251121055359/https://www.uob.com.sg/web-resources/personal/pdf/personal/save/tnc-cts.pdf",
-    "snapshot_path": "uob/archive/accounts-tnc-cts_wb20251121055359.pdf",
-    "content_sha256": "9abcb2c1f5006603ebd324a11322eed0a2a4b1a048adbbfa76fd3cf237de7f81",
-    "provenance": "web_archive",
-    "coverage": "full",
-    "archived_at": "2025-11-21"
+    "retrieved_at": "2026-11-24T11:30:00Z",
+    "source_url": "https://www.uob.com.sg/assets/web-resources/personal/pdf/save/savings-accounts/stash-account/accounts-and-services-tnc-202701.pdf",
+    "snapshot_path": "uob/announcements/accounts-and-services-tnc-202701.pdf",
+    "content_sha256": "97ce109124a1ba9771a29146d1af3f5a3f61d4fd3fb2d35f71bceb65970cfc6d",
+    "provenance": "publisher_site",
+    "coverage": "full"
   },
   "extraction": {
     "format": "pdf",
     "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
-    "remove": ["^United Overseas Bank Limited Co\\. Reg\\. No\\. \\S+ BR-333 ?/F\\(R[0-9.]+\\)\\s*$", "^Page \\d+ of \\d+\\s*$"]
+    "remove": ["^United Overseas Bank Limited Co\\. Reg\\. No\\. \\S+ BR-333 ?/F\\(R[0-9.]+\\)\\s*$", "^Page \\d+ of \\d+\\s*$", "^United Overseas Bank Limited Co\\. Reg\\. No\\. \\S+\\s*$", "^BR-333 ?/F\\(R[0-9.]+\\)\\s*$"]
   },
   "markers": [
     {
@@ -93,7 +94,7 @@
       "instrument_scope": null,
       "effective_from_override": null,
       "pages": [2, 3, 4, 5, 6, 7],
-      "text_sha256": "9776dfe837fac9c05694a1bdf11d99966281c8a05381f6458ce7c78e7890d1de"
+      "text_sha256": "7ed46f1b65451e91975724565215c619adca34f5f9fb4f3253da35f28a96e8f8"
     },
     {
       "clause_key": "uob.accounts_services/c",
@@ -112,8 +113,8 @@
       "tags": [],
       "instrument_scope": null,
       "effective_from_override": null,
-      "pages": [7, 8],
-      "text_sha256": "28f7fc02f4f9fa93cd7ee9d2828d74b13e02da69e3a958d00fa4763d4d257dcd"
+      "pages": [7, 8, 9],
+      "text_sha256": "11ea2413a1c45a81165db2516423bf2d597d145981324625fb53a6f79d540a17"
     },
     {
       "clause_key": "uob.accounts_services/e",
@@ -123,7 +124,7 @@
       "instrument_scope": null,
       "effective_from_override": null,
       "pages": [9],
-      "text_sha256": "64aca78f24606819a7ea56eccba1bafc6d4cf6fc89ec5a8cc49135dd90b38e60"
+      "text_sha256": "da42364887c8da6d86176824895c7fdf7225e81cec98c0b3df98337c2e92df05"
     },
     {
       "clause_key": "uob.accounts_services/f",
@@ -133,7 +134,7 @@
       "instrument_scope": null,
       "effective_from_override": null,
       "pages": [9, 10, 11],
-      "text_sha256": "ef59c0203966d16da1135268dab00f07c1a8dd4d10d6130a7c42bab79fdbb292"
+      "text_sha256": "acdd28b5ca1096238ce09553f9b61496288236c480714b0e5475adc3eec49a92"
     },
     {
       "clause_key": "uob.accounts_services/g",
@@ -153,7 +154,7 @@
       "instrument_scope": null,
       "effective_from_override": null,
       "pages": [13, 14, 15],
-      "text_sha256": "56510f7a9e9e1e6004d66dc7657c41045c5560bc7d6f4cf320b456eecf3b6979"
+      "text_sha256": "a0f036c1e72be96c50ba90c438fa37756db225fc4f1fff7aa6f2bc2c3d48fc86"
     },
     {
       "clause_key": "uob.accounts_services/i",
@@ -173,7 +174,7 @@
       "instrument_scope": null,
       "effective_from_override": null,
       "pages": [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38],
-      "text_sha256": "0e6430d7ad01693a4274817607133642625f1d33be3ea8cac85ae64ec37022d4"
+      "text_sha256": "f3e85f12e80fbe46fca643f9c55ea3e56970e8366a364bbe4b2deae507ba4de9"
     },
     {
       "clause_key": "uob.accounts_services/k",
@@ -183,7 +184,7 @@
       "instrument_scope": null,
       "effective_from_override": null,
       "pages": [38, 39, 40, 41, 42, 43],
-      "text_sha256": "79f24c035f29bcc8f16f5fda38d59e579c9bd16f92dd7ef8ea4638f90082c6e3"
+      "text_sha256": "9c486d8363ffcb937ebf05a27be2cb3c7c602b376f744f374f8e50fe700b2886"
     }
   ]
 }

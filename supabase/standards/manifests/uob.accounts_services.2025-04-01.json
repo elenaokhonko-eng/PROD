@@ -1,5 +1,5 @@
 {
-  "$comment": "UOB Terms and Conditions Governing Accounts and Services (Individual Customers), form code 'BR-333 /F(R004.25)' in the page footer, from the Wayback Machine (capture 2 June 2025; the next capture of this URL, 21 November 2025, is R007.25). The copy states no effective date; effective_from is this capture date, for ordering. Which of R004.25 and R007.25 was in force on 1 October 2025 is not shown by the archive (R007.25's file is dated 31 July 2025): Elena sets the dates from the bank's notices. The numbered clauses are printed in a separate column that the text extraction cannot keep beside their text, so one clause per Part (A to K); Appendix 1 is inside Part K. Page footers are removed.",
+  "$comment": "UOB Terms and Conditions Governing Accounts and Services (Individual Customers), form code 'BR-333 /F(R004.25)' in the page footer, from the Wayback Machine (capture 2 June 2025). effective_from is the date UOB announced on its news and announcements page: the revision (section 43) with effect from 1 April 2025. The form code R004.25 matches that revision. The numbered clauses are printed in a separate column that the text extraction cannot keep beside their text, so one clause per Part (A to K); Appendix 1 is inside Part K. Page footers are removed.",
   "document": {
     "document_key": "uob.accounts_services",
     "title": "Terms and Conditions Governing Accounts and Services (Individual Customers)",
@@ -13,7 +13,9 @@
   },
   "version": {
     "version_label": "BR-333 /F(R004.25)",
-    "effective_from": "2025-06-02",
+    "effective_from": "2025-04-01",
+    "effective_from_basis": "announcement",
+    "effective_from_source": "https://www.uob.com.sg/personal/save/news-and-announcements.page",
     "issued_on": null,
     "retrieved_at": "2025-06-02T07:54:40Z",
     "source_url": "https://web.archive.org/web/20250602075440/https://www.uob.com.sg/web-resources/personal/pdf/personal/save/tnc-cts.pdf",

@@ -14,6 +14,8 @@
   "version": {
     "version_label": "(01/08/2026), reissued",
     "effective_from": "2026-09-29",
+    "effective_from_basis": "first_capture",
+    "held_from_at_least": "2026-09-29",
     "issued_on": null,
     "retrieved_at": "2026-09-29T04:06:38Z",
     "source_url": "https://web.archive.org/web/20260929040638/https://www.dbs.com.sg/iwov-resources/pdf/deposits/termsupdate.pdf",
@@ -34,7 +36,7 @@
       "clause": "dbs.accounts/a"
     },
     {
-      "at": "B\\s+TERMS\\s+AND\\s+CONDITIONS\\s+OF\\s+GENERAL\\s+APPLICATION",
+      "at": "^B",
       "clause": null
     },
     {
@@ -70,11 +72,11 @@
       "clause": "dbs.accounts/b.8"
     },
     {
-      "at": "9\\s+CHARGES,\\s+FEES,\\s+COSTS\\s+AND\\s+TAXES",
+      "at": "^9",
       "clause": "dbs.accounts/b.9"
     },
     {
-      "at": "10\\s+STATEMENTS\\s+OF\\s+ACCOUNT\\s+AND\\s+TRANSACTION\\s+RECORDS",
+      "at": "^10",
       "clause": "dbs.accounts/b.10"
     },
     {
@@ -86,11 +88,11 @@
       "clause": "dbs.accounts/b.12"
     },
     {
-      "at": "13\\s+OPERATION\\s+OF\\s+ACCOUNT\\s+“IN\\s+TRUST”\\s+OTHER\\s+THAN\\s+TRUST\\s+POSBKIDS\\s+ACCOUNT",
+      "at": "^13",
       "clause": "dbs.accounts/b.13"
     },
     {
-      "at": "14\\s+RIGHTS\\s+OF\\s+APPROPRIATION,\\s+DEBIT,\\s+SET-OFF\\s+AND/OR\\s+CONSOLIDATION\\s+OF\\s+ACCOUNTS",
+      "at": "^14",
       "clause": "dbs.accounts/b.14"
     },
     {
@@ -114,7 +116,7 @@
       "clause": "dbs.accounts/b.19"
     },
     {
-      "at": "20\\s+DISCHARGE\\s+OF\\s+PAYMENT\\s+OBLIGATION",
+      "at": "^20",
       "clause": "dbs.accounts/b.20"
     },
     {
@@ -138,7 +140,7 @@
       "clause": "dbs.accounts/b.25"
     },
     {
-      "at": "26\\s+AMENDMENT\\s+OF\\s+TERMS\\s+AND\\s+CONDITIONS",
+      "at": "^26",
       "clause": "dbs.accounts/b.26"
     },
     {
@@ -146,11 +148,11 @@
       "clause": "dbs.accounts/b.27"
     },
     {
-      "at": "28\\s+APPLICATION\\s+OF\\s+OTHER\\s+TERMS\\s+AND\\s+CONDITIONS",
+      "at": "^28",
       "clause": "dbs.accounts/b.28"
     },
     {
-      "at": "29\\s+ELECTRONIC\\s+SIGNATURE\\s+AND\\s+RECORDS",
+      "at": "^29",
       "clause": "dbs.accounts/b.29"
     },
     {
@@ -158,7 +160,7 @@
       "clause": "dbs.accounts/b.30"
     },
     {
-      "at": "31\\s+CONTRACTS\\s+\\(RIGHTS\\s+OF\\s+THIRD\\s+PARTIES\\)\\s+ACT\\s+2001",
+      "at": "^31",
       "clause": "dbs.accounts/b.31"
     },
     {
@@ -166,11 +168,11 @@
       "clause": "dbs.accounts/b.32"
     },
     {
-      "at": "33\\s+COMPLIANCE\\s+WITH\\s+TAX\\s+REQUIREMENTS,\\s+SANCTIONS\\s+AND\\s+REGULATIONS",
+      "at": "^33",
       "clause": "dbs.accounts/b.33"
     },
     {
-      "at": "34\\s+GOVERNING\\s+LAW\\s+AND\\s+JURISDICTION",
+      "at": "^34",
       "clause": "dbs.accounts/b.34"
     },
     {
@@ -178,7 +180,7 @@
       "clause": "dbs.accounts/b.35"
     },
     {
-      "at": "C\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+SINGAPORE\\s+DOLLAR\\s+\\(“S\\$”\\)\\s+FIXED\\s+DEPOSIT\\s+\\(“FD”\\)\\s+ACCOUNT\\s+AND",
+      "at": "^C",
       "clause": null
     },
     {
@@ -190,7 +192,7 @@
       "clause": "dbs.accounts/c.2"
     },
     {
-      "at": "D\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+FOREIGN\\s+CURRENCY\\s+ACCOUNTS",
+      "at": "^D",
       "clause": null
     },
     {
@@ -198,11 +200,11 @@
       "clause": "dbs.accounts/d.1"
     },
     {
-      "at": "2\\s+TAX\\s+AND\\s+CURRENCY\\s+RISK\\s+FOR\\s+CUSTOMER’S\\s+ACCOUNT",
+      "at": "^2",
       "clause": "dbs.accounts/d.2"
     },
     {
-      "at": "E\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+POSB\\s+CURRENT\\s+ACCOUNT\\s+\\(“POSB\\s+CA”\\)",
+      "at": "^E",
       "clause": null
     },
     {
@@ -214,7 +216,7 @@
       "clause": "dbs.accounts/e.2"
     },
     {
-      "at": "F\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+POSBKIDS\\s+ACCOUNT",
+      "at": "^F",
       "clause": null
     },
     {
@@ -230,7 +232,7 @@
       "clause": "dbs.accounts/f.3"
     },
     {
-      "at": "G\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+POSB\\s+SAVE-AS-YOU-EARN\\s+\\(“SAYE”\\)\\s+ACCOUNT",
+      "at": "^G",
       "clause": null
     },
     {
@@ -250,7 +252,7 @@
       "clause": "dbs.accounts/g.4"
     },
     {
-      "at": "H\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+POSB\\s+SAYE\\s+ACCOUNT\\s+\\(ONLY\\s+APPLYING\\s+TO\\s+POSB\\s+SAYE\\s+ACCOUNTS",
+      "at": "^H",
       "clause": null
     },
     {
@@ -278,7 +280,7 @@
       "clause": "dbs.accounts/h.6"
     },
     {
-      "at": "I\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+MYSAVINGS\\s+ACCOUNT\\s+\\(“MSA”\\)",
+      "at": "^I",
       "clause": null
     },
     {
@@ -306,11 +308,11 @@
       "clause": "dbs.accounts/i.6"
     },
     {
-      "at": "J\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+STANDING\\s+INSTRUCTIONS\\s+INCLUDING\\s+GIRO",
+      "at": "^J",
       "clause": null
     },
     {
-      "at": "1\\s+APPLICATION\\s+FOR\\s+STANDING\\s+INSTRUCTIONS",
+      "at": "^1",
       "clause": "dbs.accounts/j.1"
     },
     {
@@ -322,7 +324,7 @@
       "clause": "dbs.accounts/j.3"
     },
     {
-      "at": "K\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+eMYSAVINGS\\s+ACCOUNT\\s+\\+\\s+\\(“eMSA\\+”\\)",
+      "at": "^K",
       "clause": null
     },
     {
@@ -350,7 +352,7 @@
       "clause": "dbs.accounts/k.6"
     },
     {
-      "at": "L\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+eMYSAVINGS\\s+ACCOUNT\\s+\\(MSA\\)\\s+–\\s+Home\\s+\\(“eMSA\\s+–\\s+Home”\\)",
+      "at": "^L",
       "clause": null
     },
     {
@@ -378,7 +380,7 @@
       "clause": "dbs.accounts/l.6"
     },
     {
-      "at": "M\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+MULTIPLIER\\s+ACCOUNT\\s+\\(“MULTIPLIER\\s+TERMS”\\)",
+      "at": "^M",
       "clause": null
     },
     {
@@ -398,7 +400,7 @@
       "clause": "dbs.accounts/m.4"
     },
     {
-      "at": "N\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+RMB\\s+DENOMINATED\\s+DEPOSITS\\s+AND\\s+TELEGRAPHPIC\\s+TRANSFERS",
+      "at": "^N",
       "clause": null
     },
     {
@@ -414,11 +416,11 @@
       "clause": "dbs.accounts/n.3"
     },
     {
-      "at": "4\\s+RISKS\\s+ASSOCIATED\\s+WITH\\s+RMB\\s+DEPOSITS\\s+AND\\s+RMB\\s+TELEGRAPHIC\\s+TRANSFERS",
+      "at": "^4",
       "clause": "dbs.accounts/n.4"
     },
     {
-      "at": "O\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+POSB\\s+CHILD\\s+DEVELOPMENT\\s+ACCOUNT\\s+\\(“POSB\\s+CDA”\\)",
+      "at": "^O",
       "clause": null
     },
     {
@@ -430,7 +432,7 @@
       "clause": "dbs.accounts/o.2"
     },
     {
-      "at": "3\\s+OPENING\\s+OF\\s+ACCOUNTS\\s+TOGETHER\\s+WITH\\s+POSB\\s+CDA",
+      "at": "^3",
       "clause": "dbs.accounts/o.3"
     },
     {
@@ -454,15 +456,15 @@
       "clause": "dbs.accounts/o.8"
     },
     {
-      "at": "9\\s+PERSONAL\\s+DATA\\s+AND\\s+CONSENT\\s+FOR\\s+DISCLOSURE",
+      "at": "^9",
       "clause": "dbs.accounts/o.9"
     },
     {
-      "at": "10\\s+NON-APPLICATION\\s+OF\\s+OTHER\\s+TERMS\\s+RELATING\\s+TO\\s+“IN\\s+TRUST”\\s+ACCOUNTS",
+      "at": "^10",
       "clause": "dbs.accounts/o.10"
     },
     {
-      "at": "P\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+PAYLAH!\\s+ACCOUNT",
+      "at": "^P",
       "clause": null
     },
     {
@@ -474,11 +476,11 @@
       "clause": "dbs.accounts/p.2"
     },
     {
-      "at": "3\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+TRAVELLAH!\\s+DEBIT\\s+CARD\\s+WALLET",
+      "at": "^3",
       "clause": "dbs.accounts/p.3"
     },
     {
-      "at": "Q\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+ELECTRONIC\\s+DEFERRED\\s+PAYMENT\\s+\\(EDP\\)\\s+SERVICE",
+      "at": "^Q",
       "clause": null
     },
     {
@@ -494,7 +496,7 @@
       "clause": "dbs.accounts/q.3"
     },
     {
-      "at": "4\\.\\s+COLLECTION,\\s+USE,\\s+DISCLOSURE\\s+AND\\s+PROCESSING\\s+OF\\s+INFORMATION",
+      "at": "^4\\.",
       "clause": "dbs.accounts/q.4"
     },
     {

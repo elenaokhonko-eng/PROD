@@ -14,6 +14,7 @@
   "version": {
     "version_label": "27 January 2026 edition",
     "effective_from": "2026-01-27",
+    "effective_from_basis": "document",
     "issued_on": "2026-01-27",
     "retrieved_at": "2026-03-03T12:50:49Z",
     "source_url": "https://web.archive.org/web/20260303125049/https://www.mastercard.com/content/dam/mccom/shared/business/support/rules-pdfs/chargeback-guide.pdf",
@@ -30,31 +31,31 @@
   },
   "markers": [
     {
-      "at": "^Definitions\\s*\\nThe terms “Customer” and “Standards” as used in this guide",
+      "at": "^Definitions",
       "clause": "mastercard.chargeback_guide/1.definitions"
     },
     {
-      "at": "^Chargeback Cycles and Arbitration Case Filing\\s*$",
+      "at": "^Chargeback",
       "clause": null
     },
     {
-      "at": "^Chargeback\\s*\\nThe issuer may initiate a chargeback when",
+      "at": "^Chargeback",
       "clause": "mastercard.chargeback_guide/1.chargeback"
     },
     {
-      "at": "^(Single Message\\s*$|In the Single Message System, this is an Advice)",
+      "at": "^Single",
       "clause": null
     },
     {
-      "at": "^Fraud-related Chargebacks \\(Message Reason Codes 4837/37/4870/70/4871/4849/49\\)\\s*\\nThe following sections",
+      "at": "^Fraud-related",
       "clause": "mastercard.chargeback_guide/dms.fraud-related"
     },
     {
-      "at": "^No Cardholder Authorization \\(Message Reason Codes? 4837/37\\)",
+      "at": "^No",
       "clause": "mastercard.chargeback_guide/dms.4837.scope"
     },
     {
-      "at": "^Transactions ineligible for chargeback\\s*$",
+      "at": "^Transactions",
       "clause": "mastercard.chargeback_guide/dms.4837.ineligible"
     },
     {
@@ -62,7 +63,7 @@
       "clause": null
     },
     {
-      "at": "^No Cardholder Authorization(\\s*\\n| This section details the conditions)",
+      "at": "^No",
       "clause": "mastercard.chargeback_guide/dms.4837.issuer-chargeback"
     },
     {
@@ -70,7 +71,7 @@
       "clause": null
     },
     {
-      "at": "^Chip Liability Shift \\(Message Reason Codes? 4870/70\\)",
+      "at": "^Chip",
       "clause": "mastercard.chargeback_guide/dms.4870.scope"
     },
     {
@@ -78,7 +79,7 @@
       "clause": "mastercard.chargeback_guide/dms.4870.definitions"
     },
     {
-      "at": "^Transactions ineligible for chargeback\\s*$",
+      "at": "^Transactions",
       "clause": "mastercard.chargeback_guide/dms.4870.ineligible"
     },
     {
@@ -94,7 +95,7 @@
       "clause": null
     },
     {
-      "at": "^Chip Liability Shift-Lost/Stolen/Never Received Issue \\(NRI\\) Fraud \\(Message Reason Codes? 4871\\)",
+      "at": "^Chip Liability",
       "clause": "mastercard.chargeback_guide/dms.4871.scope"
     },
     {
@@ -102,7 +103,7 @@
       "clause": "mastercard.chargeback_guide/dms.4871.definitions"
     },
     {
-      "at": "^Transactions ineligible for chargeback\\s*$",
+      "at": "^Transactions",
       "clause": "mastercard.chargeback_guide/dms.4871.ineligible"
     },
     {

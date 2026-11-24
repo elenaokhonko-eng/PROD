@@ -14,6 +14,8 @@
   "version": {
     "version_label": "as captured on 22 August 2025",
     "effective_from": "2025-08-22",
+    "effective_from_basis": "first_capture",
+    "held_from_at_least": "2025-08-22",
     "issued_on": null,
     "retrieved_at": "2025-08-22T15:20:01Z",
     "source_url": "https://web.archive.org/web/20250822152001/https://www.ocbc.com/personal-banking/help-and-support/cards/adding-card-to-mobile-wallet",
@@ -36,51 +38,51 @@
       "clause": null
     },
     {
-      "at": "^\\s*Which OCBC cards do these FAQs apply to\\?\\s*$",
+      "at": "^\\s*Which",
       "clause": "ocbc.wallet_provisioning/faq.which-ocbc-cards-do-these-faqs-apply-to"
     },
     {
-      "at": "^\\s*What does it mean to add a card to a mobile wallet\\? How do I do this\\?\\s*$",
+      "at": "^\\s*What",
       "clause": "ocbc.wallet_provisioning/faq.what-does-it-mean-to-add-a-card"
     },
     {
-      "at": "^\\s*Which cards can I add to my mobile wallet\\? What is required\\?\\s*$",
+      "at": "^\\s*Which",
       "clause": "ocbc.wallet_provisioning/faq.which-cards-can-i-add-to-my-mobile"
     },
     {
-      "at": "^\\s*Apple Wallet is a registered trademark of Apple Inc\\.\\s*$",
+      "at": "^\\s*Apple",
       "clause": null
     },
     {
-      "at": "^\\s*Can I still make contactless payments using OCBC cards that were added to my mobile wallet before 31 July 2025\\?\\s*$",
+      "at": "^\\s*Can",
       "clause": "ocbc.wallet_provisioning/faq.can-i-still-make-contactless-payments-using-ocbc"
     },
     {
-      "at": "^\\s*How do I add a card to my mobile wallet\\?\\s*$",
+      "at": "^\\s*How",
       "clause": "ocbc.wallet_provisioning/faq.how-do-i-add-a-card-to-my"
     },
     {
-      "at": "^\\s*Can my OCBC card be added to a mobile wallet on a secondary device\\?\\s*$",
+      "at": "^\\s*Can",
       "clause": "ocbc.wallet_provisioning/faq.can-my-ocbc-card-be-added-to-a"
     },
     {
-      "at": "^\\s*I did not receive the push notification that would allow me to authorise my request to add a card to Apple Wallet/Samsung Wallet\\. What should I do\\?\\s*$",
+      "at": "^\\s*I",
       "clause": "ocbc.wallet_provisioning/faq.i-did-not-receive-the-push-notification-that"
     },
     {
-      "at": "^\\s*What if I missed or did not receive the OCBC app notification\\?\\s*$",
+      "at": "^\\s*What",
       "clause": "ocbc.wallet_provisioning/faq.what-if-i-missed-or-did-not-receive"
     },
     {
-      "at": "^\\s*What if I do not have OCBC OneToken or Online Banking access\\?\\s*$",
+      "at": "^\\s*What",
       "clause": "ocbc.wallet_provisioning/faq.what-if-i-do-not-have-ocbc-onetoken"
     },
     {
-      "at": "^\\s*What notifications will I receive after my OCBC card has been added to a mobile wallet\\?\\s*$",
+      "at": "^\\s*What",
       "clause": "ocbc.wallet_provisioning/faq.what-notifications-will-i-receive-after-my-ocbc"
     },
     {
-      "at": "^\\s*What are the Terms and Conditions that apply\\?\\s*$",
+      "at": "^\\s*What",
       "clause": "ocbc.wallet_provisioning/faq.what-are-the-terms-and-conditions-that-apply"
     }
   ],

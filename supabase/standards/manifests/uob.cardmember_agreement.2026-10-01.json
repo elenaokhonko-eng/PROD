@@ -14,6 +14,7 @@
   "version": {
     "version_label": "Updated 1 October 2026",
     "effective_from": "2026-10-01",
+    "effective_from_basis": "document",
     "issued_on": null,
     "retrieved_at": "2026-11-24T04:28:00Z",
     "source_url": "https://www.uob.com.sg/personal/cards/credit-cards/terms-and-conditions.page",
@@ -39,7 +40,7 @@
       "clause": "uob.cardmember_agreement/2"
     },
     {
-      "at": "3\\.\\s+YOUR\\s+LIABILITY\\s+AND\\s+RESPONSIBILITY",
+      "at": "3\\.",
       "clause": "uob.cardmember_agreement/3"
     },
     {
@@ -55,7 +56,7 @@
       "clause": "uob.cardmember_agreement/6"
     },
     {
-      "at": "7\\.\\s+SUSPENSION\\s+/\\s+CANCELLATION\\s+/\\s+TERMINATION",
+      "at": "7\\.",
       "clause": "uob.cardmember_agreement/7"
     },
     {
@@ -83,7 +84,7 @@
       "clause": "uob.cardmember_agreement/13"
     },
     {
-      "at": "APPENDIX\\s+1\\s+-\\s+FEES\\s+AND\\s+CHARGES\\s+GUIDE",
+      "at": "APPENDIX",
       "clause": "uob.cardmember_agreement/appendix-1"
     }
   ],
