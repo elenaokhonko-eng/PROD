@@ -137,3 +137,15 @@ test("(a) switch off: fact extraction stays on main's fact-extract-v3, so no cas
   assert.ok(source.includes('const extraction = factExtraction()'))
   assert.ok(source.includes('factExtraction().version,'), 'the input hash uses the same version')
 })
+
+test('switch off: document classification keeps main\'s types and definitions (no card authentication record or bureau report type)', () => {
+  const fn = readFileSync('supabase/functions/evidence_processed_v2/index.ts', 'utf8')
+  assert.ok(fn.includes('const UPDATE_SECTIONS = fidrecUpdateSectionsEnabled((name) => Deno.env.get(name));'))
+  assert.ok(fn.includes('const ACTIVE_EVIDENCE_TYPES = UPDATE_SECTIONS ? EVIDENCE_TYPES : EVIDENCE_TYPES.filter((t) => !UPDATE_EVIDENCE_TYPES.has(t));'))
+  assert.ok(fn.includes('const ALLOWED_TYPES = new Set(ACTIVE_EVIDENCE_TYPES);'))
+  assert.ok(fn.includes('return ACTIVE_EVIDENCE_TYPES.join('), 'the prompt lists only the active types')
+  assert.ok(fn.includes('return mapped && ALLOWED_TYPES.has(mapped) ? mapped : null;'), 'a declared new type is not accepted with the switch off')
+  assert.ok(fn.includes('return UPDATE_SECTIONS ? evidenceDefinitionsUpdate() : evidenceDefinitionsMain();'))
+  assert.ok(fn.includes('"- RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA: raw login logs, IP logs, session/device information."'), "main's definition")
+  assert.equal((fn.match(/(?<!ACTIVE_)EVIDENCE_TYPES\.join|new Set\(EVIDENCE_TYPES\)/g) ?? []).length, 0, 'nothing reads the full list directly')
+})
