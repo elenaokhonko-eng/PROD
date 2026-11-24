@@ -124,9 +124,10 @@ function ChecklistItem({
             ref={input}
             type="file"
             multiple
-            className="sr-only"
-            tabIndex={-1}
-            aria-hidden
+            // Hidden like the upload panel's input: the Upload button beside it is the control people use.
+            className="hidden"
+            accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+            disabled={isUploading}
             onChange={(event) => {
               const files = Array.from(event.target.files ?? [])
               event.target.value = ''

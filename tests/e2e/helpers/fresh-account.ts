@@ -214,11 +214,17 @@ export async function payWithTestCard(page: Page, email: string) {
   // GitHub's runners are in the US, where Stripe asks for a country and a ZIP code (it shows neither in Singapore). The
   // release tests pay as a Singapore customer; the postcode always fits the country Stripe ends up with, since a
   // 6-digit postcode under "United States" leaves the form invalid and Pay does nothing (23 Nov 2026 gate run).
-  const country = await visibleIn(page, '#billingCountry')
+  // 24 Nov 2026 run: no country picker was found by id, the ZIP stayed empty, and Stripe also asked for a phone number
+  // (Link's "save my information", ticked by default in the US). Fields are found by id or by their label.
+  const country = await visibleIn(page, '#billingCountry', /^Country or region$/i)
   if (country) await country.selectOption('SG').catch(() => undefined)
   const selected = country ? await country.inputValue().catch(() => null) : null
-  const postal = await visibleIn(page, '#billingPostalCode')
+  const postal = await visibleIn(page, '#billingPostalCode', /^(ZIP|Postal code)$/i)
   if (postal) await postal.fill(selected === 'SG' ? '123456' : '10001')
+  const saveInfo = await visibleIn(page, '#enableStripePass', /Save my information/i)
+  if (saveInfo && (await saveInfo.isChecked().catch(() => false))) await saveInfo.uncheck().catch(() => undefined)
+  const phone = await visibleIn(page, '#phoneNumber', /^Phone( number)?$/i)
+  if (phone && (await phone.inputValue().catch(() => '')) === '') await phone.fill('2015550123')
   // The Pay button can sit inside Stripe's frame too.
   let submitted = false
   for (const scope of [page, ...page.frames().slice(1)]) {
@@ -234,17 +240,32 @@ export async function payWithTestCard(page: Page, email: string) {
   const left = await page.waitForURL((url) => url.hostname !== 'checkout.stripe.com', { timeout: 60_000 }).then(() => true, () => false)
   if (!left) {
     const messages: string[] = []
+    const fields: string[] = []
     for (const scope of [page, ...page.frames().slice(1)]) {
       messages.push(...(await scope.locator('[role="alert"], .FieldError').allInnerTexts().catch(() => [])))
+      // The visible form fields by their attributes only (never their values), so the next failure names the field.
+      fields.push(
+        ...(await scope
+          .locator('input, select')
+          .evaluateAll((elements) =>
+            elements
+              .filter((e) => (e as HTMLElement).offsetParent !== null)
+              .map((e) => ['id', 'name', 'autocomplete', 'placeholder', 'aria-label'].map((a) => e.getAttribute(a) ?? '').join('/')),
+          )
+          .catch(() => [])),
+      )
     }
-    throw new Error(`Stripe Checkout did not accept the payment (country ${selected ?? 'not asked'}): ${messages.filter(Boolean).join(' | ') || 'no message shown'}`)
+    throw new Error(
+      `Stripe Checkout did not accept the payment (country ${selected ?? 'not asked'}): ${messages.filter(Boolean).join(' | ') || 'no message shown'}. Fields shown: ${fields.join('; ')}`,
+    )
   }
 }
 
-async function visibleIn(page: Page, selector: string): Promise<Locator | null> {
+async function visibleIn(page: Page, selector: string, label?: RegExp): Promise<Locator | null> {
   for (const scope of [page, ...page.frames().slice(1)]) {
-    const candidate = scope.locator(selector).first()
-    if (await candidate.isVisible().catch(() => false)) return candidate
+    for (const candidate of [scope.locator(selector).first(), ...(label ? [scope.getByLabel(label).first()] : [])]) {
+      if (await candidate.isVisible().catch(() => false)) return candidate
+    }
   }
   return null
 }
