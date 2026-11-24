@@ -1,0 +1,219 @@
+{
+  "$comment": "UOB Terms and Conditions Governing Digital Services, from the Wayback Machine (capture 4 April 2026, the first with this file; PDF dated 23 March 2026). The copy carries no date; effective_from is the capture date, for ordering: Elena sets it from the bank's notices. One clause per numbered section, cut at its first sub-clause (n.1): the two-column layout moves some headings away from their text, so a section heading can fall at the end of the clause before.",
+  "document": {
+    "document_key": "uob.digital_services",
+    "title": "Terms and Conditions Governing Digital Services",
+    "publisher": "United Overseas Bank Limited",
+    "binding_level": "contract",
+    "applies_to": ["bank"],
+    "instrument_scope": ["account_transfer", "sg_card"],
+    "institution": "uob",
+    "card_scheme": null,
+    "canonical_url": "https://www.uob.com.sg/assets/pdfs/PIB_MBK_TC.pdf"
+  },
+  "version": {
+    "version_label": "undated (PDF of 23 March 2026; first captured 4 April 2026)",
+    "effective_from": "2026-04-04",
+    "effective_from_basis": "first_capture",
+    "held_from_at_least": "2026-04-04",
+    "issued_on": null,
+    "retrieved_at": "2026-04-04T08:01:33Z",
+    "source_url": "https://web.archive.org/web/20260404080133/https://www.uob.com.sg/assets/pdfs/PIB_MBK_TC.pdf",
+    "snapshot_path": "uob/archive/digital-PIB_MBK_TC_wb20260404080133.pdf",
+    "content_sha256": "820a4c109e4fb69576ec73d2a16efa3e4a88123146c65242f5c832dda05c1619",
+    "provenance": "web_archive",
+    "coverage": "full",
+    "archived_at": "2026-04-04"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["^TERMS AND CONDITIONS GOVERNING DIGITAL SERVICES\\s*$", "^\\d{1,2}\\s*$"]
+  },
+  "markers": [
+    {
+      "at": "^THE",
+      "clause": "uob.digital_services/preamble"
+    },
+    {
+      "at": "(?<=^|[ \\t])1\\.1",
+      "clause": "uob.digital_services/1"
+    },
+    {
+      "at": "(?<=^|[ \\t])2\\.1",
+      "clause": "uob.digital_services/2"
+    },
+    {
+      "at": "(?<=^|[ \\t])3\\.1",
+      "clause": "uob.digital_services/3"
+    },
+    {
+      "at": "(?<=^|[ \\t])4\\.1",
+      "clause": "uob.digital_services/4"
+    },
+    {
+      "at": "(?<=^|[ \\t])5\\.1",
+      "clause": "uob.digital_services/5"
+    },
+    {
+      "at": "(?<=^|[ \\t])6\\.1",
+      "clause": "uob.digital_services/6"
+    },
+    {
+      "at": "(?<=^|[ \\t])7\\.1",
+      "clause": "uob.digital_services/7"
+    },
+    {
+      "at": "(?<=^|[ \\t])8\\.1",
+      "clause": "uob.digital_services/8"
+    },
+    {
+      "at": "(?<=^|[ \\t])9\\.1",
+      "clause": "uob.digital_services/9"
+    },
+    {
+      "at": "(?<=^|[ \\t])10\\.1",
+      "clause": "uob.digital_services/10"
+    },
+    {
+      "at": "(?<=^|[ \\t])11\\.1",
+      "clause": "uob.digital_services/11"
+    },
+    {
+      "at": "(?<=^|[ \\t])12\\.1",
+      "clause": "uob.digital_services/12"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "uob.digital_services/preamble",
+      "clause_ref": "Opening notice",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "ff006eff217f24fbd597af82c5803a491633bf934d0e4481fac05ef6b1e24902"
+    },
+    {
+      "clause_key": "uob.digital_services/1",
+      "clause_ref": "clause 1",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1, 2],
+      "text_sha256": "ee5c48fe47cb5e83da148a57c6281c0f3c42c8ca700dc50c3100533a1e4cca36"
+    },
+    {
+      "clause_key": "uob.digital_services/2",
+      "clause_ref": "clause 2",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2, 3, 4, 5, 6],
+      "text_sha256": "634aee66d8ffcfac00e7509521f117a5649d04fadbb59541d9e54a906b8851e5"
+    },
+    {
+      "clause_key": "uob.digital_services/3",
+      "clause_ref": "clause 3",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6, 7],
+      "text_sha256": "81882dad47571f67dd5d8f2921268b2931041d4c08e87b909b836caf0977ffb8"
+    },
+    {
+      "clause_key": "uob.digital_services/4",
+      "clause_ref": "clause 4",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7, 8],
+      "text_sha256": "fdb786eef82ca668d349db513a2c5e0ff24e8417fb26f751df44b99923c37a90"
+    },
+    {
+      "clause_key": "uob.digital_services/5",
+      "clause_ref": "clause 5",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [8, 9],
+      "text_sha256": "9b88bb3170cee832b4cff9cf1170726da8e5a9816ab7d98b2a0355787c785610"
+    },
+    {
+      "clause_key": "uob.digital_services/6",
+      "clause_ref": "clause 6",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9, 10, 11],
+      "text_sha256": "c033b68760a114a2b971ff700c7368055ffd79fefbd5c57958de09e8bca2b419"
+    },
+    {
+      "clause_key": "uob.digital_services/7",
+      "clause_ref": "clause 7",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11, 12],
+      "text_sha256": "5cdd1607082f7e63b0442eeba6e38ad750837f2630f582d583c0dc5ecd9ad572"
+    },
+    {
+      "clause_key": "uob.digital_services/8",
+      "clause_ref": "clause 8",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "bf586b60dfa0c8f1ebdef0eee393284211acbde4d197b4fb2c325eba868f6ac0"
+    },
+    {
+      "clause_key": "uob.digital_services/9",
+      "clause_ref": "clause 9",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12, 13, 14, 15],
+      "text_sha256": "44203463fbe5fdee5b3530aa8e3cae90bc11b78df6a97f7ab2ee4b0d8668321e"
+    },
+    {
+      "clause_key": "uob.digital_services/10",
+      "clause_ref": "clause 10",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [15, 16],
+      "text_sha256": "fca2efb878a063f0b8be4fe4377aa69578e03a2211467f192ef90b639ec5e436"
+    },
+    {
+      "clause_key": "uob.digital_services/11",
+      "clause_ref": "clause 11",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [16, 17],
+      "text_sha256": "e24df260621171cff35ba0751464f8178229d46a8d4fa65d86f245c32076567a"
+    },
+    {
+      "clause_key": "uob.digital_services/12",
+      "clause_ref": "clause 12",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [17, 18, 19, 20, 21, 22, 23, 24],
+      "text_sha256": "02e4f9d59e6806fcf519a592fe0ac54aa77fe57ca4ea75b9089cf912a91e8736"
+    }
+  ]
+}

@@ -1,0 +1,254 @@
+{
+  "$comment": "Draft for Elena. Wording rule (decision 19): the scheme's own short terms in quotation marks, with the section number; \"list\", \"say\", \"require\"; no \"cannot\" or \"bears\". Per edition (brief 3.2 rule 8; review Decision 12): each draft was written against the 24 October 2026 edition only. It does not carry to another edition held (12 April 2025 edition, V1.1; 18 October 2025 edition; 18 October 2025 edition, V1.1; 18 April 2026 edition) until it is reviewed against that edition's text; reviewed_for_editions is empty until Elena reviews. Kept in this sub-folder because Lane 1's seed reader reads one folder of Lane 1's keys; Lane 1 decides how scheme statements are seeded.",
+  "statements": [
+    {
+      "statement_key": "visa.parties",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "Visa's rules say that they govern the relationship between Visa and its Members, the financial institutions that take part in the Visa system, and that they do not 'confer any rights' on third parties (section 1.1.1.5).",
+      "clause_keys": [
+        "visa.core_rules/1.1.1.5",
+        "visa.core_rules/glossary.member"
+      ],
+      "exclusion_clause_keys": [],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ],
+      "check_notes": "Located in this edition at 1.1.1.5 \"Use of the Visa Rules\" (1.1.1.6 in the 2024 edition). The gloss on Members is ours, from the glossary entry."
+    },
+    {
+      "statement_key": "visa.resolve",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "Visa's rules say an issuer presented with a cardholder dispute 'must resolve that Dispute' in accordance with the Visa Rules, applying the protections available under applicable laws or regulations and its customary practices (section 11.2.2).",
+      "clause_keys": [
+        "visa.core_rules/11.2.2"
+      ],
+      "exclusion_clause_keys": [],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ]
+    },
+    {
+      "statement_key": "visa.dispute.permitted",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "Visa's rules say an issuer 'may initiate a Dispute only if all applicable conditions' for the dispute condition are met (section 11.3.2). For a card-absent payment the condition is that 'the Cardholder denies authorization of or participation in' the transaction (Dispute Condition 10.4, section 11.8.5). The time limit is '120 calendar days from the Transaction Processing Date' (section 11.8.5).",
+      "clause_keys": [
+        "visa.core_rules/11.3.2",
+        "visa.core_rules/11.8.5"
+      ],
+      "exclusion_clause_keys": [],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ]
+    },
+    {
+      "statement_key": "visa.report",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "Under the same section the issuer 'must report the Fraud Activity to Visa' before initiating the dispute (section 11.8.5). Section 1.9.4.3 says an issuer reports fraud on approved transactions no later than 60 calendar days from the Transaction Date, or 30 calendar days after receiving the cardholder's dispute notification if that notification is received after the 60 days.",
+      "clause_keys": [
+        "visa.core_rules/11.8.5",
+        "visa.core_rules/1.9.4.3"
+      ],
+      "exclusion_clause_keys": [],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ],
+      "check_notes": "Second sentence is new against the brief: the all-region reporting time limit is in 1.9.4.3 (Core Rules). Elena may prefer it as a separate statement key; that needs a contract change by Lane 6."
+    },
+    {
+      "statement_key": "visa.3ds.authenticated",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "Section 11.8.5 lists, under 'Invalid Disputes' for Dispute Condition 10.4, a 'Secure Electronic Commerce Transaction' processed with Electronic Commerce Indicator 5 where the issuer responded to the authentication request with an 'Authentication Confirmation' using Visa Secure with EMV 3-D Secure and the CAVV was included in the authorisation request.",
+      "clause_keys": [
+        "visa.core_rules/11.8.5",
+        "visa.core_rules/glossary.secure-electronic-commerce-transaction",
+        "visa.core_rules/glossary.authentication-confirmation"
+      ],
+      "exclusion_clause_keys": [],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ],
+      "check_notes": "Table 11-29 (ID 0030254). The pack prints this where the record shows 3-D Secure authentication; the record rarely shows the ECI or CAVV, and the comparison line says so."
+    },
+    {
+      "statement_key": "visa.3ds.attempted",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "The same list includes a 'Non-Authenticated Security Transaction' processed using EMV 3-D Secure with Electronic Commerce Indicator 6, where a CAVV was included and the issuer, or Visa on its behalf, responded with an 'Attempt Response' using Visa Secure; this does not apply to a Non-Reloadable Prepaid Card transaction. The rules define an 'Attempt Response' as a message indicating that the issuer or cardholder is not participating in Visa Secure.",
+      "clause_keys": [
+        "visa.core_rules/11.8.5",
+        "visa.core_rules/glossary.attempt-response",
+        "visa.core_rules/glossary.non-authenticated-security-transaction"
+      ],
+      "exclusion_clause_keys": [],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ]
+    },
+    {
+      "statement_key": "visa.token.authenticated",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "The same list includes a 'Secure Electronic Commerce Transaction' processed using an 'Authenticated Payment Credential' with Electronic Commerce Indicator 5, where the TAVV was included in the authorisation request and the issuer or token requestor approved a cardholder verification request.",
+      "clause_keys": [
+        "visa.core_rules/11.8.5",
+        "visa.core_rules/glossary.authenticated-payment-credential"
+      ],
+      "exclusion_clause_keys": [],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ],
+      "check_notes": "This listed case is an e-commerce payment (ECI 5). A wallet token used in a shop is a card-present payment: Dispute Condition 10.4 does not cover it, and 10.3 covers key-entered card-present payments only."
+    },
+    {
+      "statement_key": "visa.no3ds",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "Where a card-absent transaction is not within the 'Invalid Disputes' list in section 11.8.5, the rules say an issuer 'may initiate' a dispute under Dispute Condition 10.4, subject to the other requirements of that section, including reporting the Fraud Activity to Visa first and the time limit.",
+      "clause_keys": [
+        "visa.core_rules/11.8.5",
+        "visa.core_rules/11.3.2"
+      ],
+      "exclusion_clause_keys": [],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ],
+      "check_notes": "Reworded from the brief to keep the other requirements of 11.8.5 in view; the list also holds items no record shows (for example more than 35 disputes on a credential)."
+    },
+    {
+      "statement_key": "visa.cardholder",
+      "revision": 1,
+      "framework": "scheme",
+      "applies_to_instrument": [
+        "sg_card"
+      ],
+      "text": "A dispute under these rules is between the issuer and the merchant's bank (the acquirer): the rules define a 'Dispute' as a transaction that an issuer returns to an acquirer. The sections held do not set out how a loss is shared between the issuer and the cardholder.",
+      "clause_keys": [
+        "visa.core_rules/glossary.dispute",
+        "visa.core_rules/1.1.1.5"
+      ],
+      "exclusion_clause_keys": [],
+      "status": "draft",
+      "approved_by": null,
+      "approved_at": null,
+      "clauses_as_of": null,
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ]
+    }
+  ]
+}

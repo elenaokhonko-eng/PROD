@@ -1,0 +1,196 @@
+{
+  "$comment": "DBS Terms and Conditions Governing Electronic Services, a web page, from the Wayback Machine (capture 30 September 2025). The page says 'Effective 17 Dec 2024, we have updated our Terms & Conditions Governing Electronic Services'; effective_from is that date. Captures compared by the extracted terms text (the page's markup changes on every capture): this text is unchanged in the captures up to 11 November 2025, so it is the version in force on 1 October 2025. One clause per numbered section (1 to 11), from its heading.",
+  "document": {
+    "document_key": "dbs.electronic_services",
+    "title": "Terms and Conditions Governing Electronic Services",
+    "publisher": "DBS Bank Ltd",
+    "binding_level": "contract",
+    "applies_to": ["bank"],
+    "instrument_scope": ["account_transfer", "sg_card"],
+    "institution": "dbs",
+    "card_scheme": null,
+    "canonical_url": "https://www.dbs.com.sg/personal/deposits/terms-conditions-electronic-services.page"
+  },
+  "version": {
+    "version_label": "effective 17 December 2024",
+    "effective_from": "2024-12-17",
+    "effective_from_basis": "document",
+    "issued_on": null,
+    "retrieved_at": "2025-09-30T14:19:57Z",
+    "source_url": "https://web.archive.org/web/20250930141957/https://www.dbs.com.sg/personal/deposits/terms-conditions-electronic-services.page",
+    "snapshot_path": "dbs/archive/es/es_wb20250930141957.html",
+    "content_sha256": "19fd1d12c247ae0b4e6b73b76bf877f81225b689c99d74fa0c25ad1b304e7fb6",
+    "provenance": "web_archive",
+    "coverage": "full",
+    "archived_at": "2025-09-30"
+  },
+  "extraction": {
+    "format": "html",
+    "extractor": "tags stripped between html_start and html_end (scripts/standards/extract.ts htmlText)",
+    "html_start": "id=\"AboThiAgr_0\"[^>]*>",
+    "html_end": "<div[^>]*id=\"aws-footer-wrapper\"",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "Effective\\s+17\\s+Dec\\s+2024",
+      "clause": null
+    },
+    {
+      "at": "About\\s+This\\s+Agreement",
+      "clause": "dbs.electronic_services/1"
+    },
+    {
+      "at": "What\\s+We\\s+Mean\\s+By",
+      "clause": "dbs.electronic_services/2"
+    },
+    {
+      "at": "^Who",
+      "clause": "dbs.electronic_services/3"
+    },
+    {
+      "at": "^Your Use",
+      "clause": "dbs.electronic_services/4"
+    },
+    {
+      "at": "Protecting\\s+Your\\s+Account",
+      "clause": "dbs.electronic_services/5"
+    },
+    {
+      "at": "^Warranties,",
+      "clause": "dbs.electronic_services/6"
+    },
+    {
+      "at": "Our\\s+Records",
+      "clause": "dbs.electronic_services/7"
+    },
+    {
+      "at": "Fees",
+      "clause": "dbs.electronic_services/8"
+    },
+    {
+      "at": "Termination",
+      "clause": "dbs.electronic_services/9"
+    },
+    {
+      "at": "^How",
+      "clause": "dbs.electronic_services/10"
+    },
+    {
+      "at": "Other\\s+Terms\\s+and\\s+Conditions",
+      "clause": "dbs.electronic_services/11"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "dbs.electronic_services/1",
+      "clause_ref": "clause 1",
+      "heading_path": ["About This Agreement"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "88fea4e4b0a4e33fb2e28ceb7658e5120e35f1db869c8ec41697984565174c8d"
+    },
+    {
+      "clause_key": "dbs.electronic_services/2",
+      "clause_ref": "clause 2",
+      "heading_path": ["What We Mean By"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "a1d5cd406d5207eb2dd5de5d1db588ff6447bcaced32fa65a3adee661521e0e3"
+    },
+    {
+      "clause_key": "dbs.electronic_services/3",
+      "clause_ref": "clause 3",
+      "heading_path": ["Who Can Use Our Electronic Services"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "5f95283150f7cd81bca94a8dc5e4a5b89984c35379c22677f3f4ce55b3fe3ad4"
+    },
+    {
+      "clause_key": "dbs.electronic_services/4",
+      "clause_ref": "clause 4",
+      "heading_path": ["Your Use of Our Electronic Services"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "786a312b2b565aba5e7a9530f3e339cd3aa5253102ca95fa2d2d1a372f1bac07"
+    },
+    {
+      "clause_key": "dbs.electronic_services/5",
+      "clause_ref": "clause 5",
+      "heading_path": ["Protecting Your Account"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "ed706fef5033b445debabf8dfbbf1c4ded948326a32dc02d129b368be78681e0"
+    },
+    {
+      "clause_key": "dbs.electronic_services/6",
+      "clause_ref": "clause 6",
+      "heading_path": ["Warranties, Disclaimer and Limitations"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "c4875bd8703e5748584b0f6401dd6df45881684b123a8657cd75b3a2898afd06"
+    },
+    {
+      "clause_key": "dbs.electronic_services/7",
+      "clause_ref": "clause 7",
+      "heading_path": ["Our Records"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "67108aeabb559cc6d1de666d271fc92ad7b4444395cdaf082bcc2291cff077d5"
+    },
+    {
+      "clause_key": "dbs.electronic_services/8",
+      "clause_ref": "clause 8",
+      "heading_path": ["Fees"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "41be0cdff8e0df2158f3786bbb39facdfddf70429c485f8db95e9aa9281b280d"
+    },
+    {
+      "clause_key": "dbs.electronic_services/9",
+      "clause_ref": "clause 9",
+      "heading_path": ["Termination"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "d3e6a767a1212bf223d3a81985ca3013d930d6d18e9b1bea60ad64892d8ce7b1"
+    },
+    {
+      "clause_key": "dbs.electronic_services/10",
+      "clause_ref": "clause 10",
+      "heading_path": ["How We Use Information About You"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "9b9f55dd3d1b67bcc70d3e137b4bc36627210bf6df18bd099724c96d14ec1420"
+    },
+    {
+      "clause_key": "dbs.electronic_services/11",
+      "clause_ref": "clause 11",
+      "heading_path": ["Other Terms and Conditions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "aa35a7059f3e7540b0ddfd6cfdd4dcccdc8786b2e51d0b3a75ac841102c73676"
+    }
+  ]
+}
