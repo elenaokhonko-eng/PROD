@@ -294,8 +294,8 @@ export const FACT_LABELS: Record<FactKey, string> = {
   charges_on_disputed_amount: "Fees or interest charged on the disputed amount",
   credit_bureau_reports: "Reports to a credit bureau about the disputed amount",
   fidrec_dispute_dates: "Dates of your dispute with FIDReC",
-  // wording awaiting Elena's approval (25 Nov 2026)
-  credit_account_status: "Your card account's status in a credit bureau report",
+  // Approved by Elena, 25 Nov 2026 (AS-5 as changed).
+  credit_account_status: "Your card account's status in a credit bureau report or your bank's letter",
 };
 
 // Facts each stage needs before it can be generated (spec section 7, adapted to the launch set).

@@ -202,16 +202,21 @@ export const NEAREST_VERSION_FALLBACK = (scheme: string, paymentDate: IsoDate, n
 export const afterTheEventsLine = (documentDate: IsoDate): string =>
   `This reply is dated ${formatDate(documentDate)}, after the events in this case.`;
 
-// wording awaiting Elena's approval (25 Nov 2026): the account status a document shows, printed beside EUPG 8.3 and
-// 8.4 with no outcome (contract CREDIT_RECORDS_RULE). The status is the document's own words, verbatim. Without a
-// bureau name: "The credit bureau report shows …"; without a date the "as at" part is left out; a status from the
-// institution's letter: "The institution's letter shows the card account as … as at …".
-export function creditAccountStatusLine(status: Pick<CreditAccountStatus, "asOf" | "statusText" | "bureau" | "source">): string {
+// Approved by Elena (25 Nov 2026, AS-1 to AS-4 as changed): the account status a document shows, printed beside EUPG
+// 8.3 and 8.4 with no outcome (contract CREDIT_RECORDS_RULE). The account is named as the document names it and the
+// status is quoted in the document's own words: "The credit bureau report from [bureau] shows [account] as
+// '[status]' as at [date]." Without a bureau name: "The credit bureau report shows …"; without a date the "as at" part
+// is left out; from the institution's letter: "The institution's letter shows [account] as '[status]' as at [date]."
+// Where the document names no account, "the card account".
+export function creditAccountStatusLine(
+  status: Pick<CreditAccountStatus, "asOf" | "statusText" | "bureau" | "source"> & Partial<Pick<CreditAccountStatus, "accountName">>,
+): string {
   const asAt = status.asOf ? ` as at ${formatDate(status.asOf)}` : "";
   const who = status.source === "institution_letter"
     ? "The institution's letter"
     : `The credit bureau report${status.bureau ? ` from ${status.bureau}` : ""}`;
-  return `${who} shows the card account as ${status.statusText}${asAt}.`;
+  const account = status.accountName?.trim() || "the card account";
+  return `${who} shows ${account} as '${status.statusText}'${asAt}.`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
