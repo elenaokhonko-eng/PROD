@@ -18,6 +18,7 @@ const transactions = [
 
 const card = {
   cardScheme: 'mastercard' as const,
+  amount: null,
   merchantCountry: 'Exampleland',
   sentTo: null,
   deviceLabel: null,
@@ -52,11 +53,11 @@ export const mixedCase = {
       reported_to_bank: confirmed({ value: 'yes' as const, date: '2025-05-22', reference: 'EXAMPLE-REF-0203', channel: 'branch' }),
       bank_reply: confirmed({ status: 'interim' as const, date: '2025-06-05', outcome: null, qualifies: 'no' as const, reference: 'EXAMPLE-REF-0203' }),
       access_events: confirmed([
-        { timestamp: '2025-05-20T10:02:00+08:00', kind: 'login' as const, deviceLabel: 'Browser on laptop EX-LT', deviceRef: 'dev-ex-0201', ip: '192.0.2.33', channel: 'internet banking', authorisedBy: 'password and SMS one-time code', sentTo: 'registered mobile number', relatedTransactionIndex: null },
-        { timestamp: '2025-05-20T10:05:00+08:00', kind: 'limit_changed' as const, deviceLabel: 'Browser on laptop EX-LT', deviceRef: 'dev-ex-0201', ip: '192.0.2.33', channel: 'internet banking', authorisedBy: 'SMS one-time code', sentTo: 'registered mobile number', relatedTransactionIndex: null },
-        { timestamp: '2025-05-20T10:12:00+08:00', kind: 'payment_authenticated' as const, deviceLabel: 'Browser on laptop EX-LT', deviceRef: 'dev-ex-0201', ip: '192.0.2.33', channel: 'internet banking', authorisedBy: 'SMS one-time code', sentTo: 'registered mobile number', relatedTransactionIndex: 0 },
-        { timestamp: '2025-05-20T10:20:00+08:00', kind: 'payment_authenticated' as const, deviceLabel: 'Browser on laptop EX-LT', deviceRef: 'dev-ex-0201', ip: '192.0.2.33', channel: 'internet banking', authorisedBy: 'SMS one-time code', sentTo: 'registered mobile number', relatedTransactionIndex: 1 },
-        { timestamp: '2025-05-22T09:15:00+08:00', kind: 'account_blocked' as const, deviceLabel: null, deviceRef: null, ip: null, channel: 'branch', authorisedBy: null, sentTo: null, relatedTransactionIndex: null },
+        { timestamp: '2025-05-20T10:02:00+08:00', kind: 'login' as const, deviceLabel: 'Browser on laptop EX-LT', deviceRef: 'dev-ex-0201', ip: '192.0.2.33', channel: 'internet banking', authorisedBy: 'password and SMS one-time code', sentTo: 'registered mobile number', tokenRef: null, relatedTransactionIndex: null },
+        { timestamp: '2025-05-20T10:05:00+08:00', kind: 'limit_changed' as const, deviceLabel: 'Browser on laptop EX-LT', deviceRef: 'dev-ex-0201', ip: '192.0.2.33', channel: 'internet banking', authorisedBy: 'SMS one-time code', sentTo: 'registered mobile number', tokenRef: null, relatedTransactionIndex: null },
+        { timestamp: '2025-05-20T10:12:00+08:00', kind: 'payment_authenticated' as const, deviceLabel: 'Browser on laptop EX-LT', deviceRef: 'dev-ex-0201', ip: '192.0.2.33', channel: 'internet banking', authorisedBy: 'SMS one-time code', sentTo: 'registered mobile number', tokenRef: null, relatedTransactionIndex: 0 },
+        { timestamp: '2025-05-20T10:20:00+08:00', kind: 'payment_authenticated' as const, deviceLabel: 'Browser on laptop EX-LT', deviceRef: 'dev-ex-0201', ip: '192.0.2.33', channel: 'internet banking', authorisedBy: 'SMS one-time code', sentTo: 'registered mobile number', tokenRef: null, relatedTransactionIndex: 1 },
+        { timestamp: '2025-05-22T09:15:00+08:00', kind: 'account_blocked' as const, deviceLabel: null, deviceRef: null, ip: null, channel: 'branch', authorisedBy: null, sentTo: null, tokenRef: null, relatedTransactionIndex: null },
       ]),
       card_auth_events: confirmed([
         {
@@ -72,9 +73,9 @@ export const mixedCase = {
           walletProvisioningAuthentication: 'sms_otp' as const,
           walletProvisioningSentTo: 'registered mobile number',
         },
-        { ...card, timestamp: '2025-05-20T11:30:00+08:00', transactionIndex: 2, merchant: 'Example Online Marketplace', entryMode: 'ecommerce' as const, authentication: 'three_ds_otp' as const, authenticationResult: 'authenticated' as const, sentTo: 'registered mobile number' },
-        { ...card, timestamp: '2025-05-21T01:10:00+08:00', transactionIndex: 3, merchant: 'Example Game Credits', entryMode: 'ecommerce' as const, authentication: 'none_recorded' as const, authenticationResult: 'not_known' as const },
-        { ...card, timestamp: '2025-05-21T13:45:00+08:00', transactionIndex: 4, merchant: 'Example Department Store', entryMode: 'wallet_token' as const, authentication: 'wallet_device' as const, authenticationResult: 'authenticated' as const, deviceLabel: 'Phone model EX-400' },
+        { ...card, timestamp: '2025-05-20T11:30:00+08:00', transactionIndex: 2, amount: transactions[2].amount, merchant: 'Example Online Marketplace', entryMode: 'ecommerce' as const, authentication: 'three_ds_otp' as const, authenticationResult: 'authenticated' as const, sentTo: 'registered mobile number' },
+        { ...card, timestamp: '2025-05-21T01:10:00+08:00', transactionIndex: 3, amount: transactions[3].amount, merchant: 'Example Game Credits', entryMode: 'ecommerce' as const, authentication: 'none_recorded' as const, authenticationResult: 'not_known' as const },
+        { ...card, timestamp: '2025-05-21T13:45:00+08:00', transactionIndex: 4, amount: transactions[4].amount, merchant: 'Example Department Store', entryMode: 'wallet_token' as const, authentication: 'wallet_device' as const, authenticationResult: 'authenticated' as const, deviceLabel: 'Phone model EX-400' },
       ]),
       device_recognition: confirmed([
         { deviceRef: 'dev-ex-0201', deviceLabel: 'Browser on laptop EX-LT', firstSeenAt: '2025-05-20T10:02:00+08:00', answer: 'not_mine' as const },
