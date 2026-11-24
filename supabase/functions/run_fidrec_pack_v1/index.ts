@@ -229,6 +229,8 @@ Deno.serve(async (req) => {
           facts,
           evidenceIndex,
           creditBureauReportRead: creditBureauReportReadFrom(caseDocuments),
+          // Each account status cites only the document it was read from (server-side matching on the quote).
+          documents: evidenceIndex.map((e) => ({ id: e.id, text: caseDocuments.find((d) => d.id === e.documentId)?.text ?? null })),
           institutionCode: await institutionCode(supabase, facts),
           ipLocations: await caseIpLocations(supabase, case_id, facts),
           provider: createDbClauseProvider((fn, args) => supabase.rpc(fn, args)),
