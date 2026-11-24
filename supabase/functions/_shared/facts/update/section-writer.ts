@@ -24,6 +24,7 @@ import type {
   IsoDate,
   IsoDateTime,
   NearestClause,
+  QuotedPassage,
   SectionFlag,
   SectionFlagCode,
   SectionId,
@@ -33,6 +34,7 @@ import type {
   StatementLine,
   TwelveHourBlock,
 } from "./contract.ts";
+import { documentDatedAfterEvents, readUnderAsOfRule } from "./contract.ts";
 
 // ---------------------------------------------------------------------------------------------------------------
 // Dates, times, money, gaps
@@ -319,6 +321,52 @@ export class SectionWriter {
   /** A 12-hour block (Decision 4). */
   twelveHours(block: TwelveHourBlock): void {
     this.lines.push({ kind: "twelve_hours", block });
+  }
+
+  /**
+   * A document quoted word for word, with no outcome (Decision 5, Part B). Each clause is read under the document's
+   * as-of rule (`readUnderAsOfRule`) and cited; a clause not held is flagged and left out. With no clause held nothing
+   * prints and it returns false. `caseEventDates` decide whether the document is dated after the events (Decision 6).
+   */
+  async quotation(args: {
+    documentKey: string;
+    clauseKeys: string[];
+    eventDate: IsoDate;
+    generatedOn: IsoDate;
+    caseEventDates: ReadonlyArray<IsoDate | null>;
+    introStatementKey?: string | null;
+    evidenceIds?: string[];
+  }): Promise<boolean> {
+    const passages: QuotedPassage[] = [];
+    let first: { clause: ClauseAsOf; readOn: IsoDate } | null = null;
+    for (const key of args.clauseKeys) {
+      const r = await readUnderAsOfRule(this.input.provider, args.documentKey, key, args.eventDate, args.generatedOn);
+      if (!r.clause) {
+        this.flag("clause_not_held", key, r.readOn);
+        continue;
+      }
+      this.cite(r.clause, r.readOn);
+      first ??= { clause: r.clause, readOn: r.readOn };
+      passages.push({ clauseKey: key, clauseRef: r.clause.clause_ref, text: r.clause.text_content });
+    }
+    if (!first) return false;
+    const rule = await this.input.provider.getAsOfRule(args.documentKey);
+    const documentDate = first.clause.effective_from;
+    const evidenceIds = args.evidenceIds ?? [];
+    this.lines.push({
+      kind: "quotation",
+      quotation: {
+        documentKey: args.documentKey,
+        documentDate,
+        readOn: first.readOn,
+        intro: args.introStatementKey ? await this.readStatement(args.introStatementKey, first.readOn, evidenceIds) : null,
+        passages,
+        sourceUrl: first.clause.source_url,
+        documentDatedAfterEvents: rule === "any_date" ? documentDatedAfterEvents(documentDate, args.caseEventDates) : null,
+        evidenceIds,
+      },
+    });
+    return true;
   }
 
   /** A table row (access records, card authentication records, IP locations). */

@@ -102,6 +102,11 @@ export interface CardAuthEvent {
   timestamp: IsoDateTime | null;
   /** Index into the `transactions` fact. */
   transactionIndex: number | null;
+  /**
+   * The amount as the card record states it (review of 24 Nov 2026, fix list). Null when the line states none (for
+   * example a wallet provisioning line). Printed beside the `transactions` amount, never in place of it.
+   */
+  amount: Money | null;
   cardScheme: CardScheme;
   merchant: string | null;
   merchantCountry: string | null;
@@ -504,6 +509,41 @@ export interface TwelveHourBlock {
   walletCheckPointer: boolean;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// A quoted document (Decision 5, Part B): a document's own words printed word for word, with its date, clause
+// reference and link, and no outcome. For MAS written replies and other `any_date` documents.
+// ---------------------------------------------------------------------------------------------------------------
+
+export interface QuotedPassage {
+  clauseKey: string;
+  clauseRef: string | null;
+  /** The clause text exactly as the provider returns it; never wording written in code. */
+  text: string;
+}
+
+export interface QuotationLine {
+  documentKey: string;
+  /** The document's own date (its version's effective_from), always printed. */
+  documentDate: IsoDate;
+  /** The date the clauses were read for (the generation date for an `any_date` document). */
+  readOn: IsoDate;
+  /** The reviewed statement that introduces the quotation (e.g. `mas.reply.20260113.wallet`), or null. */
+  intro: StatementLine | null;
+  /** The passages held, in the order asked. A quotation with no passage held is not printed (the run is flagged). */
+  passages: QuotedPassage[];
+  sourceUrl: string | null;
+  /** Decision 6: set when the document is dated after the events in the case (the after-the-events line follows). */
+  documentDatedAfterEvents: IsoDate | null;
+  evidenceIds: string[];
+}
+
+/**
+ * Line kinds that carry no comparison outcome (review fix list, items 1, 4, 5): the conduct section's lines, the
+ * 12-hour block and quoted documents. None of them may pass through the comparison endings.
+ */
+export const NO_OUTCOME_LINE_KINDS = ["conduct", "twelve_hours", "quotation"] as const;
+export type NoOutcomeLineKind = (typeof NO_OUTCOME_LINE_KINDS)[number];
+
 export type SectionLine =
   | { kind: "comparison"; comparison: ComparisonLine }
   | { kind: "statement"; statement: StatementLine }
@@ -511,6 +551,8 @@ export type SectionLine =
   | { kind: "conduct"; conduct: ConductLine; evidenceIds: string[] }
   /** Decision 4: one block per activation. */
   | { kind: "twelve_hours"; block: TwelveHourBlock }
+  /** Decision 5, Part B: a document quoted word for word, with no outcome. */
+  | { kind: "quotation"; quotation: QuotationLine }
   /** A fixed line chosen by code, or a numbered step of the sequence (4f). */
   | { kind: "text"; text: string; step: number | null; evidenceIds: string[]; clauseKeys: string[] }
   /** A table row: access records, card authentication records, IP locations. */
@@ -619,6 +661,47 @@ export function documentDatedAfterEvents(documentDate: IsoDate, eventDates: Read
   if (!known.length) return null;
   const last = known.sort()[known.length - 1];
   return documentDate > last ? documentDate : null;
+}
+
+export const AS_OF_RULE_OUTCOMES = ["held", "not_held", "held_after_the_events"] as const;
+export type AsOfRuleOutcome = (typeof AS_OF_RULE_OUTCOMES)[number];
+
+/**
+ * One row of the shared as-of rule table (tests/fixtures/fidrec-update/as-of-rule-cases.json). The fake provider's
+ * test and Lane 1's SQL test both run every row, so the rule is defined by one set of cases.
+ */
+export interface AsOfRuleCase {
+  id: string;
+  standsFor: string;
+  documentKey: string;
+  clauseKey: string;
+  asOfRule: AsOfRule;
+  /** The version's effective_from (for a reply, the reply's date). */
+  documentDate: IsoDate;
+  /** effective_from_override, or null when the clause starts with its document. */
+  clauseStart: IsoDate | null;
+  eventDate: IsoDate;
+  generatedOn: IsoDate;
+  expected: AsOfRuleOutcome;
+}
+
+/**
+ * Decision 6 in one read: the document's as-of rule picks the date, the clause is read as of it, and a clause from an
+ * `any_date` document dated after the event comes back as `held_after_the_events`.
+ */
+export async function readUnderAsOfRule(
+  provider: ClauseProvider,
+  documentKey: string,
+  clauseKey: string,
+  eventDate: IsoDate,
+  generatedOn: IsoDate,
+): Promise<{ outcome: AsOfRuleOutcome; clause: ClauseAsOf | null; readOn: IsoDate }> {
+  const rule = await provider.getAsOfRule(documentKey);
+  const readOn = readDateFor(rule, eventDate, generatedOn);
+  const clause = await provider.getClauseAsOf(clauseKey, readOn);
+  if (!clause) return { outcome: "not_held", clause: null, readOn };
+  const after = rule === "any_date" && documentDatedAfterEvents(clause.effective_from, [eventDate]) !== null;
+  return { outcome: after ? "held_after_the_events" : "held", clause, readOn };
 }
 
 export const STATEMENT_FRAMEWORKS = ["eupg", "srf", "abs_card_code", "mas_reply", "scheme", "institution_terms"] as const;
@@ -914,10 +997,26 @@ export const DECIDED_STATEMENT_KEYS_2026_11_24 = [
 
 /**
  * The term-request purpose for an institution's published page on adding its cards to mobile wallets (Decision 5;
- * the page is a versioned institution document, Decision 7). The purpose list itself lives in Lane 4's
- * institution-terms.ts and the `institution_term_requests.purpose` CHECK (Lane 1; a migration, Elena's OK first).
+ * the page is a versioned institution document, Decision 7).
  */
 export const WALLET_PROVISIONING_PURPOSE = "wallet_provisioning" as const;
+
+/**
+ * Every term-request purpose, named once (`institution_term_requests.purpose`). The first six are those of the
+ * corpus migration's CHECK (20261201120000) and Lane 4's `TERM_PURPOSES` today; `wallet_provisioning` is new
+ * (Decision 5). Lane 4's list should become this constant, Lane 1's migration check should list exactly these, and
+ * Lane 5's seed rows use only these.
+ */
+export const TERM_REQUEST_PURPOSES = [
+  "fault_definition",
+  "customer_security_duty",
+  "liability_unauthorised",
+  "notification_deadline",
+  "dispute_chargeback",
+  "conclusive_evidence",
+  WALLET_PROVISIONING_PURPOSE,
+] as const;
+export type TermRequestPurpose = (typeof TERM_REQUEST_PURPOSES)[number];
 
 /**
  * What the page states, recorded by a person on the request row. The wallet check compares the record with it; one
