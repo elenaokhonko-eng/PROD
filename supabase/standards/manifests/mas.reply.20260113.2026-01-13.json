@@ -1,0 +1,146 @@
+{
+  "$comment": "MAS written reply to a Parliamentary Question on the effectiveness of MAS's requirements on banks to protect consumers from scams, for the sitting of 13 January 2026. A statement of MAS's position, not an instrument. The two sentences the wallet check (review 24 Nov 2026, Decision 5 Part B) prints are each their own clause. Clause text is cut from the private copy of the MAS page.",
+  "document": {
+    "document_key": "mas.reply.20260113",
+    "title": "Written reply to Parliamentary Question on effectiveness of requirements imposed by MAS on banks to protect consumers from scams (13 January 2026)",
+    "publisher": "Monetary Authority of Singapore",
+    "binding_level": "announcement",
+    "applies_to": ["bank", "card_issuer"],
+    "instrument_scope": ["account_transfer", "sg_card"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/news/parliamentary-replies/2026/written-reply-on-effectiveness-of-requirements-imposed-by-mas-on-banks-to-protect-against-scams",
+    "as_of_rule": "any_date"
+  },
+  "version": {
+    "version_label": "13 January 2026",
+    "effective_from": "2026-01-13",
+    "issued_on": "2026-01-13",
+    "retrieved_at": "2026-11-24T09:50:00Z",
+    "source_url": "https://www.mas.gov.sg/news/parliamentary-replies/2026/written-reply-on-effectiveness-of-requirements-imposed-by-mas-on-banks-to-protect-against-scams",
+    "snapshot_path": "mas.reply.20260113/2026-01-13/written-reply-on-effectiveness-of-requirements-imposed-by-mas-on-banks-to-protect-against-scams.html",
+    "content_sha256": "c91605302188d74aa51db4503d34306accedec9230b0787f8a2642856bf8c810",
+    "provenance": "publisher_site",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "html",
+    "extractor": "scripts/standards/extract.ts htmlText (tags stripped, entities decoded)",
+    "html_start": "<div class=\"_mas-typeset contain mas-rte-content m-b:l\">",
+    "html_end": "<p style=\"text-align: center;\">",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "^Question\\s*\\n",
+      "clause": "mas.reply.20260113/question",
+      "skip": true
+    },
+    {
+      "at": "^Answer by ",
+      "clause": null
+    },
+    {
+      "at": "^1\\s",
+      "clause": "mas.reply.20260113/1",
+      "skip": true
+    },
+    {
+      "at": "^2\\s",
+      "clause": "mas.reply.20260113/2",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)We are progressively discontinuing SMS OTPs",
+      "clause": "mas.reply.20260113/2.sms-otp"
+    },
+    {
+      "at": "(?<=\\s)We have also stepped up fraud surveillance",
+      "clause": "mas.reply.20260113/2.surveillance"
+    },
+    {
+      "at": "^3\\s",
+      "clause": "mas.reply.20260113/3",
+      "skip": true
+    },
+    {
+      "at": "^4\\s",
+      "clause": "mas.reply.20260113/4",
+      "skip": true
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.reply.20260113/question",
+      "clause_ref": "Question",
+      "heading_path": ["Question"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "46bee566662f52b7b23090c55353b9561c1d3c19fcc2609174c6f0c11ff3dd32"
+    },
+    {
+      "clause_key": "mas.reply.20260113/1",
+      "clause_ref": "1",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "e547e98a50b4954cde7319f64f75a838fe1f043914da3eb9b073453be3f0f0b5"
+    },
+    {
+      "clause_key": "mas.reply.20260113/2",
+      "clause_ref": "2, first two sentences",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "0edcd01a9330ca84030da44799ffe6d1f9a7a31e653f65b3323d7fcbc3a37c09"
+    },
+    {
+      "clause_key": "mas.reply.20260113/2.sms-otp",
+      "clause_ref": "2, third sentence",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "03809d249764debf423fedd8b7674288372717cd65262f24caf310dcb81acfb0",
+      "note": "First of the two sentences mas.reply.20260113.wallet prints (wallet check, Part B)."
+    },
+    {
+      "clause_key": "mas.reply.20260113/2.surveillance",
+      "clause_ref": "2, last sentence",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "c75d734025ad28d1b08bca396a695a4038dcc0e0879b99bfeb80b8c7be40165b"
+    },
+    {
+      "clause_key": "mas.reply.20260113/3",
+      "clause_ref": "3",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "ad939fad6bca9ee58ad09a0f1297fa10884ef5ab84a6d6bfc460831f18538c53",
+      "note": "Second of the two sentences mas.reply.20260113.wallet prints (wallet check, Part B). Paragraph 3 is that one sentence."
+    },
+    {
+      "clause_key": "mas.reply.20260113/4",
+      "clause_ref": "4",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "aa5d609fbe866423f9b767e51b671c4917aed2e612e71e6e07e38780bbad6cbd"
+    }
+  ]
+}

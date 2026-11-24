@@ -1,0 +1,206 @@
+{
+  "$comment": "MAS written reply to a Parliamentary Question on credit card fraud, for the sitting of 7 January 2025. A statement of MAS's position, not an instrument. Each sentence a statement relies on is its own clause (brief Phase 2). Clause text is cut from the private copy of the MAS page.",
+  "document": {
+    "document_key": "mas.reply.20250107",
+    "title": "Written reply to Parliamentary Question on credit card fraud (7 January 2025)",
+    "publisher": "Monetary Authority of Singapore",
+    "binding_level": "announcement",
+    "applies_to": ["bank", "card_issuer"],
+    "instrument_scope": ["sg_card"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/news/parliamentary-replies/2025/written-reply-to-pq-on-credit-card-fraud",
+    "as_of_rule": "any_date"
+  },
+  "version": {
+    "version_label": "7 January 2025",
+    "effective_from": "2025-01-07",
+    "issued_on": "2025-01-07",
+    "retrieved_at": "2026-11-24T04:20:00Z",
+    "source_url": "https://www.mas.gov.sg/news/parliamentary-replies/2025/written-reply-to-pq-on-credit-card-fraud",
+    "snapshot_path": "mas.reply.20250107/2025-01-07/written-reply-to-pq-on-credit-card-fraud.html",
+    "content_sha256": "d5189d2435c96ee40a79b60bf9f900127ad8be2d6a5a4d188a55621a494577d9",
+    "provenance": "publisher_site",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "html",
+    "extractor": "scripts/standards/extract.ts htmlText (tags stripped, entities decoded)",
+    "html_start": "<div class=\"_mas-typeset contain mas-rte-content m-b:l\">",
+    "html_end": "<p style=\"text-align: center;\">",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "^Question:\\s*\\n",
+      "clause": "mas.reply.20250107/question",
+      "skip": true
+    },
+    {
+      "at": "^Answer by ",
+      "clause": null
+    },
+    {
+      "at": "^1\\.\\s",
+      "clause": "mas.reply.20250107/1",
+      "skip": true
+    },
+    {
+      "at": "^2\\.\\s",
+      "clause": "mas.reply.20250107/2",
+      "skip": true
+    },
+    {
+      "at": "^a\\.\\s",
+      "clause": "mas.reply.20250107/2(a)",
+      "skip": true
+    },
+    {
+      "at": "^b\\.\\s*",
+      "clause": "mas.reply.20250107/2(b)",
+      "skip": true
+    },
+    {
+      "at": "^3\\.\\s",
+      "clause": "mas.reply.20250107/3",
+      "skip": true
+    },
+    {
+      "at": "^a\\.\\s",
+      "clause": "mas.reply.20250107/3(a)",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)This \\$100 limit will not apply",
+      "clause": "mas.reply.20250107/3(a).3ds"
+    },
+    {
+      "at": "^b\\.\\s",
+      "clause": "mas.reply.20250107/3(b)",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)For example, if the merchant",
+      "clause": "mas.reply.20250107/3(b).no3ds"
+    },
+    {
+      "at": "^4\\.\\s",
+      "clause": "mas.reply.20250107/4",
+      "skip": true
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.reply.20250107/question",
+      "clause_ref": "Question",
+      "heading_path": ["Question"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "47306e7820a047e4fb3cc3460c0182bdfc7ff9c5d4a74b6e4758ae43d90727b8"
+    },
+    {
+      "clause_key": "mas.reply.20250107/1",
+      "clause_ref": "1",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "8b64ad0b73a4b675d787cb6da494087149880515c87f9542ed0b64562ba3b2e2"
+    },
+    {
+      "clause_key": "mas.reply.20250107/2",
+      "clause_ref": "2",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "aa466307cbadcd0be18748e75c518f38ba69800cde5f9569d30a8838e9dfd8ef"
+    },
+    {
+      "clause_key": "mas.reply.20250107/2(a)",
+      "clause_ref": "2(a)",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "e05646bc3c9324cfd5450f6c02c1f112ac6e1c743ec23995d0534e1dd2236d24"
+    },
+    {
+      "clause_key": "mas.reply.20250107/2(b)",
+      "clause_ref": "2(b)",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "94aa78148c6b71ea4cc42764444bf144030b5fe043d65efb5d0c1bf570ef8e75"
+    },
+    {
+      "clause_key": "mas.reply.20250107/3",
+      "clause_ref": "3",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "2a48c3b0df803c952563e74197e3a2bbb810b8f0c74bcb785e5cc9733103b16b"
+    },
+    {
+      "clause_key": "mas.reply.20250107/3(a)",
+      "clause_ref": "3(a)",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "97da032ee85b67edeaf6a98a1ccb27082d85fceeab2bad1ad4b153cf7e80abc1"
+    },
+    {
+      "clause_key": "mas.reply.20250107/3(a).3ds",
+      "clause_ref": "3(a), last sentence",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "e4236b2e40815d6a264e1ec6686cd391a57401498b47ec3eb092158c624ddff3",
+      "note": "The sentence mas.reply.20250107.3ds rests on."
+    },
+    {
+      "clause_key": "mas.reply.20250107/3(b)",
+      "clause_ref": "3(b)",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "da6c2e64e116a7711dbc270d8572d58f47121f00ccd349ff9c17765f7c63ccda"
+    },
+    {
+      "clause_key": "mas.reply.20250107/3(b).no3ds",
+      "clause_ref": "3(b), last sentence",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "ef43b2801f216600887c86542bbe13381dc7dabbcd9e276f8a1783c0b63afdb0",
+      "note": "The sentence mas.reply.20250107.no3ds rests on."
+    },
+    {
+      "clause_key": "mas.reply.20250107/4",
+      "clause_ref": "4",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "988e0bb478bb45e29735c32bdbdac9d62ad9d6c415b5036b0c12a9e7b698a82c"
+    }
+  ]
+}

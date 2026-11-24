@@ -1,0 +1,35 @@
+{
+  "$comment": "definition_statements seeds, MAS written reply of 7 January 2025 (brief 4d). Drafts only: scripts/standards/seed.ts never approves. Checked against mas.reply.20250107. Elena approves each.",
+  "statements": [
+    {
+      "statement_key": "mas.reply.20250107.3ds",
+      "revision": 1,
+      "framework": "mas_reply",
+      "applies_to_instrument": ["sg_card"],
+      "text": "In a written reply to Parliament on 7 January 2025, MAS stated that the $100 limit will not apply to a cardholder who unwittingly authenticates a 3DS transaction that turns out to be fraudulent, 'as that would be considered negligent'. The reply does not define gross negligence.",
+      "clause_keys": ["mas.reply.20250107/3(a)", "mas.reply.20250107/3(a).3ds"],
+      "exclusion_clause_keys": [],
+      "note": "Reworded from the brief to keep the reply's own words: 'that turns out to be fraudulent' and 'as that would be considered negligent'. The answer was given by the Deputy Prime Minister as Chairman of MAS and published by MAS."
+    },
+    {
+      "statement_key": "mas.reply.20250107.no3ds",
+      "revision": 1,
+      "framework": "mas_reply",
+      "applies_to_instrument": ["sg_card"],
+      "text": "The same reply states that if the merchant had not enabled 3DS and a transaction was put through without 3DS authentication, the cardholder would generally not be liable.",
+      "clause_keys": ["mas.reply.20250107/3(b).no3ds"],
+      "exclusion_clause_keys": [],
+      "note": "The reply gives this as an example of a disputed online transaction the card issuer investigates (3(b))."
+    },
+    {
+      "statement_key": "mas.reply.20260113.wallet",
+      "revision": 1,
+      "framework": "mas_reply",
+      "applies_to_instrument": ["sg_card"],
+      "text": "In a written reply to Parliament on 13 January 2026, MAS stated:",
+      "clause_keys": ["mas.reply.20260113/2.sms-otp", "mas.reply.20260113/3"],
+      "exclusion_clause_keys": [],
+      "note": "Review wording (Decision 9, wallet check Part B), followed by the two sentences printed word for word from clauses 2.sms-otp and 3, which match the review's quotation. The reply is an any_date document (Decision 6): it prints for earlier events with the 'after the events' line. The answer was given by the Deputy Prime Minister as Chairman of MAS and published by MAS."
+    }
+  ]
+}

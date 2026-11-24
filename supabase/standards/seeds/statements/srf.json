@@ -1,0 +1,84 @@
+{
+  "$comment": "definition_statements seeds, SRF (brief 4d, 4a). Drafts only: scripts/standards/seed.ts never approves. Checked against mas.srf 24 October 2024 and mas.srf.workflow; note says where the wording differs from the brief's draft and why. Elena approves each.",
+  "statements": [
+    {
+      "statement_key": "srf.fault.terms",
+      "revision": 1,
+      "framework": "srf",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "The Shared Responsibility Framework Guidelines do not use the terms negligence, gross negligence or recklessness about the account user.",
+      "clause_keys": ["mas.srf/3.1", "mas.srf/fn12"],
+      "exclusion_clause_keys": [],
+      "note": "Checked: 'negligence' appears once, in footnote 12, about the institution; 'reckless' does not appear. Rests on 3.1 (the account-user paragraph) and footnote 12."
+    },
+    {
+      "statement_key": "srf.fault.userduties",
+      "revision": 1,
+      "framework": "srf",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "Paragraph 3.1 says the account-user duties in Section 3 of the E-Payments User Protection Guidelines apply, and that account users should never give away their credentials and should not click on links in SMS or emails unless they are informational links they are expecting from the institution.",
+      "clause_keys": ["mas.srf/3.1"],
+      "exclusion_clause_keys": [],
+      "note": "3.1: 'never giving away their personal or account credentials to anyone'."
+    },
+    {
+      "statement_key": "srf.fault.allocation",
+      "revision": 1,
+      "framework": "srf",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "Section 6 allocates the loss. The institution is expected to bear a loss arising from its non-compliance with a duty in paragraph 4.2 (paragraph 6.2), and is responsible for a loss arising from its fraud or negligence or its non-compliance with a requirement imposed by MAS (paragraph 6.3). Where the institution has complied and the scam was carried out through SMS, the telecommunications operator is expected to bear a loss arising from its non-compliance with a duty in paragraph 5.2 (paragraph 6.4). Otherwise the account holder bears the loss (paragraph 6.7) and may seek recourse, such as FIDReC (paragraphs 6.8 and 7.11).",
+      "clause_keys": ["mas.srf/6.2", "mas.srf/6.3", "mas.srf/fn12", "mas.srf/6.4", "mas.srf/6.7", "mas.srf/6.8", "mas.srf/7.11"],
+      "exclusion_clause_keys": [],
+      "note": "6.3 refers to EUPG 5.5(a) and (b), set out in footnote 12. 6.7 says the account holder 'should bear' the loss."
+    },
+    {
+      "statement_key": "srf.fault.section6",
+      "revision": 1,
+      "framework": "srf",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "Section 6 refers to the institution's duties in paragraph 4.2 and the operator's duties in paragraph 5.2. It does not refer to the account-user duties in Section 3.",
+      "clause_keys": ["mas.srf/6.1", "mas.srf/6.2", "mas.srf/6.4"],
+      "exclusion_clause_keys": []
+    },
+    {
+      "statement_key": "srf.fidrec.scope",
+      "revision": 1,
+      "framework": "srf",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "MAS's operational workflow for the Framework states that FIDReC's assessment includes non-SRF related obligations, for example obligations under statute, common law, or duties under the E-Payments User Protection Guidelines.",
+      "clause_keys": ["mas.srf.workflow/recourse.fidrec"],
+      "exclusion_clause_keys": [],
+      "note": "The box adds '(specific to FIs and consumers)' after the EUPG."
+    },
+    {
+      "statement_key": "srf.fault.cards",
+      "revision": 1,
+      "framework": "srf",
+      "applies_to_instrument": ["sg_card"],
+      "text": "The responsibility sharing in the Shared Responsibility Framework Guidelines does not apply to transactions on credit, charge and debit cards issued in Singapore (footnote 1).",
+      "clause_keys": ["mas.srf/fn1"],
+      "exclusion_clause_keys": ["mas.srf/fn1"],
+      "note": "Footnote 1 is cited as not applying to cards (exclusion flag, migration 20261203120000)."
+    },
+    {
+      "statement_key": "srf.newdevice.bank",
+      "revision": 1,
+      "framework": "srf",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "The SRF Guidelines and the E-Payments User Protection Guidelines set a cooling-off period, in which high-risk activities cannot be performed, when a digital security token is activated, and real-time alerts for the activation of a digital security token and for high-risk activities. For an account issued by a bank they set neither for a login on a new device; the Guidelines name that trigger only for accounts issued by a relevant payment service provider.",
+      "clause_keys": ["mas.srf/4.2.1", "mas.srf/4.2.2", "mas.eupg/4.7", "mas.eupg/4.9"],
+      "exclusion_clause_keys": [],
+      "note": "Reworded from the brief (4a): the cooling-off is triggered by the token activation and bars high-risk activities; it is not set 'for high-risk activities'. EUPG 4.9 sets no new-device alert for any account; SRF 4.2.1, 4.2.2 and EUPG 4.7 name the new-device login for accounts issued by a relevant payment service provider."
+    },
+    {
+      "statement_key": "srf.highrisk.definition",
+      "revision": 1,
+      "framework": "srf",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "Paragraph 2.1 of the SRF Guidelines says 'high-risk activities' means adding payees, increasing transaction limits, disabling transaction notifications and changing contact information. Paragraph 4.2.1 sets a cooling-off period of at least 12 hours, when a digital security token is activated on a device, in which high-risk activities cannot be performed.",
+      "clause_keys": ["mas.srf/2.1(high-risk-activities)", "mas.srf/4.2.1"],
+      "exclusion_clause_keys": [],
+      "note": "Review wording, unchanged. Checked against mas.srf 24 Oct 2024: 2.1 is a closed definition ('means') with the four activities in longer form; 4.2.1 also covers a login on a new device to an account issued by a relevant payment service provider, which the draft leaves out; the text writes 'cooling off' without a hyphen. Decision 4 prints this in card-only cases; SRF footnote 1 leaves out only the responsibility sharing for cards, so the scope is for Elena. Replaces the proposed srf.highrisk.wallet (never seeded)."
+    }
+  ]
+}
