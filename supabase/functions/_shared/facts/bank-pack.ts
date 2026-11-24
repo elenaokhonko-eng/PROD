@@ -11,7 +11,7 @@ import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
 import type { SnapshotFacts, ValidateOptions } from "./validate-output.ts";
 import type { BankPackUpdate } from "./update/bank-pack-update.ts";
-import { factsForModel, redactServerOnly } from "./update/model-guard.ts";
+import { factsForModel, withoutDeviceAnswers, redactServerOnly } from "./update/model-guard.ts";
 
 export const BANK_PACK_VERSION = "bank_pack_v1";
 export const BANK_PACK_MIN_WORDS = 120;
@@ -59,7 +59,7 @@ export function buildBankPackInput(args: {
 }) {
   const update = args.update ?? null;
   const { fidrec_check: _fidrec, ...input } = buildTier0Input({
-    facts: update ? factsForModel(args.facts) : args.facts,
+    facts: update ? factsForModel(args.facts) : withoutDeviceAnswers(args.facts),
     findings: args.findings,
     storyText: update && args.storyText !== null ? redactServerOnly(args.storyText, update.redact) : args.storyText,
     fidrecCheck: null,

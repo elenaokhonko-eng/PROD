@@ -3,14 +3,15 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import {
   answerCandidates,
   type AnswerRow,
-  buildFactExtractionPrompt,
+  buildFactExtractionPrompt as buildFactExtractionPromptV4,
   carryOverStatus,
   type CurrentFinding,
-  FACT_EXTRACTION_PROMPT_VERSION,
+  FACT_EXTRACTION_PROMPT_VERSION as FACT_EXTRACTION_PROMPT_VERSION_V4,
+  fidrecUpdateSectionsEnabled,
   type FactCandidate,
   type FactKey,
   type FindingStatus,
-  parseFactExtraction,
+  parseFactExtraction as parseFactExtractionV4,
   reconcile,
   type Resolution,
   type SourceType,
@@ -20,8 +21,18 @@ import { generateJson, getOpenAiModel } from "@/lib/server/ai/generate-json"
 import { ModelBudgetExceeded, OUTPUT_CAPS } from "@/lib/server/model-usage"
 import { logger } from "@/lib/logger"
 import { safeErrorText } from "@/lib/server/safe-error"
+import * as extractionV3 from "../../../supabase/functions/_shared/facts/extraction-v3"
 
 const log = logger.withContext({ module: "facts-reconcile" })
+
+// The extraction prompt follows the FIDReC update's switch (FIDREC_UPDATE_SECTIONS_ENABLED, the setting the pack functions
+// read; Elena, 24 Nov 2026). Off: exactly main's fact-extract-v3, so no case is re-extracted and no document is read as a
+// technical record. On: fact-extract-v4, and every case is extracted once more on its next read (model cost).
+export function factExtraction(env: Record<string, string | undefined> = process.env) {
+  return fidrecUpdateSectionsEnabled((name) => env[name])
+    ? { version: FACT_EXTRACTION_PROMPT_VERSION_V4, buildPrompt: buildFactExtractionPromptV4, parse: parseFactExtractionV4 }
+    : { version: extractionV3.FACT_EXTRACTION_PROMPT_VERSION, buildPrompt: extractionV3.buildFactExtractionPrompt, parse: extractionV3.parseFactExtraction }
+}
 
 const STORY_LIMIT = 20_000
 const DOCUMENT_LIMIT = 15_000
@@ -155,7 +166,7 @@ async function loadSources(service: SupabaseClient, caseId: string) {
 
   const inputHash = await sha256Hex(
     [
-      FACT_EXTRACTION_PROMPT_VERSION,
+      factExtraction().version,
       ...sources.map((s) => s.sourceKey).sort(),
       ...[...latestAnswers.values()].map((a) => a.revisionId).sort(),
     ].join("\n"),
@@ -259,7 +270,8 @@ export async function ensureReconciled(
 
   // A run from an earlier extraction prompt is neither reused nor its candidates: the prompt decides what a document
   // may contradict (finding A7), so old candidates would skip the relevance filter.
-  const sameExtraction = lastRun?.prompt_version === FACT_EXTRACTION_PROMPT_VERSION
+  const extraction = factExtraction()
+  const sameExtraction = lastRun?.prompt_version === extraction.version
   if (lastRun && sameExtraction && lastRun.input_hash === inputHash) {
     const rows = await loadCurrentFindings(service, caseId, lastRun.id as string)
     return { runId: lastRun.id as string, findings: rows.map(toCurrent), documentsProcessing }
@@ -268,7 +280,7 @@ export async function ensureReconciled(
   const model = getOpenAiModel()
   const { data: run, error: runError } = await service
     .from("case_fact_reconcile_runs")
-    .insert({ case_id: caseId, input_hash: inputHash, story_revision: storyRevision, model, prompt_version: FACT_EXTRACTION_PROMPT_VERSION })
+    .insert({ case_id: caseId, input_hash: inputHash, story_revision: storyRevision, model, prompt_version: extraction.version })
     .select("id")
     .single()
   if (runError || !run) throw new FactsUnavailableError("Failed to start reconcile run")
@@ -295,8 +307,8 @@ export async function ensureReconciled(
     const extracted = await inBatches(sources, MODEL_CONCURRENCY, async (source) => {
       const cached = reusable.get(source.sourceKey)
       if (cached) return cached
-      const raw = await extractJson(buildFactExtractionPrompt(source.sourceType, source.text), `facts_${source.sourceType}`)
-      const parsed = parseFactExtraction(raw, source.text, { sourceType: source.sourceType, sourceRef: source.sourceRef })
+      const raw = await extractJson(extraction.buildPrompt(source.sourceType, source.text), `facts_${source.sourceType}`)
+      const parsed = extraction.parse(raw, source.text, { sourceType: source.sourceType, sourceRef: source.sourceRef })
       // A source with no facts records a marker so it is not sent to the model again.
       return parsed.length ? parsed : [{ factKey: SCANNED_MARKER, value: {}, sourceType: source.sourceType, sourceRef: source.sourceRef } as unknown as FactCandidate]
     })
@@ -313,7 +325,7 @@ export async function ensureReconciled(
           source_type: c.sourceType,
           source_ref: c.sourceRef,
           model: (c.sourceRef as { sourceKey?: string }).sourceKey ? model : null,
-          prompt_version: FACT_EXTRACTION_PROMPT_VERSION,
+          prompt_version: extraction.version,
         })),
       )
       if (error) throw new FactsUnavailableError("Failed to store candidates")

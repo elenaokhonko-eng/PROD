@@ -20,6 +20,7 @@ import {
   type Stage,
   type Transaction,
   validateFactValue,
+  fidrecUpdateSectionsEnabled,
 } from "@/lib/facts"
 import type { AccessEvent, CardAuthEvent, DeviceRecognition } from "../../../supabase/functions/_shared/facts/update/contract"
 import { ensureReconciled, type ExtractJson, FactsUnavailableError } from "./run-reconcile"
@@ -39,14 +40,26 @@ function sourceLabel(source: { sourceType: string; sourceRef: Record<string, unk
 
 // The FIDReC update's facts belong to the paid stages (brief 3b): the free stage neither shows nor freezes them, so
 // device identifiers and IP addresses never reach the free evaluation.
-export function findingsForStage<T extends { factKey: FactKey }>(findings: readonly T[], stage: Stage): T[] {
-  return stage === "free" ? findings.filter((f) => !PAID_STAGE_ONLY_FACT_KEYS.has(f.factKey)) : [...findings]
+//
+// The update's facts, the device question ("Is this one of your devices?") included, sit behind the update's switch
+// (FIDREC_UPDATE_SECTIONS_ENABLED, the one setting the pack functions read; Elena, 24 Nov 2026). With the switch off the
+// paid stages leave them out as the free stage does: no device question on any screen, no new card or count, nothing
+// that blocks confirmation, and the paid snapshot (and its hash) as on main. `updateFacts` defaults to on so callers
+// that pass nothing behave as before; every call in this file passes the switch.
+export function findingsForStage<T extends { factKey: FactKey }>(findings: readonly T[], stage: Stage, options: { updateFacts?: boolean } = {}): T[] {
+  if (stage === "free" || options.updateFacts === false) return findings.filter((f) => !PAID_STAGE_ONLY_FACT_KEYS.has(f.factKey))
+  return [...findings]
+}
+
+/** The FIDReC update switch as the web app reads it: the same setting and helper as the pack functions. */
+export function updateFactsOn(env: Record<string, string | undefined> = process.env): boolean {
+  return fidrecUpdateSectionsEnabled((name) => env[name])
 }
 
 // The snapshot a stage freezes. Record lines are linked to the confirmed payments where exactly one fits, so the
 // snapshot (and its hash) is the same every time it is built from the same findings.
-export function stageSnapshot(findings: readonly CurrentFinding[], stage: Stage): SnapshotResult {
-  const snapshot = buildSnapshot(findingsForStage(findings, stage), stage)
+export function stageSnapshot(findings: readonly CurrentFinding[], stage: Stage, options: { updateFacts?: boolean } = {}): SnapshotResult {
+  const snapshot = buildSnapshot(findingsForStage(findings, stage, options), stage)
   const facts = snapshot.facts
   const transactions = facts.transactions?.label === "confirmed" ? (facts.transactions.value as Transaction[] | null) : null
   const access = facts.access_events?.label === "confirmed" ? (facts.access_events.value as AccessEvent[] | null) : null
@@ -145,10 +158,11 @@ export async function loadFactsView(
   extractJson?: ExtractJson,
 ): Promise<FactsView> {
   const { runId, findings: all, documentsProcessing } = await ensureReconciled(service, caseId, extractJson)
-  const findings = findingsForStage(all, stage)
+  const updateFacts = updateFactsOn()
+  const findings = findingsForStage(all, stage, { updateFacts })
   const relevant = relevantFindings(findings, stage)
   const latest = await latestSnapshotFor(service, caseId, stage)
-  const snapshot = stageSnapshot(findings, stage)
+  const snapshot = stageSnapshot(findings, stage, { updateFacts })
   const unchanged = Boolean(latest && !snapshot.blocks.length && (await snapshotHash(snapshot.facts)) === latest.hash)
 
   return {
@@ -307,7 +321,7 @@ export async function createSnapshot(
 ): Promise<SnapshotOutcome> {
   const { runId, findings, documentsProcessing } = await ensureReconciled(service, caseId, extractJson)
   if (documentsProcessing > 0) return { ok: false, reason: "documents_processing", documentsProcessing }
-  const snapshot = stageSnapshot(findings, stage)
+  const snapshot = stageSnapshot(findings, stage, { updateFacts: updateFactsOn() })
   if (snapshot.blocks.length) return { ok: false, reason: "facts_unconfirmed", blocks: snapshot.blocks }
 
   const hash = await snapshotHash(snapshot.facts)
@@ -342,7 +356,7 @@ export async function loadCurrentSnapshot(
   const latest = await latestSnapshotFor(service, caseId, stage)
   if (!latest || latest.id !== snapshotId) return null
   const { findings } = await ensureReconciled(service, caseId, extractJson)
-  const current = stageSnapshot(findings, stage)
+  const current = stageSnapshot(findings, stage, { updateFacts: updateFactsOn() })
   if (current.blocks.length || (await snapshotHash(current.facts)) !== latest.hash) return null
   return { id: latest.id, facts: latest.facts as Record<string, unknown> }
 }

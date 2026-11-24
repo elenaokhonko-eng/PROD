@@ -17,6 +17,12 @@ import {
   HarborEdgeAuthError,
   verifyHarborEdgeRequest,
 } from "../_shared/edge-auth.ts";
+import { fidrecUpdateSectionsEnabled } from "../_shared/facts/update/switch.ts";
+// The FIDReC update's switch (FIDREC_UPDATE_SECTIONS_ENABLED; Elena, 24 Nov 2026). Off: the document types and
+// definitions are exactly main's, so no document is classified as a card authentication record or a credit bureau
+// report and the login-record definition is main's.
+const UPDATE_SECTIONS = fidrecUpdateSectionsEnabled((name) => Deno.env.get(name));
+const UPDATE_EVIDENCE_TYPES = new Set(["CARD_AUTHENTICATION_RECORD", "CREDIT_BUREAU_REPORT"]);
 // ==================== EVIDENCE TYPES (EXACTLY YOUR LIST) ====================
 const EVIDENCE_TYPES = [
   "PHISHING_EMAIL_COPY_OR_DESCRIPTION",
@@ -42,7 +48,8 @@ const EVIDENCE_TYPES = [
   "CYBER_EXPERT_REPORT",
   "OTHER"
 ];
-const ALLOWED_TYPES = new Set(EVIDENCE_TYPES);
+const ACTIVE_EVIDENCE_TYPES = UPDATE_SECTIONS ? EVIDENCE_TYPES : EVIDENCE_TYPES.filter((t) => !UPDATE_EVIDENCE_TYPES.has(t));
+const ALLOWED_TYPES = new Set(ACTIVE_EVIDENCE_TYPES);
 function normalizeEvidenceType(t) {
   const s = String(t ?? "OTHER").trim().toUpperCase();
   return ALLOWED_TYPES.has(s) ? s : "OTHER";
@@ -81,7 +88,8 @@ function normalizeEvidenceType(t) {
     // very ambiguous legacy bucket; keep conservative
     "FRAUD_SCREENSHOTS": "PHISHING_EMAIL_COPY_OR_DESCRIPTION"
   };
-  return legacyMap[s] ?? null;
+  const mapped = legacyMap[s] ?? null;
+  return mapped && ALLOWED_TYPES.has(mapped) ? mapped : null;
 }
 function mapToDutyCategory(type) {
   if (type === "SMS_LOG_ALL_TRANSACTION_NOTIFICATIONS" || type === "SMS_LOG_TOKEN_BINDING_NOTIFICATIONS" || type === "SMS_LOG_BANK_ACCOUNT_LIMIT_NOTIFICATIONS" || type === "SMS_LOG_CREDIT_CARD_BLOCKING_NOTIFICATIONS") return "FI_NOTIFICATION_DUTY";
@@ -247,9 +255,20 @@ async function loadContentRow(args) {
   };
 }
 function evidenceTypesBullets() {
-  return EVIDENCE_TYPES.join("\n");
+  return ACTIVE_EVIDENCE_TYPES.join("\n");
 }
 function evidenceDefinitionsBlock() {
+  return UPDATE_SECTIONS ? evidenceDefinitionsUpdate() : evidenceDefinitionsMain();
+}
+// Main's definitions, used with the switch off (the same lines as on main).
+function evidenceDefinitionsMain() {
+  return evidenceDefinitionsUpdate()
+    .split("\n")
+    .filter((line) => !/^- (?:CARD_AUTHENTICATION_RECORD|CREDIT_BUREAU_REPORT):/.test(line))
+    .map((line) => line.startsWith("- RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA:") ? "- RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA: raw login logs, IP logs, session/device information." : line)
+    .join("\n");
+}
+function evidenceDefinitionsUpdate() {
   // Keep it short but explicit so Gemini is less likely to confuse SMS types.
   return `
 - PHISHING_EMAIL_COPY_OR_DESCRIPTION: phishing email content or a written description of it.
