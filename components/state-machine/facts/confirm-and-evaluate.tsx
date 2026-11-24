@@ -11,6 +11,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { qk } from '@/hooks/state-machine/query-keys'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DeviceConfirmation } from '@/app/(case)/app/case/[id]/facts/_components/device-confirmation'
 import { ConfirmFactsPanel } from '@/components/state-machine/facts/confirm-facts-panel'
 import { PACK_NAMES } from '@/components/state-machine/facts/pack-evidence'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
@@ -151,6 +152,9 @@ export function ConfirmAndEvaluate({
           consistent. Please check each one; it takes a few minutes.
         </p>
       </section>
+      {/* The paid stages ask about the devices in the institution's records first: the panel counts that answer as one
+          of the facts left, so without this card it would show "1 fact left" with nothing to answer. */}
+      {stage !== 'free' && <DeviceConfirmation caseId={caseId} stage={stage} />}
       <ConfirmFactsPanel
         caseId={caseId}
         stage={stage}
