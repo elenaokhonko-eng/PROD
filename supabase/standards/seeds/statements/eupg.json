@@ -1,0 +1,74 @@
+{
+  "$comment": "definition_statements seeds, EUPG (brief 4d). Drafts only: scripts/standards/seed.ts never approves. Each was checked against the clause text of mas.eupg 16 December 2024 (manifest mas.eupg.2024-12-16.json); note says where the wording differs from the brief's draft and why. Elena approves each, with clauses_as_of, after the version is verified.",
+  "statements": [
+    {
+      "statement_key": "eupg.fault.term",
+      "revision": 1,
+      "framework": "eupg",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "The E-Payments User Protection Guidelines use the term 'recklessness' (paragraph 5.2). They do not use the term 'gross negligence'.",
+      "clause_keys": ["mas.eupg/5.2"],
+      "exclusion_clause_keys": [],
+      "note": "Checked: 'gross negligence' does not appear in the 16 Dec 2024 text; 'negligence' appears once, in 5.5(a), about the institution."
+    },
+    {
+      "statement_key": "eupg.fault.examples",
+      "revision": 1,
+      "framework": "eupg",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "The Guidelines give examples of recklessness in footnote 20:",
+      "clause_keys": ["mas.eupg/5.2", "mas.eupg/fn20"],
+      "exclusion_clause_keys": [],
+      "note": "Followed by footnote 20 printed from the corpus (brief 4d)."
+    },
+    {
+      "statement_key": "eupg.fault.level1",
+      "revision": 1,
+      "framework": "eupg",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "Under paragraph 5.6 the account holder is not liable for the first S$1,000 of a loss arising from a third party's action or omission. That protection does not apply where the loss arises from an account user's failure to comply with a duty in Section 3.",
+      "clause_keys": ["mas.eupg/5.6"],
+      "exclusion_clause_keys": [],
+      "note": "The paragraph says '$1,000' and 'any third party not referred to in paragraph 5.5'."
+    },
+    {
+      "statement_key": "eupg.fault.level2",
+      "revision": 1,
+      "framework": "eupg",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "Under paragraph 5.2 the account holder is liable for the actual loss where an account user's recklessness was the primary cause of the loss, up to any applicable transaction or daily payment limit agreed with the institution.",
+      "clause_keys": ["mas.eupg/5.2"],
+      "exclusion_clause_keys": []
+    },
+    {
+      "statement_key": "eupg.fault.institution",
+      "revision": 1,
+      "framework": "eupg",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "Under paragraphs 5.4 and 5.5 the account holder is not liable for a loss arising from the institution's fraud or negligence, its non-compliance with a requirement imposed by MAS, or its non-compliance with a duty in Section 4, where the loss does not arise from an account user's failure to comply with Section 3.",
+      "clause_keys": ["mas.eupg/5.4", "mas.eupg/5.5"],
+      "exclusion_clause_keys": [],
+      "note": "5.5(a) also names the institution's employee, agent and outsourcing service provider; 5.5(b) its employee."
+    },
+    {
+      "statement_key": "eupg.fault.reasons",
+      "revision": 1,
+      "framework": "eupg",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "Under paragraph 7.7 the institution's report of the outcome of a disputed investigation gives the reasons for the outcome, which could include how an account user may have been reckless or may not have complied with a duty in Section 3.",
+      "clause_keys": ["mas.eupg/7.7"],
+      "exclusion_clause_keys": [],
+      "note": "Reworded from the brief: 7.7 is the report on a disputed investigation (Section 7), and 7.7(b) says the reasons 'could include' how an account user may have been reckless."
+    },
+    {
+      "statement_key": "eupg.fault.cards",
+      "revision": 1,
+      "framework": "eupg",
+      "applies_to_instrument": ["sg_card"],
+      "text": "Section 5 of the Guidelines does not apply to credit, charge or debit card transactions (paragraph 5.1). For those the Guidelines refer to the ABS Code of Practice for Banks – Credit Cards (footnote 3).",
+      "clause_keys": ["mas.eupg/5.1", "mas.eupg/fn3"],
+      "exclusion_clause_keys": ["mas.eupg/5.1", "mas.eupg/fn3"],
+      "note": "Both clauses are cited as not applying to cards (exclusion flag, migration 20261203120000); their scope is accounts and e-wallets."
+    }
+  ]
+}

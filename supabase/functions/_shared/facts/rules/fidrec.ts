@@ -28,6 +28,19 @@ export const FIDREC_RULES = {
   adjudicationFeeSgd: { individual: 50, charityOrSmallBusiness: 250, cite: "Annex 1, 6.6" },
 } as const;
 
+// The same citations as clause keys in the versioned corpus (fidrec.tor, Terms of Reference v2.2): what
+// standard_rule_citations records (brief section 2; 3.2 rule 7). A sub-rule such as 13(1)(ii) resolves to its rule.
+export const FIDREC_CLAUSE_KEYS: { readonly [K in keyof typeof FIDREC_RULES]: readonly string[] } = {
+  earliestFilingDaysAfterComplaint: ["fidrec.tor/13", "fidrec.tor/4"],
+  filingWindowMonthsAfterFinalReply: ["fidrec.tor/13", "fidrec.tor/5"],
+  finalReplyDefinition: ["fidrec.tor/13"],
+  complainFirst: ["fidrec.tor/4"],
+  subscriberRequired: ["fidrec.tor/4"],
+  awardCapSgd: ["fidrec.tor/29", "fidrec.tor/21"],
+  excludedResolved: ["fidrec.tor/5"],
+  adjudicationFeeSgd: ["fidrec.tor/annex1-6.6"],
+};
+
 export type FidrecAvailability =
   | { available: true; route: "final_reply"; deadline: string; daysLeft: number; deadlineSoon: boolean }
   | { available: true; route: "four_weeks"; deadline: null }

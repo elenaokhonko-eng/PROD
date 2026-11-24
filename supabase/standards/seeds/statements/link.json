@@ -1,0 +1,24 @@
+{
+  "$comment": "definition_statements seeds, link statements (brief 4a, decision 20). Printed after a 'differs' line on an account payment; never for cards. Drafts only: scripts/standards/seed.ts never approves. Elena approves each.",
+  "statements": [
+    {
+      "statement_key": "link.srf_4_2",
+      "revision": 1,
+      "framework": "srf",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "Paragraph 6.2 of the SRF Guidelines: the responsible FI is expected to bear any loss arising from a seemingly authorised transaction if the loss arises from any non-compliance by the responsible FI with any duty set out in paragraph 4.2.",
+      "clause_keys": ["mas.srf/6.2"],
+      "exclusion_clause_keys": [],
+      "note": "Follows 6.2's words; 6.2 ends 'of these Guidelines'."
+    },
+    {
+      "statement_key": "link.eupg_s4",
+      "revision": 1,
+      "framework": "eupg",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "Paragraphs 5.4 and 5.5(c) of the E-Payments User Protection Guidelines: the account holder is not liable for a loss arising from non-compliance by the responsible FI with any duty in Section 4, where the loss does not arise from an account user's failure to comply with Section 3.",
+      "clause_keys": ["mas.eupg/5.4", "mas.eupg/5.5"],
+      "exclusion_clause_keys": []
+    }
+  ]
+}

@@ -93,6 +93,42 @@ const R = {
   remedies: { code: "other_remedies", cite: "G paras 6.8, 7.11; E paras 5.2-5.6; R para 6.11(d)" },
 };
 
+// The same citations as clause keys (standard_clauses.clause_key), by reason code: what the versioned corpus resolves
+// and what standard_rule_citations records (brief section 2; 3.2 rule 7). The cite text above stays the reader's label.
+// A paragraph's lettered limb resolves to the whole paragraph or definition. G = mas.srf, R = mas.srf_response,
+// CP = mas.srf_consultation, E = mas.eupg. before_effective_date rests on the version's effective date, not a clause.
+export const SRF_REASON_CODES: readonly string[] = Object.values(R).map((r) => r.code);
+
+export const SRF_CLAUSE_KEYS: Readonly<Record<string, readonly string[]>> = {
+  srf_scope: ["mas.srf/2.1(seemingly-authorised-transaction)"],
+  protected_account: [
+    "mas.srf/2.1(protected-account)",
+    "mas.srf/fn2",
+    "mas.srf/2.1(relevant-payment-service-provider)",
+    "mas.srf_response/8.4",
+  ],
+  sg_card_excluded: ["mas.srf/fn1", "mas.srf_response/8.3"],
+  card_rules: ["abs.card_code/5", "abs.card_code/6", "mas.eupg/1.2", "mas.eupg/fn3", "mas.eupg/5.1", "mas.eupg/4.1"],
+  malware_excluded: ["mas.srf_response/3.4", "mas.srf_consultation/4.4"],
+  non_digital_excluded: ["mas.srf_response/3.5", "mas.srf_consultation/4.4"],
+  credentials_given_directly: ["mas.srf/2.1(seemingly-authorised-transaction)", "mas.srf_consultation/4.4"],
+  authorised_scam_excluded: ["mas.srf_consultation/4.4", "mas.eupg/fn4"],
+  private_person_impersonated: ["mas.srf/2.1(legitimate-business-or-government-entity)"],
+  before_effective_date: [],
+  telco_sms: ["mas.srf/6.2", "mas.srf/6.3", "mas.srf/6.4", "mas.srf/6.5", "mas.srf/7.11", "mas.srf/2.1(sms)", "mas.srf_response/fn2"],
+  telco_not_assessed: ["mas.srf/2.1(sms)"],
+  other_remedies: [
+    "mas.srf/6.8",
+    "mas.srf/7.11",
+    "mas.eupg/5.2",
+    "mas.eupg/5.3",
+    "mas.eupg/5.4",
+    "mas.eupg/5.5",
+    "mas.eupg/5.6",
+    "mas.srf_response/6.11",
+  ],
+};
+
 const AUTHORISED_TYPES: ScamType[] = ["investment", "job", "romance", "ecommerce"];
 const DIGITAL_CHANNELS: PhishingChannel[] = ["sms", "email", "messaging_app", "social_media"];
 
