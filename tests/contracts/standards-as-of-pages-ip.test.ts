@@ -87,8 +87,8 @@ test(EUPG_LATER_START_TEST, { skip: !process.env.STANDARDS_TEST_PSQL }, () => {
   assert.match(run.stdout, /standards as-of rule: all checks passed/)
 })
 
-test('the MAS replies of 7 January 2025 and 13 January 2026 are read on any date', () => {
-  for (const f of ['mas.reply.20250107.2025-01-07.json', 'mas.reply.20260113.2026-01-13.json']) {
+test('the MAS replies of 7 January 2025, 13 January 2026 and 3 February 2026 are read on any date', () => {
+  for (const f of ['mas.reply.20250107.2025-01-07.json', 'mas.reply.20260113.2026-01-13.json', 'mas.reply.20260203.2026-02-03.json']) {
     assert.equal(readManifest(`supabase/standards/manifests/${f}`).document.as_of_rule, 'any_date', f)
   }
 })
@@ -123,4 +123,34 @@ test('the loader checks as_of_rule, the published-page institution and the archi
   assert.match(sql, /manifest_path, archived_at\)/)
   assert.match(sql, /'2025-10-01'::date/)
   assert.match(sql, /'any_date'/)
+})
+
+test('the MAS reply of 3 February 2026 prints for an earlier event, marked as after the events', { skip: !process.env.STANDARDS_TEST_PSQL }, () => {
+  // The loaded version is a draft and drafts are never read, so a synthetic copy carries the manifest's own rule and
+  // date through the database read. Rolled back.
+  const m = readManifest('supabase/standards/manifests/mas.reply.20260203.2026-02-03.json')
+  assert.equal(m.document.as_of_rule, 'any_date')
+  const date = m.version.effective_from as string
+  const sql = `BEGIN;
+INSERT INTO public.standard_documents (document_key, title, publisher, binding_level, as_of_rule)
+VALUES ('test.reply_20260203', 'Synthetic copy', 'Synthetic', '${m.document.binding_level}', '${m.document.as_of_rule}');
+INSERT INTO public.standard_document_versions (document_id, version_label, effective_from, provenance)
+SELECT id, 'v1', '${date}', 'publisher_site' FROM public.standard_documents WHERE document_key = 'test.reply_20260203';
+INSERT INTO public.standard_clauses (version_id, clause_key, text_content, text_sha256)
+SELECT v.id, 'test.reply_20260203/3.hold', 'Synthetic sentence.', '' FROM public.standard_document_versions v
+JOIN public.standard_documents d ON d.id = v.document_id WHERE d.document_key = 'test.reply_20260203';
+UPDATE public.standard_document_versions v SET status = 'verified', source_url = 'https://example.test/r.html',
+  snapshot_path = 'synthetic/r.html', content_sha256 = repeat('f', 64), retrieved_at = now(), verified_by = 'synthetic', verified_at = now()
+FROM public.standard_documents d WHERE d.id = v.document_id AND d.document_key = 'test.reply_20260203';
+\\pset format unaligned
+\\pset tuples_only on
+SELECT 'early=' || outcome || '/' || read_on FROM public.read_clause_under_as_of_rule_v1('test.reply_20260203/3.hold', '2025-10-01', '2026-11-24');
+SELECT 'same=' || outcome FROM public.read_clause_under_as_of_rule_v1('test.reply_20260203/3.hold', '${date}', '2026-11-24');
+ROLLBACK;
+`
+  const run = spawnSync(process.env.STANDARDS_TEST_PSQL as string, { shell: true, input: sql, encoding: 'utf8' })
+  assert.equal(run.status, 0, run.stderr)
+  assert.doesNotMatch(run.stderr, /ERROR/, run.stderr)
+  assert.match(run.stdout, /early=held_after_the_events\/2026-11-24/)
+  assert.match(run.stdout, /^same=held$/m)
 })

@@ -9,7 +9,8 @@
     "instrument_scope": ["account_transfer"],
     "institution": null,
     "card_scheme": null,
-    "canonical_url": "https://www.mas.gov.sg/news/parliamentary-replies/2026/written-reply-to-pqs-on-srf-and-fraud-surveillance"
+    "canonical_url": "https://www.mas.gov.sg/news/parliamentary-replies/2026/written-reply-to-pqs-on-srf-and-fraud-surveillance",
+    "as_of_rule": "any_date"
   },
   "version": {
     "version_label": "3 February 2026",
