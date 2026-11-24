@@ -20,6 +20,7 @@ import type {
   ClauseCitation,
   ComparisonLine,
   ConductLine,
+  DeviceOwnership,
   DeviceRecognitionAnswer,
   IsoDate,
   IsoDateTime,
@@ -184,6 +185,12 @@ export function deviceRecognitionSentence(answer: DeviceRecognitionAnswer | null
 export const SCHEME_STANDING_SENTENCE =
   "Card scheme rules are an agreement between the card scheme and the card issuer. The cardholder is not a party to them. They are shown here as the process available to the issuer.";
 
+/**
+ * Decision 1 (verbatim): for card payments approved on a device whose state is not `mine` (contract.ts
+ * `deviceOwnership`). No "refers to" line follows it.
+ */
+export const RECORDS_DO_NOT_SHOW_WHO_APPROVED = "The records do not show who approved these payments.";
+
 // wording awaiting Elena's approval (review of 24 Nov 2026, "Still open" item 1)
 /** The fallback where the edition in force on the payment date is not held (brief 3.2 rule 6; Decision 12). */
 export const NEAREST_VERSION_FALLBACK = (scheme: string, paymentDate: IsoDate, nearestEditionDate: IsoDate): string =>
@@ -311,6 +318,29 @@ export class SectionWriter {
   /** A comparison line, already built (Record, Expected from the provider, outcome). Not for the conduct section. */
   comparison(comparison: ComparisonLine): void {
     this.lines.push({ kind: "comparison", comparison });
+  }
+
+  /**
+   * A comparison that rests on the device being the complainant's (`requires: 'mine'`) or not (`requires: 'not_mine'`).
+   * It prints only when the device state is exactly that. With `not_shown` the section's "The records do not show …"
+   * line prints instead; with the opposite state the row does not apply and nothing prints. Never a comparison on
+   * `not_shown`. Returns whether the comparison printed.
+   */
+  comparisonOnDevice(args: {
+    ownership: DeviceOwnership;
+    requires: "mine" | "not_mine";
+    comparison: ComparisonLine;
+    /** The full "The records do not show …" sentence, chosen by the section. Printed when the state is `not_shown`. */
+    notShownLine: string;
+  }): boolean {
+    if (args.ownership === args.requires) {
+      this.comparison(args.comparison);
+      return true;
+    }
+    if (args.ownership === "not_shown") {
+      this.text(args.notShownLine, { evidenceIds: args.comparison.evidenceIds, clauseKeys: [args.comparison.clauseKey] });
+    }
+    return false;
   }
 
   /** A conduct-section line (Decision 1). */
