@@ -15,7 +15,7 @@ import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.
 import { bankPackTransactions } from "./bank-pack.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
 import { normaliseDate } from "./normalise.ts";
-import { factsForModel, withoutDeviceAnswers, isTechnicalRecordDocument, redactServerOnly } from "./update/model-guard.ts";
+import { factsForModel, isServerOnlyDocument, redactServerOnly, withoutDeviceAnswers } from "./update/model-guard.ts";
 import type { PinnedCitation, PinnedStatement, PrintedSection, RenderedUpdate } from "./update/render.ts";
 import {
   DATE_PATTERN,
@@ -464,7 +464,7 @@ export function modelDocumentExcerpts(
 ) {
   if (!update) return documentExcerpts(index, documents);
   const kept = documents
-    .filter((d) => !isTechnicalRecordDocument(d.evidenceType))
+    .filter((d) => !isServerOnlyDocument(d.evidenceType))
     .map((d) => ({ ...d, text: d.text === null ? null : redactServerOnly(d.text, update.redact) }));
   return documentExcerpts(index.filter((e) => kept.some((d) => d.id === e.documentId)), kept);
 }

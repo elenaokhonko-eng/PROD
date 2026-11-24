@@ -227,6 +227,8 @@ export const UPDATE_RECONCILED_FACT_KEYS = [
   "charges_on_disputed_amount",
   "credit_bureau_reports",
   "fidrec_dispute_dates",
+  // The account's status as a credit bureau report shows it (Lane 6 contract, 25 Nov 2026; Lane 2 extracts it).
+  "credit_account_status",
 ] as const satisfies readonly FactKey[];
 
 export const PAID_STAGE_ONLY_FACT_KEYS: ReadonlySet<FactKey> = new Set<FactKey>([...UPDATE_RECONCILED_FACT_KEYS, "device_recognition"]);
@@ -241,6 +243,8 @@ export const DOCUMENT_ONLY_FACT_KEYS: ReadonlySet<FactKey> = new Set<FactKey>([
   "balance_before_first_disputed_payment",
   "disputed_amount_payment_requests",
   "charges_on_disputed_amount",
+  // From a credit bureau report or the institution's letter only (25 Nov 2026).
+  "credit_account_status",
 ]);
 
 // List facts whose entries from different sources are combined, never set against each other: two statements show
@@ -249,6 +253,7 @@ export const COMBINED_LIST_FACT_KEYS: ReadonlySet<FactKey> = new Set<FactKey>([
   "disputed_amount_payment_requests",
   "charges_on_disputed_amount",
   "credit_bureau_reports",
+  "credit_account_status",
 ]);
 
 // The record lists themselves: device identifiers and IP addresses, personal data that may be a third party's
@@ -289,6 +294,8 @@ export const FACT_LABELS: Record<FactKey, string> = {
   charges_on_disputed_amount: "Fees or interest charged on the disputed amount",
   credit_bureau_reports: "Reports to a credit bureau about the disputed amount",
   fidrec_dispute_dates: "Dates of your dispute with FIDReC",
+  // wording awaiting Elena's approval (25 Nov 2026)
+  credit_account_status: "Your card account's status in a credit bureau report",
 };
 
 // Facts each stage needs before it can be generated (spec section 7, adapted to the launch set).

@@ -262,6 +262,83 @@ export interface FidrecDisputeDates {
   completedOrClosedOn: IsoDate | null;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// The account's status as a credit bureau report shows it (Elena, 25 Nov 2026; the "account overdue" fact). A report
+// that shows the card account overdue, without naming the disputed amount, is not a report of non-payment of the
+// disputed amount (`credit_bureau_reports`, #81), but it bears on EUPG 8.3 and 8.4: it is printed beside them as a
+// record line with no outcome, and it decides whether those rows may ever read "matches" (CREDIT_RECORDS_RULE below).
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Where a status comes from. Read from documents only: a credit bureau report or the institution's letter. */
+export const CREDIT_ACCOUNT_STATUS_SOURCES = ["credit_bureau_report", "institution_letter"] as const;
+export type CreditAccountStatusSource = (typeof CREDIT_ACCOUNT_STATUS_SOURCES)[number];
+
+/**
+ * One account status a document shows, for example "30 days overdue" as at 15 October 2025. Lane 2 extracts it; it is
+ * never sent to the model (a record value, printed by the server only).
+ */
+export interface CreditAccountStatus {
+  /** The date the document gives the status for ("as at"); null when it gives none. */
+  asOf: IsoDate | null;
+  /** The status in the document's own words, verbatim, and inside `quote`. Never paraphrased or normalised. */
+  statusText: string;
+  /** The facility the status is for, as the document names it ("credit card ending 0001"); null when not named. */
+  facility: string | null;
+  /** The bureau as the report names it; null for an institution's letter or when not named. */
+  bureau: string | null;
+  source: CreditAccountStatusSource;
+  /** The E-number of the document in the pack's evidence index, set when the pack is built; null before. */
+  evidenceId: string | null;
+  /** The line of the document the status was read from, word for word. */
+  quote: string;
+}
+
+/**
+ * Words that mark a status as overdue (any of them, anywhere in `statusText`). Deliberately wide: a status that names
+ * overdue in any way, even "no overdue amount", counts, because the only effect is that 8.3 and 8.4 print the status
+ * line with no outcome instead of "matches". It never makes a row "differs".
+ */
+export const OVERDUE_STATUS_WORDS =
+  /\b(?:overdue|past due|arrears?|delinquen\w*|default(?:ed)?|days? late|late payment|\d+\s*dpd|written off|write-off|charged off|charge-off|collections?)\b/i;
+
+export function showsOverdue(status: Pick<CreditAccountStatus, "statusText">): boolean {
+  return OVERDUE_STATUS_WORDS.test(status.statusText);
+}
+
+/**
+ * CREDIT_RECORDS_RULE (Elena, 25 Nov 2026): how EUPG 8.3 and 8.4(a) read the credit bureau evidence for one period
+ * ("between those dates": `from` inclusive, `until` exclusive; `until` null = still running, read up to `today`).
+ * Lane 3 calls `creditRecordsReading` and wires `creditBureauReportRead` from it; nothing else decides "matches".
+ *
+ * - `matches` only if a credit bureau report was read (a ready document classified `credit_bureau_report` whose text
+ *   was read) AND no status shows the account overdue in the period.
+ * - `overdue`: some status shows the account overdue in the period, or shows it overdue with no date (it cannot be
+ *   placed outside the period). The section prints each such status as an `account_status` line beside the row, and
+ *   the row carries no outcome: no "matches", no "differs", no ending.
+ * - `not_read`: no bureau report was read and nothing shows the account overdue. The row keeps its existing outcome
+ *   from the other facts (`not_shown` today); never "matches".
+ *
+ * A status from the institution's letter counts towards `overdue`, never towards `matches`.
+ */
+export type CreditRecordsReading =
+  | { kind: "matches" }
+  | { kind: "overdue"; statuses: CreditAccountStatus[] }
+  | { kind: "not_read" };
+
+export function creditRecordsReading(args: {
+  bureauReportRead: boolean;
+  statuses: readonly CreditAccountStatus[];
+  from: IsoDate;
+  until: IsoDate | null;
+  today: IsoDate;
+}): CreditRecordsReading {
+  const end = args.until ?? args.today;
+  const inPeriod = (s: CreditAccountStatus) => s.asOf === null || (s.asOf >= args.from && (args.until === null ? s.asOf <= end : s.asOf < end));
+  const overdue = args.statuses.filter((s) => showsOverdue(s) && inPeriod(s));
+  if (overdue.length) return { kind: "overdue", statuses: overdue };
+  return args.bureauReportRead ? { kind: "matches" } : { kind: "not_read" };
+}
+
 /** The new facts (stages `bank` and `fidrec`), keyed as the facts tables key them. */
 export interface UpdateFactValues {
   access_events: AccessEvent[];
@@ -286,6 +363,8 @@ export interface UpdateFactValues {
   credit_bureau_reports: CreditBureauReport[];
   /** Decision 8. */
   fidrec_dispute_dates: FidrecDisputeDates;
+  /** The account's status as a credit bureau report or the institution's letter shows it (25 Nov 2026). */
+  credit_account_status: CreditAccountStatus[];
 }
 
 export type UpdateFactKey = keyof UpdateFactValues;
@@ -305,6 +384,7 @@ export const UPDATE_FACT_KEYS = [
   "charges_on_disputed_amount",
   "credit_bureau_reports",
   "fidrec_dispute_dates",
+  "credit_account_status",
 ] as const satisfies readonly UpdateFactKey[];
 
 export type ContractFactValues = FactValues & UpdateFactValues;
@@ -551,9 +631,10 @@ export interface QuotationLine {
 
 /**
  * Line kinds that carry no comparison outcome (review fix list, items 1, 4, 5): the conduct section's lines, the
- * 12-hour block and quoted documents. None of them may pass through the comparison endings.
+ * 12-hour block and quoted documents; and the account status a credit bureau report shows (25 Nov 2026). None of them
+ * may pass through the comparison endings.
  */
-export const NO_OUTCOME_LINE_KINDS = ["conduct", "twelve_hours", "quotation"] as const;
+export const NO_OUTCOME_LINE_KINDS = ["conduct", "twelve_hours", "quotation", "account_status"] as const;
 export type NoOutcomeLineKind = (typeof NO_OUTCOME_LINE_KINDS)[number];
 
 export type SectionLine =
@@ -565,6 +646,11 @@ export type SectionLine =
   | { kind: "twelve_hours"; block: TwelveHourBlock }
   /** Decision 5, Part B: a document quoted word for word, with no outcome. */
   | { kind: "quotation"; quotation: QuotationLine }
+  /**
+   * 25 Nov 2026: one account status a credit bureau report (or the institution's letter) shows, printed beside EUPG 8.3
+   * and 8.4 with no outcome (CREDIT_RECORDS_RULE). `clauseKey` is the row it stands beside.
+   */
+  | { kind: "account_status"; status: CreditAccountStatus; clauseKey: string; evidenceIds: string[] }
   /** A fixed line chosen by code, or a numbered step of the sequence (4f). */
   | { kind: "text"; text: string; step: number | null; evidenceIds: string[]; clauseKeys: string[] }
   /** A table row: access records, card authentication records, IP locations. */

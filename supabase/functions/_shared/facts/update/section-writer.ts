@@ -18,6 +18,7 @@ import type { Money } from "../keys.ts";
 import type {
   ClauseAsOf,
   ClauseCitation,
+  CreditAccountStatus,
   ComparisonLine,
   ConductLine,
   DeviceOwnership,
@@ -201,6 +202,18 @@ export const NEAREST_VERSION_FALLBACK = (scheme: string, paymentDate: IsoDate, n
 export const afterTheEventsLine = (documentDate: IsoDate): string =>
   `This reply is dated ${formatDate(documentDate)}, after the events in this case.`;
 
+// wording awaiting Elena's approval (25 Nov 2026): the account status a document shows, printed beside EUPG 8.3 and
+// 8.4 with no outcome (contract CREDIT_RECORDS_RULE). The status is the document's own words, verbatim. Without a
+// bureau name: "The credit bureau report shows …"; without a date the "as at" part is left out; a status from the
+// institution's letter: "The institution's letter shows the card account as … as at …".
+export function creditAccountStatusLine(status: Pick<CreditAccountStatus, "asOf" | "statusText" | "bureau" | "source">): string {
+  const asAt = status.asOf ? ` as at ${formatDate(status.asOf)}` : "";
+  const who = status.source === "institution_letter"
+    ? "The institution's letter"
+    : `The credit bureau report${status.bureau ? ` from ${status.bureau}` : ""}`;
+  return `${who} shows the card account as ${status.statusText}${asAt}.`;
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // The writer
 // ---------------------------------------------------------------------------------------------------------------
@@ -351,6 +364,11 @@ export class SectionWriter {
   /** A conduct-section line (Decision 1). */
   conduct(conduct: ConductLine, evidenceIds: string[] = []): void {
     this.lines.push({ kind: "conduct", conduct, evidenceIds });
+  }
+
+  /** An account status beside the 8.3 or 8.4 row `clauseKey` (25 Nov 2026; CREDIT_RECORDS_RULE). No outcome. */
+  accountStatus(status: CreditAccountStatus, clauseKey: string, evidenceIds: string[] = []): void {
+    this.lines.push({ kind: "account_status", status, clauseKey, evidenceIds });
   }
 
   /** A 12-hour block (Decision 4). */

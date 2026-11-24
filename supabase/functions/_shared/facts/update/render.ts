@@ -38,7 +38,7 @@ import {
   type TwelveHourActivity,
   type TwelveHourBlock,
 } from "./contract.ts";
-import { afterTheEventsLine, formatDate, formatDateTime, formatGap } from "./section-writer.ts";
+import { afterTheEventsLine, creditAccountStatusLine, formatDate, formatDateTime, formatGap } from "./section-writer.ts";
 import { ACCESS_EVENT_WORDS } from "./registry.ts";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -442,6 +442,10 @@ function renderSection(result: SectionResult, citations: Citations, cards: reado
         break;
       case "quotation":
         out.push(...quotationLines(line.quotation, r));
+        break;
+      case "account_status":
+        // No outcome and no ending (contract CREDIT_RECORDS_RULE).
+        out.push({ kind: "paragraph", text: `${creditAccountStatusLine(line.status)}${refs(line.evidenceIds)}` });
         break;
       case "text": {
         const ids = line.clauseKeys.map((k) => r.find(k)?.id);

@@ -285,7 +285,7 @@ test('end to end: the decided lines (Decisions 1, 4, Lane 3 issue 6) come out as
       assert.doesNotMatch(t, /matches|as the document expects|differs|^Side by side:/, `${id}: ${t}`)
     }
   }
-  assert.deepEqual([...NO_OUTCOME_LINE_KINDS], ['conduct', 'twelve_hours', 'quotation'])
+  assert.deepEqual([...NO_OUTCOME_LINE_KINDS], ['conduct', 'twelve_hours', 'quotation', 'account_status'])
   // Lane 3 issue 6: an SRF line and an EUPG line on the same record print once, with two clause references.
   const duty = section('account-srf', 'duty_time_checks')
   const pair = duty.findIndex((t, i) => t.startsWith('Expected: Paragraph 4.2.1') && duty[i + 1]?.startsWith('Expected: Paragraph 4.7'))
