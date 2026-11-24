@@ -24,6 +24,10 @@ import {
   produceChecked,
   type SnapshotFacts,
 } from "../_shared/facts/index.ts";
+import { type BankPackUpdate, buildBankPackUpdate } from "../_shared/facts/update/bank-pack-update.ts";
+import { createDbClauseProvider } from "../_shared/facts/update/db-clause-provider.ts";
+import { serverOnlyValues } from "../_shared/facts/update/model-guard.ts";
+import { fidrecUpdateSectionsEnabled } from "../_shared/facts/update/switch.ts";
 
 // The bank pack (S$18), generated once the person has paid and confirmed the bank facts (stage2-plan §3a; design
 // K1). Called by the case owner through /api/edge/bank-pack, like bright-function. The model writes only the prose;
@@ -37,6 +41,9 @@ const BANK_PACK_MODEL = (Deno.env.get("BANK_PACK_MODEL") ?? DEFAULT_OPENAI_MODEL
 // Used straight away when the main model is rate-limited (cost-controls spec §5 B8).
 const BANK_PACK_SECONDARY_MODEL = (Deno.env.get("BANK_PACK_SECONDARY_MODEL") ?? "gpt-6.1-terra").trim().toLowerCase();
 const BANK_PACK_BUDGET_MS = 120_000;
+// The FIDReC update's lines in the bank pack (Elena's condition A): off unless FIDREC_UPDATE_SECTIONS_ENABLED is "true".
+// With it off, nothing below differs from the pack before the update.
+const UPDATE_SECTIONS = fidrecUpdateSectionsEnabled((name) => Deno.env.get(name));
 
 Deno.serve(async (req) => {
   try {
@@ -114,7 +121,32 @@ Deno.serve(async (req) => {
       .is("invalidated_at", null);
     if (findingsErr) return json({ ok: false, error: "findings_unavailable", code: findingsErr.code ?? null }, 500);
 
-    const input = buildBankPackInput({ facts, findings: findings ?? [], storyText: storyRow?.story_text ?? null });
+    // The update's lines (switch on only): the requests for missing technical records and what EUPG Section 8 says,
+    // read from the corpus through the as-of functions. A failure stops the pack: one pack per case.
+    let update: BankPackUpdate | null = null;
+    if (UPDATE_SECTIONS) {
+      try {
+        update = await buildBankPackUpdate({
+          facts,
+          documentTypes: ((evidenceRows ?? []) as EvidenceDocument[])
+            .filter((d) => d.processing_status === "ready")
+            .map((d) => d.verified_document_type),
+          provider: createDbClauseProvider((fn, args) => supabase.rpc(fn, args)),
+          generatedOn: new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10),
+        });
+      } catch (error) {
+        console.error(`Bank pack update lines failed: ${safeErrorText(error)}`);
+        return json({ ok: false, error: "update_sections_unavailable" }, 500);
+      }
+    }
+
+    // With the update on, records stay out of the model's input (condition B); otherwise the input is as before.
+    const input = buildBankPackInput({
+      facts,
+      findings: findings ?? [],
+      storyText: storyRow?.story_text ?? null,
+      update: update ? { redact: serverOnlyValues(facts) } : null,
+    });
     const checks = { ...BANK_PACK_CHECKS, documented: documentedFacts(findings ?? []) };
     const user = `INPUT JSON:
 ${JSON.stringify(input, null, 2)}`;
@@ -182,6 +214,7 @@ ${JSON.stringify(input, null, 2)}`;
         values: (f.values ?? []) as EvidenceFinding["values"],
         resolution: f.resolution as EvidenceFinding["resolution"],
       })),
+      update,
     });
     const { data: committed, error: commitErr } = await supabase.rpc("commit_bank_pack_v1", {
       p_case_id: case_id,

@@ -10,6 +10,8 @@ import type { FactKey, Money, ReportedEvent, Transaction } from "./keys.ts";
 import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
 import type { SnapshotFacts, ValidateOptions } from "./validate-output.ts";
+import type { BankPackUpdate } from "./update/bank-pack-update.ts";
+import { factsForModel, redactServerOnly } from "./update/model-guard.ts";
 
 export const BANK_PACK_VERSION = "bank_pack_v1";
 export const BANK_PACK_MIN_WORDS = 120;
@@ -44,9 +46,24 @@ export const mapBankPackProse = (prose: BankPackProse, fn: (text: string) => str
 
 export const bankPackTexts = (prose: BankPackProse) => [prose.title, prose.executive_summary, prose.requested_resolution];
 
-/** The free evaluation's input without its FIDReC signal: the confirmed facts, which facts lack a document, the story. */
-export function buildBankPackInput(args: { facts: SnapshotFacts; findings: readonly Tier0Finding[]; storyText: string | null }) {
-  const { fidrec_check: _fidrec, ...input } = buildTier0Input({ ...args, fidrecCheck: null });
+/**
+ * The free evaluation's input without its FIDReC signal: the confirmed facts, which facts lack a document, the story.
+ * With the update's sections on (`redact` given), the record facts are left out and record values in the story are
+ * replaced (condition B); otherwise unchanged.
+ */
+export function buildBankPackInput(args: {
+  facts: SnapshotFacts;
+  findings: readonly Tier0Finding[];
+  storyText: string | null;
+  update?: { redact: readonly string[] } | null;
+}) {
+  const update = args.update ?? null;
+  const { fidrec_check: _fidrec, ...input } = buildTier0Input({
+    facts: update ? factsForModel(args.facts) : args.facts,
+    findings: args.findings,
+    storyText: update && args.storyText !== null ? redactServerOnly(args.storyText, update.redact) : args.storyText,
+    fidrecCheck: null,
+  });
   return input;
 }
 
@@ -168,6 +185,16 @@ export interface BankPackReport {
   rules_assessment: string;
   /** "model" or "fallback" (the fixed-wording version). */
   prose_source: "model" | "fallback";
+  /** Only with FIDREC_UPDATE_SECTIONS_ENABLED on (absent otherwise, so the report is as before): the requests for
+   * missing technical records (brief v5, decision 9). */
+  update_record_requests?: string[];
+  /** Only with the switch on: what EUPG Section 8 says, for a dispute reported on or after 16 June 2025 (Decision 8). */
+  update_section8?: BankPackUpdate["section8"];
+  /** Only with the switch on: pinned citations and statement revisions (3.2 rule 4), and run flags. */
+  update_citations?: BankPackUpdate["citations"];
+  update_statements?: BankPackUpdate["statements"];
+  update_flags?: BankPackUpdate["flags"];
+  update_generated_on?: string;
 }
 
 export function assembleBankPack(args: {
@@ -175,10 +202,22 @@ export function assembleBankPack(args: {
   source: "model" | "fallback";
   facts: SnapshotFacts;
   findings: readonly EvidenceFinding[];
+  /** The update's lines, when FIDREC_UPDATE_SECTIONS_ENABLED is on. Absent: the report is unchanged. */
+  update?: BankPackUpdate | null;
 }): BankPackReport {
   const { facts } = args;
   const { shown, missing } = evidenceLists(facts, args.findings);
   const loss = confirmedValue<Money>(facts, "total_loss");
+  const update = args.update
+    ? {
+      update_record_requests: args.update.requests,
+      update_section8: args.update.section8,
+      update_citations: args.update.citations,
+      update_statements: args.update.statements,
+      update_flags: args.update.flags,
+      update_generated_on: args.update.generatedOn,
+    }
+    : {};
   return {
     report_version: BANK_PACK_VERSION,
     ...args.prose,
@@ -191,5 +230,6 @@ export function assembleBankPack(args: {
     ],
     rules_assessment: srfAssessmentText(assessSrf(srfFactsFromSnapshot(facts))),
     prose_source: args.source,
+    ...update,
   };
 }
