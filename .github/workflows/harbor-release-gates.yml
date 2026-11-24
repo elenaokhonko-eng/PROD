@@ -129,6 +129,11 @@ jobs:
           version: ${{ env.HARBOR_SUPABASE_CLI_VERSION }}
       - name: Record Supabase CLI version
         run: supabase --version
+      # Supabase's local ports (54320-54329) sit inside Linux's temporary port range, so an outgoing connection (the
+      # image pulls just before) can briefly hold one and `supabase start` fails to bind it (24 and 25 Nov 2026).
+      # Reserving them keeps the kernel from handing them out; nothing else on the runner listens there.
+      - name: Reserve the local Supabase ports
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
       - name: Start clean local Supabase
         run: supabase start
       - name: Apply all migrations from zero
