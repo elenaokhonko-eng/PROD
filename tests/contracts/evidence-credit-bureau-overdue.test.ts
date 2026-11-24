@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import test from 'node:test'
-import { type FactCandidate, parseFactExtraction, reconcile } from '../../lib/facts'
+import { buildFactExtractionPrompt, type FactCandidate, namesDisputedAmountReport, parseFactExtraction, reconcile } from '../../lib/facts'
 import {
   buildDisputeChargesChecks,
   SECTION_8_CLAUSES,
@@ -17,6 +17,7 @@ import {
 import { cardOnlyCase, type CaseSectionData, syntheticCorpus } from '../fixtures/fidrec-update/index.ts'
 import {
   CREDIT_BUREAU_OVERDUE_TEXT,
+  DISPUTED_AMOUNT_REPORTED_LINE,
   MODEL_OUTPUT_AS_PROMPTED,
   MODEL_OUTPUT_OVER_READ,
   OVERDUE_LINE,
@@ -67,18 +68,54 @@ test('as prompted: 8.3 prints not_shown, never matches; 8.4 does not print yet',
   assert.equal(comparisons(r).some((c) => c.clauseKey === SECTION_8_CLAUSES.p8_4), false)
 })
 
-test('over-read: the quoted-words rule alone keeps an entry the document does not support, labelled as the bureau report', async () => {
-  // The overdue line is in the document word for word, so the quote check passes even though the line names no
-  // disputed amount. This records the gap the review asked about; the proposal is a separate fact (see the PR).
+test('over-read: an entry quoting only the overdue status line is dropped, so 8.3 prints not_shown, not differs', async () => {
+  // The overdue line is in the document word for word, so it passes the quote check; it names no disputed transaction,
+  // amount, dispute or reporting, so the entry is dropped (review follow-up on #81).
   const candidates = parseFactExtraction(MODEL_OUTPUT_OVER_READ, CREDIT_BUREAU_OVERDUE_TEXT, doc)
+  assert.deepEqual(byKey(candidates, 'credit_bureau_reports'), [])
+  assert.equal(namesDisputedAmountReport(OVERDUE_LINE), false)
+  const r = await buildDisputeChargesChecks({ ...caseWith(undefined), provider })
+  const [p83] = comparisons(r).filter((c) => c.clauseKey === SECTION_8_CLAUSES.p8_3)
+  assert.equal(p83.outcome, 'not_shown')
+  assert.equal(comparisons(r).some((c) => c.clauseKey === SECTION_8_CLAUSES.p8_4), false)
+})
+
+test('the same document with a line that names the disputed amount being reported keeps that entry', async () => {
+  const text = `${CREDIT_BUREAU_OVERDUE_TEXT}\n${DISPUTED_AMOUNT_REPORTED_LINE}`
+  const candidates = parseFactExtraction({
+    document_type: 'credit_bureau_report',
+    credit_bureau_reports: [
+      { date: '2025-10-15', bureau: 'Example Credit Information Bureau', quote: OVERDUE_LINE, confidence: 0.8 },
+      { date: '2025-10-16', bureau: 'Example Credit Information Bureau', quote: DISPUTED_AMOUNT_REPORTED_LINE, confidence: 0.9 },
+    ],
+  }, text, doc)
   const [reports] = byKey(candidates, 'credit_bureau_reports')
-  assert.deepEqual(reports.value, [{ date: '2025-10-15', bureau: 'Example Credit Information Bureau', source: 'credit_bureau_report' }])
-  assert.deepEqual(reports.sourceRef.quotes, [OVERDUE_LINE])
-  assert.equal(reports.sourceRef.context, false)
-  // 8.3 then prints differs for 15 Oct 2025 (inside the investigation, 13 Sep to 20 Oct 2025).
+  assert.deepEqual(reports.value, [{ date: '2025-10-16', bureau: 'Example Credit Information Bureau', source: 'credit_bureau_report' }])
+  assert.deepEqual(reports.sourceRef.quotes, [DISPUTED_AMOUNT_REPORTED_LINE])
   const r = await buildDisputeChargesChecks({ ...caseWith(reports.value as unknown[]), provider })
   const [p83] = comparisons(r).filter((c) => c.clauseKey === SECTION_8_CLAUSES.p8_3)
   assert.equal(p83.outcome, 'differs')
-  // The line states a report "of non-payment of the disputed amount", which the document never says.
-  assert.match(p83.record ?? '', /1 report of non-payment of the disputed amount to a credit bureau in that period: 15 October 2025 to Example Credit Information Bureau \(the credit bureau report\)\./)
+})
+
+test('which quoted words can stand for a report of the disputed amount', () => {
+  const kept = [
+    DISPUTED_AMOUNT_REPORTED_LINE,
+    'We reported the unpaid balance to Example Credit Bureau on 10 Sep 2025.',
+    'They reported me to the credit bureau in September 2025',
+    '2025-09-10 Example Bank A reported default: 7,550.00',
+    'Account flagged: transaction under dispute with the lender',
+    'Chargeback pending on card ending 0001',
+  ]
+  const dropped = [
+    OVERDUE_LINE,
+    'EXAMPLE CREDIT INFORMATION BUREAU (SYNTHETIC) - CONSUMER CREDIT REPORT',
+    'Balance as at 15 Oct 2025: 7,550.00',
+    '12-month payment history: 0 0 0 0 0 0 0 0 0 0 0 1',
+    'Account status: default',
+    'In arrears since Oct 2025',
+  ]
+  for (const q of kept) assert.equal(namesDisputedAmountReport(q), true, q)
+  for (const q of dropped) assert.equal(namesDisputedAmountReport(q), false, q)
+  // The prompt says the same.
+  assert.match(buildFactExtractionPrompt('document', 'x'), /A line that only gives an account's status \(overdue, in\s+arrears, default, days past due\) is not such a report/)
 })

@@ -17,6 +17,10 @@ export const CREDIT_BUREAU_OVERDUE_TEXT = [
 /** The line that shows the account overdue. It names no transaction and no dispute. */
 export const OVERDUE_LINE = 'Payment status as at 15 Oct 2025: 30 days overdue'
 
+/** A line that does name the disputed amount being reported (used to show such an entry is still kept). */
+export const DISPUTED_AMOUNT_REPORTED_LINE =
+  '16 Oct 2025: Example Bank A reported non-payment of 7,550.00 on card ending 0001 (amount under dispute)'
+
 /**
  * What the extraction prompt asks for, applied to this document: a report "of non-payment of the disputed amount".
  * The document says no such thing, so the list is empty.

@@ -289,7 +289,9 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
     "  card authentication. card_dispute_requested: whether the claimant asked the institution to dispute the card",
     "  payments (a chargeback), when, and how.",
     "- credit_bureau_reports: each time the source says non-payment of the disputed amount was reported to a credit",
-    "  bureau, with the date and the bureau's name when given. fidrec_dispute_dates: only dates the source gives for",
+    "  bureau, with the date and the bureau's name when given. The quote must itself name the disputed transaction, its",
+    "  amount, the dispute, or the reporting of the amount. A line that only gives an account's status (overdue, in",
+    "  arrears, default, days past due) is not such a report: leave it out. fidrec_dispute_dates: only dates the source gives for",
     "  when dispute resolution with FIDReC started, when the institution was told of it, and when FIDReC completed or",
     "  closed the case.",
     ...documentRules,
@@ -659,6 +661,23 @@ export function creditBureauReportSource(sourceType: SourceType, documentType: D
   return "complainant_statement";
 }
 
+// A credit bureau report entry stands only on words that name the disputed transaction or the dispute, or the reporting
+// of an unpaid amount (review of 24 Nov 2026, follow-up on #81). A status line ("Payment status as at 15 Oct 2025:
+// 30 days overdue", "default", "in arrears") says how an account stands, not that the disputed amount was reported:
+// it gives no entry.
+const NAMES_DISPUTE = /\b(?:disput\w*|chargebacks?|unauthori[sz]ed|fraud\w*|scam\w*)\b/i;
+const NAMES_TRANSACTION = /\b(?:transactions?|purchases?)\b/i;
+// A verb ("reported", "reporting"): the noun alone ("credit report") is the document's title, not a report of an amount.
+const NAMES_REPORTING = /\breport(?:ed|ing)\b/i;
+// An amount written as money ("7,550.00", "S$7,550").
+const NAMES_AMOUNT = /(?:S\$|SGD)\s?\d|\b\d[\d,]*\.\d{2}\b/i;
+const NAMES_UNPAID_OR_BUREAU = /\b(?:non-?payment|unpaid|outstanding|amount|balance|credit bureau|bureau)\b/i;
+
+export function namesDisputedAmountReport(quote: string): boolean {
+  return NAMES_DISPUTE.test(quote) || NAMES_TRANSACTION.test(quote) ||
+    (NAMES_REPORTING.test(quote) && (NAMES_UNPAID_OR_BUREAU.test(quote) || NAMES_AMOUNT.test(quote)));
+}
+
 function parseSection8Facts(
   out: Record<string, unknown>,
   sourceText: string,
@@ -686,7 +705,7 @@ function parseSection8Facts(
     date: normaliseDate(e.date),
     bureau: shortText(e.bureau, 120),
     source: reportSource,
-  }));
+  })).filter((r) => namesDisputedAmountReport(r.quote));
   if (reports.length) add("credit_bureau_reports", reports.map((r) => r.value), reports.map((r) => r.quote), reports.map((r) => r.raw));
 
   const fidrec = (out.fidrec_dispute_dates && typeof out.fidrec_dispute_dates === "object" ? out.fidrec_dispute_dates : null) as
