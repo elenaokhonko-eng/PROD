@@ -1,0 +1,205 @@
+{
+  "$comment": "ABS Code of Practice for Banks - Credit Cards, a sub-code of the Code of Consumer Banking Practice. With effect from 1 November 2009, last revised 2 July 2020; the revision's own start date is not stated, so effective_from is the revision date (Elena to confirm). An industry code, not legislation. One clause per numbered paragraph, with its lettered sub-paragraphs. Clause text is cut from the private source file.",
+  "document": {
+    "document_key": "abs.card_code",
+    "title": "Code of Practice for Banks – Credit Cards",
+    "publisher": "The Association of Banks in Singapore",
+    "binding_level": "industry_code",
+    "applies_to": ["bank", "card_issuer"],
+    "instrument_scope": ["sg_card"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://abs.org.sg/consumer-banking/codes-of-practice"
+  },
+  "version": {
+    "version_label": "revised 2 July 2020",
+    "effective_from": "2020-07-02",
+    "issued_on": "2020-07-02",
+    "retrieved_at": "2026-11-24T04:20:00Z",
+    "source_url": "https://abs.org.sg/docs/library/code-of-practice-for-banks---credit-cards_68422ccf-ca83-4635-a658-bda71bc50f2a.pdf",
+    "snapshot_path": "abs.card_code/2020-07-02/code-of-practice-for-banks---credit-cards.pdf",
+    "content_sha256": "b543bb93e09b06ec6cd6afc5fc86dcdc059eada471a975aadaefcdcc61a92263",
+    "provenance": "publisher_site",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["^[ \\t]*\\d+[ \\t]*$"]
+  },
+  "markers": [
+    {
+      "at": "^1\\) [^\\n]*\\n",
+      "clause": "abs.card_code/1",
+      "skip": true
+    },
+    {
+      "at": "^2\\) [^\\n]*\\n",
+      "clause": "abs.card_code/2",
+      "skip": true
+    },
+    {
+      "at": "^3\\) [^\\n]*\\n",
+      "clause": "abs.card_code/3",
+      "skip": true
+    },
+    {
+      "at": "^4\\) [^\\n]*\\n",
+      "clause": "abs.card_code/4",
+      "skip": true
+    },
+    {
+      "at": "^5\\) [^\\n]*\\n",
+      "clause": "abs.card_code/5",
+      "skip": true
+    },
+    {
+      "at": "^6\\) [^\\n]*\\n",
+      "clause": "abs.card_code/6",
+      "skip": true
+    },
+    {
+      "at": "^7\\) [^\\n]*\\n",
+      "clause": "abs.card_code/7",
+      "skip": true
+    },
+    {
+      "at": "^8\\) [^\\n]*\\n",
+      "clause": "abs.card_code/8",
+      "skip": true
+    },
+    {
+      "at": "^9\\) [^\\n]*\\n",
+      "clause": "abs.card_code/9",
+      "skip": true
+    },
+    {
+      "at": "^10\\) [^\\n]*\\n",
+      "clause": "abs.card_code/10",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)11\\) Financial Industry Dispute Resolution Centre \\(FIDReC\\) ",
+      "clause": "abs.card_code/11",
+      "skip": true
+    },
+    {
+      "at": "^With effect from:",
+      "clause": null
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "abs.card_code/1",
+      "clause_ref": "1",
+      "heading_path": ["1) Compliance with MAS regulations"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "19e9829e1072e232c37e3cb54b9506effc16aae81852ee64765d6770117a62bf"
+    },
+    {
+      "clause_key": "abs.card_code/2",
+      "clause_ref": "2",
+      "heading_path": ["2) Disclosure of Terms and Conditions, Interest Rates and other Fees and Charges"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1, 2],
+      "text_sha256": "ce128caad5e3be7d030e159bf53e86c230b2eafa95b46a1dd0b313c02ec0d26a"
+    },
+    {
+      "clause_key": "abs.card_code/3",
+      "clause_ref": "3",
+      "heading_path": ["3) Marketing Material"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "3ba2b0bf69ae1bbfcb9312018409bf7efaaadb7db942aefb479219a81fde1786"
+    },
+    {
+      "clause_key": "abs.card_code/4",
+      "clause_ref": "4",
+      "heading_path": ["4) Security of Cards/PINs"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "8b800f20dee0ba98ee88aa80c7ff55560cb2af4d0d3d89d99469a80ccffe572c"
+    },
+    {
+      "clause_key": "abs.card_code/5",
+      "clause_ref": "5",
+      "heading_path": ["5) Cardholders’ Liability"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2, 3],
+      "text_sha256": "1feace0545b94270e451e48e90e85b12e013c1810f13561a5da4bab9b7da0e83",
+      "note": "Uses \"gross negligence\" (5(a), 5(b), 5(c)) without defining it; the card issuer \"finds\" it (5(b), 5(c)). 5(e): debit cards that function like credit cards."
+    },
+    {
+      "clause_key": "abs.card_code/6",
+      "clause_ref": "6",
+      "heading_path": ["6) Theft or loss of card"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "aee4e76f1036d240f9e35d3c9a19eb26cd59fb9efb37956bc0c098088e39f220",
+      "note": "6(a): card details used without the card being stolen; 6(b): unauthorised PIN-activated transactions."
+    },
+    {
+      "clause_key": "abs.card_code/7",
+      "clause_ref": "7",
+      "heading_path": ["7) Offering of gifts, prizes, discounts and vouchers"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "ac287d9353804338579504251f6993e3570193bf1a784897730545c85dcea0be"
+    },
+    {
+      "clause_key": "abs.card_code/8",
+      "clause_ref": "8",
+      "heading_path": ["8) Supplementary Cards"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "c0cf8d86300d855917a03076b3853d1485b636eba5c192886fb806645ed900ec"
+    },
+    {
+      "clause_key": "abs.card_code/9",
+      "clause_ref": "9",
+      "heading_path": ["9) Unsolicited Cards"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "20fb9508712bcc05e882b116ecc0dee157dec9ea7b0e877afeacedce7f75cb53"
+    },
+    {
+      "clause_key": "abs.card_code/10",
+      "clause_ref": "10",
+      "heading_path": ["10) Enquiries"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4, 5],
+      "text_sha256": "93b9795ac7519aa340b11ee80939d797863871507ba050c8385c5a2560c14a09"
+    },
+    {
+      "clause_key": "abs.card_code/11",
+      "clause_ref": "11",
+      "heading_path": ["11) Financial Industry Dispute Resolution Centre (FIDReC)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "15c97628217113f40b1b71fdb49d799b37fa4e3185d243ade0e1e4af9093f5df"
+    }
+  ]
+}
