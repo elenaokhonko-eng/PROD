@@ -102,19 +102,23 @@ const periodWords = (p: Period) => (p.until ? `from ${formatDate(p.from)} to ${f
 
 /**
  * 8.4(a)'s period in days, read from the loaded clause: the figure in "up to [n] calendar days after" in the part before
- * "(b)". Null where the text states no such period; 8.4(a) is then treated like 8.4(b) (quoted, no outcome).
+ * "(b)". Null where the text states no such period; 8.4(a) is then treated like 8.4(b) (quoted, no outcome). Any
+ * whitespace may separate the words (line breaks and non-breaking spaces from the source included).
  */
 export function periodDaysIn84a(text: string): number | null {
-  const at = text.search(/\(b\)/);
+  const at = text.search(/\(\s*b\s*\)/);
   const partA = at >= 0 ? text.slice(0, at) : text;
-  if (!/\(a\)/.test(partA)) return null;
-  const m = /up to (\d{1,3}) calendar days after/i.exec(partA);
+  if (!/\(\s*a\s*\)/.test(partA)) return null;
+  const m = /up\s+to\s+(\d{1,3})\s+calendar\s+days?\s+after/i.exec(partA);
   return m ? Number(m[1]) : null;
 }
 
-/** The single number of calendar days a clause states (8.5's "[n] calendar days"), or null where it states none or several. */
+/**
+ * The single number of calendar days a clause states (8.5's "[n] calendar days"), or null where it states none or
+ * several. Any whitespace may separate the words.
+ */
 export function calendarDaysStatedIn(text: string): number | null {
-  const figures = new Set([...text.matchAll(/\b(\d{1,3}) calendar days?\b/gi)].map((m) => Number(m[1])));
+  const figures = new Set([...text.matchAll(/\b(\d{1,3})\s+calendar\s+days?\b/gi)].map((m) => Number(m[1])));
   return figures.size === 1 ? [...figures][0] : null;
 }
 
@@ -318,7 +322,8 @@ export const buildDisputeChargesChecks: SectionBuilder = async (input: SectionIn
       : [];
     if (resumed.length) {
       for (const r of resumed) {
-        const request = requestsKnown.filter((q) => q.date < r.date!).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+        // Measured from the earliest request the records show before the report.
+        const request = requestsKnown.filter((q) => q.date < r.date!).sort((a, b) => (a.date < b.date ? -1 : 1))[0];
         const gap = calendarDaysBetween(request.date, r.date!);
         // wording awaiting Elena's approval
         const record =

@@ -207,6 +207,28 @@ test('no record carries verdict wording or a gendered pronoun', async () => {
 // 8.4 and 8.5 (Lane 1 confirmed 8.4(b)'s wording, 24 Nov 2026)
 // ---------------------------------------------------------------------------------------------------------------
 
+test('8.5 is measured from the earliest request before the report, not the latest', async () => {
+  // Requests 21 Nov and 5 Dec 2025, report 7 Dec: 16 calendar days from the earliest (2 from the latest).
+  const r = await runWithPeriods(creditCase({ requests: ['2025-12-05', '2025-11-21'], reports: ['2025-12-07'], fidrec: { told: '2025-12-10', closed: null } }))
+  const [row] = withKey(r, SECTION_8_CLAUSES.p8_5)
+  assert.equal(row.outcome, 'not_shown', 'one request is 7 days or more before the report: not differs')
+  assert.match(row.record, /^The records show a request to pay the disputed amount dated 21 November 2025 and a report of non-payment of the disputed amount to a credit bureau on 7 December 2025 \(the credit bureau report\), 16 calendar days later\./)
+  // Both requests less than 7 days before the report: differs, measured from the earlier of them.
+  const both = await runWithPeriods(creditCase({ requests: ['2025-12-05', '2025-12-03'], reports: ['2025-12-07'], fidrec: { told: '2025-12-10', closed: null } }))
+  const [near] = withKey(both, SECTION_8_CLAUSES.p8_5)
+  assert.equal(near.outcome, 'differs')
+  assert.match(near.record, /dated 3 December 2025 .* 4 calendar days later\./)
+})
+
+test('the periods are read from text with any whitespace between the words (line breaks, non-breaking spaces)', () => {
+  const nbsp = ' '
+  assert.equal(periodDaysIn84a(`(a) from the date up${nbsp}to 30${nbsp}calendar\ndays\r\n after the outcome; and\n(b) after FIDReC`), 30)
+  assert.equal(periodDaysIn84a(`( a ) from the date up  to\t30 calendar days after the outcome; and ( b ) after FIDReC`), 30)
+  assert.equal(calendarDaysStatedIn(`if not repaid within 7${nbsp}calendar\ndays from the request`), 7)
+  assert.equal(calendarDaysStatedIn(`within 7\r\n  calendar  days`), 7)
+  assert.equal(calendarDaysStatedIn(`7${nbsp}calendar days, or 14\ncalendar days`), null)
+})
+
 test('the periods are read from the loaded text, never written in code', () => {
   assert.equal(periodDaysIn84a(TEXT_8_4), 30)
   assert.equal(periodDaysIn84a('Placeholder text of mas.eupg/8.4.'), null, 'no (a) period stated: 8.4(a) is treated like 8.4(b)')
