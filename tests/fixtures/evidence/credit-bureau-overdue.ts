@@ -33,6 +33,23 @@ export const MODEL_OUTPUT_AS_PROMPTED = {
   credit_bureau_reports: [],
 }
 
+/**
+ * The account-overdue fact (Elena, 25 Nov 2026): the status as the document gives it, plus the same over-read report
+ * entry as below, to show the overdue line goes to credit_account_status and never to credit_bureau_reports.
+ */
+export const MODEL_OUTPUT_WITH_STATUS = {
+  document_type: 'credit_bureau_report',
+  credit_account_status: [{
+    as_of: '2025-10-15',
+    status_text: '30 days overdue',
+    facility: 'credit card ending 0001',
+    bureau: 'Example Credit Information Bureau',
+    quote: OVERDUE_LINE,
+    confidence: 0.9,
+  }],
+  credit_bureau_reports: [{ date: '2025-10-15', bureau: 'Example Credit Information Bureau', quote: OVERDUE_LINE, confidence: 0.8 }],
+}
+
 /** A model that reads the overdue status as a report of the disputed amount (over-reading), quoting the overdue line. */
 export const MODEL_OUTPUT_OVER_READ = {
   document_type: 'credit_bureau_report',

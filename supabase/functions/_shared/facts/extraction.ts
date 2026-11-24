@@ -31,6 +31,8 @@ import {
   CARD_SCHEMES,
   type CardAuthEvent,
   type ChargeOnDisputedAmount,
+  type CreditAccountStatus,
+  type CreditAccountStatusSource,
   type CreditBureauReport,
   type CreditBureauReportSource,
   DISPUTED_AMOUNT_CHARGE_KINDS,
@@ -104,13 +106,17 @@ const DOCUMENT_FACTS: Record<DocumentType, ReadonlySet<FactKey>> = {
     "disputed_amount_payment_requests",
     "credit_bureau_reports",
     "fidrec_dispute_dates",
+    // The account's status as the institution's letter gives it (Elena, 25 Nov 2026).
+    "credit_account_status",
   ]),
   // A police report is first of all evidence of the police report: its number and date (walkthrough, 8 Nov).
   police_report: new Set(["reported_to_police", "police_report_number", ...SCAM_FACTS, "transactions", "total_loss", "account_types", "reported_to_bank"]),
   scam_message: new Set(["scam_type", "phishing_channel", "impersonated_entity_type"]),
   bank_access_record: new Set(TECHNICAL_RECORD_FACTS),
   card_authentication_record: new Set([...TECHNICAL_RECORD_FACTS, "transactions", "account_types"]),
-  credit_bureau_report: new Set(["credit_bureau_reports"]),
+  // A bureau report states reports of the disputed amount only where its words name them (#81), and the account's status
+  // (overdue, default, current) as it stands (credit_account_status, 25 Nov 2026).
+  credit_bureau_report: new Set(["credit_bureau_reports", "credit_account_status"]),
   other: new Set(),
 };
 
@@ -222,6 +228,8 @@ const DOCUMENT_TEMPLATE = {
   // EUPG Section 8 (decision 8): statements, reminders and letters only.
   disputed_amount_payment_requests: [{ date: "YYYY-MM-DD|null", source: DISPUTED_AMOUNT_REQUEST_SOURCES.join("|"), amount: "number|null", currency: "string|null", quote: "string" }],
   charges_on_disputed_amount: [{ date: "YYYY-MM-DD|null", kind: DISPUTED_AMOUNT_CHARGE_KINDS.join("|"), amount: "number", currency: "string", description: "string|null", quote: "string" }],
+  // A credit bureau report or the institution's letter only (Elena, 25 Nov 2026).
+  credit_account_status: [{ as_of: "YYYY-MM-DD|null", status_text: "string", facility: "string|null", bureau: "string|null", quote: "string" }],
 };
 
 const SOURCE_DESCRIPTIONS: Record<SourceType, string> = {
@@ -265,6 +273,10 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
       "  asking for payment of it, a reminder, a letter), with its date. charges_on_disputed_amount: each late fee,",
       "  interest or other charge the document shows as relating to the disputed transaction, with date and amount.",
       "  One entry per request or charge; quote is the line that shows it.",
+      "- credit_account_status: only from a credit_bureau_report or the institution's letter: each status the document",
+      "  gives for the account (for example overdue, in arrears, default, current), one entry per status line. status_text",
+      "  is the status in the document's own words, copied exactly from quote; as_of is the date it is given for. This is",
+      "  not a report of the disputed amount: a status line goes here, never in credit_bureau_reports.",
     ]
     : [];
   return [
@@ -689,6 +701,13 @@ export function namesDisputedAmountReport(quote: string, source: CreditBureauRep
   return NAMES_REPORTING.test(quote) && (amount || NAMES_BUREAU.test(quote));
 }
 
+/** Where an account status may be read from: a credit bureau report or the institution's letter; null otherwise. */
+export function creditAccountStatusSource(documentType: DocumentType | null): CreditAccountStatusSource | null {
+  if (documentType === "credit_bureau_report") return "credit_bureau_report";
+  if (documentType === "bank_correspondence") return "institution_letter";
+  return null;
+}
+
 function parseSection8Facts(
   out: Record<string, unknown>,
   sourceText: string,
@@ -734,6 +753,30 @@ function parseSection8Facts(
 
   // Requests and charges are read from statements, reminders and letters only.
   if (sourceType !== "document") return;
+
+  // The account's status (Elena, 25 Nov 2026): a credit bureau report or the institution's letter only. Any other
+  // document yields nothing, not even context. The status must be inside the entry's own quoted words.
+  const statusSource = creditAccountStatusSource(documentType);
+  if (statusSource) {
+    // The facility and the bureau can be named on another line of the document (a heading), so they are checked against
+    // the whole document: a name the document does not contain is dropped (null), never guessed.
+    const inDocument = (value: string | null) => (value && squash(sourceText).includes(squash(value)) ? value : null);
+    const statuses = entries<CreditAccountStatus>("credit_account_status", (e) => {
+      const quote = quoted(sourceText, e);
+      const statusText = shortText(e.status_text, 120);
+      if (!quote || !statusText || !squash(quote).includes(squash(statusText))) return null;
+      return {
+        asOf: normaliseDate(e.as_of),
+        statusText,
+        facility: inDocument(shortText(e.facility, 120)),
+        bureau: statusSource === "credit_bureau_report" ? inDocument(shortText(e.bureau, 120)) : null,
+        source: statusSource,
+        evidenceId: null,
+        quote,
+      };
+    });
+    if (statuses.length) add("credit_account_status", statuses.map((x) => x.value), statuses.map((x) => x.quote), statuses.map((x) => x.raw));
+  }
 
   const requests = entries<DisputedAmountPaymentRequest>("disputed_amount_payment_requests", (e) => ({
     date: normaliseDate(e.date),

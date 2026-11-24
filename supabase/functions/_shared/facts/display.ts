@@ -27,6 +27,7 @@ import { deviceKey, type RecordedDevice } from "./reconcile.ts";
 import {
   type CardDisputeResponse,
   type ChargeOnDisputedAmount,
+  type CreditAccountStatus,
   type CreditBureauReport,
   type CreditBureauReportSource,
   DEVICE_RECOGNITION_ANSWERS,
@@ -302,6 +303,11 @@ export function formatFactValue(key: FactKey, value: unknown): string {
     case "charges_on_disputed_amount":
       return (value as ChargeOnDisputedAmount[])
         .map((c) => [c.amount ? `${formatMoney(c.amount)} ${CHARGE_TEXT[c.kind]}` : CHARGE_TEXT[c.kind], formatDate(c.date)].filter(Boolean).join(", "))
+        .join("; ");
+    // The account's status (25 Nov 2026): wording awaiting Elena's approval. The status in the document's own words.
+    case "credit_account_status":
+      return (value as CreditAccountStatus[])
+        .map((x) => [`“${x.statusText}”`, x.asOf ? `as at ${formatDate(x.asOf)}` : null, x.facility, x.bureau ?? (x.source === "institution_letter" ? "the bank's letter" : null)].filter(Boolean).join(", "))
         .join("; ");
     case "credit_bureau_reports":
       return (value as CreditBureauReport[])
