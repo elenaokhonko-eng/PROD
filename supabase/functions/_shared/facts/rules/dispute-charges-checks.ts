@@ -19,7 +19,7 @@
 //   refuse every Section 8 paragraph for cards. Until Lane 1's scope table is confirmed, this check chooses its payments
 //   itself and skips the guard.
 //
-// Every record sentence here is new wording: // wording awaiting Elena's approval
+// Record wording approved by Elena on 24 Nov 2026 (wording sheet, items S8-1 to S8-25).
 
 import type { AccountType, BankReply } from "../keys.ts";
 import {
@@ -81,6 +81,9 @@ export function replySaysAuthorised(input: Pick<SectionInput, "facts">): boolean
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+/** How the record sentences name the window they are about: one window (8.1, 8.3, 8.4(a)) or several (8.2). */
+export type WindowWords = "between those dates" | "in those periods";
+
 function requestWords(items: readonly DisputedAmountPaymentRequest[]): string {
   return items.map((r) => `${formatDate(r.date!)}${r.amount ? ` (${formatMoney(r.amount)})` : ""}`).join(", ");
 }
@@ -91,14 +94,14 @@ function chargeWords(items: readonly ChargeOnDisputedAmount[]): string {
     .join(", ");
 }
 
+/** "(source: the credit bureau report)", "(source: the institution's letter)", "(source: the complainant's statement)". */
 const reportSource = (r: CreditBureauReport) =>
-  r.source === "complainant_statement" ? "the complainant states" : r.source === "institution_letter" ? "the institution's letter" : "the credit bureau report";
+  `source: ${r.source === "complainant_statement" ? "the complainant's statement" : r.source === "institution_letter" ? "the institution's letter" : "the credit bureau report"}`;
 
+/** "on [date], to [bureau] (source: …)", joined with commas. */
 function reportWords(items: readonly CreditBureauReport[]): string {
-  return items.map((r) => `${formatDate(r.date!)}${r.bureau ? ` to ${r.bureau}` : ""} (${reportSource(r)})`).join(", ");
+  return items.map((r) => `on ${formatDate(r.date!)}${r.bureau ? `, to ${r.bureau}` : ""} (${reportSource(r)})`).join("; ");
 }
-
-const periodWords = (p: Period) => (p.until ? `from ${formatDate(p.from)} to ${formatDate(p.until)}` : `from ${formatDate(p.from)}`);
 
 /**
  * 8.4(a)'s period in days, read from the loaded clause: the figure in "up to [n] calendar days after" in the part before
@@ -122,12 +125,24 @@ export function calendarDaysStatedIn(text: string): number | null {
   return figures.size === 1 ? [...figures][0] : null;
 }
 
-// wording awaiting Elena's approval
-export const REPAYMENT_NOT_SHOWN = "The records do not show whether the amount was repaid.";
+export const REPAYMENT_NOT_SHOWN = "The records provided do not show whether the amount was repaid.";
 
-/** "The institution's final reply is dated [date]. The reply states an outcome ([outcome])." */
+/** S8-5: one sentence per outcome the reply states. */
+const OUTCOME_SENTENCES: Record<NonNullable<BankReply["outcome"]>, string> = {
+  rejected: "The reply rejects the claim.",
+  partial_offer: "The reply makes a partial offer.",
+  full_offer: "The reply makes a full offer.",
+  other: "The reply states another outcome.",
+};
+
+/** "The institution's final reply is dated [date]." and the outcome sentence. */
 function outcomeWords(reply: BankReply): string {
-  return `The institution's final reply is dated ${formatDate(reply.date!)}.${reply.outcome ? ` The reply states an outcome (${reply.outcome.replace(/_/g, " ")}).` : ""}`;
+  return `The institution's final reply is dated ${formatDate(reply.date!)}.${reply.outcome ? ` ${OUTCOME_SENTENCES[reply.outcome]}` : ""}`;
+}
+
+/** S8-12: "Counted from the date of the final reply, the [n] calendar days run from [date] to [date]." */
+function countedWords(replyDate: IsoDate, days: number): string {
+  return `Counted from the date of the final reply, the ${formatCalendarDays(days)} run from ${formatDate(replyDate)} to ${formatDate(addCalendarDays(replyDate, days))}.`;
 }
 
 /** What the records show of FIDReC's process (8.2(b), 8.4(b), 8.5). */
@@ -140,26 +155,31 @@ function fidrecWords(fidrec: { startedOn: IsoDate | null; institutionToldOn: Iso
   return "The records provided do not show dispute resolution with FIDReC starting.";
 }
 
-/** Credit bureau reports in a period (8.3, 8.4(a)): the record sentence and the outcome. */
-function bureauInPeriod(bureau: CreditBureauReport[] | null, period: Period): { sentence: string; outcome: ComparisonOutcome } {
+const BUREAU_NOT_SHOWN = "The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau.";
+
+/**
+ * Credit bureau reports in a period (8.3, 8.4(a)): the record sentence and the outcome. "No report" (`matches`) only
+ * where a credit bureau report document is in the records and was read: a bureau report shows an account as overdue
+ * without naming a transaction, so an empty extraction, or letters and the complainant's statement alone, never read
+ * as "no report" (`not_shown`).
+ */
+function bureauInPeriod(bureau: CreditBureauReport[] | null, period: Period, bureauReportRead: boolean, window: WindowWords): { sentence: string; outcome: ComparisonOutcome } {
   const inPeriod = (bureau ?? []).filter((r) => within(r.date, period));
   if (inPeriod.length) {
-    return { sentence: `The records show ${plural(inPeriod.length, "report")} of non-payment of the disputed amount to a credit bureau in that period: ${reportWords(inPeriod)}.`, outcome: "differs" };
+    return { sentence: `The records show ${plural(inPeriod.length, "report")} of non-payment of the disputed amount to a credit bureau ${window}: ${reportWords(inPeriod)}.`, outcome: "differs" };
   }
-  if (bureau === null) return { sentence: "The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau.", outcome: "not_shown" };
-  return { sentence: "The records show no report of non-payment of the disputed amount to a credit bureau in that period.", outcome: "matches" };
+  if (!bureauReportRead) return { sentence: BUREAU_NOT_SHOWN, outcome: "not_shown" };
+  return { sentence: `The records show no report of non-payment of the disputed amount to a credit bureau ${window}.`, outcome: "matches" };
 }
 
-// wording awaiting Elena's approval
-/** Every credit bureau report the records show, with no period (the record line beside a quoted 8.4 or 8.5). */
-function bureauWords(bureau: CreditBureauReport[] | null): string {
+/** Every credit bureau report the records show, with no period (the record line beside 8.4(b) or a quoted 8.5). */
+function bureauWords(bureau: CreditBureauReport[] | null, bureauReportRead: boolean): string {
   const dated = (bureau ?? []).filter((r) => r.date !== null);
   if (dated.length) return `The records show ${plural(dated.length, "report")} of non-payment of the disputed amount to a credit bureau: ${reportWords(dated)}.`;
-  if (bureau === null) return "The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau.";
+  if (!bureauReportRead) return BUREAU_NOT_SHOWN;
   return "The records show no report of non-payment of the disputed amount to a credit bureau.";
 }
 
-// wording awaiting Elena's approval
 /** Every request to pay the disputed amount the records show, with no period (the record line beside a quoted 8.5). */
 function requestListWords(requests: DisputedAmountPaymentRequest[] | null): string {
   const dated = (requests ?? []).filter((r) => r.date !== null);
@@ -173,176 +193,190 @@ function settlementInPeriods(
   requests: DisputedAmountPaymentRequest[] | null,
   charges: ChargeOnDisputedAmount[] | null,
   periods: readonly Period[],
+  window: WindowWords,
 ): { sentences: string[]; outcome: ComparisonOutcome } {
   const inAny = (d: IsoDate | null) => periods.some((p) => within(d, p));
   const req = (requests ?? []).filter((r) => inAny(r.date));
   const chg = (charges ?? []).filter((c) => inAny(c.date));
   const sentences: string[] = [];
-  if (req.length) sentences.push(`The records show ${plural(req.length, "request")} to pay the disputed amount in that period: ${requestWords(req)}.`);
-  if (chg.length) sentences.push(`The records show ${plural(chg.length, "charge")} on the disputed amount in that period: ${chargeWords(chg)}.`);
+  if (req.length) sentences.push(`The records show ${plural(req.length, "request")} to pay the disputed amount ${window}: ${requestWords(req)}.`);
+  if (chg.length) sentences.push(`The records show ${plural(chg.length, "charge")} on the disputed amount ${window}: ${chargeWords(chg)}.`);
   if (req.length || chg.length) return { sentences, outcome: "differs" };
   if (requests === null || charges === null) {
     sentences.push(
       requests === null && charges === null
         ? "The records provided do not show requests to pay the disputed amount or charges on it."
         : requests === null
-          ? "The records show no charge on the disputed amount in that period. The records provided do not show requests to pay the disputed amount."
-          : "The records show no request to pay the disputed amount in that period. The records provided do not show charges on the disputed amount.",
+          ? `The records show no charge on the disputed amount ${window}. The records provided do not show requests to pay the disputed amount.`
+          : `The records show no request to pay the disputed amount ${window}. The records provided do not show charges on the disputed amount.`,
     );
     return { sentences, outcome: "not_shown" };
   }
-  sentences.push("The records show no request to pay the disputed amount and no charge on it in that period.");
+  sentences.push(`The records show no request to pay the disputed amount and no charge on it ${window}.`);
   return { sentences, outcome: "matches" };
 }
 
-export const buildDisputeChargesChecks: SectionBuilder = async (input: SectionInput): Promise<SectionResult> => {
-  const w = new ComparisonWriter("disputed_amount_charges", input);
-  const payments = input.payments.filter((p) => p.instrument !== null);
-  if (!payments.length) return w.result();
-  const group: PaymentGroup = paymentsIn(payments, "account").length ? "account" : "card";
-  const credit = creditCardPayments(payments, factValue(input.facts, "account_types") ?? []);
-  const base = { group, skipInstrumentGuard: true };
+export interface DisputeChargesCheckOptions {
+  /**
+   * Whether a credit bureau report document (`credit_bureau_report`) is in the case's records and was read. Only then
+   * can "no report" print as `matches`. SectionInput does not carry the documents read; Lane 6 wires this from the
+   * evidence index. Default: false (never "no report").
+   */
+  creditBureauReportRead?: (input: SectionInput) => boolean;
+}
 
-  const report = factValue(input.facts, "reported_to_bank");
-  const reply = factValue(input.facts, "bank_reply");
-  const fidrec = factValue(input.facts, "fidrec_dispute_dates");
-  const requests = factValue(input.facts, "disputed_amount_payment_requests");
-  const charges = factValue(input.facts, "charges_on_disputed_amount");
-  const bureau = factValue(input.facts, "credit_bureau_reports");
-  const ev = evidenceFor(input, "reported_to_bank", "bank_reply", "disputed_amount_payment_requests", "charges_on_disputed_amount");
-  const bureauEv = evidenceFor(input, "reported_to_bank", "bank_reply", "credit_bureau_reports");
+export function createDisputeChargesChecks(options: DisputeChargesCheckOptions = {}): SectionBuilder {
+  return async (input: SectionInput): Promise<SectionResult> => {
+    const w = new ComparisonWriter("disputed_amount_charges", input);
+    const payments = input.payments.filter((p) => p.instrument !== null);
+    if (!payments.length) return w.result();
+    const group: PaymentGroup = paymentsIn(payments, "account").length ? "account" : "card";
+    const credit = creditCardPayments(payments, factValue(input.facts, "account_types") ?? []);
+    const base = { group, skipInstrumentGuard: true };
+    const bureauReportRead = options.creditBureauReportRead?.(input) ?? false;
 
-  const rows: Array<{ clauseKey: string; payments: readonly DisputedPayment[] }> = [
-    { clauseKey: P8_1, payments },
-    { clauseKey: P8_2, payments },
-    ...(credit.length ? [P8_3, P8_4, P8_5].map((clauseKey) => ({ clauseKey, payments: credit })) : []),
-  ];
+    const report = factValue(input.facts, "reported_to_bank");
+    const reply = factValue(input.facts, "bank_reply");
+    const fidrec = factValue(input.facts, "fidrec_dispute_dates");
+    const requests = factValue(input.facts, "disputed_amount_payment_requests");
+    const charges = factValue(input.facts, "charges_on_disputed_amount");
+    const bureau = factValue(input.facts, "credit_bureau_reports");
+    const ev = evidenceFor(input, "reported_to_bank", "bank_reply", "disputed_amount_payment_requests", "charges_on_disputed_amount");
+    const bureauEv = evidenceFor(input, "reported_to_bank", "bank_reply", "credit_bureau_reports");
 
-  if (report?.value !== "yes" || !report.date) {
-    const onDate = [...payments.map((p) => p.date)].filter((d): d is string => Boolean(d)).sort()[0] ?? null;
-    for (const r of rows) {
-      await w.compare({ ...base, ...r, onDate: onDate && onDate < SECTION_8_FROM ? SECTION_8_FROM : onDate, record: "The records provided do not show when the complainant reported to the institution.", outcome: "not_shown", evidenceIds: ev });
-    }
-    return w.result();
-  }
+    const rows: Array<{ clauseKey: string; payments: readonly DisputedPayment[] }> = [
+      { clauseKey: P8_1, payments },
+      { clauseKey: P8_2, payments },
+      ...(credit.length ? [P8_3, P8_4, P8_5].map((clauseKey) => ({ clauseKey, payments: credit })) : []),
+    ];
 
-  const reportedOn = report.date;
-  const reported = `The complainant reported to the institution on ${formatDate(reportedOn)}.`;
-  if (reportedOn < SECTION_8_FROM) {
-    for (const r of rows) {
-      await w.compare({ ...base, ...r, onDate: SECTION_8_FROM, record: reported, outcome: "not_applicable", evidenceIds: evidenceFor(input, "reported_to_bank") });
-    }
-    return w.result();
-  }
-
-  const onDate = reportedOn;
-  const finalReply = reply?.status === "final_reply" && reply.date ? reply : null;
-  const replyWords = finalReply ? `The institution's final reply is dated ${formatDate(finalReply.date!)}.` : "The records provided do not show a final reply.";
-  const investigation: Period = { from: reportedOn, until: finalReply?.date ?? null };
-
-  // 8.1: until the institution completes its investigation.
-  {
-    const { sentences, outcome } = settlementInPeriods(requests, charges, [investigation]);
-    await w.compare({ ...base, clauseKey: P8_1, payments, onDate, record: [reported, replyWords, ...sentences].join(" "), outcome, evidenceIds: ev });
-  }
-
-  // 8.2: after an assessment the account holder does not agree with: (a) to 30 calendar days after the outcome is
-  // given; (b) from when the institution is aware that FIDReC's process has started until it is completed or closed.
-  {
-    const fidrecEv = evidenceFor(input, "bank_reply", "fidrec_dispute_dates", "disputed_amount_payment_requests", "charges_on_disputed_amount");
-    if (!finalReply) {
-      await w.compare({ ...base, clauseKey: P8_2, payments, onDate, record: `${reported} ${replyWords}`, outcome: "not_shown", evidenceIds: fidrecEv });
-    } else if (finalReply.outcome === "full_offer") {
-      await w.compare({ ...base, clauseKey: P8_2, payments, onDate, record: `${replyWords} The reply states an outcome (full offer).`, outcome: "not_applicable", evidenceIds: fidrecEv });
-    } else {
-      const periodA: Period = { from: finalReply.date!, until: addCalendarDays(finalReply.date!, DAYS_AFTER_OUTCOME + 1) };
-      const periods: Period[] = [periodA];
-      const parts = [
-        outcomeWords(finalReply),
-        `The period after the reply runs ${periodWords({ from: periodA.from, until: addCalendarDays(finalReply.date!, DAYS_AFTER_OUTCOME) })}.`,
-      ];
-      const aware = fidrec?.institutionToldOn ?? null;
-      if (aware) periods.push({ from: aware, until: fidrec?.completedOrClosedOn ?? null });
-      parts.push(fidrecWords(fidrec));
-      const { sentences, outcome } = settlementInPeriods(requests, charges, periods);
-      await w.compare({ ...base, clauseKey: P8_2, payments, onDate, record: [...parts, ...sentences].join(" "), outcome, evidenceIds: fidrecEv });
-    }
-  }
-
-  // 8.3: credit cards; credit records not adversely affected until the investigation is completed.
-  if (credit.length) {
-    const { sentence, outcome } = bureauInPeriod(bureau, investigation);
-    await w.compare({ ...base, clauseKey: P8_3, payments: credit, onDate, record: `${reported} ${replyWords} ${sentence}`, outcome, evidenceIds: bureauEv });
-  }
-
-  // 8.4 and 8.5: credit cards only, as 8.3.
-  if (credit.length) {
-    const fullOffer = finalReply?.outcome === "full_offer";
-    const disputed = finalReply !== null && !fullOffer;
-
-    // 8.4(a): built like 8.2(a), but only where the loaded text states its period; the number of days is read from it.
-    const clause84 = await w.clause(P8_4, onDate);
-    const days84a = clause84 ? periodDaysIn84a(clause84.text_content) : null;
-    let periodAEnd: IsoDate | null = null;
-    if (!finalReply) {
-      await w.compare({ ...base, clauseKey: P8_4, payments: credit, onDate, record: `${reported} ${replyWords}`, outcome: "not_shown", evidenceIds: bureauEv });
-    } else if (fullOffer) {
-      await w.compare({ ...base, clauseKey: P8_4, payments: credit, onDate, record: `${replyWords} The reply states an outcome (full offer).`, outcome: "not_applicable", evidenceIds: bureauEv });
-    } else if (days84a !== null) {
-      periodAEnd = addCalendarDays(finalReply.date!, days84a);
-      const periodA: Period = { from: finalReply.date!, until: addCalendarDays(finalReply.date!, days84a + 1) };
-      const { sentence, outcome } = bureauInPeriod(bureau, periodA);
-      await w.compare({
-        ...base,
-        clauseKey: P8_4,
-        payments: credit,
-        onDate,
-        record: [outcomeWords(finalReply), `The period after the reply runs ${periodWords({ from: periodA.from, until: periodAEnd })}.`, sentence].join(" "),
-        outcome,
-        evidenceIds: bureauEv,
-      });
-    }
-
-    // 8.4(b) (and 8.4(a) where its text gives no period): the paragraph quoted, beside what the records show. 8.4(b)
-    // names no period ("after the completion of mediation and/or adjudication by FIDReC …"), so nothing is computed and
-    // there is no outcome (Lane 1's reading of 24 Nov 2026; Elena decides how it is read).
-    if (!fullOffer) {
-      w.text([fidrecWords(fidrec), bureauWords(bureau)].join(" "), { evidenceIds: evidenceFor(input, "fidrec_dispute_dates", "credit_bureau_reports"), clauseKeys: [P8_4] });
-      await w.quotation({ documentKey: "mas.eupg", clauseKeys: [P8_4], eventDate: onDate, generatedOn: onDate, caseEventDates: [], evidenceIds: bureauEv });
-    }
-
-    // 8.5: a row only where the record shows a request and a later report, after the 8.4(a) period and before FIDReC's
-    // process started, so that the period does not depend on 8.4(b). The number of days is read from the loaded text.
-    const clause85 = await w.clause(P8_5, onDate);
-    const days85 = clause85 ? calendarDaysStatedIn(clause85.text_content) : null;
-    const fidrecFrom = fidrec?.startedOn ?? fidrec?.institutionToldOn ?? null;
-    const requestsKnown = (requests ?? []).filter((r): r is DisputedAmountPaymentRequest & { date: IsoDate } => r.date !== null);
-    const resumed = disputed && periodAEnd !== null && days85 !== null && fidrecFrom !== null
-      ? (bureau ?? []).filter((r) => r.date !== null && r.date > periodAEnd! && r.date < fidrecFrom && requestsKnown.some((q) => q.date < r.date!))
-      : [];
-    if (resumed.length) {
-      for (const r of resumed) {
-        // Measured from the earliest request the records show before the report.
-        const request = requestsKnown.filter((q) => q.date < r.date!).sort((a, b) => (a.date < b.date ? -1 : 1))[0];
-        const gap = calendarDaysBetween(request.date, r.date!);
-        // wording awaiting Elena's approval
-        const record =
-          `The records show a request to pay the disputed amount dated ${formatDate(request.date)} and a report of non-payment of the disputed amount to a credit bureau on ${formatDate(r.date!)} (${reportSource(r)}), ${formatCalendarDays(gap)} later. ` +
-          REPAYMENT_NOT_SHOWN;
-        await w.compare({ ...base, clauseKey: P8_5, payments: credit, onDate, record, outcome: gap < days85! ? "differs" : "not_shown", evidenceIds: evidenceFor(input, "disputed_amount_payment_requests", "credit_bureau_reports") });
+    if (report?.value !== "yes" || !report.date) {
+      const onDate = [...payments.map((p) => p.date)].filter((d): d is string => Boolean(d)).sort()[0] ?? null;
+      for (const r of rows) {
+        await w.compare({ ...base, ...r, onDate: onDate && onDate < SECTION_8_FROM ? SECTION_8_FROM : onDate, record: "The records provided do not show when the complainant reported the disputed transactions to the institution.", outcome: "not_shown", evidenceIds: ev });
       }
-    } else if (!fullOffer) {
-      w.text([requestListWords(requests), bureauWords(bureau), fidrecWords(fidrec)].join(" "), {
-        evidenceIds: evidenceFor(input, "disputed_amount_payment_requests", "credit_bureau_reports", "fidrec_dispute_dates"),
-        clauseKeys: [P8_5],
-      });
-      await w.quotation({ documentKey: "mas.eupg", clauseKeys: [P8_5], eventDate: onDate, generatedOn: onDate, caseEventDates: [], evidenceIds: bureauEv });
+      return w.result();
     }
-  }
 
-  // Footnotes 26 and 27: a statement, wherever the institution's reply says the transaction was authorised.
-  if (replySaysAuthorised(input)) {
-    await w.statement(SECTION_8_OUT_OF_SCOPE_STATEMENT_KEY, onDate, evidenceFor(input, "bank_reply", "card_dispute_response", "institution_fault_label"));
-  }
-  return w.result();
-};
+    const reportedOn = report.date;
+    const reported = `The complainant reported the disputed transactions to the institution on ${formatDate(reportedOn)}.`;
+    if (reportedOn < SECTION_8_FROM) {
+      for (const r of rows) {
+        await w.compare({ ...base, ...r, onDate: SECTION_8_FROM, record: reported, outcome: "not_applicable", evidenceIds: evidenceFor(input, "reported_to_bank") });
+      }
+      return w.result();
+    }
+
+    const onDate = reportedOn;
+    const finalReply = reply?.status === "final_reply" && reply.date ? reply : null;
+    const replyWords = finalReply ? `The institution's final reply is dated ${formatDate(finalReply.date!)}.` : "The records provided do not show a final reply.";
+    const investigation: Period = { from: reportedOn, until: finalReply?.date ?? null };
+
+    // 8.1: until the institution completes its investigation.
+    {
+      const { sentences, outcome } = settlementInPeriods(requests, charges, [investigation], "between those dates");
+      await w.compare({ ...base, clauseKey: P8_1, payments, onDate, record: [reported, replyWords, ...sentences].join(" "), outcome, evidenceIds: ev });
+    }
+
+    // 8.2: after an assessment the account holder does not agree with: (a) to 30 calendar days after the outcome is
+    // given; (b) from when the institution is aware that FIDReC's process has started until it is completed or closed.
+    {
+      const fidrecEv = evidenceFor(input, "bank_reply", "fidrec_dispute_dates", "disputed_amount_payment_requests", "charges_on_disputed_amount");
+      if (!finalReply) {
+        await w.compare({ ...base, clauseKey: P8_2, payments, onDate, record: `${reported} ${replyWords}`, outcome: "not_shown", evidenceIds: fidrecEv });
+      } else if (finalReply.outcome === "full_offer") {
+        await w.compare({ ...base, clauseKey: P8_2, payments, onDate, record: outcomeWords(finalReply), outcome: "not_applicable", evidenceIds: fidrecEv });
+      } else {
+        const periods: Period[] = [{ from: finalReply.date!, until: addCalendarDays(finalReply.date!, DAYS_AFTER_OUTCOME + 1) }];
+        const parts = [outcomeWords(finalReply), countedWords(finalReply.date!, DAYS_AFTER_OUTCOME)];
+        const aware = fidrec?.institutionToldOn ?? null;
+        if (aware) periods.push({ from: aware, until: fidrec?.completedOrClosedOn ?? null });
+        parts.push(fidrecWords(fidrec));
+        const { sentences, outcome } = settlementInPeriods(requests, charges, periods, "in those periods");
+        await w.compare({ ...base, clauseKey: P8_2, payments, onDate, record: [...parts, ...sentences].join(" "), outcome, evidenceIds: fidrecEv });
+      }
+    }
+
+    // 8.3: credit cards; credit records not adversely affected until the investigation is completed.
+    if (credit.length) {
+      const { sentence, outcome } = bureauInPeriod(bureau, investigation, bureauReportRead, "between those dates");
+      await w.compare({ ...base, clauseKey: P8_3, payments: credit, onDate, record: `${reported} ${replyWords} ${sentence}`, outcome, evidenceIds: bureauEv });
+    }
+
+    // 8.4 and 8.5: credit cards only, as 8.3.
+    if (credit.length) {
+      const fullOffer = finalReply?.outcome === "full_offer";
+      const disputed = finalReply !== null && !fullOffer;
+
+      // 8.4(a): built like 8.2(a), but only where the loaded text states its period; the number of days is read from it.
+      const clause84 = await w.clause(P8_4, onDate);
+      const days84a = clause84 ? periodDaysIn84a(clause84.text_content) : null;
+      let periodAEnd: IsoDate | null = null;
+      let printed84a = false;
+      if (!finalReply) {
+        await w.compare({ ...base, clauseKey: P8_4, payments: credit, onDate, record: `${reported} ${replyWords}`, outcome: "not_shown", evidenceIds: bureauEv });
+      } else if (fullOffer) {
+        await w.compare({ ...base, clauseKey: P8_4, payments: credit, onDate, record: outcomeWords(finalReply), outcome: "not_applicable", evidenceIds: bureauEv });
+      } else if (days84a !== null) {
+        periodAEnd = addCalendarDays(finalReply.date!, days84a);
+        const periodA: Period = { from: finalReply.date!, until: addCalendarDays(finalReply.date!, days84a + 1) };
+        const { sentence, outcome } = bureauInPeriod(bureau, periodA, bureauReportRead, "between those dates");
+        printed84a = await w.compare({
+          ...base,
+          clauseKey: P8_4,
+          payments: credit,
+          onDate,
+          record: [outcomeWords(finalReply), countedWords(finalReply.date!, days84a), sentence].join(" "),
+          outcome,
+          evidenceIds: bureauEv,
+        });
+      }
+
+      // 8.4(b) names no period ("after the completion of mediation and/or adjudication by FIDReC …"), so nothing is
+      // computed and there is no outcome (Elena, 24 Nov 2026: quoted word for word, with the dates). Where the 8.4(a)
+      // row printed, paragraph 8.4 is already shown as its Expected, so the 8.4(b) record line sits under it and the
+      // paragraph is not quoted again; otherwise the line is followed by the paragraph quoted.
+      if (!fullOffer) {
+        w.text([fidrecWords(fidrec), bureauWords(bureau, bureauReportRead)].join(" "), { evidenceIds: evidenceFor(input, "fidrec_dispute_dates", "credit_bureau_reports"), clauseKeys: [P8_4] });
+        if (!printed84a) await w.quotation({ documentKey: "mas.eupg", clauseKeys: [P8_4], eventDate: onDate, generatedOn: onDate, caseEventDates: [], evidenceIds: bureauEv });
+      }
+
+      // 8.5: a row only where the record shows a request and a later report, after the 8.4(a) period and before FIDReC's
+      // process started, so that the period does not depend on 8.4(b). The number of days is read from the loaded text.
+      const clause85 = await w.clause(P8_5, onDate);
+      const days85 = clause85 ? calendarDaysStatedIn(clause85.text_content) : null;
+      const fidrecFrom = fidrec?.startedOn ?? fidrec?.institutionToldOn ?? null;
+      const requestsKnown = (requests ?? []).filter((r): r is DisputedAmountPaymentRequest & { date: IsoDate } => r.date !== null);
+      const resumed = disputed && periodAEnd !== null && days85 !== null && fidrecFrom !== null
+        ? (bureau ?? []).filter((r) => r.date !== null && r.date > periodAEnd! && r.date < fidrecFrom && requestsKnown.some((q) => q.date < r.date!))
+        : [];
+      if (resumed.length) {
+        for (const r of resumed) {
+          // Measured from the earliest request the records show before the report.
+          const request = requestsKnown.filter((q) => q.date < r.date!).sort((a, b) => (a.date < b.date ? -1 : 1))[0];
+          const gap = calendarDaysBetween(request.date, r.date!);
+          const record =
+            `The earliest request to pay the disputed amount in the records is dated ${formatDate(request.date)}. ` +
+            `The records show a report of non-payment of the disputed amount to a credit bureau on ${formatDate(r.date!)} (${reportSource(r)}), ${formatCalendarDays(gap)} later. ` +
+            REPAYMENT_NOT_SHOWN;
+          await w.compare({ ...base, clauseKey: P8_5, payments: credit, onDate, record, outcome: gap < days85! ? "differs" : "not_shown", evidenceIds: evidenceFor(input, "disputed_amount_payment_requests", "credit_bureau_reports") });
+        }
+      } else if (!fullOffer) {
+        w.text([requestListWords(requests), bureauWords(bureau, bureauReportRead), fidrecWords(fidrec)].join(" "), {
+          evidenceIds: evidenceFor(input, "disputed_amount_payment_requests", "credit_bureau_reports", "fidrec_dispute_dates"),
+          clauseKeys: [P8_5],
+        });
+        await w.quotation({ documentKey: "mas.eupg", clauseKeys: [P8_5], eventDate: onDate, generatedOn: onDate, caseEventDates: [], evidenceIds: bureauEv });
+      }
+    }
+
+    // Footnotes 26 and 27: a statement, wherever the institution's reply says the transaction was authorised.
+    if (replySaysAuthorised(input)) {
+      await w.statement(SECTION_8_OUT_OF_SCOPE_STATEMENT_KEY, onDate, evidenceFor(input, "bank_reply", "card_dispute_response", "institution_fault_label"));
+    }
+    return w.result();
+  };
+}
+
+/** Section `disputed_amount_charges`, with no credit bureau report document read (never "no report"). */
+export const buildDisputeChargesChecks: SectionBuilder = createDisputeChargesChecks();

@@ -130,11 +130,12 @@ test("the complainant's own statement is labelled as such; a story cannot state 
 })
 
 test('a credit bureau report document states the reports; it cannot state charges', () => {
-  const text = 'EXAMPLE CREDIT BUREAU - CREDIT REPORT (SYNTHETIC)\n2025-09-10 Example Bank A reported default: 7,550.00'
+  // The report line names the disputed transaction (a bureau line must, since the follow-ups on #81).
+  const text = 'EXAMPLE CREDIT BUREAU - CREDIT REPORT (SYNTHETIC)\n2025-09-10 Example Bank A reported default: 7,550.00 (disputed transaction)'
   const candidates = parseFactExtraction({
     document_type: 'credit_bureau_report',
-    credit_bureau_reports: [{ date: '2025-09-10', bureau: 'Example Credit Bureau', quote: '2025-09-10 Example Bank A reported default: 7,550.00', confidence: 0.9 }],
-    charges_on_disputed_amount: [{ date: '2025-09-10', kind: 'other', amount: 7550, currency: 'SGD', quote: '2025-09-10 Example Bank A reported default: 7,550.00', confidence: 0.9 }],
+    credit_bureau_reports: [{ date: '2025-09-10', bureau: 'Example Credit Bureau', quote: '2025-09-10 Example Bank A reported default: 7,550.00 (disputed transaction)', confidence: 0.9 }],
+    charges_on_disputed_amount: [{ date: '2025-09-10', kind: 'other', amount: 7550, currency: 'SGD', quote: '2025-09-10 Example Bank A reported default: 7,550.00 (disputed transaction)', confidence: 0.9 }],
   }, text, doc('c1'))
   const [reports] = byKey(candidates, 'credit_bureau_reports')
   assert.equal((reports.value as unknown as Array<{ source: string }>)[0].source, 'credit_bureau_report')
