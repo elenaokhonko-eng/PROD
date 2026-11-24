@@ -1,0 +1,314 @@
+{
+  "$comment": "MAS and IMDA, Response to Consultation Paper on Proposed Shared Responsibility Framework (P016-2023), 24 October 2024. Selected sections only: the paragraphs brief Phase 2 lists and rules/srf.ts cites (1.2, footnote 2, 3.4-3.6, 4.6-4.8, 6.7-6.11, footnote 9, 8.3-8.4). The list of respondents (Annex A) is not loaded. A statement of policy, not an instrument. Clause text is cut from the private source file.",
+  "document": {
+    "document_key": "mas.srf_response",
+    "title": "Response to Consultation Paper on Proposed Shared Responsibility Framework",
+    "publisher": "Monetary Authority of Singapore and Infocomm Media Development Authority",
+    "binding_level": "announcement",
+    "applies_to": ["bank", "payment_service_provider", "telco"],
+    "instrument_scope": ["account_transfer", "ewallet"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/publications/consultations/2023/consultation-paper-on-proposed-shared-responsibility-framework"
+  },
+  "version": {
+    "version_label": "24 October 2024",
+    "effective_from": "2024-10-24",
+    "issued_on": "2024-10-24",
+    "retrieved_at": "2026-11-24T05:20:00Z",
+    "source_url": "https://www.mas.gov.sg/-/media/mas-media-library/publications/consultations/pd/2023/srf/mas-imda-response-to-consultation-on-shared-responsibility-framework.pdf",
+    "snapshot_path": "mas.srf_response/2024-10-24/mas-imda-response-to-consultation-on-shared-responsibility-framework.pdf",
+    "content_sha256": "157c7a7200250353d68039d047464f996097397f9be40c43a440e25a0682a93b",
+    "provenance": "publisher_site",
+    "coverage": "selected_sections"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["^[ \\t]*\\d+[ \\t]*$"],
+    "end": "^Annex A$"
+  },
+  "markers": [
+    {
+      "at": "^1\\.2\\. ",
+      "clause": "mas.srf_response/1.2",
+      "skip": true
+    },
+    {
+      "at": "^1\\.3\\. ",
+      "clause": null
+    },
+    {
+      "at": "^2 (?=To avoid doubt)",
+      "clause": "mas.srf_response/fn2",
+      "skip": true
+    },
+    {
+      "at": "^2\\.6\\. ",
+      "clause": null
+    },
+    {
+      "at": "^3\\.4\\. ",
+      "clause": "mas.srf_response/3.4",
+      "skip": true
+    },
+    {
+      "at": "^3\\.5\\. ",
+      "clause": "mas.srf_response/3.5",
+      "skip": true
+    },
+    {
+      "at": "^3\\.6\\. ",
+      "clause": "mas.srf_response/3.6",
+      "skip": true
+    },
+    {
+      "at": "^5 (?=The Association of Banks)",
+      "clause": null
+    },
+    {
+      "at": "^4\\.6\\. ",
+      "clause": "mas.srf_response/4.6",
+      "skip": true
+    },
+    {
+      "at": "^4\\.7\\. ",
+      "clause": "mas.srf_response/4.7",
+      "skip": true
+    },
+    {
+      "at": "^4\\.8\\. ",
+      "clause": "mas.srf_response/4.8",
+      "skip": true
+    },
+    {
+      "at": "^6 (?=MAS has informed)",
+      "clause": null
+    },
+    {
+      "at_page": 10,
+      "clause": "mas.srf_response/4.8"
+    },
+    {
+      "at": "^4\\.9\\. ",
+      "clause": null
+    },
+    {
+      "at": "^6\\.7\\. ",
+      "clause": "mas.srf_response/6.7",
+      "skip": true
+    },
+    {
+      "at": "^6\\.8\\. ",
+      "clause": "mas.srf_response/6.8",
+      "skip": true
+    },
+    {
+      "at": "^6\\.9\\. ",
+      "clause": "mas.srf_response/6.9",
+      "skip": true
+    },
+    {
+      "at": "^6\\.10\\. ",
+      "clause": "mas.srf_response/6.10",
+      "skip": true
+    },
+    {
+      "at": "^6\\.11\\. ",
+      "clause": "mas.srf_response/6.11",
+      "skip": true
+    },
+    {
+      "at": "^9 (?=FIDReC)",
+      "clause": "mas.srf_response/fn9",
+      "skip": true
+    },
+    {
+      "at": "^7\\. An Evolving Approach",
+      "clause": null
+    },
+    {
+      "at": "^8\\.3\\. ",
+      "clause": "mas.srf_response/8.3",
+      "skip": true
+    },
+    {
+      "at": "^10 (?=RCS is available)",
+      "clause": null
+    },
+    {
+      "at_page": 22,
+      "clause": "mas.srf_response/8.3"
+    },
+    {
+      "at": "(?<=\\s)8\\.4\\. ",
+      "clause": "mas.srf_response/8.4",
+      "skip": true
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.srf_response/1.2",
+      "clause_ref": "1.2",
+      "heading_path": ["1. Preface"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "d9def447fd8dab0c70aacef0b9745fce69f2881f5931099ab024a931bea5de33"
+    },
+    {
+      "clause_key": "mas.srf_response/fn2",
+      "clause_ref": "footnote 2",
+      "heading_path": ["2. Entities Covered under the SRF"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "09fefa84b414781f7f1bc4772ec5c10d677e075a1b00de52b5bb5c3f88bc0261",
+      "note": "The SRF applies to the four mobile network operators, not to MVNOs."
+    },
+    {
+      "clause_key": "mas.srf_response/3.4",
+      "clause_ref": "3.4",
+      "heading_path": ["3. Types of Scams Covered", "MAS' & IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "6f29366a13215702955fa46f7efa122d7f36a8d6b614e8daa9031337f3c54b1a"
+    },
+    {
+      "clause_key": "mas.srf_response/3.5",
+      "clause_ref": "3.5",
+      "heading_path": ["3. Types of Scams Covered", "MAS' & IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "1998f7322137c3166c39387edaf90ea714e52c62b2d87d326ea30cda09c19315"
+    },
+    {
+      "clause_key": "mas.srf_response/3.6",
+      "clause_ref": "3.6",
+      "heading_path": ["3. Types of Scams Covered", "MAS' & IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "96c1f205afa07b52a904fd73918bde7be297cec58f413a5e995c406b29dd2b4c"
+    },
+    {
+      "clause_key": "mas.srf_response/4.6",
+      "clause_ref": "4.6",
+      "heading_path": ["4. Duties of Responsible FIs and Responsible Telcos", "MAS' and IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "ff18850e267b8cc5c11d90f719cd433e96a675ee6cffd0fe05b8d6838b54d2a4"
+    },
+    {
+      "clause_key": "mas.srf_response/4.7",
+      "clause_ref": "4.7",
+      "heading_path": ["4. Duties of Responsible FIs and Responsible Telcos", "MAS' and IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "393d016c6b183b44b0bfa4fbcd1acb9d03251a8eb8d1d772a6047737289ae566",
+      "note": "Includes the boxed SRF duty on fraud surveillance and the 6-month transition."
+    },
+    {
+      "clause_key": "mas.srf_response/4.8",
+      "clause_ref": "4.8",
+      "heading_path": ["4. Duties of Responsible FIs and Responsible Telcos", "MAS' and IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9, 10],
+      "text_sha256": "561805cdec1d0a9b7f7b44f55542c3d7dba0ba5ea8b1c8f31de4321950cdf886"
+    },
+    {
+      "clause_key": "mas.srf_response/6.7",
+      "clause_ref": "6.7",
+      "heading_path": ["6. Operational Workflow for Handling Claims", "MAS' and IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [16],
+      "text_sha256": "0284e4c3e26682164b49e4582d9e9516d2bc09edfb3015c88ccda8c83cf3d9fd"
+    },
+    {
+      "clause_key": "mas.srf_response/6.8",
+      "clause_ref": "6.8",
+      "heading_path": ["6. Operational Workflow for Handling Claims", "MAS' and IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [16],
+      "text_sha256": "ff9827a9707ca659572730d7a4016a5ac897eb714185703e12e1c0ac1124d321"
+    },
+    {
+      "clause_key": "mas.srf_response/6.9",
+      "clause_ref": "6.9",
+      "heading_path": ["6. Operational Workflow for Handling Claims", "MAS' and IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [16, 17],
+      "text_sha256": "7d58d97200a2aded87f763328064ec2aa6e008bb29618961cf7a3b17f7eafa0c"
+    },
+    {
+      "clause_key": "mas.srf_response/6.10",
+      "clause_ref": "6.10",
+      "heading_path": ["6. Operational Workflow for Handling Claims", "MAS' and IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [17],
+      "text_sha256": "f241402e11de870046bd37ea761f7fa79f021c41faf1fd1c369af25359fe6e8d"
+    },
+    {
+      "clause_key": "mas.srf_response/6.11",
+      "clause_ref": "6.11",
+      "heading_path": ["6. Operational Workflow for Handling Claims", "MAS' and IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [17, 18],
+      "text_sha256": "94da2515ad1880797ae53ac7baa7b6e764608e335e247d350acfda0996f68c8b"
+    },
+    {
+      "clause_key": "mas.srf_response/fn9",
+      "clause_ref": "footnote 9",
+      "heading_path": ["6. Operational Workflow for Handling Claims"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [18],
+      "text_sha256": "8482a8a438566da0f42694a7fa62edc128ef8acbe54080db974a25192f8bf3f8"
+    },
+    {
+      "clause_key": "mas.srf_response/8.3",
+      "clause_ref": "8.3",
+      "heading_path": ["8. Others", "MAS' and IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [21, 22],
+      "text_sha256": "ca6dc9f51491dca93453e1377c85c6092e44b405f2533df45c0fc696cfa7d316",
+      "note": "8.3(d): the liability apportionment under the SRF does not apply to Singapore-issued card transactions."
+    },
+    {
+      "clause_key": "mas.srf_response/8.4",
+      "clause_ref": "8.4",
+      "heading_path": ["8. Others", "MAS' and IMDA's Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [22],
+      "text_sha256": "bbc735881ee9554c846d4f5e4e1b109f9a679982203f7f9e0b4ae61d8ade76c1"
+    }
+  ]
+}

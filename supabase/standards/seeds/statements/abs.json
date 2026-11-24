@@ -1,0 +1,55 @@
+{
+  "$comment": "definition_statements seeds, ABS Code of Practice for Banks - Credit Cards (brief 4d). Drafts only: scripts/standards/seed.ts never approves. Checked against abs.card_code revised 2 July 2020. Elena approves each.",
+  "statements": [
+    {
+      "statement_key": "abs.fault.term",
+      "revision": 1,
+      "framework": "abs_card_code",
+      "applies_to_instrument": ["sg_card"],
+      "text": "The ABS Code of Practice for Banks – Credit Cards uses the term 'gross negligence' (paragraphs 5 and 6).",
+      "clause_keys": ["abs.card_code/5", "abs.card_code/6"],
+      "exclusion_clause_keys": [],
+      "note": "5(a) and 5(c) say 'grossly negligent'; 5(b) and 6 say 'gross negligence'."
+    },
+    {
+      "statement_key": "abs.fault.undefined",
+      "revision": 1,
+      "framework": "abs_card_code",
+      "applies_to_instrument": ["sg_card"],
+      "text": "The code does not define gross negligence and gives no examples of it.",
+      "clause_keys": ["abs.card_code/5", "abs.card_code/6"],
+      "exclusion_clause_keys": [],
+      "note": "Checked against the whole code (11 paragraphs). Paragraph 4 gives card and PIN security advice and does not say that not following it is gross negligence."
+    },
+    {
+      "statement_key": "abs.fault.finder",
+      "revision": 1,
+      "framework": "abs_card_code",
+      "applies_to_instrument": ["sg_card"],
+      "text": "The code refers to the card issuer finding a cardholder grossly negligent (paragraphs 5(b) and 5(c)). It does not say who must show it.",
+      "clause_keys": ["abs.card_code/5"],
+      "exclusion_clause_keys": [],
+      "note": "5(b): 'if a cardholder is found to be grossly negligent'; 5(c): 'In the event that banks find the cardholder grossly negligent'."
+    },
+    {
+      "statement_key": "abs.fault.effect",
+      "revision": 1,
+      "framework": "abs_card_code",
+      "applies_to_instrument": ["sg_card"],
+      "text": "Under the code a cardholder who has not acted fraudulently or with gross negligence, and who informed the card issuer as soon as reasonably practicable, is liable for no more than S$100 of unauthorised charges before notifying the loss (paragraph 5(a)). Such a cardholder is not liable where the card was not stolen but its details were used for purchases over the telephone or the Internet, or for unauthorised PIN-activated transactions (paragraph 6). A cardholder involved in fraud or who has acted with gross negligence is liable for 100% of the outstanding unauthorised charges (paragraph 5(b)).",
+      "clause_keys": ["abs.card_code/5", "abs.card_code/6"],
+      "exclusion_clause_keys": [],
+      "note": "Reworded from the brief to follow the text: 6(a) is limited to purchases over the telephone or the Internet, 6(b) adds PIN-activated transactions, and 5(b) says '100% of outstanding unauthorised charges'. The code says '$100'."
+    },
+    {
+      "statement_key": "abs.fault.status",
+      "revision": 1,
+      "framework": "abs_card_code",
+      "applies_to_instrument": ["sg_card"],
+      "text": "The code is an industry code issued by The Association of Banks in Singapore. It is not legislation.",
+      "clause_keys": ["abs.card_code/1"],
+      "exclusion_clause_keys": [],
+      "note": "A statement about the document, not a paragraph. It rests on paragraph 1 (compliance with MAS rules) so that it is reviewed with each new version of the code."
+    }
+  ]
+}
