@@ -1130,7 +1130,7 @@ function buildHotlineCallEvent(input: BuildChronologyEventsInput, anchorYear: nu
   )
 
   const status: ChronologyEventStatus =
-    hasConfirmedTime(dateParts) && /Outgoing Call|1800 111 1111/i.test(hotlineCorpus)
+    hasConfirmedTime(dateParts) && /Outgoing Call|\b1800[\s-]?\d{3}[\s-]?\d{4}\b/i.test(hotlineCorpus)
       ? foldDiscovery
         ? "requires_confirmation"
         : "confirmed"
