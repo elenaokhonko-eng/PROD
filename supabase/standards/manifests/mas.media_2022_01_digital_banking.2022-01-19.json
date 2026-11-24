@@ -1,0 +1,371 @@
+{
+  "$comment": "Joint MAS–ABS media release of 19 January 2022 on measures to bolster the security of digital banking. An announcement of measures, not an instrument; the measures in paragraph 3 were to be put in place \"within the next two weeks\" (para 3). One clause per paragraph and per listed measure (brief Phase 2, 4c). Clause text is cut from the private copy of the MAS page.",
+  "document": {
+    "document_key": "mas.media_2022_01_digital_banking",
+    "title": "MAS and ABS Announce Measures to Bolster the Security of Digital Banking (19 January 2022)",
+    "publisher": "Monetary Authority of Singapore and The Association of Banks in Singapore",
+    "binding_level": "announcement",
+    "applies_to": ["bank"],
+    "instrument_scope": ["account_transfer", "sg_card"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/news/media-releases/2022/mas-and-abs-announce-measures-to-bolster-the-security-of-digital-banking"
+  },
+  "version": {
+    "version_label": "19 January 2022",
+    "effective_from": "2022-01-19",
+    "issued_on": "2022-01-19",
+    "retrieved_at": "2026-11-24T10:00:00Z",
+    "source_url": "https://www.mas.gov.sg/news/media-releases/2022/mas-and-abs-announce-measures-to-bolster-the-security-of-digital-banking",
+    "snapshot_path": "mas.media_2022_01_digital_banking/2022-01-19/mas-and-abs-announce-measures-to-bolster-the-security-of-digital-banking.html",
+    "provenance": "publisher_site",
+    "coverage": "full",
+    "content_sha256": "3f47522fda7ea5cffc6eb7aa4743b7e7d7b6f17e003f502ac388bae26cd7714a"
+  },
+  "extraction": {
+    "format": "html",
+    "extractor": "scripts/standards/extract.ts htmlText (tags stripped, entities decoded)",
+    "html_start": "<div class=\"_mas-typeset contain mas-rte-content m-b:l\">",
+    "html_end": "^\\s*</span>\\s*\\n</div>",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "^\\s*Singapore, 19 January 2022… ",
+      "clause": "mas.media_2022_01_digital_banking/1",
+      "skip": true
+    },
+    {
+      "at": "^2\\. ",
+      "clause": "mas.media_2022_01_digital_banking/2",
+      "skip": true
+    },
+    {
+      "at": "^3\\. ",
+      "clause": "mas.media_2022_01_digital_banking/3",
+      "skip": true
+    },
+    {
+      "at": "^a\\. ",
+      "clause": "mas.media_2022_01_digital_banking/3(a)",
+      "skip": true
+    },
+    {
+      "at": "^b\\. ",
+      "clause": "mas.media_2022_01_digital_banking/3(b)",
+      "skip": true
+    },
+    {
+      "at": "^c\\. ",
+      "clause": "mas.media_2022_01_digital_banking/3(c)",
+      "skip": true
+    },
+    {
+      "at": "^d\\. ",
+      "clause": "mas.media_2022_01_digital_banking/3(d)",
+      "skip": true
+    },
+    {
+      "at": "^e\\. ",
+      "clause": "mas.media_2022_01_digital_banking/3(e)",
+      "skip": true
+    },
+    {
+      "at": "^f\\. ",
+      "clause": "mas.media_2022_01_digital_banking/3(f)",
+      "skip": true
+    },
+    {
+      "at": "^g\\. ",
+      "clause": "mas.media_2022_01_digital_banking/3(g)",
+      "skip": true
+    },
+    {
+      "at": "^These more stringent measures",
+      "clause": "mas.media_2022_01_digital_banking/3.closing"
+    },
+    {
+      "at": "^4\\. ",
+      "clause": "mas.media_2022_01_digital_banking/4",
+      "skip": true
+    },
+    {
+      "at": "^a\\. ",
+      "clause": "mas.media_2022_01_digital_banking/4(a)",
+      "skip": true
+    },
+    {
+      "at": "^b\\. ",
+      "clause": "mas.media_2022_01_digital_banking/4(b)",
+      "skip": true
+    },
+    {
+      "at": "^c\\. ",
+      "clause": "mas.media_2022_01_digital_banking/4(c)",
+      "skip": true
+    },
+    {
+      "at": "^d\\. ",
+      "clause": "mas.media_2022_01_digital_banking/4(d)",
+      "skip": true
+    },
+    {
+      "at": "^e\\. ",
+      "clause": "mas.media_2022_01_digital_banking/4(e)",
+      "skip": true
+    },
+    {
+      "at": "^5\\. ",
+      "clause": "mas.media_2022_01_digital_banking/5",
+      "skip": true
+    },
+    {
+      "at": "^6\\. ",
+      "clause": "mas.media_2022_01_digital_banking/6",
+      "skip": true
+    },
+    {
+      "at": "^7\\. ",
+      "clause": "mas.media_2022_01_digital_banking/7",
+      "skip": true
+    },
+    {
+      "at": "^8\\. ",
+      "clause": "mas.media_2022_01_digital_banking/8",
+      "skip": true
+    },
+    {
+      "at": "^\\*{3,}$",
+      "clause": null
+    },
+    {
+      "at": "^\\[1\\] ",
+      "clause": "mas.media_2022_01_digital_banking/fn1",
+      "skip": true
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/1",
+      "clause_ref": "1",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "5be62f472350a4e80e9064aefa1a92df65c4d34f2bd6f03b260723abc0eb5730"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/2",
+      "clause_ref": "2",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "206210e3321886b52fcb805fadf72884d258b08e2971f44e53b2811e8aa412e2"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/3",
+      "clause_ref": "3",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "b015b8a4636808527351cef13a28423f041d348ac6bcfdf4ddb9585aa47fb704"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/3(a)",
+      "clause_ref": "3(a)",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "e6e8ea7369378a224da1bb25f7bb5caa059b022a464d28e339dc241860894426"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/3(b)",
+      "clause_ref": "3(b)",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "2db795632e85516b3af10b28e222362473f8a1cb81085a963c7e71d3a04f801b"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/3(c)",
+      "clause_ref": "3(c)",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "ab3ef8f41a9a74855c07d2eb875a62f5516d14b52d83a6eb20fd15e29d855f83",
+      "note": "The 12-hour delay before a new soft token is activated (4c, tokenActivationDelay)."
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/3(d)",
+      "clause_ref": "3(d)",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "54c655a3f24abf91e3403f3b305fc33838f7474821f9991cb8612ed36bc11208",
+      "note": "Notification to the existing mobile number or email on a request to change them (4c, tokenActivationAlert candidate; Lane 3 to confirm)."
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/3(e)",
+      "clause_ref": "3(e)",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "78217628a45d6f4239ec7661c8f93f798f1b4d0f654beb871a73db125dffa93a"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/3(f)",
+      "clause_ref": "3(f)",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "e2c08b9d094f84ba0ff0ce227733c9e3f4501a913cd8fe8565d9e1710f0f6f98"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/3(g)",
+      "clause_ref": "3(g)",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "1c4d8b5875fa22f8c0aa2b37fda224a2756e5003deb7fbe7ae80c8d66e7ec7f2"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/3.closing",
+      "clause_ref": "3, closing sentence",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "cfa99411e1ceb53505f60aaa81130923026c10457ebcf1a78d633acabe724f0a"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/4",
+      "clause_ref": "4",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "84fce0356002d8a8f638f975978dba9e9690d016ebd7a2a4457429e2c33e0f9d"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/4(a)",
+      "clause_ref": "4(a)",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "7cc28aa09fbb91030f8b329f2b0ef56758544ccea05b6a92eac960f23a4ce750"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/4(b)",
+      "clause_ref": "4(b)",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "bf96904606626e579f3b00210a9fb6f18b71a4629c5339b9a9af8600c6bfc15e"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/4(c)",
+      "clause_ref": "4(c)",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "0cd12bed0a681e95f7a8e99eed10160bb93658767459f9f4b62b5cb2d9e7607c"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/4(d)",
+      "clause_ref": "4(d)",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "9fe744774be56d1da7dca3896b4c8c1bbc310c011010527a509abef34b98f36d"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/4(e)",
+      "clause_ref": "4(e)",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "0727b75d191864b634607b52e5e51b24dacb63315ebdad33f59f9fb5881fcd82"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/5",
+      "clause_ref": "5",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "c1e2016123bb0ba33dcfd1c7d08d5ab16006daf67059597b4b8660cc68817ccc"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/6",
+      "clause_ref": "6",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "203d59b12648bcba72cefcaa7e449b8487d60de77d582d49ef9fd40d8d460169"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/7",
+      "clause_ref": "7",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "8c26bf73e803ea79e0b41570da8ac7f57f1d88f5029088da4da2a244138855a2"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/8",
+      "clause_ref": "8",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "087501844546ba214cd18f5a8d5577ff47061b2f0339862f24d78214f2d27749"
+    },
+    {
+      "clause_key": "mas.media_2022_01_digital_banking/fn1",
+      "clause_ref": "footnote 1",
+      "heading_path": ["Footnotes"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "bcb1017931ac47d64b90368f21534984bcf46f1251a1a664508d84e67b856b51"
+    }
+  ]
+}

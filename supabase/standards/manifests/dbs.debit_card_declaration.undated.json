@@ -1,0 +1,121 @@
+{
+  "$comment": "DBS / POSB Debit Card Declaration, from the Wayback Machine (capture 9 July 2025; the same file is captured up to 3 June 2026). The copy carries no date, so effective_from is left for Elena; it is the version published on 1 October 2025 and the last before. One clause per part: the declaration, each additional declaration, and the important notes.",
+  "document": {
+    "document_key": "dbs.debit_card_declaration",
+    "title": "DBS / POSB Debit Card Declaration",
+    "publisher": "DBS Bank Ltd",
+    "binding_level": "contract",
+    "applies_to": ["bank"],
+    "instrument_scope": ["sg_card"],
+    "institution": "dbs",
+    "card_scheme": null,
+    "canonical_url": "https://www.dbs.com.sg/iwov-resources/pdf/cards/debit-card-declaration.pdf"
+  },
+  "version": {
+    "version_label": "undated (captured 9 July 2025 to 3 June 2026)",
+    "effective_from": null,
+    "effective_from_basis": "undated",
+    "held_from_at_least": "2025-07-09",
+    "issued_on": null,
+    "retrieved_at": "2025-07-09T15:28:43Z",
+    "source_url": "https://web.archive.org/web/20250709152843/https://www.dbs.com.sg/iwov-resources/pdf/cards/debit-card-declaration.pdf",
+    "snapshot_path": "dbs/archive/debit-card-declaration_wb20250709152843.pdf",
+    "content_sha256": "3aadac68c0800fa0af95ad509a3891c0b07657e7477b4a4f228033660a59c999",
+    "provenance": "web_archive",
+    "coverage": "full",
+    "archived_at": "2025-07-09"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["^Updated as of \\d{1,2} [A-Z][a-z]+ \\d{4} Page \\d+ of \\d+\\s*$"]
+  },
+  "markers": [
+    {
+      "at": "^DBS / POSB Debit Card Declaration",
+      "clause": "dbs.debit_card_declaration/declaration"
+    },
+    {
+      "at": "^Additional",
+      "clause": "dbs.debit_card_declaration/passion"
+    },
+    {
+      "at": "^Additional",
+      "clause": "dbs.debit_card_declaration/safra"
+    },
+    {
+      "at": "^Additional",
+      "clause": "dbs.debit_card_declaration/hometeamns"
+    },
+    {
+      "at": "^Additional",
+      "clause": "dbs.debit_card_declaration/nussu-treasures"
+    },
+    {
+      "at": "^Important Notes",
+      "clause": "dbs.debit_card_declaration/notes"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "dbs.debit_card_declaration/declaration",
+      "clause_ref": "Declaration",
+      "heading_path": ["Declaration"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1, 2],
+      "text_sha256": "5d291f17a09a397fa2c80376c81653c46b5650f2ad0e72a3ae6c474aecfd16d7"
+    },
+    {
+      "clause_key": "dbs.debit_card_declaration/passion",
+      "clause_ref": "Additional Declaration for PAssion Membership",
+      "heading_path": ["Additional Declaration for PAssion Membership"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "6d0f0a9a8c419e969fd2339f5b7801ee3e4c1b5fa3a3016ea8e044712f7cc0de"
+    },
+    {
+      "clause_key": "dbs.debit_card_declaration/safra",
+      "clause_ref": "Additional Declaration for SAFRA Membership",
+      "heading_path": ["Additional Declaration for SAFRA Membership"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "6604def373368c4a071dbfe36579bfb95f4857fbd107683248e131d4bbd604f2"
+    },
+    {
+      "clause_key": "dbs.debit_card_declaration/hometeamns",
+      "clause_ref": "Additional Declaration for HomeTeamNS Membership",
+      "heading_path": ["Additional Declaration for HomeTeamNS Membership"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "b2e86b2f85f52ff587a15775c1565ebdfc8b473a6800d85adc3de38207ab0fab"
+    },
+    {
+      "clause_key": "dbs.debit_card_declaration/nussu-treasures",
+      "clause_ref": "Additional Declaration for DBS NUSSU Debit Card / DBS Treasures Debit Card",
+      "heading_path": ["Additional Declaration for DBS NUSSU Debit Card / DBS Treasures Debit Card"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "e0479173c533d1dcc3c29a7a97b87923b5269c7442dfae17e88888c1b4ec9812"
+    },
+    {
+      "clause_key": "dbs.debit_card_declaration/notes",
+      "clause_ref": "Important Notes",
+      "heading_path": ["Important Notes"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6, 7, 8],
+      "text_sha256": "b89be6917c8fd426c86dd8b93d97d8a2f5bd21449b9a537911aa81e1f36b400a"
+    }
+  ]
+}

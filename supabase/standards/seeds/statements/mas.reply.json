@@ -20,6 +20,16 @@
       "clause_keys": ["mas.reply.20250107/3(b).no3ds"],
       "exclusion_clause_keys": [],
       "note": "The reply gives this as an example of a disputed online transaction the card issuer investigates (3(b))."
+    },
+    {
+      "statement_key": "mas.reply.20260113.wallet",
+      "revision": 1,
+      "framework": "mas_reply",
+      "applies_to_instrument": ["sg_card"],
+      "text": "In a written reply to Parliament on 13 January 2026, MAS stated:",
+      "clause_keys": ["mas.reply.20260113/2.sms-otp", "mas.reply.20260113/3"],
+      "exclusion_clause_keys": [],
+      "note": "Review wording (Decision 9, wallet check Part B), followed by the two sentences printed word for word from clauses 2.sms-otp and 3, which match the review's quotation. The reply is an any_date document (Decision 6): it prints for earlier events with the 'after the events' line. The answer was given by the Deputy Prime Minister as Chairman of MAS and published by MAS."
     }
   ]
 }

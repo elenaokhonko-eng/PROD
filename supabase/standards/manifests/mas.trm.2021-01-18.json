@@ -1,0 +1,596 @@
+{
+  "$comment": "MAS Technology Risk Management Guidelines, January 2021 (issued 18 January 2021). Selected sections only (brief Phase 2: online financial services and fraud monitoring first): Section 14 with its footnotes 34-42, and Annex C (mobile application security). Guidelines, worded \"should\". Clause text is cut from the private source file.",
+  "document": {
+    "document_key": "mas.trm",
+    "title": "Technology Risk Management Guidelines",
+    "publisher": "Monetary Authority of Singapore",
+    "binding_level": "guideline",
+    "applies_to": ["bank", "card_issuer", "payment_service_provider"],
+    "instrument_scope": ["account_transfer", "sg_card", "ewallet"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/regulation/guidelines/technology-risk-management-guidelines"
+  },
+  "version": {
+    "version_label": "January 2021",
+    "effective_from": "2021-01-18",
+    "issued_on": "2021-01-18",
+    "retrieved_at": "2026-11-24T10:05:00Z",
+    "source_url": "https://www.mas.gov.sg/-/media/mas/regulations-and-financial-stability/regulatory-and-supervisory-framework/risk-management/trm-guidelines-18-january-2021.pdf",
+    "snapshot_path": "mas.trm/2021-01-18/trm-guidelines-18-january-2021.pdf",
+    "provenance": "publisher_site",
+    "coverage": "selected_sections",
+    "content_sha256": "2b8959e883bd66cb17286bdfc3e04fc181a6cd0ad786c99d4998c2d6c3e0efcb"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["^[ \\t]*Monetary Authority of Singapore[ \\t]*$", "^[ \\t]*TECHNOLOGY RISK MANAGEMENT GUIDELINES[ \\t]*$", "^[ \\t]*JANUARY 2021[ \\t]*$", "^[ \\t]*\\d+[ \\t]*$"]
+  },
+  "markers": [
+    {
+      "at": "^14 Online Financial Services$",
+      "clause": null
+    },
+    {
+      "at": "^14\\.1 Security of Online Financial Services$",
+      "clause": null
+    },
+    {
+      "at": "^14\\.1\\.1 ",
+      "clause": "mas.trm/14.1.1",
+      "skip": true
+    },
+    {
+      "at": "^14\\.1\\.2 ",
+      "clause": "mas.trm/14.1.2",
+      "skip": true
+    },
+    {
+      "at": "^14\\.1\\.3 ",
+      "clause": "mas.trm/14.1.3",
+      "skip": true
+    },
+    {
+      "at": "^14\\.1\\.4 ",
+      "clause": "mas.trm/14.1.4",
+      "skip": true
+    },
+    {
+      "at": "^14\\.1\\.5 ",
+      "clause": "mas.trm/14.1.5",
+      "skip": true
+    },
+    {
+      "at": "^34 (?=Examples of online financial services)",
+      "clause": "mas.trm/fn34",
+      "skip": true
+    },
+    {
+      "at": "^35 (?=In a MITMA attack)",
+      "clause": "mas.trm/fn35",
+      "skip": true
+    },
+    {
+      "at": "^36 (?=A cyber attack technique)",
+      "clause": "mas.trm/fn36",
+      "skip": true
+    },
+    {
+      "at": "^14\\.1\\.6 ",
+      "clause": "mas.trm/14.1.6",
+      "skip": true
+    },
+    {
+      "at": "^14\\.1\\.7 ",
+      "clause": "mas.trm/14.1.7",
+      "skip": true
+    },
+    {
+      "at": "^14\\.2 Customer Authentication and Transaction Signing$",
+      "clause": null
+    },
+    {
+      "at": "^14\\.2\\.1 ",
+      "clause": "mas.trm/14.2.1",
+      "skip": true
+    },
+    {
+      "at": "^14\\.2\\.2 ",
+      "clause": "mas.trm/14.2.2",
+      "skip": true
+    },
+    {
+      "at": "^14\\.2\\.3 ",
+      "clause": "mas.trm/14.2.3",
+      "skip": true
+    },
+    {
+      "at": "^14\\.2\\.4 ",
+      "clause": "mas.trm/14.2.4",
+      "skip": true
+    },
+    {
+      "at": "^14\\.2\\.5 ",
+      "clause": "mas.trm/14.2.5",
+      "skip": true
+    },
+    {
+      "at": "^14\\.2\\.6 ",
+      "clause": "mas.trm/14.2.6",
+      "skip": true
+    },
+    {
+      "at": "^14\\.2\\.7 ",
+      "clause": "mas.trm/14.2.7",
+      "skip": true
+    },
+    {
+      "at": "^14\\.2\\.8 ",
+      "clause": "mas.trm/14.2.8",
+      "skip": true
+    },
+    {
+      "at": "^14\\.2\\.9 ",
+      "clause": "mas.trm/14.2.9",
+      "skip": true
+    },
+    {
+      "at": "^14\\.2\\.10 ",
+      "clause": "mas.trm/14.2.10",
+      "skip": true
+    },
+    {
+      "at": "^14\\.2\\.11 ",
+      "clause": "mas.trm/14.2.11",
+      "skip": true
+    },
+    {
+      "at": "^37 (?=Biometric recognition)",
+      "clause": "mas.trm/fn37",
+      "skip": true
+    },
+    {
+      "at": "(?<=etc\\. )38 (?=FAR)",
+      "clause": "mas.trm/fn38",
+      "skip": true
+    },
+    {
+      "at": "^39 (?=FRR)",
+      "clause": "mas.trm/fn39",
+      "skip": true
+    },
+    {
+      "at": "(?<=correctly\\. )40 (?=Examples)",
+      "clause": "mas.trm/fn40",
+      "skip": true
+    },
+    {
+      "at": "^41 (?=Device binding)",
+      "clause": "mas.trm/fn41",
+      "skip": true
+    },
+    {
+      "at": "^to reverse engineering\\.",
+      "clause": "mas.trm/14.2.11"
+    },
+    {
+      "at": "^14\\.3 Fraud Monitoring$",
+      "clause": null
+    },
+    {
+      "at": "^14\\.3\\.1 ",
+      "clause": "mas.trm/14.3.1",
+      "skip": true
+    },
+    {
+      "at": "^14\\.3\\.2 ",
+      "clause": "mas.trm/14.3.2",
+      "skip": true
+    },
+    {
+      "at": "^14\\.3\\.3 ",
+      "clause": "mas.trm/14.3.3",
+      "skip": true
+    },
+    {
+      "at": "^14\\.4 Customer Education and Communication$",
+      "clause": null
+    },
+    {
+      "at": "^14\\.4\\.1 ",
+      "clause": "mas.trm/14.4.1",
+      "skip": true
+    },
+    {
+      "at": "^14\\.4\\.2 ",
+      "clause": "mas.trm/14.4.2",
+      "skip": true
+    },
+    {
+      "at": "^14\\.4\\.3 ",
+      "clause": "mas.trm/14.4.3",
+      "skip": true
+    },
+    {
+      "at": "^42 (?=For example, transactions)",
+      "clause": "mas.trm/fn42",
+      "skip": true
+    },
+    {
+      "at": "^15 IT Audit$",
+      "clause": null
+    },
+    {
+      "at": "^Annex C: Mobile Application Security$",
+      "clause": null
+    },
+    {
+      "at": "^C\\.1 ",
+      "clause": "mas.trm/annex-c.1",
+      "skip": true
+    },
+    {
+      "at": "^implement device binding to protect the software token",
+      "clause": "mas.trm/annex-c.1.device-binding"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.trm/14.1.1",
+      "clause_ref": "14.1.1",
+      "heading_path": ["14 Online Financial Services", "14.1 Security of Online Financial Services"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [49],
+      "text_sha256": "dcbd149489d348403fba21b5dd329a47342a6fe6f7f20e36e211d114318401e3"
+    },
+    {
+      "clause_key": "mas.trm/14.1.2",
+      "clause_ref": "14.1.2",
+      "heading_path": ["14 Online Financial Services", "14.1 Security of Online Financial Services"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [49],
+      "text_sha256": "f1b40caeac4d8963f245d02aabd7ad0065ad3dfca02de13c636703c6a4713434"
+    },
+    {
+      "clause_key": "mas.trm/14.1.3",
+      "clause_ref": "14.1.3",
+      "heading_path": ["14 Online Financial Services", "14.1 Security of Online Financial Services"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [49],
+      "text_sha256": "821af5cb4f4db8ad636f0bccaa2f5666ae5e353bcc25591c820654a1953cc534"
+    },
+    {
+      "clause_key": "mas.trm/14.1.4",
+      "clause_ref": "14.1.4",
+      "heading_path": ["14 Online Financial Services", "14.1 Security of Online Financial Services"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [49],
+      "text_sha256": "f9f25e8d471a620aa69445d4c5057a9279521c66d4a0ff5353549c716853f288"
+    },
+    {
+      "clause_key": "mas.trm/14.1.5",
+      "clause_ref": "14.1.5",
+      "heading_path": ["14 Online Financial Services", "14.1 Security of Online Financial Services"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [49],
+      "text_sha256": "d764d4a333a1d9b4529e630ddcffc256863bd336e381b59c03430f7b5dce478a"
+    },
+    {
+      "clause_key": "mas.trm/fn34",
+      "clause_ref": "footnote 34",
+      "heading_path": ["14 Online Financial Services", "Footnotes"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [49],
+      "text_sha256": "44d6f579e71f131c0085afff6f5c18afdb5f5cbc811d668dcf56914812e13dd5"
+    },
+    {
+      "clause_key": "mas.trm/fn35",
+      "clause_ref": "footnote 35",
+      "heading_path": ["14 Online Financial Services", "Footnotes"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [49],
+      "text_sha256": "5cbb300277992beff417779aa4dbf5137027da1695cc034d1d98c48428796873"
+    },
+    {
+      "clause_key": "mas.trm/fn36",
+      "clause_ref": "footnote 36",
+      "heading_path": ["14 Online Financial Services", "Footnotes"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [49],
+      "text_sha256": "29c1b3d8185a27654ffb0c4a2db4deb13eed3acbd260e5f6e4b644fc8bc83737"
+    },
+    {
+      "clause_key": "mas.trm/14.1.6",
+      "clause_ref": "14.1.6",
+      "heading_path": ["14 Online Financial Services", "14.1 Security of Online Financial Services"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [50],
+      "text_sha256": "c23910c30b8e0ad4413d63cbe751d068e45fe2c761c9f5ba2b5e0a0ee5bc9f06"
+    },
+    {
+      "clause_key": "mas.trm/14.1.7",
+      "clause_ref": "14.1.7",
+      "heading_path": ["14 Online Financial Services", "14.1 Security of Online Financial Services"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [50],
+      "text_sha256": "550d0b9bd140b4e1cc7b509c8c4c8b9a1f48b68cc3dfadcd623dcbc269e19c50"
+    },
+    {
+      "clause_key": "mas.trm/14.2.1",
+      "clause_ref": "14.2.1",
+      "heading_path": ["14 Online Financial Services", "14.2 Customer Authentication and Transaction Signing"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [50],
+      "text_sha256": "f8da18608a57fa5170ef1d4dc9b6b56bcf2115b2283a610575fabc4338424ff4",
+      "note": "Multi-factor authentication at login (brief 1.4c; confirmed against the MAS PDF)."
+    },
+    {
+      "clause_key": "mas.trm/14.2.2",
+      "clause_ref": "14.2.2",
+      "heading_path": ["14 Online Financial Services", "14.2 Customer Authentication and Transaction Signing"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [50],
+      "text_sha256": "091e251b84d3cddaabd752eff4d16288f4ac0a050df25d2ad045cfb4bef4cff8"
+    },
+    {
+      "clause_key": "mas.trm/14.2.3",
+      "clause_ref": "14.2.3",
+      "heading_path": ["14 Online Financial Services", "14.2 Customer Authentication and Transaction Signing"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [50],
+      "text_sha256": "4dfa196fc1bd312fe98977f9dc80cc8504bd72bada909bea5de43089b6e5b571",
+      "note": "Transaction-signing for high-risk activities, with this document's own list of high-risk activities (brief 1.4c)."
+    },
+    {
+      "clause_key": "mas.trm/14.2.4",
+      "clause_ref": "14.2.4",
+      "heading_path": ["14 Online Financial Services", "14.2 Customer Authentication and Transaction Signing"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [50],
+      "text_sha256": "088b6d9dc0e9e40d0879f33496f74aa0f2d4b950454c89de651d0dfbd8665c3e"
+    },
+    {
+      "clause_key": "mas.trm/14.2.5",
+      "clause_ref": "14.2.5",
+      "heading_path": ["14 Online Financial Services", "14.2 Customer Authentication and Transaction Signing"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [50],
+      "text_sha256": "82c16d12629a37f42214e22fbd41543f41f4e2c2fb1b37aaa96168174ff16c66"
+    },
+    {
+      "clause_key": "mas.trm/14.2.6",
+      "clause_ref": "14.2.6",
+      "heading_path": ["14 Online Financial Services", "14.2 Customer Authentication and Transaction Signing"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [51],
+      "text_sha256": "cc783250c3e8862281c56a54ecc7ce2ff095fa6d355f39c23b72040ea60f3826"
+    },
+    {
+      "clause_key": "mas.trm/14.2.7",
+      "clause_ref": "14.2.7",
+      "heading_path": ["14 Online Financial Services", "14.2 Customer Authentication and Transaction Signing"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [51],
+      "text_sha256": "f1465034a106219733d1ae870ab0e6f9ac1381ce1921e0a83a320c18c0099def"
+    },
+    {
+      "clause_key": "mas.trm/14.2.8",
+      "clause_ref": "14.2.8",
+      "heading_path": ["14 Online Financial Services", "14.2 Customer Authentication and Transaction Signing"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [51],
+      "text_sha256": "af2017caaafab1cbeff7727d4c925b51257024889bf7c0eac40c323fd6329905",
+      "note": "Soft token provisioning: verify identity, detect rooted or jailbroken devices, device binding (brief 1.4c)."
+    },
+    {
+      "clause_key": "mas.trm/14.2.9",
+      "clause_ref": "14.2.9",
+      "heading_path": ["14 Online Financial Services", "14.2 Customer Authentication and Transaction Signing"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [51],
+      "text_sha256": "876a872d07264ecf421f460e3763d585bd3f465ce83eac1ff8037e0cc1ba92dd"
+    },
+    {
+      "clause_key": "mas.trm/14.2.10",
+      "clause_ref": "14.2.10",
+      "heading_path": ["14 Online Financial Services", "14.2 Customer Authentication and Transaction Signing"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [51],
+      "text_sha256": "59d113cd57c467905c18241cdc20d81d8cb3da9f86f446ae21ae60774cf01e0a"
+    },
+    {
+      "clause_key": "mas.trm/14.2.11",
+      "clause_ref": "14.2.11",
+      "heading_path": ["14 Online Financial Services", "14.2 Customer Authentication and Transaction Signing"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [51, 52],
+      "text_sha256": "45a6a73df96731e1c82dc93a004eb2d2be15a43af71d07d2fa1e9635b66579f1"
+    },
+    {
+      "clause_key": "mas.trm/fn37",
+      "clause_ref": "footnote 37",
+      "heading_path": ["14 Online Financial Services", "Footnotes"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [51],
+      "text_sha256": "fd1b0cb1ec8b5c4568c44f8509cc849cac258d373b78a5591d24c6e64e6d011e"
+    },
+    {
+      "clause_key": "mas.trm/fn38",
+      "clause_ref": "footnote 38",
+      "heading_path": ["14 Online Financial Services", "Footnotes"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [51],
+      "text_sha256": "e06d3583c27a176b2a07c008bb6f5642c6dc55baf2144dbbd0499b8c1b48a0d5"
+    },
+    {
+      "clause_key": "mas.trm/fn39",
+      "clause_ref": "footnote 39",
+      "heading_path": ["14 Online Financial Services", "Footnotes"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [51],
+      "text_sha256": "00ab66a2b99da7044d97e404d091acba92198f9c2d9fe15856fb7df7722c2d7f"
+    },
+    {
+      "clause_key": "mas.trm/fn40",
+      "clause_ref": "footnote 40",
+      "heading_path": ["14 Online Financial Services", "Footnotes"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [51],
+      "text_sha256": "c34a72f2fb2d92f3bf5a7c8dda5c33d2dead3237f1b631093d80677f98e038b2"
+    },
+    {
+      "clause_key": "mas.trm/fn41",
+      "clause_ref": "footnote 41",
+      "heading_path": ["14 Online Financial Services", "Footnotes"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [51],
+      "text_sha256": "c5bd8dc342fa393858d0ecbdf1de51f1e71fc3b51a6a7cdbc40361dfda258fcf"
+    },
+    {
+      "clause_key": "mas.trm/14.3.1",
+      "clause_ref": "14.3.1",
+      "heading_path": ["14 Online Financial Services", "14.3 Fraud Monitoring"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [52],
+      "text_sha256": "179f62e9f10f41b19371ea4dfefb0b893a4f0636be52a740f83f7ceab065ed37",
+      "note": "Real-time fraud monitoring to identify and block suspicious or fraudulent online transactions (brief 1.4c)."
+    },
+    {
+      "clause_key": "mas.trm/14.3.2",
+      "clause_ref": "14.3.2",
+      "heading_path": ["14 Online Financial Services", "14.3 Fraud Monitoring"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [52],
+      "text_sha256": "faeabb3a0605e4c4539bdefb117e0b00bd234463749d4f7af47260763f2048b9"
+    },
+    {
+      "clause_key": "mas.trm/14.3.3",
+      "clause_ref": "14.3.3",
+      "heading_path": ["14 Online Financial Services", "14.3 Fraud Monitoring"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [52],
+      "text_sha256": "0a86761ad542141fb0dabc4192d42a139d85d5e9da498fbf2ad936edb90dde3b",
+      "note": "Notification of suspicious activities or funds transfers above a threshold (brief 1.4c)."
+    },
+    {
+      "clause_key": "mas.trm/14.4.1",
+      "clause_ref": "14.4.1",
+      "heading_path": ["14 Online Financial Services", "14.4 Customer Education and Communication"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [52],
+      "text_sha256": "139fe0dee6931f4b31f238f69867fece2e774edfad94ec0dc4d107dbbbd0b794"
+    },
+    {
+      "clause_key": "mas.trm/14.4.2",
+      "clause_ref": "14.4.2",
+      "heading_path": ["14 Online Financial Services", "14.4 Customer Education and Communication"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [52],
+      "text_sha256": "037ae8ca8fce1bbaf52e14538d5b61ab7d61b991c185d347912ebccae9e67768"
+    },
+    {
+      "clause_key": "mas.trm/14.4.3",
+      "clause_ref": "14.4.3",
+      "heading_path": ["14 Online Financial Services", "14.4 Customer Education and Communication"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [52],
+      "text_sha256": "67890dbca297ea69819bc999e3d15738b9a52c329a68c05baf6bed0f3d671c79"
+    },
+    {
+      "clause_key": "mas.trm/fn42",
+      "clause_ref": "footnote 42",
+      "heading_path": ["14 Online Financial Services", "Footnotes"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [52],
+      "text_sha256": "a2a89fe9e5f96ca17a531b071494283e06f4c1ffb521414133100eba2ff72fee"
+    },
+    {
+      "clause_key": "mas.trm/annex-c.1",
+      "clause_ref": "Annex C, C.1",
+      "heading_path": ["Annex C: Mobile Application Security"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [56],
+      "text_sha256": "9a5d14fbaf7099f838c8cccd32d86928c03af8486cd700d42e86bb682280ed71"
+    },
+    {
+      "clause_key": "mas.trm/annex-c.1.device-binding",
+      "clause_ref": "Annex C, C.1, last item",
+      "heading_path": ["Annex C: Mobile Application Security"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [56],
+      "text_sha256": "84df99c7da29dd5ce505c7a72d9688642cc4a270bd3ad37bfb20284dc8f8524c",
+      "note": "Device binding should protect the software token from being cloned (brief 1.4c)."
+    }
+  ]
+}

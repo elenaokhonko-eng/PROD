@@ -45,15 +45,16 @@ export function buildLoadSql(manifest: Manifest, cut: CutClause[], manifestRepoP
   const docValues = [
     sqlLiteral(d.title), sqlLiteral(d.publisher), sqlLiteral(d.binding_level), sqlTextArray(d.applies_to),
     sqlTextArray(d.instrument_scope), sqlLiteral(d.institution), sqlLiteral(d.card_scheme), sqlLiteral(d.canonical_url),
+    sqlLiteral(d.as_of_rule ?? "event_date"),
   ].join(", ")
-  const docColumns = "title, publisher, binding_level, applies_to, instrument_scope, institution, card_scheme, canonical_url"
+  const docColumns = "title, publisher, binding_level, applies_to, instrument_scope, institution, card_scheme, canonical_url, as_of_rule"
   const versionValues = [
     sqlDate(v.effective_from), sqlDate(v.issued_on), `${sqlLiteral(v.retrieved_at)}::timestamptz`, sqlLiteral(v.source_url),
     sqlLiteral(v.snapshot_path), sqlLiteral(v.content_sha256), sqlLiteral(v.provenance), sqlLiteral(v.coverage),
-    sqlLiteral(v.coverage === "selected_sections" ? manifestRepoPath : null),
+    sqlLiteral(v.coverage === "selected_sections" ? manifestRepoPath : null), sqlDate(v.archived_at ?? null),
   ].join(", ")
   const versionColumns =
-    "effective_from, issued_on, retrieved_at, source_url, snapshot_path, content_sha256, provenance, coverage, manifest_path"
+    "effective_from, issued_on, retrieved_at, source_url, snapshot_path, content_sha256, provenance, coverage, manifest_path, archived_at"
   const clauseColumns = "clause_ref, heading_path, text_content, tags, effective_from_override, instrument_scope"
   const key = sqlLiteral(d.document_key)
   const label = sqlLiteral(v.version_label)

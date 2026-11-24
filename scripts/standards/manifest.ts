@@ -7,7 +7,12 @@ import { readFileSync } from "node:fs"
 
 export const BINDING_LEVELS = [
   "guideline", "notice", "circular", "industry_code", "announcement", "contract", "scheme_rule", "forum_rules",
+  "published_page",
 ] as const
+/** Which date a document is read for (review of 24 Nov 2026, Decision 6; migration 20261204120000). */
+export const AS_OF_RULES = ["event_date", "any_date"] as const
+/** A contract and an institution's published page name their institution (migration 20261204120100). */
+export const INSTITUTION_LEVELS = ["contract", "published_page"] as const
 export const APPLIES_TO = [
   "bank", "card_issuer", "payment_service_provider", "payment_system_operator", "settlement_institution",
   "dpt_service_provider", "telco",
@@ -36,6 +41,8 @@ export interface ManifestDocument {
   institution: string | null
   card_scheme: "visa" | "mastercard" | null
   canonical_url: string | null
+  /** Omitted means "event_date". "any_date" only for MAS written replies and other official clarifications. */
+  as_of_rule?: (typeof AS_OF_RULES)[number]
 }
 
 export interface ManifestVersion {
@@ -50,6 +57,8 @@ export interface ManifestVersion {
   content_sha256: string
   provenance: (typeof PROVENANCES)[number]
   coverage: "full" | "selected_sections"
+  /** The web archive's capture date; set exactly when provenance is "web_archive". */
+  archived_at?: string | null
 }
 
 export interface ManifestExtraction {
@@ -136,7 +145,11 @@ export function validateManifest(m: Manifest): string[] {
   if (!(BINDING_LEVELS as readonly string[]).includes(d.binding_level)) errors.push(`binding_level ${d.binding_level}`)
   for (const a of d.applies_to ?? []) if (!(APPLIES_TO as readonly string[]).includes(a)) errors.push(`applies_to ${a}`)
   for (const s of d.instrument_scope ?? []) if (!(INSTRUMENTS as readonly string[]).includes(s)) errors.push(`instrument_scope ${s}`)
-  if ((d.binding_level === "contract") !== (d.institution !== null)) errors.push("a contract names its institution, and only a contract does")
+  if ((INSTITUTION_LEVELS as readonly string[]).includes(d.binding_level) !== (d.institution !== null)) {
+    errors.push("a contract or published page names its institution, and only those do")
+  }
+  if (d.as_of_rule !== undefined && !(AS_OF_RULES as readonly string[]).includes(d.as_of_rule)) errors.push(`as_of_rule ${d.as_of_rule}`)
+  if (d.as_of_rule === "any_date" && d.binding_level !== "announcement") errors.push("as_of_rule any_date is only for an announcement (a reply or clarification)")
   if ((d.binding_level === "scheme_rule") !== (d.card_scheme !== null)) errors.push("a scheme rule names its scheme, and only a scheme rule does")
   if (d.canonical_url !== null && !isHttps(d.canonical_url)) errors.push("canonical_url must be https")
 
@@ -155,6 +168,9 @@ export function validateManifest(m: Manifest): string[] {
   if (!SHA256.test(v.content_sha256 ?? "")) errors.push("content_sha256 is not a sha256")
   if (!(PROVENANCES as readonly string[]).includes(v.provenance)) errors.push(`provenance ${v.provenance}`)
   if (v.coverage !== "full" && v.coverage !== "selected_sections") errors.push(`coverage ${v.coverage}`)
+  const archived = v.archived_at ?? null
+  if (archived !== null && !ISO_DATE.test(archived)) errors.push("archived_at is not a date")
+  if ((v.provenance === "web_archive") !== (archived !== null)) errors.push("archived_at is set exactly when provenance is web_archive")
 
   if (x.format !== "pdf" && x.format !== "html") errors.push(`extraction format ${x.format}`)
   if (x.format === "html" && (!x.html_start || !x.html_end)) errors.push("html extraction needs html_start and html_end")

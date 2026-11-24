@@ -1,0 +1,219 @@
+{
+  "$comment": "MAS written reply to two Parliamentary Questions on the Shared Responsibility Framework and real-time fraud detection standards, for the sitting of 3 February 2026. A statement of MAS's position, not an instrument. Each sentence a statement may rely on is its own clause (brief Phase 2). Clause text is cut from the private copy of the MAS page.",
+  "document": {
+    "document_key": "mas.reply.20260203",
+    "title": "Written reply to Parliamentary Questions on the Shared Responsibility Framework and real-time fraud detection standards (3 February 2026)",
+    "publisher": "Monetary Authority of Singapore",
+    "binding_level": "announcement",
+    "applies_to": ["bank"],
+    "instrument_scope": ["account_transfer"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/news/parliamentary-replies/2026/written-reply-to-pqs-on-srf-and-fraud-surveillance",
+    "as_of_rule": "any_date"
+  },
+  "version": {
+    "version_label": "3 February 2026",
+    "effective_from": "2026-02-03",
+    "issued_on": "2026-02-03",
+    "retrieved_at": "2026-11-24T10:00:00Z",
+    "source_url": "https://www.mas.gov.sg/news/parliamentary-replies/2026/written-reply-to-pqs-on-srf-and-fraud-surveillance",
+    "snapshot_path": "mas.reply.20260203/2026-02-03/written-reply-to-pqs-on-srf-and-fraud-surveillance.html",
+    "provenance": "publisher_site",
+    "coverage": "full",
+    "content_sha256": "9b506439a7b3c8fcd7fe7787933422a2f67515b79dee478d88ddda24bc106dda"
+  },
+  "extraction": {
+    "format": "html",
+    "extractor": "scripts/standards/extract.ts htmlText (tags stripped, entities decoded)",
+    "html_start": "<div class=\"_mas-typeset contain mas-rte-content m-b:l\">",
+    "html_end": "<p style=\"text-align: center;\">",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "^Questions\\s*\\n",
+      "clause": null
+    },
+    {
+      "at": "^Mr Gabriel Lam: To ask the Deputy Prime Minister and Minister for Trade and Industry \\(a\\) whether MAS",
+      "clause": "mas.reply.20260203/question-1"
+    },
+    {
+      "at": "^Mr Gabriel Lam: To ask the Deputy Prime Minister and Minister for Trade and Industry \\(a\\) whether the Ministry",
+      "clause": "mas.reply.20260203/question-2"
+    },
+    {
+      "at": "^Answer by ",
+      "clause": null
+    },
+    {
+      "at": "^1\\.\\s",
+      "clause": "mas.reply.20260203/1",
+      "skip": true
+    },
+    {
+      "at": "^2\\.\\s",
+      "clause": "mas.reply.20260203/2",
+      "skip": true
+    },
+    {
+      "at": "^3\\.\\s",
+      "clause": "mas.reply.20260203/3",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)Banks are required to block or hold such transactions",
+      "clause": "mas.reply.20260203/3.hold"
+    },
+    {
+      "at": "(?<=\\s)This has already caused some inconvenience",
+      "clause": "mas.reply.20260203/3.balance"
+    },
+    {
+      "at": "^4\\.\\s",
+      "clause": "mas.reply.20260203/4",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)Nevertheless, banks are expected to promptly suspend",
+      "clause": "mas.reply.20260203/4.suspend"
+    },
+    {
+      "at": "(?<=\\s)Customers can also activate a kill-switch",
+      "clause": "mas.reply.20260203/4.kill-switch"
+    },
+    {
+      "at": "(?<=\\s)In assessing customers",
+      "clause": "mas.reply.20260203/4.claims"
+    },
+    {
+      "at": "^5\\.\\s",
+      "clause": "mas.reply.20260203/5",
+      "skip": true
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.reply.20260203/question-1",
+      "clause_ref": "Question 1",
+      "heading_path": ["Questions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "0d5d4f869f4f3f42f066761b40bfe090e77c757b454ce7973aaff103297668f3"
+    },
+    {
+      "clause_key": "mas.reply.20260203/question-2",
+      "clause_ref": "Question 2",
+      "heading_path": ["Questions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "c290f0a3e5c02b25911c866b4ed1dc7a1c8aa156cdd67ebad7d2ac8b08eb80fe"
+    },
+    {
+      "clause_key": "mas.reply.20260203/1",
+      "clause_ref": "1",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "c55e80a56c1b4fe2030e385d8cc28e257f89f7e6e372e4064c8c400fb1297c98"
+    },
+    {
+      "clause_key": "mas.reply.20260203/2",
+      "clause_ref": "2",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "a420f4f8e179aeae55c3f975dcb7cdb22184ee920b430a511bdbd81e1480728e"
+    },
+    {
+      "clause_key": "mas.reply.20260203/3",
+      "clause_ref": "3, first sentence",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "245ce2b0d5dabf36944c8cffb8ca6f3380e3aa63ab930e6738b7098da3649cbb"
+    },
+    {
+      "clause_key": "mas.reply.20260203/3.hold",
+      "clause_ref": "3, second sentence",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "838106eeeaa5bbe3d7b3207bd12f3e6c012423b959bd1fe413ffe4fb8b42f70c",
+      "note": "MAS's description of the SRF fraud surveillance duty (block or hold for at least 24 hours)."
+    },
+    {
+      "clause_key": "mas.reply.20260203/3.balance",
+      "clause_ref": "3, remaining sentences",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "33f64fb481233df2dae61a769d1ebae4baccd398b08a2f12292555e618e48267"
+    },
+    {
+      "clause_key": "mas.reply.20260203/4",
+      "clause_ref": "4, first two sentences",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "a9d96bdabee3a4ceed0b2b73669f1d34adc68b8ea16c9db8029ee0d6ec064319"
+    },
+    {
+      "clause_key": "mas.reply.20260203/4.suspend",
+      "clause_ref": "4, third sentence",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "c7ff7b41b912a0a66b0a6621118da3ecb3e8b66437e66ed4c751168fce4a25bf"
+    },
+    {
+      "clause_key": "mas.reply.20260203/4.kill-switch",
+      "clause_ref": "4, fourth sentence",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "7b7fe66dcfc4c936c1c604cfe2cbbdfc8415768a6b52779bcf253e43b0d638b8"
+    },
+    {
+      "clause_key": "mas.reply.20260203/4.claims",
+      "clause_ref": "4, last sentence",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "e18d872912a1e7c8bd38617f17a0d09cedcee184ad18aa34d6075fc6cbfb470d"
+    },
+    {
+      "clause_key": "mas.reply.20260203/5",
+      "clause_ref": "5",
+      "heading_path": ["Answer by the Deputy Prime Minister and Chairman of MAS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "3b69d094bf514f80750e5c1cef1a773f38e0e26fb146b602c52ca7b9768d2023"
+    }
+  ]
+}

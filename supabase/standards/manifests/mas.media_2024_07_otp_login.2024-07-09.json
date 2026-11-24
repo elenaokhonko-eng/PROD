@@ -1,0 +1,132 @@
+{
+  "$comment": "Joint MAS–ABS media release of 9 July 2024: major retail banks to phase out one-time passwords for bank account login by digital token users \"within the next three months\" (para 1). An announcement of measures, not an instrument. The page shows its footnote 1 (a Singapore Police Force statistic) inline in paragraph 4; extraction.remove leaves that footnote text out of paragraph 4, and it is not a clause. Clause text is cut from the private copy of the MAS page.",
+  "document": {
+    "document_key": "mas.media_2024_07_otp_login",
+    "title": "Banks in Singapore to Strengthen Resilience Against Phishing Scams (9 July 2024)",
+    "publisher": "Monetary Authority of Singapore and The Association of Banks in Singapore",
+    "binding_level": "announcement",
+    "applies_to": ["bank"],
+    "instrument_scope": ["account_transfer", "sg_card"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/news/media-releases/2024/banks-in-singapore-to-strengthen-resilience-against-phishing-scams"
+  },
+  "version": {
+    "version_label": "9 July 2024",
+    "effective_from": "2024-07-09",
+    "issued_on": "2024-07-09",
+    "retrieved_at": "2026-11-24T10:00:00Z",
+    "source_url": "https://www.mas.gov.sg/news/media-releases/2024/banks-in-singapore-to-strengthen-resilience-against-phishing-scams",
+    "snapshot_path": "mas.media_2024_07_otp_login/2024-07-09/banks-in-singapore-to-strengthen-resilience-against-phishing-scams.html",
+    "provenance": "publisher_site",
+    "coverage": "full",
+    "content_sha256": "1af9e2717df54a23ff69e65d01c57f4ecf224f95a29af7612e464f0423dc328c"
+  },
+  "extraction": {
+    "format": "html",
+    "extractor": "scripts/standards/extract.ts htmlText (tags stripped, entities decoded)",
+    "html_start": "<div class=\"_mas-typeset contain mas-rte-content m-b:l\">",
+    "html_end": "^\\s*</span>\\s*\\n</div>",
+    "remove": ["Phishing scams were among the top five scam types last year, with at least \\$14\\.2 million lost to these scams - Singapore Police Force Annual Scams and Cybercrime Brief 2023\\."]
+  },
+  "markers": [
+    {
+      "at": "^\\s*Singapore, 9 July 2024… ",
+      "clause": "mas.media_2024_07_otp_login/1",
+      "skip": true
+    },
+    {
+      "at": "^2\\s",
+      "clause": "mas.media_2024_07_otp_login/2",
+      "skip": true
+    },
+    {
+      "at": "^3\\s",
+      "clause": "mas.media_2024_07_otp_login/3",
+      "skip": true
+    },
+    {
+      "at": "^4\\s",
+      "clause": "mas.media_2024_07_otp_login/4",
+      "skip": true
+    },
+    {
+      "at": "^5\\s",
+      "clause": "mas.media_2024_07_otp_login/5",
+      "skip": true
+    },
+    {
+      "at": "^6\\s",
+      "clause": "mas.media_2024_07_otp_login/6",
+      "skip": true
+    },
+    {
+      "at": "^\\*{3,}$",
+      "clause": null
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.media_2024_07_otp_login/1",
+      "clause_ref": "1",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "22d956ccb5373d287339449b46d06e5300b964a0037a6c77639ed3e03ab6a392",
+      "note": "The login measure and its timing (\"within the next three months\")."
+    },
+    {
+      "clause_key": "mas.media_2024_07_otp_login/2",
+      "clause_ref": "2",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "9d8999c625a1fbccc308b8edde1fccf3c1196cd32ab7c5294a2ecca28cb1a90d",
+      "note": "Digital token users log in with the digital token, not an OTP."
+    },
+    {
+      "clause_key": "mas.media_2024_07_otp_login/3",
+      "clause_ref": "3",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "6ebbc83e50da1f05e8a000503439c0b69babf55d404dc1d6d25707b54956ce13"
+    },
+    {
+      "clause_key": "mas.media_2024_07_otp_login/4",
+      "clause_ref": "4",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "0b30e6269bb822dc224f9ad4e45b4314961e7785293c99213f61676af4203575"
+    },
+    {
+      "clause_key": "mas.media_2024_07_otp_login/5",
+      "clause_ref": "5",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "10ffc44890e8c0201d5270081b4814c8bd13f94a2dbf0e5757f1826148e17965"
+    },
+    {
+      "clause_key": "mas.media_2024_07_otp_login/6",
+      "clause_ref": "6",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "6edb133412b5d0b76a5494042669c8530533b54ed669e5b6285d156aaabcc6db"
+    }
+  ]
+}
