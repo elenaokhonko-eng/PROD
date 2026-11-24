@@ -149,28 +149,34 @@ export function sameDevice(a: DeviceNamed, b: DeviceNamed): boolean {
 }
 
 /**
- * The one rule for "not sure" (review of 24 Nov 2026, Lane 4 issue 6; consistent with Decision 1).
+ * The device rule (review of 24 Nov 2026, Lane 4 issue 6; corrected by the second review). Three states:
+ * - `mine`: only a clear answer `mine`, on a `device_recognition` fact labelled `confirmed` or `claimant_only`.
+ *   Required for any line that rests on the device being the complainant's.
+ * - `not_mine`: only a clear answer `not_mine`, on a fact with those labels. Required for any line that rests on the
+ *   device not being the complainant's (for example the MAS notice row, which the brief limits to devices the
+ *   complainant states are not theirs).
+ * - `not_shown`: everything else: answer `not_sure`, no answer for the device, no device named by the record, or a
+ *   fact labelled `not_sure` or `not_known`. A line that needs `mine` or `not_mine` prints "The records do not show …"
+ *   instead (`SectionWriter.comparisonOnDevice`), never a comparison.
  *
- * Wherever a line depends on the complainant recognising something (a device, a login, a payment approval), only a
- * clear "yes, it is mine" counts as recognised:
- * - `device_recognition` answer `mine`, on a fact labelled `confirmed` or `claimant_only` → recognised;
- * - answer `not_mine` → not recognised;
- * - answer `not_sure` → treated exactly like `not_mine`;
- * - a `device_recognition` fact labelled `not_sure` (or `not_known`) → treated like `not_mine`, whatever the answer;
- * - no answer for the device, or the record names no device → treated like `not_mine`.
+ * Decision 1 in these terms: for card payments approved on a device, anything other than `mine` gives "The records do
+ * not show who approved these payments." (`RECORDS_DO_NOT_SHOW_WHO_APPROVED`) and no "refers to" line.
  *
- * "Treated like" governs only which lines a section chooses (for example Decision 1: "The records do not show who
- * approved these payments." and no "refers to" line). What the complainant said is still printed as said: a `not_sure`
- * answer prints as "they are not sure", never as "not theirs" (see `deviceRecognitionSentence` in section-writer.ts).
+ * The state governs only which lines a section chooses. What the complainant said is still printed as said: a
+ * `not_sure` answer prints as "they are not sure" (`deviceRecognitionSentence` in section-writer.ts).
  */
-export function complainantRecognisesDevice(
+export const DEVICE_OWNERSHIP_STATES = ["mine", "not_mine", "not_shown"] as const;
+export type DeviceOwnership = (typeof DEVICE_OWNERSHIP_STATES)[number];
+
+export function deviceOwnership(
   recognition: ContractFact<DeviceRecognition[]> | undefined,
   device: DeviceNamed | null,
-): boolean {
-  if (!device || (!device.deviceRef && !device.deviceLabel)) return false;
-  if (!recognition || recognition.value === null) return false;
-  if (recognition.label !== "confirmed" && recognition.label !== "claimant_only") return false;
-  return recognitionAnswerFor(recognition.value, device) === "mine";
+): DeviceOwnership {
+  if (!device || (!device.deviceRef && !device.deviceLabel)) return "not_shown";
+  if (!recognition || recognition.value === null) return "not_shown";
+  if (recognition.label !== "confirmed" && recognition.label !== "claimant_only") return "not_shown";
+  const answer = recognitionAnswerFor(recognition.value, device);
+  return answer === "mine" || answer === "not_mine" ? answer : "not_shown";
 }
 
 /** The complainant's answer for a device, as given (for printing), or null when they gave none. */
