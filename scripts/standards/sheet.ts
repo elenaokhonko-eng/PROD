@@ -64,7 +64,8 @@ ${info?.note ? `<div class="n">${esc(info.note)}</div>` : ""}
 <td class="t">${esc(c.text)}</td></tr>`)
   }
   const tail = stream.text.slice(pieces[pieces.length - 1]?.end ?? 0)
-  if (normaliseClauseText(tail)) rows.push(droppedRow(tail, pageAt(stream, pieces[pieces.length - 1]?.end ?? 0), "after the end marker", pageLink(pages.length)))
+  // A selected-sections version says where its held text ends; the rest of the document is not listed.
+  if (v.coverage === "full" && normaliseClauseText(tail)) rows.push(droppedRow(tail, pageAt(stream, pieces[pieces.length - 1]?.end ?? 0), "after the end marker", pageLink(pages.length)))
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
