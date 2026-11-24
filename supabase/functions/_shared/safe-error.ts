@@ -2,11 +2,17 @@
 // JSON.parse error quotes the model output it failed on, Postgres "details" quote the failing row, and provider error
 // bodies can echo input. Logs and error responses keep the error's name, code, status and a scrubbed message.
 
-/** Removes quoted text, JSON fragments and long numbers (amounts, references) from an error message. */
+/**
+ * Removes quoted text, JSON fragments, long numbers (amounts, references, IPv4 addresses), IPv6 and MAC addresses,
+ * and runs of 6 or more mixed letters and digits (device, token and other references) from an error message. Markers
+ * the worker reads (snake_case words) and model names (gpt-6-luna) survive.
+ */
 export function scrubErrorText(text: string): string {
   return text
     .replace(/\{[\s\S]*\}|\[[\s\S]*\]/g, "{…}")
     .replace(/"[^"]*"|“[^”]*”/g, '"…"')
+    .replace(/(?:[0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4}(?:%\w+)?/gi, (m) => (/[0-9a-f]/i.test(m) ? "#" : m))
+    .replace(/\b(?=[a-z0-9]*[a-z])(?=[a-z0-9]*\d)[a-z0-9]{6,}\b/gi, "#")
     .replace(/\d[\d,.]{3,}/g, "#")
     .replace(/\s+/g, " ")
     .trim()

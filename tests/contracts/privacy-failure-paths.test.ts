@@ -24,6 +24,13 @@ test('an error is reduced to its name, code, status and a scrubbed message', () 
   // Lease and readiness markers, which the worker reads from error text, survive.
   assert.equal(scrubErrorText('worker_lease_lost: lease was lost'), 'worker_lease_lost: lease was lost')
   assert.equal(scrubErrorText('documents_not_ready'), 'documents_not_ready')
+  assert.equal(scrubErrorText('fact_extract_v4 failed on gpt-6-luna'), 'fact_extract_v4 failed on gpt-6-luna')
+  // Technical records (FIDReC update): IP addresses and device or token references never reach a log.
+  assert.equal(scrubErrorText('login from 2001:db8::1 failed'), 'login from # failed')
+  assert.equal(scrubErrorText('from 2001:db8:85a3:0:0:8a2e:370:7334 and fe80::1%eth0'), 'from # and #')
+  assert.equal(scrubErrorText('login from 198.51.100.7'), 'login from #')
+  assert.equal(scrubErrorText('device a1b2c3d4e5 and token DTK-7F3A92B1 unmatched'), 'device # and token DTK-# unmatched')
+  assert.equal(scrubErrorText('mac 00:1a:2b:3c:4d:5e seen'), 'mac # seen')
 })
 
 test('Edge Functions never log or return raw errors, provider bodies or model text', () => {
