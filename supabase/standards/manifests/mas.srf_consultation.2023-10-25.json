@@ -1,0 +1,55 @@
+{
+  "$comment": "MAS and IMDA, Consultation Paper on Proposed Shared Responsibility Framework (P016-2023), 25 October 2023. Selected sections only: paragraph 4.4, which rules/srf.ts cites. A proposal, not an instrument; the Guidelines of 24 October 2024 and the Response govern. Clause text is cut from the private source file.",
+  "document": {
+    "document_key": "mas.srf_consultation",
+    "title": "Consultation Paper on Proposed Shared Responsibility Framework",
+    "publisher": "Monetary Authority of Singapore and Infocomm Media Development Authority",
+    "binding_level": "announcement",
+    "applies_to": ["bank", "payment_service_provider", "telco"],
+    "instrument_scope": ["account_transfer", "ewallet"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/publications/consultations/2023/consultation-paper-on-proposed-shared-responsibility-framework"
+  },
+  "version": {
+    "version_label": "25 October 2023",
+    "effective_from": "2023-10-25",
+    "issued_on": "2023-10-25",
+    "retrieved_at": "2026-11-24T05:20:00Z",
+    "source_url": "https://www.mas.gov.sg/-/media/mas-media-library/publications/consultations/pd/2023/srf/consultation-paper-on-proposed-shared-responsibility-framework.pdf",
+    "snapshot_path": "mas.srf_consultation/2023-10-25/consultation-paper-on-proposed-shared-responsibility-framework.pdf",
+    "content_sha256": "45304ff9a9ec319b63bf4b0273d12e50516be135b9395e95fe1ef2cc8fbb2297",
+    "provenance": "publisher_site",
+    "coverage": "selected_sections"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": [],
+    "end": "^4\\.5\\. "
+  },
+  "markers": [
+    {
+      "at": "^4\\.4\\. ",
+      "clause": "mas.srf_consultation/4.4",
+      "skip": true
+    },
+    {
+      "at": "^8 (?=This refers to a fake)",
+      "clause": null
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.srf_consultation/4.4",
+      "clause_ref": "4.4",
+      "heading_path": ["4. Types of Scams Covered"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [8],
+      "text_sha256": "06c47f297975536c6624753fa2e1f51a7c1764de24b552181ddf8e4427394b94",
+      "note": "The proposed exclusions: (a) authorised scams; (b) credentials given directly by message or non-digital means; (c) variants without phishing, such as malware."
+    }
+  ]
+}

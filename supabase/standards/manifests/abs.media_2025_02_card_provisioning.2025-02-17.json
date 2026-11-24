@@ -1,0 +1,167 @@
+{
+  "$comment": "ABS media statement of 17 February 2025 on card provisioning scams: announced industry measures, not legislation (brief 1.7, 4c). The measures named in paragraph 4 are their own clauses. Contact details and the 'About ABS' note are left out. Clause text is cut from the private source file.",
+  "document": {
+    "document_key": "abs.media_2025_02_card_provisioning",
+    "title": "Major card issuing banks to step up measures to combat card provisioning scams",
+    "publisher": "The Association of Banks in Singapore",
+    "binding_level": "announcement",
+    "applies_to": ["bank", "card_issuer"],
+    "instrument_scope": ["sg_card"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.abs.org.sg/docs/library/major-card-issuing-banks-to-step-up-measures-to-combat-card-provisioning-scams.pdf"
+  },
+  "version": {
+    "version_label": "17 February 2025",
+    "effective_from": "2025-02-17",
+    "issued_on": "2025-02-17",
+    "retrieved_at": "2026-11-24T04:20:00Z",
+    "source_url": "https://www.abs.org.sg/docs/library/major-card-issuing-banks-to-step-up-measures-to-combat-card-provisioning-scams.pdf",
+    "snapshot_path": "abs.media_2025_02_card_provisioning/2025-02-17/major-card-issuing-banks-to-step-up-measures-to-combat-card-provisioning-scams.pdf",
+    "content_sha256": "173919a3fb031d83054f95e0391abe1fe8f627a819f2d45f21b8506c55ef4285",
+    "provenance": "publisher_site",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "^Singapore, 17 February 2025 ",
+      "clause": "abs.media_2025_02_card_provisioning/para1"
+    },
+    {
+      "at": "^In such scams, ",
+      "clause": "abs.media_2025_02_card_provisioning/para2"
+    },
+    {
+      "at": "^Major card issuing banks have adjusted",
+      "clause": "abs.media_2025_02_card_provisioning/para3"
+    },
+    {
+      "at": "^Banks have been working with mobile wallet providers",
+      "clause": "abs.media_2025_02_card_provisioning/para4"
+    },
+    {
+      "at": "(?<=\\s)Going forward, banks will require",
+      "clause": "abs.media_2025_02_card_provisioning/para4.verification"
+    },
+    {
+      "at": "(?<=\\s)Card issuing banks will implement such enhancements",
+      "clause": "abs.media_2025_02_card_provisioning/para4.completion"
+    },
+    {
+      "at": "(?<=\\s)Banks will also take proactive steps to remove",
+      "clause": "abs.media_2025_02_card_provisioning/para4.removal"
+    },
+    {
+      "at": "^Customer vigilance remains key",
+      "clause": "abs.media_2025_02_card_provisioning/para5"
+    },
+    {
+      "at": "^Banks will continue to work with mobile wallet providers",
+      "clause": "abs.media_2025_02_card_provisioning/para6"
+    },
+    {
+      "at": "^-End-",
+      "clause": null
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "abs.media_2025_02_card_provisioning/para1",
+      "clause_ref": "paragraph 1",
+      "heading_path": ["Major card issuing banks to step up measures to combat card provisioning scams"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "a1ec5b3825be9ad5bbd932d9fed241e1fdda299297b1f6c4935927cca275be78"
+    },
+    {
+      "clause_key": "abs.media_2025_02_card_provisioning/para2",
+      "clause_ref": "paragraph 2",
+      "heading_path": ["Major card issuing banks to step up measures to combat card provisioning scams"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "8831fa446a5f7d5a367e1d6b3d9c368c06b6d4bff20664ea089543f0d5e46bcb"
+    },
+    {
+      "clause_key": "abs.media_2025_02_card_provisioning/para3",
+      "clause_ref": "paragraph 3",
+      "heading_path": ["Major card issuing banks to step up measures to combat card provisioning scams"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "b21155eb82b594b31c0352abc6f3f30f84df3a505e34cfeeb904c84cf370135e"
+    },
+    {
+      "clause_key": "abs.media_2025_02_card_provisioning/para4",
+      "clause_ref": "paragraph 4, sentence 1",
+      "heading_path": ["Major card issuing banks to step up measures to combat card provisioning scams"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "2a1623dd94aca4c3da3d489e9b58f01f86d723fac216b00d25fc692be37eee5b"
+    },
+    {
+      "clause_key": "abs.media_2025_02_card_provisioning/para4.verification",
+      "clause_ref": "paragraph 4, sentence 2",
+      "heading_path": ["Major card issuing banks to step up measures to combat card provisioning scams"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "7550ab8f03b2b6899333552d07b63707b99f664f2098e32986022afcb291d45a",
+      "note": "Verification beyond the SMS one-time code to add a card to a mobile wallet (brief 4c)."
+    },
+    {
+      "clause_key": "abs.media_2025_02_card_provisioning/para4.completion",
+      "clause_ref": "paragraph 4, sentence 3",
+      "heading_path": ["Major card issuing banks to step up measures to combat card provisioning scams"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "38aef06c4cfbdbc1803bd4845d34bd0bdea83140cd7ebbefb8a7d602638a2eea",
+      "note": "Completion expected by July 2025 (brief 4c)."
+    },
+    {
+      "clause_key": "abs.media_2025_02_card_provisioning/para4.removal",
+      "clause_ref": "paragraph 4, sentence 4",
+      "heading_path": ["Major card issuing banks to step up measures to combat card provisioning scams"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "cf0a6b28a17d4215bec2822d9507d29ea9057ed63d79684308b975be6c872c2a",
+      "note": "Removal of provisioned cards where there are indicators of fraud (brief 4c)."
+    },
+    {
+      "clause_key": "abs.media_2025_02_card_provisioning/para5",
+      "clause_ref": "paragraph 5",
+      "heading_path": ["Major card issuing banks to step up measures to combat card provisioning scams"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "6cba55085ed77cb6c9b9e2239ef384278a97d774957836dd685095d1901be58a"
+    },
+    {
+      "clause_key": "abs.media_2025_02_card_provisioning/para6",
+      "clause_ref": "paragraph 6",
+      "heading_path": ["Major card issuing banks to step up measures to combat card provisioning scams"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "4601b2fa3af3ba1d5bd85e93d3d2f45fc08aad818602209e3622cbf0823cade2"
+    }
+  ]
+}
