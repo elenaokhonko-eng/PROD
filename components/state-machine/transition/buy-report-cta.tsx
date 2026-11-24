@@ -12,6 +12,7 @@ import { ArrowRight, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
+import { PackEvidenceNote } from '@/components/state-machine/facts/pack-evidence'
 
 export interface BuyReportCTAProps {
   /** Displayed price. The state-machine owner passes the authoritative catalogue amount. */
@@ -54,6 +55,8 @@ export function BuyReportCTA({
         <p className="rounded-lg border bg-background/70 p-3 text-sm text-muted-foreground" role="note">
           Generated automatically by GuideBuoy AI using a pre-built workflow. It has not been reviewed by a person. For a human review, book a consultation (S$99 / 30 min).
         </p>
+
+        <PackEvidenceNote product="bank" />
 
         {unavailableReason ? (
           <p className="text-sm text-muted-foreground" role="status">

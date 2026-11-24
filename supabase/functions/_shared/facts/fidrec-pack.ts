@@ -4,6 +4,7 @@
 // rest is built here from the confirmed facts. The same ladder (summary-ladder.ts produceChecked) checks, repairs,
 // regenerates once, and otherwise uses fixed wording. Shared by run_fidrec_pack_v1 and its tests.
 
+import { EVIDENCE_RULES, type EvidenceItem, isEvidenceItem } from "../evidence-minimums.ts";
 import { formatMoney } from "./display.ts";
 import { DOCUMENT_CONFIDENCE_THRESHOLD } from "./extraction.ts";
 import { DOCUMENT_LABELS, type EvidenceFinding, evidenceLists } from "./free-sections.ts";
@@ -294,7 +295,24 @@ export interface CaseDocument {
   id: string;
   /** evidence_processed_v2's type, when known. */
   evidenceType: string | null;
+  /** The pack evidence item the customer marked it as (evidence-minimums.ts), when known. */
+  complainantItem?: string | null;
   text: string | null;
+}
+
+// A document counted only because the customer said what it is: the pack says so, not what the pipeline read it as.
+const COMPLAINANT_ITEM_LABELS: Record<EvidenceItem, string> = {
+  payment_proof: "a document identified by the complainant as proof of the disputed payments",
+  police_report: "a document identified by the complainant as a police report",
+  bank_reply_or_complaint: "a document identified by the complainant as the bank's written reply or the written complaint",
+  scam_message: "a document identified by the complainant as the scam message",
+};
+
+function complainantLabel(document: CaseDocument): string | null {
+  const item = document.complainantItem;
+  if (!isEvidenceItem(item)) return null;
+  if (document.evidenceType && EVIDENCE_RULES[item].types.includes(document.evidenceType)) return null;
+  return COMPLAINANT_ITEM_LABELS[item];
 }
 
 /**
@@ -323,6 +341,11 @@ export function buildEvidenceIndex(findings: readonly Tier0Finding[], documents:
     if (byDocument.has(document.id)) continue;
     const label = (document.evidenceType && EVIDENCE_KIND_LABELS[document.evidenceType]) ?? "an uploaded document";
     byDocument.set(document.id, { id: `E${byDocument.size + 1}`, documentId: document.id, label, facts: [] });
+  }
+  for (const document of documents) {
+    const label = complainantLabel(document);
+    const entry = byDocument.get(document.id);
+    if (label && entry) entry.label = label;
   }
   return [...byDocument.values()];
 }

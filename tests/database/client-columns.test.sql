@@ -13,7 +13,7 @@ select is_empty(
       'id', 'case_id', 'updated_at', 'filename', 'original_filename', 'file_size', 'mime_type', 'document_type',
       'exhibit_label', 'upload_date', 'file_url', 'is_processed', 'sha256', 'processing_status', 'processing_error',
       'verified_document_type', 'verification_status', 'verification_confidence', 'content_latest_id',
-      'storage_provider', 'storage_bucket', 'storage_path'
+      'storage_provider', 'storage_bucket', 'storage_path', 'complainant_item'
     ]) as wanted(name)
     where not exists (
       select 1 from information_schema.columns c

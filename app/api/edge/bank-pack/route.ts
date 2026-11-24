@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { BANK_PACK_FN } from '@/lib/edge-functions'
 import { proxyEdgeFunction } from '@/lib/server/edge-proxy'
+import { evidenceMissingResponse, loadPackEvidence, PackEvidenceUnavailableError } from '@/lib/server/billing/pack-evidence'
 import { factsCaseAccess } from '@/lib/server/facts/case-access'
 import { loadCurrentSnapshot } from '@/lib/server/facts/facts-service'
 import { FactsInProgressError, FactsUnavailableError } from '@/lib/server/facts/run-reconcile'
@@ -45,6 +46,17 @@ export async function POST(request: Request) {
     }
     if (error instanceof FactsUnavailableError) {
       return NextResponse.json({ error: 'Facts are not available right now', reason: 'facts_unavailable' }, { status: 503 })
+    }
+    throw error
+  }
+
+  // Evidence minimums (Elena, 23 Nov 2026): paid for, but generated only once the documents it needs are in.
+  try {
+    const missing = evidenceMissingResponse(await loadPackEvidence(service, caseId, 'bank'))
+    if (missing) return missing
+  } catch (error) {
+    if (error instanceof PackEvidenceUnavailableError) {
+      return NextResponse.json({ error: error.message, reason: 'documents_unavailable' }, { status: 503 })
     }
     throw error
   }
