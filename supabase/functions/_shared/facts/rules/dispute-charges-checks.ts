@@ -191,11 +191,19 @@ function bureauInPeriod(
 }
 
 /**
- * The ready documents show a credit bureau report that was read: a document classified `credit_bureau_report` with text.
- * What the registry passes as `creditBureauReportRead` (run_fidrec_pack_v1 has the ready documents).
+ * The two names a credit bureau report document goes by: evidence_processed_v2's `verified_document_type`
+ * ("CREDIT_BUREAU_REPORT", what run_fidrec_pack_v1's documents carry) and the extraction type ("credit_bureau_report").
+ * Compared case-insensitively, these two values only.
+ */
+const CREDIT_BUREAU_REPORT_TYPE_NAMES: ReadonlySet<string> = new Set(["CREDIT_BUREAU_REPORT", CREDIT_BUREAU_REPORT_DOCUMENT_TYPE].map((n) => n.toLowerCase()));
+
+/**
+ * The ready documents show a credit bureau report that was read: a document classified as a credit bureau report
+ * (either name) with text. What the registry passes as `creditBureauReportRead` (run_fidrec_pack_v1 has the ready
+ * documents).
  */
 export function creditBureauReportReadFrom(documents: ReadonlyArray<{ evidenceType: string | null; text: string | null }>): boolean {
-  return documents.some((d) => d.evidenceType === CREDIT_BUREAU_REPORT_DOCUMENT_TYPE && Boolean(d.text?.trim()));
+  return documents.some((d) => d.evidenceType !== null && CREDIT_BUREAU_REPORT_TYPE_NAMES.has(d.evidenceType.toLowerCase()) && Boolean(d.text?.trim()));
 }
 
 /** Every credit bureau report the records show, with no period (the record line beside 8.4(b) or a quoted 8.5). */
@@ -264,6 +272,9 @@ export function createDisputeChargesChecks(options: DisputeChargesCheckOptions =
     const records = { bureauReportRead, statuses, today: input.generatedOn };
     /** Each status beside the 8.3 or 8.4 row, with its own document's E-number where the pack has set it. */
     const printStatuses = (list: readonly CreditAccountStatus[], clauseKey: string) => {
+      // A status with no `evidenceId` falls back to every document behind the `credit_account_status` fact, so the
+      // line may cite more documents than the one it was read from. Lane 6 fills `evidenceId` per status when the
+      // pack is built; until then this fallback applies.
       for (const s of list) w.accountStatus(s, clauseKey, s.evidenceId ? [s.evidenceId] : evidenceFor(input, "credit_account_status"));
     };
 

@@ -478,6 +478,22 @@ test('a report of non-payment of the disputed amount in the window still differs
   assert.equal(row.outcome, 'differs')
 })
 
+// Lane 6's review of #94: run_fidrec_pack_v1's documents carry evidence_processed_v2's verified_document_type, which is
+// "CREDIT_BUREAU_REPORT" (upper case). Both names are accepted, and nothing else.
+test('creditBureauReportReadFrom accepts both names of a credit bureau report, in the edge function\'s document shape', () => {
+  type CaseDocument = { id: string; evidenceType: string | null; complainantItem: string | null; text: string | null }
+  const doc = (evidenceType: string | null, text: string | null): CaseDocument => ({ id: 'doc-synthetic-1', evidenceType, complainantItem: null, text })
+  assert.equal(creditBureauReportReadFrom([doc('CREDIT_BUREAU_REPORT', 'Synthetic report text')]), true)
+  assert.equal(creditBureauReportReadFrom([doc('credit_bureau_report', 'Synthetic report text')]), true)
+  assert.equal(creditBureauReportReadFrom([doc('CREDIT_BUREAU_REPORT', '')]), false, 'empty text')
+  assert.equal(creditBureauReportReadFrom([doc('CREDIT_BUREAU_REPORT', ' \n\t ')]), false, 'whitespace only')
+  assert.equal(creditBureauReportReadFrom([doc('CREDIT_BUREAU_REPORT', null)]), false, 'no text')
+  assert.equal(creditBureauReportReadFrom([doc('BANK_CORRESPONDENCE', 'A letter')]), false, 'another type')
+  assert.equal(creditBureauReportReadFrom([doc('CREDIT_BUREAU', 'Synthetic report text')]), false, 'only the two known names')
+  assert.equal(creditBureauReportReadFrom([doc(null, 'Synthetic report text')]), false)
+  assert.equal(creditBureauReportReadFrom([doc('BANK_CORRESPONDENCE', 'A letter'), doc('CREDIT_BUREAU_REPORT', 'Synthetic report text')]), true)
+})
+
 test('creditBureauReportRead is wired from the ready documents through the registry', async () => {
   assert.equal(creditBureauReportReadFrom([{ evidenceType: 'credit_bureau_report', text: 'Synthetic report text' }]), true)
   assert.equal(creditBureauReportReadFrom([{ evidenceType: 'credit_bureau_report', text: '  ' }]), false, 'no text read')
