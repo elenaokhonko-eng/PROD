@@ -56,3 +56,9 @@ test('the confirm buttons are disabled while the facts reload', () => {
   assert.match(panel, /disabled=\{!canContinue \|\| confirm\.isPending \|\| refreshing\}/)
   assert.match(panel, /disabled=\{confirm\.isPending \|\| refreshing\}>Continue/)
 })
+
+test('while the facts reload, the confirm step says so (approved 25 Nov 2026)', () => {
+  const panel = readFileSync('components/state-machine/facts/confirm-facts-panel.tsx', 'utf8')
+  assert.equal(panel.match(/data-facts-refreshing>Checking your facts…<\/p>/g)?.length, 2)
+  assert.equal(panel.match(/refreshing \? \(/g)?.length, 2)
+})
