@@ -400,7 +400,7 @@ export function showsOverdue(status: Pick<CreditAccountStatus, "statusText">): b
  *   bureau report dated on or after the period's last day (a status's `reportDate`, from a `credit_bureau_report`).
  *   Otherwise the reading is `not_read` with its `reason`, printed as `not_shown`, never "matches".
  *   `matches` also needs at least one status of the disputed account from a bureau report (otherwise `not_read`,
- *   reason `account_not_listed`).
+ *   reason `account_not_listed`). This is Elena's decision of 25 Nov 2026.
  *
  * Gap c (review of 25 Nov 2026): a status counts towards `matches` only when it states good standing in words from
  * GOOD_STANDING_WORDS (`showsGoodStanding`); the allowlist decides, so "no overdue amount" is good standing. Every other

@@ -209,7 +209,7 @@ export const afterTheEventsLine = (documentDate: IsoDate): string =>
 // is left out; from the institution's letter: "The institution's letter shows [account] as '[status]' as at [date]."
 // Where the document names no account, "the card account".
 //
-// wording awaiting Elena's approval (gap c, 25 Nov 2026): a row of a Credit Bureau Singapore "Account Status History",
+// Approved by Elena (AS-6, 25 Nov 2026; gap c): a row of a Credit Bureau Singapore "Account Status History",
 // which has no status words, printed as the report shows it: "The credit bureau report from [bureau] shows [account]
 // with overdue balance [amount] and the last 12 cycles '[codes]' as at [report date]." A part the row does not show is
 // left out; the codes are quoted verbatim and never explained.
