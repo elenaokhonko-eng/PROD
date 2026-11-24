@@ -10,6 +10,26 @@
       "clause_keys": ["mas.eupg/5.4", "mas.eupg/5.5", "mas.srf/6.3"],
       "exclusion_clause_keys": [],
       "note": "Framework set to 'eupg' (it rests on both documents; the table allows one). 5.5(b) also covers non-compliance by the institution's employee."
+    },
+    {
+      "statement_key": "bridge.mas_requirement.cards",
+      "revision": 1,
+      "framework": "eupg",
+      "applies_to_instrument": ["sg_card"],
+      "text": "Section 5 of the E-Payments User Protection Guidelines does not apply to credit, charge or debit card transactions (paragraph 5.1). The responsibility sharing in the Shared Responsibility Framework Guidelines does not apply to transactions on credit, charge and debit cards issued in Singapore (footnote 1).",
+      "clause_keys": ["mas.eupg/5.1", "mas.srf/fn1"],
+      "exclusion_clause_keys": ["mas.eupg/5.1", "mas.srf/fn1"],
+      "note": "Review wording, unchanged. 5.1 speaks of cards issued by the institution rather than 'card transactions' (eupg.fault.cards uses the same shorthand); SRF footnote 1 matches. Both cited as not applying to cards (exclusion flag). Framework 'eupg' (rests on both; one allowed), as bridge.mas_requirement."
+    },
+    {
+      "statement_key": "bridge.card_loss_sharing",
+      "revision": 1,
+      "framework": "abs_card_code",
+      "applies_to_instrument": ["sg_card"],
+      "text": "For card payments, how a loss is shared between the card issuer and the cardholder is set out in the ABS Code of Practice for Banks – Credit Cards (paragraphs 5 and 6) and in the issuer's own terms.",
+      "clause_keys": ["abs.card_code/5", "abs.card_code/6"],
+      "exclusion_clause_keys": [],
+      "note": "Review wording, unchanged. abs.card_code rev. 2 Jul 2020: paragraph 5 is cardholders' liability, paragraph 6 theft or loss of card. The Code speaks of credit cardholders; its reach to debit cards is EUPG footnote 2's point. The issuer's own terms are read through term requests."
     }
   ]
 }
