@@ -280,6 +280,9 @@ function errorText(error: unknown): string {
     if (error.reason === 'finding_outdated') return 'Your facts changed while you were answering. Please review this fact again.'
     if (error.reason === 'facts_unconfirmed') return 'Some facts still need an answer.'
     if (error.reason === 'documents_processing') return 'A document is still being read. Please try again in a minute.'
+    // A document added on this step makes the facts be read again; confirming during that was "Something went wrong"
+    // (24 Nov 2026 gate run). Wording awaiting Elena's approval.
+    if (error.reason === 'facts_in_progress') return 'Your facts are being checked again with your latest document. Please try again in a minute.'
   }
   return 'Something went wrong. Please try again.'
 }
