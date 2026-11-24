@@ -122,7 +122,7 @@ test('eupg.fault.examples is followed by footnote 20 printed from the corpus', a
 
 test('the closing line prints only when both the card code and the MAS reply statements print', async () => {
   const abs = statement('abs.fault.term', 'abs_card_code', [['abs.card_code/5', H.abs5]])
-  const reply = statement('mas.reply.20250107.3ds', 'mas_reply', [['mas.reply_20250107/3ds', H.reply]])
+  const reply = statement('mas.reply.20250107.3ds', 'mas_reply', [['mas.reply.20250107/3(a).3ds', H.reply]])
   const both = await buildCustomerFaultDefinitions({ ...cardOnlyCase.data, provider: createFakeClauseProvider(lane4Corpus([abs, reply])) })
   assert.ok(texts(both).includes(ABS_MAS_REPLY_CLOSING_LINE))
   const one = await buildCustomerFaultDefinitions({ ...cardOnlyCase.data, provider: createFakeClauseProvider(lane4Corpus([abs])) })
@@ -167,4 +167,25 @@ test('no verdict wording in any line the section writes', async () => {
     const r = await buildCustomerFaultDefinitions({ ...c.data, provider })
     for (const t of texts(r)) assert.ok(verdictFree(t), `${c.id}: ${t}`)
   }
+})
+
+test('Decision 6: the MAS reply is read as of the day the pack is generated, with the after-the-events date when it is later', async () => {
+  const reply = statement('mas.reply.20250107.3ds', 'mas_reply', [['mas.reply.20250107/3(a).3ds', H.reply]])
+  const provider = createFakeClauseProvider(lane4Corpus([reply]))
+  const build = createCustomerFaultDefinitionsBuilder({ generatedOn: '2026-11-24' })
+  // Payments in September 2025, after the reply: read on the generation day, no after-the-events date.
+  const r = await build({ ...cardOnlyCase.data, provider })
+  const s = statements(r).find((x) => x.statementKey === 'mas.reply.20250107.3ds')!
+  assert.equal(s.onDate, '2026-11-24')
+  assert.equal(s.text, 'Synthetic wording of mas.reply.20250107.3ds, revision 1.')
+  assert.equal(s.documentDatedAfterEvents ?? null, null)
+  // The card code statements still follow the payment date.
+  assert.ok(statements(r).filter((x) => x.statementKey.startsWith('abs.')).every((x) => x.onDate === '2025-09-12'))
+  // Every event before 7 January 2025: the reply still prints, marked as dated after the events.
+  const early = cardOnlyCase.data.payments.map((p) => ({ ...p, date: '2024-11-02' }))
+  const facts = { ...cardOnlyCase.data.facts, reported_to_bank: { value: { value: 'yes' as const, date: '2024-11-03', reference: null, channel: 'hotline' }, label: 'confirmed' as const } }
+  const r2 = await build({ ...cardOnlyCase.data, payments: early, facts: facts as typeof cardOnlyCase.data.facts, provider })
+  const s2 = statements(r2).find((x) => x.statementKey === 'mas.reply.20250107.3ds')!
+  assert.equal(s2.text, 'Synthetic wording of mas.reply.20250107.3ds, revision 1.')
+  assert.equal(s2.documentDatedAfterEvents, '2025-01-07')
 })

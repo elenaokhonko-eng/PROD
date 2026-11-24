@@ -3,13 +3,18 @@ import test from 'node:test'
 import {
   buildAccountAccessSequence,
   CARD_LOSS_SHARING_STATEMENT_KEY,
-  formatDateTime,
+  CREDENTIALS_STATED,
   linkedPayments,
   SCHEME_ANCHOR_CLAUSE_KEYS,
-  SCHEME_STANDING_SENTENCE,
   schemeStatementKeys,
   sequenceAnchor,
 } from '../../supabase/functions/_shared/facts/rules/account-access-sequence.ts'
+import {
+  formatDateTime,
+  GENDERED_PRONOUNS,
+  NEAREST_VERSION_FALLBACK,
+  SCHEME_STANDING_SENTENCE,
+} from '../../supabase/functions/_shared/facts/update/section-writer.ts'
 import {
   ALL_STATEMENT_KEYS,
   type CardAuthEvent,
@@ -61,18 +66,18 @@ test('steps print in order, each numbered, with no step out of sequence', async 
 
 test('card-only: token, device statement, alert, login, wallet, payments and the linked line', async () => {
   const r = await run(cardOnlyCase)
-  assert.match(step(r, 1)[0], /^The complainant states that she entered/)
+  assert.match(step(r, 1)[0], /^The complainant states that they entered their credentials/)
   assert.deepEqual(step(r, 2), [
     "The institution's record shows a digital token activated at 20:10 on 12 September 2025 on a device labelled 'Phone model EX-300'. The record shows the activation was authorised by SMS one-time code, sent to registered mobile number.",
   ])
-  assert.deepEqual(step(r, 3), ['The complainant states that this device is not hers.'])
+  assert.deepEqual(step(r, 3), ['The complainant states that this device is not theirs.'])
   assert.deepEqual(step(r, 4), ['The record shows an alert about the activation sent at 20:10 on 12 September 2025 to cardholder@example.com.'])
   assert.deepEqual(step(r, 5), ['The record shows a login at 20:15 on 12 September 2025 from this device, authorised by digital token.'])
   assert.deepEqual(step(r, 6), [
     "The record shows the card ending 0001 added to a mobile wallet at 20:32 on 12 September 2025 on a device labelled 'Phone model EX-300', authorised by the digital token.",
   ])
   assert.deepEqual(step(r, 7), [
-    'The record shows 3 card payments totalling S$7,550.00 between 20:48 on 12 September 2025 and 00:15 on 13 September 2025, authenticated by 3-D Secure with the digital token.',
+    'The record shows 3 card payments totalling S$7,550 between 20:48 on 12 September 2025 and 00:15 on 13 September 2025, authenticated by 3-D Secure with the digital token.',
   ])
   assert.deepEqual(step(r, 8), [
     'On the records provided, 3 of these payments were authenticated through 3-D Secure using the digital token activated at 20:10 on 12 September 2025.',
@@ -89,14 +94,14 @@ test('mixed: no token, so the link is not_shown; the wallet was added by SMS cod
   assert.deepEqual(step(r, 8), ['The records provided do not show which device or token authenticated these payments.'])
   assert.match(step(r, 6)[0], /authorised by an SMS one-time code, sent to registered mobile number\.$/)
   assert.deepEqual(step(r, 7), [
-    'The record shows 1 card payment of S$860.00 at 11:30 on 20 May 2025, authenticated by 3-D Secure with a one-time code.',
+    'The record shows 1 card payment of S$860 at 11:30 on 20 May 2025, authenticated by 3-D Secure with a one-time code.',
     'The record shows 1 card payment of S$415.50 at 01:10 on 21 May 2025, with no authentication recorded.',
-    "The record shows 1 card payment of S$1,240.00 at 13:45 on 21 May 2025, authenticated by the mobile wallet on the device labelled 'Phone model EX-400'.",
+    "The record shows 1 card payment of S$1,240 at 13:45 on 21 May 2025, authenticated by the mobile wallet on the device labelled 'Phone model EX-400'.",
   ])
 })
 
-test('the link needs the payment device to be the token device; another device gives not_shown', async () => {
-  const events = cardOnlyCase.data.facts.card_auth_events.value.map((e) => ({ ...e, deviceRef: 'dev-ex-other' }))
+test('the link needs the payment device or token to be the activated one; another device and token give not_shown', async () => {
+  const events = cardOnlyCase.data.facts.card_auth_events.value.map((e) => ({ ...e, deviceRef: 'dev-ex-other', tokenRef: 'tok-ex-other' }))
   const facts = { ...cardOnlyCase.data.facts, card_auth_events: { value: events, label: 'confirmed' as const } }
   const r = await buildAccountAccessSequence({ ...cardOnlyCase.data, facts, provider: fake })
   assert.deepEqual(step(r, 8), ['The records provided do not show which device or token authenticated these payments.'])
@@ -223,13 +228,14 @@ test('scheme statement keys follow 4f: authenticated, attempted, token, none rec
     ['mc.authenticated', 'mc.dispute.permitted', 'mc.report', 'mc.cardholder'],
   )
   assert.deepEqual(schemeStatementKeys('mastercard', [ev({ entryMode: 'chip', authentication: 'pin', cardScheme: 'mastercard' })]), ['mc.pin', 'mc.cardholder'])
-  // Every key but the proposed closing one is a contract key.
+  // Every key is a contract key.
   for (const e of [ev({}), ev({ authenticationResult: 'attempted' }), ev({ authentication: 'none_recorded' })]) {
     for (const k of [...schemeStatementKeys('visa', [e]), ...schemeStatementKeys('mastercard', [e])]) {
       assert.ok((ALL_STATEMENT_KEYS as readonly string[]).includes(k), k)
     }
   }
-  assert.ok(!(ALL_STATEMENT_KEYS as readonly string[]).includes(CARD_LOSS_SHARING_STATEMENT_KEY), 'proposed key is not yet in the contract')
+  // Decision 9: the closing statement is now a contract key (was "proposed, not yet in the contract").
+  assert.ok((ALL_STATEMENT_KEYS as readonly string[]).includes(CARD_LOSS_SHARING_STATEMENT_KEY), 'bridge.card_loss_sharing is a contract key')
 })
 
 test('no scheme wording in code: statement text comes only from the provider', async () => {
@@ -269,5 +275,51 @@ test('no verdict wording, and nothing about who took the token or made the payme
         assert.ok(verdictFree(l.text), `${c.id}: ${l.text}`)
       }
     }
+  }
+})
+
+test('step 8: the token route links a payment whose record states the activated token, on another device', async () => {
+  const events = cardOnlyCase.data.facts.card_auth_events.value.map((e) => ({ ...e, deviceRef: 'dev-ex-other' }))
+  const anchor = sequenceAnchor(cardOnlyCase.data.facts.access_events.value)!
+  assert.equal(anchor.tokenRef, 'tok-ex-0102')
+  // Different device, same token: linked by the token route.
+  assert.equal(linkedPayments(anchor, events).length, events.filter((e) => e.transactionIndex !== null).length)
+  // Different device and different token: not linked.
+  assert.equal(linkedPayments(anchor, events.map((e) => ({ ...e, tokenRef: 'tok-ex-other' }))).length, 0)
+  // No token reference on the activation: only the device route.
+  assert.equal(linkedPayments({ ...anchor, tokenRef: null }, events).length, 0)
+  // No device reference on the activation: the token route alone.
+  assert.ok(linkedPayments({ ...anchor, deviceRef: null }, cardOnlyCase.data.facts.card_auth_events.value).length > 0)
+  const facts = { ...cardOnlyCase.data.facts, card_auth_events: { value: events, label: 'confirmed' as const } }
+  const r = await buildAccountAccessSequence({ ...cardOnlyCase.data, facts, provider: fake })
+  assert.match(step(r, 8)[0], /^On the records provided, 3 of these payments were authenticated through 3-D Secure using the digital token activated at/)
+})
+
+test('scheme edition before the payment date not held: the nearest-version fallback, then that edition\'s statements', async () => {
+  const provider = createFakeClauseProvider(lane4Corpus(visaStatements()))
+  const payments = cardOnlyCase.data.payments.map((p) => ({ ...p, date: '2024-10-01' }))
+  const r = await run(cardOnlyCase, provider, { payments })
+  const all = texts(r).map((l) => l.text)
+  const fallback = NEAREST_VERSION_FALLBACK('Visa', '2024-10-01', '2025-03-01')
+  assert.equal(fallback, 'This pack does not hold Visa\'s rules as in force on 1 October 2024. The nearest edition held is dated 1 March 2025. The lines below are from that edition.')
+  assert.equal(all[all.indexOf(SCHEME_STANDING_SENTENCE) + 1], fallback)
+  assert.ok(!all.some((t) => t.startsWith("This pack does not hold Visa's rules in force on")))
+  // The statements are read for the nearest edition, so the ones approved for it print.
+  const s = statements(r)
+  assert.deepEqual(s.map((x) => x.statementKey), ['visa.3ds.authenticated', 'visa.cardholder', CARD_LOSS_SHARING_STATEMENT_KEY])
+  assert.deepEqual(s.slice(0, 2).map((x) => x.onDate), ['2025-03-01', '2025-03-01'])
+  assert.ok(r.flags.some((f) => f.code === 'nearest_version_held' && f.key === SCHEME_ANCHOR_CLAUSE_KEYS.visa && f.onDate === '2024-10-01'))
+})
+
+test('Mastercard anchor and the closing statement use the contract keys (Step 0b)', () => {
+  assert.equal(SCHEME_ANCHOR_CLAUSE_KEYS.mastercard, 'mastercard.chargeback_guide/dms.4837.issuer-chargeback')
+  assert.equal(CARD_LOSS_SHARING_STATEMENT_KEY, 'bridge.card_loss_sharing')
+})
+
+test('Decision 2: no she / her / hers in any line, including CREDENTIALS_STATED', async () => {
+  for (const t of Object.values(CREDENTIALS_STATED)) assert.ok(!GENDERED_PRONOUNS.test(t), t)
+  const provider = createFakeClauseProvider(lane4Corpus(visaStatements()))
+  for (const c of FIDREC_UPDATE_CASES) {
+    for (const l of texts(await run(c, provider))) assert.ok(!GENDERED_PRONOUNS.test(l.text), `${c.id}: ${l.text}`)
   }
 })

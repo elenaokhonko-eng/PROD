@@ -1,45 +1,59 @@
-// The customer-conduct comparison (FIDReC standards brief v5, 4g; decision 6): section `customer_conduct_comparison`,
-// printed after the definitions (4d). It sets the conduct the records show beside what each document's text names,
-// then the institution's own words, then fixed lines chosen by code. No line says the institution's label is right or
-// wrong, and no line says the complainant was or was not negligent, grossly negligent or reckless; those words appear
-// only as a document's own term or inside quotation marks from the institution's letter.
+// The customer-conduct section (FIDReC standards brief v5, 4g; review of 24 Nov 2026, Decision 1): section
+// `customer_conduct_comparison`, printed after the definitions (4d).
 //
-// Step 1: conduct markers from confirmed facts and evidence.
-// Step 2: per framework that applies to the payment (account -> EUPG, SRF; card -> ABS card code, MAS reply), per
-//         marker, whether the document's text names that conduct: `named` (with the clause), `not_named`, or
-//         `document_has_no_such_test`. Each becomes a ComparisonLine with the contract's outcomes:
-//           named -> matches, not_named -> differs, document_has_no_such_test -> not_applicable, and a marker the
-//           records do not show -> not_shown.
-//         `buildCustomerConductRows` returns the naming beside each line, for the renderer's endings.
-// Step 3-4: the institution's label and the conduct it cites; each document's term; the institution's own terms (4e).
+// Decision 1: no `matches`, no `differs`, no ComparisonLine, never the generic comparison endings. For each kind of
+// conduct (the seven topic markers) the section prints two separate things, and nothing joins them:
+// - what the record shows (a text line), or "The records provided do not show [X]." (`records_do_not_show`);
+// - per document, whether the document refers to that kind of conduct: `refers_to` (with the clause it rests on),
+//   `does_not_refer_to`, or, for the SRF Guidelines, `no_conduct_test`.
+// Card payments approved on a device the complainant does not recognise (answer `not_mine` or `not_sure`, no answer,
+// or no device named; the contract's not-sure rule): the record line, then "The records do not show who approved these
+// payments.", and no document line for that marker. The MAS reply of 7 January 2025 then prints only in 4d.
+//
+// Then the institution's own words, each document's term, and the institution's own terms (4e). No line says the
+// institution's label is right or wrong, and no line says the complainant was or was not negligent, grossly negligent
+// or reckless; those words appear only as a document's own term or inside quotation marks from the institution's letter.
 //
 // Plain TypeScript for Deno and Node: relative imports with .ts extensions, no npm imports.
 
 import type {
   CardAuthEvent,
-  ComparisonLine,
-  ComparisonOutcome,
+  ConductLine,
+  ConductMarker,
   IsoDate,
   SectionBuilder,
   SectionInput,
   SectionResult,
 } from "../update/contract.ts";
-import { CLAUSE_KEYS } from "../update/contract.ts";
+import {
+  CLAUSE_KEYS,
+  complainantRecognisesDevice,
+  CONDUCT_MARKERS,
+  documentDatedAfterEvents,
+  NAMED_CLAUSE_KEYS,
+  readDateFor,
+  recognitionAnswerFor,
+} from "../update/contract.ts";
+import {
+  afterTheEventsLine,
+  datePart,
+  deviceRecognitionSentence,
+  formatDate,
+  formatDateTime,
+  formatCalendarDays,
+  SectionWriter,
+} from "../update/section-writer.ts";
 import {
   CARD_AUTH_METHOD,
   CREDENTIALS_STATED,
-  datePart,
   earliestDate,
   evidenceFor,
   factValue,
-  formatDate,
-  formatDateTime,
   isAccountPayment,
   isCardPayment,
   isThreeDs,
-  SectionCollector,
-  sameDevice,
 } from "./account-access-sequence.ts";
+import { caseEventDates, todayIso } from "./customer-fault-definitions.ts";
 import {
   NO_TERM_REQUESTS,
   productsForPayment,
@@ -48,23 +62,14 @@ import {
   type TermRequestSource,
 } from "./institution-terms.ts";
 
+export { CONDUCT_MARKERS, type ConductMarker };
+
 // ---------------------------------------------------------------------------------------------------------------
-// Markers (step 1)
+// What the records show, per marker
 // ---------------------------------------------------------------------------------------------------------------
 
-export const CONDUCT_MARKERS = [
-  "credentials_entered",
-  "credentials_given",
-  "app_installed",
-  "card_payment_approved",
-  "alerts_and_report",
-  "block_used",
-  "police_report",
-] as const;
-export type ConductMarker = (typeof CONDUCT_MARKERS)[number];
-
-/** What the line says when the records do not show the marker ("The records provided do not show whether [X]."). */
-const NOT_SHOWN: Record<ConductMarker, string> = {
+/** The [X] of "The records provided do not show [X]." per marker (unchanged from #39). */
+export const NOT_SHOWN: Record<ConductMarker, string> = {
   credentials_entered: "whether credentials, card details or a code were entered on a website or app",
   credentials_given: "whether credentials, card details or a code were given by phone or message",
   app_installed: "whether an app was installed from outside the official store",
@@ -74,36 +79,41 @@ const NOT_SHOWN: Record<ConductMarker, string> = {
   police_report: "whether or when a police report was made",
 };
 
+/** Decision 1, verbatim: after the record line for card payments approved on a device the complainant does not recognise. */
+export const WHO_APPROVED_NOT_SHOWN = "The records do not show who approved these payments.";
+
 export interface MarkerRecord {
   marker: ConductMarker;
-  /** null: the records do not show it (`not_shown`). */
+  /** null: the records do not show it. */
   record: string | null;
   evidenceIds: string[];
-}
-
-function daysBetween(from: IsoDate, to: IsoDate): number {
-  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
+  /**
+   * `card_payment_approved` only: true when every approving device is one the complainant recognises (`mine`, on a
+   * fact labelled `confirmed` or `claimant_only`; contract `complainantRecognisesDevice`).
+   */
+  approvalRecognised?: boolean;
 }
 
 /**
- * Step 1. A marker the records show as absent (for example credentials given by phone where the confirmed answer is
- * that they were entered on a website) is left out; one the records cannot speak to is `not_shown` (record null).
+ * Markers from the facts read for record lines (labels `confirmed` and `claimant_only`). A marker the records show as
+ * absent (for example credentials given by phone where the answer is that they were entered on a website) is left out;
+ * one the records cannot speak to has `record: null`.
  */
 export function conductMarkers(input: SectionInput): MarkerRecord[] {
   const out: MarkerRecord[] = [];
-  const credentials = input.facts.credentials_or_otp_shared;
-  const credentialsKnown = credentials?.label === "confirmed" && credentials.value !== null && credentials.value !== "unsure";
+  const credentials = factValue(input, "credentials_or_otp_shared");
+  const credentialsKnown = credentials !== null && credentials !== "unsure";
   const credIds = evidenceFor(input, "credentials_or_otp_shared");
   const scamTypes = factValue(input, "scam_type") ?? [];
   const credentialMarker = (marker: ConductMarker, values: string[]) => {
     if (!credentialsKnown) out.push({ marker, record: null, evidenceIds: [] });
-    else if (values.includes(credentials!.value!)) {
-      out.push({ marker, record: `The complainant states that ${CREDENTIALS_STATED[credentials!.value!]}.`, evidenceIds: credIds });
+    else if (values.includes(credentials!)) {
+      out.push({ marker, record: `The complainant states that ${CREDENTIALS_STATED[credentials!]}.`, evidenceIds: credIds });
     }
   };
   credentialMarker("credentials_entered", ["entered_on_fake_site_or_app"]);
   credentialMarker("credentials_given", ["given_directly", "given_in_message"]);
-  if (scamTypes.includes("malware") && !(credentialsKnown && credentials!.value === "installed_app_or_malware")) {
+  if (scamTypes.includes("malware") && !(credentialsKnown && credentials === "installed_app_or_malware")) {
     out.push({ marker: "app_installed", record: "The confirmed scam type includes malware.", evidenceIds: evidenceFor(input, "scam_type") });
   } else credentialMarker("app_installed", ["installed_app_or_malware"]);
 
@@ -119,7 +129,14 @@ export function conductMarkers(input: SectionInput): MarkerRecord[] {
         (isThreeDs(e.authentication) && (e.authenticationResult === "authenticated" || e.authenticationResult === "attempted")) ||
         (e.authentication === "wallet_device" && e.authenticationResult === "authenticated")
       );
-      if (approved.length) out.push({ marker: "card_payment_approved", record: approvedRecord(input, approved), evidenceIds: evidenceFor(input, "card_auth_events", "device_recognition") });
+      if (approved.length) {
+        out.push({
+          marker: "card_payment_approved",
+          record: approvedRecord(input, approved),
+          evidenceIds: evidenceFor(input, "card_auth_events", "device_recognition"),
+          approvalRecognised: approved.every((e) => complainantRecognisesDevice(input.facts.device_recognition, e)),
+        });
+      }
     }
   }
 
@@ -134,7 +151,7 @@ export function conductMarkers(input: SectionInput): MarkerRecord[] {
     const reportDate = reported?.value === "yes" ? datePart(reported.date) : null;
     if (reportDate) {
       const days = daysBetween(datePart(first.timestamp)!, reportDate);
-      const gap = days === 0 ? "the same calendar day as the first alert" : `${days} calendar day${days === 1 ? "" : "s"} after the first alert`;
+      const gap = days === 0 ? "the same calendar day as the first alert" : `${formatCalendarDays(days)} after the first alert`;
       record += ` The complainant reported to the institution on ${formatDate(reportDate)}, ${gap}.`;
     } else record += " The records provided do not show when the complainant reported to the institution.";
     out.push({ marker: "alerts_and_report", record, evidenceIds: evidenceFor(input, "access_events", "reported_to_bank") });
@@ -158,14 +175,18 @@ export function conductMarkers(input: SectionInput): MarkerRecord[] {
   if (police?.value === "yes") {
     out.push({
       marker: "police_report",
-      record: police.date ? `The complainant reported to the police on ${formatDate(police.date)}.` : "The complainant states that she reported to the police.",
+      record: police.date ? `The complainant reported to the police on ${formatDate(police.date)}.` : "The complainant states that they reported to the police.",
       evidenceIds: policeIds,
     });
   } else if (police?.value === "no") {
-    out.push({ marker: "police_report", record: "The complainant states that she has not reported to the police.", evidenceIds: policeIds });
+    out.push({ marker: "police_report", record: "The complainant states that they have not reported to the police.", evidenceIds: policeIds });
   } else out.push({ marker: "police_report", record: null, evidenceIds: [] });
 
   return out;
+}
+
+function daysBetween(from: IsoDate, to: IsoDate): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 }
 
 function approvedRecord(input: SectionInput, events: CardAuthEvent[]): string {
@@ -174,6 +195,7 @@ function approvedRecord(input: SectionInput, events: CardAuthEvent[]): string {
     const key = `${e.authentication}|${e.deviceRef ?? e.deviceLabel ?? ""}|${e.sentTo ?? ""}`;
     groups.set(key, [...(groups.get(key) ?? []), e]);
   }
+  const recognition = factValue(input, "device_recognition") ?? [];
   const parts: string[] = [];
   for (const group of groups.values()) {
     const e = group[0];
@@ -182,31 +204,18 @@ function approvedRecord(input: SectionInput, events: CardAuthEvent[]): string {
     const sent = e.sentTo ? `, sent to ${e.sentTo}` : "";
     const attempted = e.authenticationResult === "attempted" ? " (authentication attempted)" : "";
     parts.push(`The record shows ${n} authenticated by ${CARD_AUTH_METHOD[e.authentication]}${attempted}${device}${sent}.`);
-    const answer = (factValue(input, "device_recognition") ?? []).find((r) => (e.deviceRef || e.deviceLabel) && sameDevice(r, e))?.answer;
-    if (e.deviceLabel && answer) {
-      parts.push(
-        answer === "not_mine"
-          ? `The complainant states that the device labelled '${e.deviceLabel}' is not hers.`
-          : answer === "mine"
-          ? `The complainant states that the device labelled '${e.deviceLabel}' is hers.`
-          : `The complainant states that she is not sure whether the device labelled '${e.deviceLabel}' is hers.`,
-      );
-    }
+    const answer = e.deviceRef || e.deviceLabel ? recognitionAnswerFor(recognition, e) : null;
+    if (e.deviceLabel && answer) parts.push(deviceRecognitionSentence(answer, e.deviceLabel));
   }
   return parts.join(" ");
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Frameworks and what their text names (step 2)
+// The documents, and the clause each "refers to" / "does not refer to" line rests on
 // ---------------------------------------------------------------------------------------------------------------
 
 export type ConductFramework = "eupg" | "srf" | "abs_card_code" | "mas_reply";
-export type ConductNaming = "named" | "not_named" | "document_has_no_such_test";
 type TermFamily = "recklessness" | "gross_negligence" | "negligence";
-
-/** The MAS reply of 7 January 2025 is not in the contract's clause keys yet (Lane 1 locates it at ingestion). */
-// proposed key, awaiting Elena's approval and Lane 6's contract update
-export const MAS_REPLY_3DS_CLAUSE_KEY = "mas.reply_20250107/3ds";
 
 const [EUPG_5_2, EUPG_FN20, SRF_3_1, ABS_5] = [
   CLAUSE_KEYS.customer_conduct_comparison[0],
@@ -214,9 +223,12 @@ const [EUPG_5_2, EUPG_FN20, SRF_3_1, ABS_5] = [
   CLAUSE_KEYS.customer_conduct_comparison[2],
   CLAUSE_KEYS.customer_conduct_comparison[3],
 ];
+const MAS_REPLY_3DS = NAMED_CLAUSE_KEYS.masReply3ds;
 
 interface FrameworkSpec {
-  /** The document as the fixed lines name it, and whether the name takes a plural verb ("The Guidelines use"). */
+  /** standard_documents.document_key: the ConductLine's `documentKey`. */
+  documentKey: string;
+  /** The document as the fixed term lines name it, and whether the name takes a plural verb ("The Guidelines use"). */
   name: string;
   plural: boolean;
   /** The paragraph where the document's customer-fault term is (or, for the SRF, its account-user duties). */
@@ -225,56 +237,79 @@ interface FrameworkSpec {
   term: string | null;
   /** Term families the document's text uses at all (about anyone), so "does not use" is printed only when true. */
   usesFamilies: TermFamily[];
-  /** The SRF has no customer-fault test (1.4b): every marker is `document_has_no_such_test`. */
-  noTestStatementKey: "srf.fault.terms" | null;
-  /** Markers the document's text names, with the clause and item. Everything else is `not_named`. */
-  named: Partial<Record<ConductMarker, { clauseKey: string; item: string | null }>>;
+  /**
+   * The SRF Guidelines: "[Document] has no test of the account user's conduct.", resting on this clause. Printed once,
+   * only when the clause is held for the date. No per-marker line.
+   */
+  noConductTestClauseKey: string | null;
+  /**
+   * The markers the document refers to, each naming the clause it rests on. The "refers to" line prints only when that
+   * clause is held in a verified version for the date; otherwise nothing prints for the marker and the run is flagged
+   * `clause_not_held` (never a "does not refer to" in its place).
+   */
+  refersTo: Partial<Record<ConductMarker, string>>;
+  /**
+   * The clause a "does not refer to" line rests on: where the document sets out the conduct it refers to. Printed only
+   * when that clause is held for the date. Null: the document prints no "does not refer to" lines.
+   */
+  doesNotReferClauseKey: string | null;
 }
 
 /**
- * Drafted from the texts as read in brief 1.4 (EUPG footnote 20 items (b), (c), (e); the ABS code gives no examples;
- * the MAS reply names unwittingly authenticating a 3DS transaction). For Elena's review with the seed statements.
+ * Which conduct each document refers to, and the clause each line rests on. Drafted from the texts as read in brief
+ * 1.4 (EUPG footnote 20 items (b), (c), (e); the ABS code gives no examples; the MAS reply's 3-D Secure paragraph).
+ * FOR ELENA'S REVIEW (review of 24 Nov 2026, Lane 4 issue 2): each entry names its clause key and prints only when
+ * that clause is held for the date; the reading of the clause wording itself is Elena's to confirm against the
+ * verification sheets.
  */
 export const CONDUCT_FRAMEWORKS: Record<ConductFramework, FrameworkSpec> = {
   eupg: {
+    documentKey: "mas.eupg",
     name: "The E-Payments User Protection Guidelines",
     plural: true,
     termClauseKey: EUPG_5_2,
     term: "recklessness",
     usesFamilies: ["recklessness", "negligence"],
-    noTestStatementKey: null,
-    named: {
-      credentials_given: { clauseKey: EUPG_FN20, item: "b" },
-      alerts_and_report: { clauseKey: EUPG_FN20, item: "c" },
-      app_installed: { clauseKey: EUPG_FN20, item: "e" },
+    noConductTestClauseKey: null,
+    refersTo: {
+      credentials_given: EUPG_FN20, // footnote 20, item (b)
+      alerts_and_report: EUPG_FN20, // footnote 20, item (c)
+      app_installed: EUPG_FN20, // footnote 20, item (e)
     },
+    doesNotReferClauseKey: EUPG_FN20,
   },
   srf: {
+    documentKey: "mas.srf",
     name: "The Shared Responsibility Framework Guidelines",
     plural: true,
     termClauseKey: SRF_3_1,
     term: null,
     usesFamilies: ["negligence"],
-    noTestStatementKey: "srf.fault.terms",
-    named: {},
+    noConductTestClauseKey: SRF_3_1,
+    refersTo: {},
+    doesNotReferClauseKey: null,
   },
   abs_card_code: {
+    documentKey: "abs.card_code",
     name: "The ABS Code of Practice for Banks – Credit Cards",
     plural: false,
     termClauseKey: ABS_5,
     term: "gross negligence",
     usesFamilies: ["gross_negligence"],
-    noTestStatementKey: null,
-    named: {},
+    noConductTestClauseKey: null,
+    refersTo: {},
+    doesNotReferClauseKey: ABS_5,
   },
   mas_reply: {
+    documentKey: MAS_REPLY_3DS.split("/")[0],
     name: "MAS's written reply of 7 January 2025",
     plural: false,
-    termClauseKey: MAS_REPLY_3DS_CLAUSE_KEY,
+    termClauseKey: MAS_REPLY_3DS,
     term: "negligent",
     usesFamilies: ["negligence", "gross_negligence"],
-    noTestStatementKey: null,
-    named: { card_payment_approved: { clauseKey: MAS_REPLY_3DS_CLAUSE_KEY, item: null } },
+    noConductTestClauseKey: null,
+    refersTo: { card_payment_approved: MAS_REPLY_3DS },
+    doesNotReferClauseKey: MAS_REPLY_3DS,
   },
 };
 
@@ -290,100 +325,18 @@ export function termFamily(word: string): TermFamily | null {
   return null;
 }
 
-const OUTCOME: Record<ConductNaming, ComparisonOutcome> = {
-  named: "matches",
-  not_named: "differs",
-  document_has_no_such_test: "not_applicable",
-};
-
-export interface ConductRow {
-  framework: ConductFramework;
-  marker: ConductMarker;
-  /** null when the records do not show the marker. */
-  naming: ConductNaming | null;
-  line: ComparisonLine;
-}
-
-function clauseRef(clause: { title: string; clause_ref: string | null; clause_key: string; version_label: string }): string {
-  const ref = clause.clause_ref ?? clause.clause_key.split("/")[1];
-  const word = /^fn/i.test(ref) ? `footnote ${ref.replace(/^fn/i, "")}` : `paragraph ${ref}`;
-  return `${clause.title}, ${word} (version ${clause.version_label})`;
-}
-
-/** Step 2, with the naming beside each line. */
-export async function buildCustomerConductRows(input: SectionInput, out: SectionCollector = new SectionCollector(input)): Promise<ConductRow[]> {
-  const markers = conductMarkers(input);
-  const rows: ConductRow[] = [];
-  const groups: Array<{ frameworks: ConductFramework[]; onDate: IsoDate | null; card: boolean }> = [
-    { frameworks: ACCOUNT_FRAMEWORKS, onDate: earliestDate(input.payments.filter(isAccountPayment).map((p) => p.date)), card: false },
-    { frameworks: CARD_FRAMEWORKS, onDate: earliestDate(input.payments.filter(isCardPayment).map((p) => p.date)), card: true },
-  ];
-  for (const group of groups) {
-    if (!group.onDate) continue;
-    const onDate = group.onDate;
-    for (const framework of group.frameworks) {
-      const spec = CONDUCT_FRAMEWORKS[framework];
-      for (const m of markers) {
-        if (CARD_ONLY_MARKERS.has(m.marker) && !group.card) continue;
-        const named = spec.named[m.marker];
-        const clauseKey = named?.clauseKey ?? spec.termClauseKey;
-        if (m.record === null) {
-          rows.push({
-            framework,
-            marker: m.marker,
-            naming: null,
-            line: {
-              clauseKey,
-              record: `The records provided do not show ${NOT_SHOWN[m.marker]}.`,
-              expected: await expectedText(out, spec, clauseKey, named?.item ?? null, onDate),
-              outcome: "not_shown",
-              evidenceIds: [],
-            },
-          });
-          continue;
-        }
-        const naming: ConductNaming = spec.noTestStatementKey ? "document_has_no_such_test" : named ? "named" : "not_named";
-        rows.push({
-          framework,
-          marker: m.marker,
-          naming,
-          line: {
-            clauseKey,
-            record: m.record,
-            expected: await expectedText(out, spec, clauseKey, named?.item ?? null, onDate),
-            outcome: OUTCOME[naming],
-            evidenceIds: m.evidenceIds,
-          },
-        });
-      }
-    }
+/** The "refers to" or "does not refer to" line for one document and marker, or null when its clause is not held. */
+async function documentLine(out: SectionWriter, spec: FrameworkSpec, marker: ConductMarker, onDate: IsoDate): Promise<ConductLine | null> {
+  const refersKey = spec.refersTo[marker];
+  if (refersKey) {
+    return (await out.clause(refersKey, onDate))
+      ? { kind: "refers_to", marker, documentKey: spec.documentKey, clauseKey: refersKey, onDate }
+      : null;
   }
-  return rows;
-}
-
-const expectedCache = new WeakMap<SectionCollector, Map<string, string>>();
-
-/** The Expected side: the clause in the corpus's words (version in force on the date), or the reviewed statement. */
-async function expectedText(out: SectionCollector, spec: FrameworkSpec, clauseKey: string, item: string | null, onDate: IsoDate): Promise<string> {
-  const cache = expectedCache.get(out) ?? new Map<string, string>();
-  expectedCache.set(out, cache);
-  const cacheKey = `${clauseKey}|${item}|${onDate}|${spec.noTestStatementKey}`;
-  const hit = cache.get(cacheKey);
-  if (hit !== undefined) return hit;
-
-  let text: string;
-  if (spec.noTestStatementKey) {
-    const line = await out.statement(spec.noTestStatementKey, onDate);
-    await out.clause(clauseKey, onDate);
-    text = line.statement.text ?? `Summary under review (${spec.noTestStatementKey}, ${formatDate(onDate)}).`;
-  } else {
-    const clause = await out.clause(clauseKey, onDate);
-    text = clause
-      ? `${clauseRef(clause)}${item ? `, item (${item})` : ""}: "${clause.text_content}"`
-      : `${spec.name}: ${clauseKey} is not held in a verified version in force on ${formatDate(onDate)}.`;
-  }
-  cache.set(cacheKey, text);
-  return text;
+  if (!spec.doesNotReferClauseKey) return null;
+  return (await out.clause(spec.doesNotReferClauseKey, onDate))
+    ? { kind: "does_not_refer_to", marker, documentKey: spec.documentKey, clauseKey: null, onDate }
+    : null;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -392,16 +345,66 @@ async function expectedText(out: SectionCollector, spec: FrameworkSpec, clauseKe
 
 export interface CustomerConductOptions {
   termRequests?: TermRequestSource;
+  /** The day the pack is generated; the MAS reply (`as_of_rule = 'any_date'`) is read as of it (Decision 6). Defaults to today. */
+  generatedOn?: IsoDate;
 }
 
 async function buildConduct(input: SectionInput, options: CustomerConductOptions): Promise<SectionResult> {
-  const out = new SectionCollector(input);
+  const out = new SectionWriter("customer_conduct_comparison", input);
+  const generatedOn = options.generatedOn ?? todayIso();
+  const accountDate = earliestDate(input.payments.filter(isAccountPayment).map((p) => p.date));
+  const cardDate = earliestDate(input.payments.filter(isCardPayment).map((p) => p.date));
+  const anyDate = earliestDate([accountDate, cardDate]);
+  const markers = conductMarkers(input);
 
-  // Step 2.
-  const rows = await buildCustomerConductRows(input, out);
-  for (const row of rows) out.comparison(row.line);
+  // The MAS reply of 7 January 2025 prints here only where the complainant recognises the approving device.
+  const approval = markers.find((m) => m.marker === "card_payment_approved");
+  const masReplyHere = cardDate !== null && approval?.record != null && approval.approvalRecognised === true;
+  const replySpec = CONDUCT_FRAMEWORKS.mas_reply;
+  const replyRule = await input.provider.getAsOfRule(replySpec.documentKey);
+  const replyDate = cardDate ? readDateFor(replyRule, cardDate, generatedOn) : null;
 
-  // Step 3-4: the institution's own words.
+  const documents: Array<{ framework: ConductFramework; onDate: IsoDate }> = [];
+  if (accountDate) documents.push({ framework: "eupg", onDate: accountDate });
+  if (cardDate) documents.push({ framework: "abs_card_code", onDate: cardDate });
+  if (masReplyHere && replyDate) documents.push({ framework: "mas_reply", onDate: replyDate });
+
+  let replyLinePrinted = false;
+  // With no dated payment there is nothing to set out per marker (as before).
+  for (const m of anyDate ? markers : []) {
+    // What the record shows.
+    if (m.record === null) {
+      out.conduct({ kind: "records_do_not_show", marker: m.marker, documentKey: null, clauseKey: null, notShown: NOT_SHOWN[m.marker], onDate: anyDate! });
+    } else out.text(m.record, { evidenceIds: m.evidenceIds });
+
+    // Card payments approved on a device the complainant does not recognise: no document line for this marker.
+    if (m.marker === "card_payment_approved" && !(m.record !== null && m.approvalRecognised)) {
+      if (m.record !== null) out.text(WHO_APPROVED_NOT_SHOWN, { evidenceIds: m.evidenceIds });
+      continue;
+    }
+
+    // Whether each document refers to this kind of conduct.
+    for (const d of documents) {
+      if (CARD_ONLY_MARKERS.has(m.marker) && ACCOUNT_FRAMEWORKS.includes(d.framework)) continue;
+      const line = await documentLine(out, CONDUCT_FRAMEWORKS[d.framework], m.marker, d.onDate);
+      if (!line) continue;
+      out.conduct(line);
+      if (d.framework === "mas_reply" && !replyLinePrinted) {
+        replyLinePrinted = true;
+        await replyAfterTheEvents(out, input, replyRule, d.onDate);
+      }
+    }
+  }
+
+  // The SRF Guidelines: no test of the account user's conduct (once).
+  if (accountDate) {
+    const srf = CONDUCT_FRAMEWORKS.srf;
+    if (srf.noConductTestClauseKey && (await out.clause(srf.noConductTestClauseKey, accountDate))) {
+      out.conduct({ kind: "no_conduct_test", marker: null, documentKey: srf.documentKey, clauseKey: null, onDate: accountDate });
+    }
+  }
+
+  // The institution's own words.
   const label = factValue(input, "institution_fault_label");
   const labelIds = [label?.labelEvidenceId, label?.conductEvidenceId, ...evidenceFor(input, "institution_fault_label")]
     .filter((v, i, a): v is string => !!v && a.indexOf(v) === i);
@@ -415,8 +418,8 @@ async function buildConduct(input: SectionInput, options: CustomerConductOptions
   // Each applicable document's term.
   const labelFamily = label?.label ? termFamily(label.label) : null;
   const applicable: ConductFramework[] = [
-    ...(input.payments.some(isAccountPayment) ? ACCOUNT_FRAMEWORKS : []),
-    ...(input.payments.some(isCardPayment) ? CARD_FRAMEWORKS : []),
+    ...(accountDate ? ACCOUNT_FRAMEWORKS : []),
+    ...(cardDate ? CARD_FRAMEWORKS.filter((f) => f !== "mas_reply" || masReplyHere) : []),
   ];
   for (const framework of applicable) {
     const spec = CONDUCT_FRAMEWORKS[framework];
@@ -471,7 +474,15 @@ async function buildConduct(input: SectionInput, options: CustomerConductOptions
     out.text(line, { clauseKeys });
   }
 
-  return out.result("customer_conduct_comparison");
+  return out.result();
+}
+
+/** Decision 6: after the reply's first line, "This reply is dated [date], after the events in this case." when it is. */
+async function replyAfterTheEvents(out: SectionWriter, input: SectionInput, rule: string, readOn: IsoDate): Promise<void> {
+  if (rule !== "any_date") return;
+  const reply = await input.provider.getClauseAsOf(MAS_REPLY_3DS, readOn);
+  const after = reply ? documentDatedAfterEvents(reply.effective_from, caseEventDates(input)) : null;
+  if (after) out.text(afterTheEventsLine(after), { clauseKeys: [MAS_REPLY_3DS] });
 }
 
 export function createCustomerConductBuilder(options: CustomerConductOptions = {}): SectionBuilder {

@@ -10,8 +10,8 @@
 
 import type { AccountType } from "../keys.ts";
 import type { ClauseAsOf, ClauseProvider, ClauseTag, DisputedPayment, IsoDate } from "../update/contract.ts";
-import { CLAUSE_TAGS } from "../update/contract.ts";
-import { formatDate, type SectionCollector } from "./account-access-sequence.ts";
+import { CLAUSE_TAGS, WALLET_PROVISIONING_PURPOSE } from "../update/contract.ts";
+import { formatDate, type SectionWriter } from "../update/section-writer.ts";
 
 export const TERM_PRODUCTS = ["account", "digital_banking", "credit_card", "debit_card", "ewallet"] as const;
 export type TermProduct = (typeof TERM_PRODUCTS)[number];
@@ -23,8 +23,16 @@ export const TERM_PURPOSES = [
   "notification_deadline",
   "dispute_chargeback",
   "conclusive_evidence",
+  // Decision 5, Part A: the institution's published page on adding its cards to mobile wallets (Lane 3's wallet check).
+  WALLET_PROVISIONING_PURPOSE,
 ] as const;
 export type TermPurpose = (typeof TERM_PURPOSES)[number];
+
+/**
+ * Purposes not yet in the `institution_term_requests.purpose` CHECK: Lane 1 proposes the migration, Elena approves.
+ * Taken off this list when the migration lands.
+ */
+export const TERM_PURPOSES_AWAITING_MIGRATION = [WALLET_PROVISIONING_PURPOSE] as const satisfies readonly TermPurpose[];
 
 export const TERM_QUOTE_MODES = ["quote", "reference_only"] as const;
 export type TermQuoteMode = (typeof TERM_QUOTE_MODES)[number];
@@ -204,7 +212,7 @@ export async function resolveTermRequest(
  * Prints a resolved `fault_definition` request (4e): the attributed clause (quoted, or reference and link when
  * `quote_mode = reference_only`), then one fixed line chosen by code from the person-set outcome.
  */
-export function printFaultDefinition(out: SectionCollector, resolved: ResolvedTermRequest, institutionName: string): void {
+export function printFaultDefinition(out: SectionWriter, resolved: ResolvedTermRequest, institutionName: string): void {
   const on = formatDate(resolved.onDate);
   if (resolved.status !== "held") {
     if (resolved.status === "not_held") {

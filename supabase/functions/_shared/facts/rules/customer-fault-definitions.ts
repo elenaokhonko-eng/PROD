@@ -8,14 +8,15 @@
 //
 // Plain TypeScript for Deno and Node: relative imports with .ts extensions, no npm imports.
 
-import type { IsoDate, SectionBuilder, SectionInput, SectionResult, StatementKey } from "../update/contract.ts";
+import type { IsoDate, SectionBuilder, SectionInput, SectionResult, StatementKey, StatementLine } from "../update/contract.ts";
+import { documentDatedAfterEvents, NAMED_CLAUSE_KEYS, readDateFor } from "../update/contract.ts";
+import { SectionWriter } from "../update/section-writer.ts";
 import {
   distinctDates,
   factValue,
   isAccountPayment,
   isCardPayment,
   isThreeDs,
-  SectionCollector,
 } from "./account-access-sequence.ts";
 import {
   NO_TERM_REQUESTS,
@@ -49,6 +50,18 @@ export const ABS_MAS_REPLY_CLOSING_LINE =
 export interface CustomerFaultDefinitionsOptions {
   /** The institutions' configured term requests (4e). Without them every institution prints "not held". */
   termRequests?: TermRequestSource;
+  /**
+   * The day the pack is generated (YYYY-MM-DD). Documents read whatever the event date (`as_of_rule = 'any_date'`, the
+   * MAS replies; Decision 6) are read as of this day. Defaults to today (UTC date).
+   */
+  generatedOn?: IsoDate;
+}
+
+/** The document key of the MAS reply of 7 January 2025 (Lane 1), from its 3-D Secure clause key. */
+export const MAS_REPLY_20250107_DOCUMENT_KEY = NAMED_CLAUSE_KEYS.masReply3ds.split("/")[0];
+
+export function todayIso(): IsoDate {
+  return new Date().toISOString().slice(0, 10);
 }
 
 /**
@@ -56,17 +69,22 @@ export interface CustomerFaultDefinitionsOptions {
  * version change gets each version (3.2 rule 2), each line carrying its own date. Returns whether any revision printed
  * approved wording.
  */
-async function printOnDates(out: SectionCollector, key: StatementKey, dates: IsoDate[]): Promise<boolean> {
+async function printOnDates(
+  out: SectionWriter,
+  key: StatementKey,
+  dates: IsoDate[],
+  extra: Pick<StatementLine, "documentDatedAfterEvents"> = {},
+): Promise<boolean> {
   const printed = new Set<string>();
   let anyText = false;
   for (const onDate of dates) {
-    const line = await out.statement(key, onDate);
-    const id = line.statement.statementId ?? "under_review";
+    const statement = await out.readStatement(key, onDate);
+    const id = statement.statementId ?? "under_review";
     if (printed.has(id)) continue;
     printed.add(id);
-    out.lines.push(line);
-    if (line.statement.text !== null) anyText = true;
-    if (key === "eupg.fault.examples" && line.statement.text !== null) {
+    out.lines.push({ kind: "statement", statement: { ...statement, ...extra } });
+    if (statement.text !== null) anyText = true;
+    if (key === "eupg.fault.examples" && statement.text !== null) {
       const footnote = await out.clause(EUPG_EXAMPLES_CLAUSE_KEY, onDate);
       if (footnote) out.text(`"${footnote.text_content}"`, { clauseKeys: [footnote.clause_key] });
     }
@@ -75,7 +93,7 @@ async function printOnDates(out: SectionCollector, key: StatementKey, dates: Iso
 }
 
 async function buildDefinitions(input: SectionInput, options: CustomerFaultDefinitionsOptions): Promise<SectionResult> {
-  const out = new SectionCollector(input);
+  const out = new SectionWriter("customer_fault_definitions", input);
   const account = input.payments.filter(isAccountPayment);
   const card = input.payments.filter(isCardPayment);
   const accountDates = distinctDates(account.map((p) => p.date));
@@ -104,9 +122,19 @@ async function buildDefinitions(input: SectionInput, options: CustomerFaultDefin
         .map((e) => dateOf(e.transactionIndex)),
     );
     const noAuthDates = distinctDates(events.filter((e) => e.authentication === "none_recorded").map((e) => dateOf(e.transactionIndex)));
+    // Decision 6: a MAS reply is read whatever the event date, as of the day the pack is generated, always with its own
+    // date; dated after the events, it carries the "after the events" marker for the renderer.
+    const rule = await input.provider.getAsOfRule(MAS_REPLY_20250107_DOCUMENT_KEY);
+    const generatedOn = options.generatedOn ?? todayIso();
+    const readDates = (dates: IsoDate[]) => distinctDates(dates.map((d) => readDateFor(rule, d, generatedOn)));
+    let extra: Pick<StatementLine, "documentDatedAfterEvents"> = {};
+    if (rule === "any_date" && (threeDsDates.length || noAuthDates.length)) {
+      const reply = await input.provider.getClauseAsOf(NAMED_CLAUSE_KEYS.masReply3ds, generatedOn);
+      if (reply) extra = { documentDatedAfterEvents: documentDatedAfterEvents(reply.effective_from, caseEventDates(input)) };
+    }
     let replyPrinted = false;
-    if (threeDsDates.length) replyPrinted = await printOnDates(out, "mas.reply.20250107.3ds", threeDsDates);
-    if (noAuthDates.length) await printOnDates(out, "mas.reply.20250107.no3ds", noAuthDates);
+    if (threeDsDates.length) replyPrinted = await printOnDates(out, "mas.reply.20250107.3ds", readDates(threeDsDates), extra);
+    if (noAuthDates.length) await printOnDates(out, "mas.reply.20250107.no3ds", readDates(noAuthDates), extra);
     if (absPrinted && replyPrinted) out.text(ABS_MAS_REPLY_CLOSING_LINE);
   }
 
@@ -132,11 +160,17 @@ async function buildDefinitions(input: SectionInput, options: CustomerFaultDefin
   }
   dedupeNotHeld(out);
 
-  return out.result("customer_fault_definitions");
+  return out.result();
+}
+
+/** The case's event dates for Decision 6: the payment dates and the date reported to the institution. */
+export function caseEventDates(input: Pick<SectionInput, "payments" | "facts">): IsoDate[] {
+  const reported = factValue(input, "reported_to_bank");
+  return distinctDates([...input.payments.map((p) => p.date), reported?.value === "yes" ? reported.date : null]);
 }
 
 /** Two products with no terms held (account and digital banking) print one "not held" line, not two. */
-function dedupeNotHeld(out: SectionCollector): void {
+function dedupeNotHeld(out: SectionWriter): void {
   const seen = new Set<string>();
   const kept = out.lines.filter((line) => {
     if (line.kind !== "text" || !line.text.endsWith(" are not held.")) return true;

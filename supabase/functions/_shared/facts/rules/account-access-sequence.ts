@@ -9,83 +9,41 @@
 // no statement about who took the token or who made the payments. Evidence IDs travel in each line's `evidenceIds`;
 // the renderer prints them.
 //
-// This file also holds the small helpers the other Lane 4 sections share (formatting, the line collector, statement
-// and clause reads through the provider).
+// This file also holds the small helpers the other Lane 4 sections share (fact reads, payment types, recorded-method
+// wording). Dates, times, money, the complainant's pronouns, the standing scheme sentence and the section writer come
+// from the shared `update/section-writer.ts` (Lane 6 Step 0b).
 //
 // Plain TypeScript for Deno and Node: relative imports with .ts extensions, no npm imports.
 
-import type { Money } from "../keys.ts";
 import type {
   AccessEvent,
   CardAuthEvent,
   CardAuthentication,
-  ClauseAsOf,
-  ClauseCitation,
-  ComparisonLine,
   ContractFactKey,
+  ContractFactValues,
   DisputedPayment,
   IsoDate,
   SectionBuilder,
-  SectionFlag,
-  SectionFlagCode,
-  SectionId,
   SectionInput,
-  SectionLine,
   SectionResult,
   StatementKey,
   WalletProvisioningAuthentication,
 } from "../update/contract.ts";
-import { CLAUSE_KEYS } from "../update/contract.ts";
+import { CLAUSE_KEYS, NAMED_CLAUSE_KEYS, sameDevice } from "../update/contract.ts";
+import {
+  datePart,
+  deviceRecognitionSentence,
+  formatDate,
+  formatDateTime,
+  formatMoneyTotal,
+  NEAREST_VERSION_FALLBACK,
+  SCHEME_STANDING_SENTENCE,
+  SectionWriter,
+} from "../update/section-writer.ts";
 
 // ---------------------------------------------------------------------------------------------------------------
 // Shared helpers (used by customer-fault-definitions.ts, customer-conduct.ts and institution-terms.ts)
 // ---------------------------------------------------------------------------------------------------------------
-
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-/** "3 July 2025" from YYYY-MM-DD (or the date part of a timestamp). Read from the string: no time-zone conversion. */
-export function formatDate(value: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  if (!m) return value;
-  return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
-}
-
-/** "21:06 on 3 July 2025": the local time as the record states it, with no time-zone conversion. */
-export function formatDateTime(value: string): string {
-  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(value);
-  if (!m) return formatDate(value);
-  return `${m[2]}:${m[3]} on ${formatDate(m[1])}`;
-}
-
-export function datePart(value: string | null | undefined): IsoDate | null {
-  const m = /^(\d{4}-\d{2}-\d{2})/.exec(value ?? "");
-  return m ? m[1] : null;
-}
-
-/** Totals per currency, "S$7,550.00" for SGD, "USD 120.00" otherwise; several currencies are joined with "and". */
-export function formatMoneyTotal(amounts: Money[]): string {
-  const totals = new Map<string, number>();
-  for (const a of amounts) totals.set(a.currency, (totals.get(a.currency) ?? 0) + a.amount);
-  return [...totals.entries()]
-    .map(([currency, amount]) => {
-      const n = amount.toLocaleString("en-SG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      return currency === "SGD" ? `S$${n}` : `${currency} ${n}`;
-    })
-    .join(" and ");
-}
 
 /** The evidence IDs behind the given facts, in first-seen order. */
 export function evidenceFor(input: Pick<SectionInput, "evidenceIds">, ...keys: ContractFactKey[]): string[] {
@@ -94,11 +52,18 @@ export function evidenceFor(input: Pick<SectionInput, "evidenceIds">, ...keys: C
   return out;
 }
 
-/** The fact's value when present (any label but `not_known`); null otherwise. */
-export function factValue<K extends ContractFactKey>(input: Pick<SectionInput, "facts">, key: K) {
+/** The labels a record line reads (the same rule as Lane 3's sections). */
+export const RECORD_LINE_LABELS = ["confirmed", "claimant_only"] as const;
+
+/**
+ * The fact's value when it is labelled `confirmed` or `claimant_only`; null otherwise. A fact labelled `not_sure` (or
+ * `not_known`) is not read for record lines until Elena decides how `not_sure`-labelled facts print (review of
+ * 24 Nov 2026, Lane 4 issue 6; open).
+ */
+export function factValue<K extends ContractFactKey>(input: Pick<SectionInput, "facts">, key: K): ContractFactValues[K] | null {
   const fact = input.facts[key];
-  if (!fact || fact.label === "not_known") return null;
-  return fact.value ?? null;
+  if (!fact || fact.value === null || fact.value === undefined) return null;
+  return (RECORD_LINE_LABELS as readonly string[]).includes(fact.label) ? (fact.value as ContractFactValues[K]) : null;
 }
 
 export function earliestDate(dates: Array<string | null | undefined>): IsoDate | null {
@@ -120,128 +85,25 @@ export function isAccountPayment(p: DisputedPayment): boolean {
   return p.instrument === "account_transfer" || p.instrument === "ewallet";
 }
 
-/**
- * Collects a section's lines, the clauses it cited (pinned, 3.2 rule 4) and its run-level flags. Every clause and
- * statement read goes through the provider's as-of functions (3.2 rule 9).
- */
-export class SectionCollector {
-  readonly lines: SectionLine[] = [];
-  readonly citations: ClauseCitation[] = [];
-  readonly flags: SectionFlag[] = [];
-
-  constructor(readonly input: SectionInput) {}
-
-  text(text: string, opts: { step?: number | null; evidenceIds?: string[]; clauseKeys?: string[] } = {}): void {
-    this.lines.push({
-      kind: "text",
-      text,
-      step: opts.step ?? null,
-      evidenceIds: opts.evidenceIds ?? [],
-      clauseKeys: opts.clauseKeys ?? [],
-    });
-  }
-
-  comparison(comparison: ComparisonLine): void {
-    this.lines.push({ kind: "comparison", comparison });
-  }
-
-  flag(code: SectionFlagCode, key: string, onDate: IsoDate): void {
-    if (this.flags.some((f) => f.code === code && f.key === key && f.onDate === onDate)) return;
-    this.flags.push({ code, key, onDate });
-  }
-
-  cite(clause: ClauseAsOf, onDate: IsoDate): void {
-    if (this.citations.some((c) => c.clauseId === clause.clause_id && c.onDate === onDate)) return;
-    this.citations.push({
-      clauseKey: clause.clause_key,
-      onDate,
-      clauseId: clause.clause_id,
-      textSha256: clause.text_sha256,
-      versionId: clause.version_id,
-      versionLabel: clause.version_label,
-    });
-  }
-
-  /** The clause in force on the date, cited; null and a `clause_not_held` flag when no verified version holds it. */
-  async clause(clauseKey: string, onDate: IsoDate): Promise<ClauseAsOf | null> {
-    const clause = await this.input.provider.getClauseAsOf(clauseKey, onDate);
-    if (clause) this.cite(clause, onDate);
-    else this.flag("clause_not_held", clauseKey, onDate);
-    return clause;
-  }
-
-  /**
-   * Reads a statement as of the date. Not pushed: callers decide whether to print it. A statement with no approved
-   * revision for the wording in force comes back with `text: null` and the run is flagged ("summary under review").
-   */
-  async statement(statementKey: string, onDate: IsoDate, evidenceIds: string[] = []) {
-    const row = await this.input.provider.getStatementAsOf(statementKey, onDate);
-    if (!row) {
-      this.flag("statement_under_review", statementKey, onDate);
-      return {
-        kind: "statement" as const,
-        statement: { statementKey, onDate, statementId: null, revision: null, text: null, clauseKeys: [], evidenceIds },
-      };
-    }
-    for (const key of row.clause_keys) {
-      const clause = await this.input.provider.getClauseAsOf(key, onDate);
-      if (clause) this.cite(clause, onDate);
-    }
-    return {
-      kind: "statement" as const,
-      statement: {
-        statementKey,
-        onDate,
-        statementId: row.statement_id,
-        revision: row.revision,
-        text: row.text,
-        clauseKeys: [...row.clause_keys],
-        evidenceIds,
-      },
-    };
-  }
-
-  /** Reads and prints a statement. Returns whether approved wording printed. */
-  async printStatement(statementKey: string, onDate: IsoDate, evidenceIds: string[] = []): Promise<boolean> {
-    const line = await this.statement(statementKey, onDate, evidenceIds);
-    this.lines.push(line);
-    return line.statement.text !== null;
-  }
-
-  result(sectionId: SectionId): SectionResult {
-    return { sectionId, lines: this.lines, citations: this.citations, flags: this.flags };
-  }
-}
-
 // ---------------------------------------------------------------------------------------------------------------
-// Proposed keys (not in the frozen contract)
+// Keys
 // ---------------------------------------------------------------------------------------------------------------
 
 /**
- * The clause whose verified presence on the payment date means a scheme's rules are held. Visa: the card-absent
- * fraud dispute condition, from the contract. Mastercard: the contract lists no Mastercard clause yet (Lane 6 adds them
- * once Lane 1 loads the Chargeback Guide), so this key is local.
+ * The clause whose verified presence (or nearest version, 3.2 rule 6) means a scheme's rules are held. Visa: the
+ * card-absent fraud dispute condition. Mastercard: the 4837 issuer chargeback section (Lane 5's key, Step 0b).
  */
 export const SCHEME_ANCHOR_CLAUSE_KEYS = {
   visa: CLAUSE_KEYS.card_dispute_comparison[3], // "visa.core_rules/11.8.5"
-  // proposed key, awaiting Elena's approval and Lane 6's contract update
-  mastercard: "mastercard.chargeback_guide/no_cardholder_authorization",
+  mastercard: NAMED_CLAUSE_KEYS.mastercardIssuerChargeback,
 } as const;
 
 /**
- * The closing line after the scheme statements (4f): "For cards, how a loss is shared between issuer and cardholder is
- * in the ABS Code of Practice for Banks - Credit Cards and the issuer's own terms." It states what documents say, so
- * it is printed as a reviewed statement, not as code wording.
+ * The closing statement after the card scheme lines (4f; Decision 9): how a loss on a card is shared is in the ABS
+ * Code of Practice for Banks – Credit Cards and the issuer's own terms. A reviewed statement (Lane 1 drafts the seed),
+ * never code wording.
  */
-// proposed key, awaiting Elena's approval and Lane 6's contract update
-export const CARD_LOSS_SHARING_STATEMENT_KEY = "bridge.card_loss_sharing";
-
-// ---------------------------------------------------------------------------------------------------------------
-// Fixed lines (layer-5 standing sentence and coverage sentence, brief section 4 and Phase 7)
-// ---------------------------------------------------------------------------------------------------------------
-
-export const SCHEME_STANDING_SENTENCE =
-  "Card scheme rules are an agreement between the card scheme and the card issuer. The cardholder is not a party to them. They are shown here as the process available to the issuer.";
+export const CARD_LOSS_SHARING_STATEMENT_KEY = "bridge.card_loss_sharing" as const satisfies StatementKey;
 
 const SCHEME_NAMES = { visa: "Visa", mastercard: "Mastercard" } as const;
 type HeldScheme = keyof typeof SCHEME_NAMES;
@@ -250,14 +112,17 @@ type HeldScheme = keyof typeof SCHEME_NAMES;
 // Wording of recorded methods (neutral descriptions of the record's own fields)
 // ---------------------------------------------------------------------------------------------------------------
 
-/** What the complainant states, from the confirmed `credentials_or_otp_shared` option (step 1; 4g markers). */
+/**
+ * What the complainant states, from the confirmed `credentials_or_otp_shared` option (step 1; 4g markers). Neutral
+ * forms only: "they", "their" (Decision 2).
+ */
 export const CREDENTIALS_STATED: Record<string, string> = {
-  entered_on_fake_site_or_app: "she entered her credentials, card details or a one-time code on a fake website or app",
-  given_directly: "she told her credentials, card details or a one-time code to someone over the phone",
-  given_in_message: "she sent her credentials, card details or a one-time code in a message",
-  installed_app_or_malware: "she installed an app the scammer asked for",
-  not_shared: "she never shared her credentials, card details or a one-time code",
-  unsure: "she is not sure whether she shared her credentials, card details or a one-time code",
+  entered_on_fake_site_or_app: "they entered their credentials, card details or a one-time code on a fake website or app",
+  given_directly: "they told their credentials, card details or a one-time code to someone over the phone",
+  given_in_message: "they sent their credentials, card details or a one-time code in a message",
+  installed_app_or_malware: "they installed an app the scammer asked for",
+  not_shared: "they never shared their credentials, card details or a one-time code",
+  unsure: "they are not sure whether they shared their credentials, card details or a one-time code",
 };
 
 export const CARD_AUTH_METHOD: Record<CardAuthentication, string | null> = {
@@ -302,15 +167,6 @@ const ACCESS_EVENT_WORDS: Record<string, string> = {
 const byTime = <T extends { timestamp: string | null }>(a: T, b: T) =>
   (a.timestamp ?? "9999") < (b.timestamp ?? "9999") ? -1 : (a.timestamp ?? "9999") > (b.timestamp ?? "9999") ? 1 : 0;
 
-/** Same device: by reference where both have one, otherwise by label. */
-export function sameDevice(
-  a: { deviceRef: string | null; deviceLabel: string | null },
-  b: { deviceRef: string | null; deviceLabel: string | null },
-): boolean {
-  if (a.deviceRef && b.deviceRef) return a.deviceRef === b.deviceRef;
-  return a.deviceLabel !== null && a.deviceLabel === b.deviceLabel;
-}
-
 // ---------------------------------------------------------------------------------------------------------------
 // The sequence
 // ---------------------------------------------------------------------------------------------------------------
@@ -328,10 +184,18 @@ function cardPaymentEvents(events: CardAuthEvent[], payments: DisputedPayment[])
     .sort(byTime);
 }
 
-/** Step 8: the payments authenticated through 3-D Secure on the device the token was activated on. */
+/**
+ * Step 8: the payments authenticated through 3-D Secure with the activated token, by either route the brief names:
+ * - the payment's record names the device the token was activated on (device reference), or
+ * - the payment's record states it was approved with that token (`tokenRef` on both records).
+ * Only 3-D Secure payments count, because the step 8 line says "authenticated through 3-D Secure".
+ */
 export function linkedPayments(anchor: AccessEvent | null, events: CardAuthEvent[]): CardAuthEvent[] {
-  if (!anchor || anchor.kind !== "token_activated" || !anchor.deviceRef) return [];
-  return events.filter((e) => isThreeDs(e.authentication) && e.deviceRef === anchor.deviceRef);
+  if (!anchor || anchor.kind !== "token_activated" || (!anchor.deviceRef && !anchor.tokenRef)) return [];
+  return events.filter((e) =>
+    isThreeDs(e.authentication) &&
+    ((anchor.deviceRef !== null && e.deviceRef === anchor.deviceRef) || (anchor.tokenRef !== null && e.tokenRef === anchor.tokenRef))
+  );
 }
 
 /** The scheme statement keys for one scheme's payments (4f "Scheme lines"; Phase 7 keys), in print order. */
@@ -369,7 +233,7 @@ export function schemeStatementKeys(scheme: HeldScheme, events: CardAuthEvent[])
 }
 
 async function buildSequence(input: SectionInput): Promise<SectionResult> {
-  const out = new SectionCollector(input);
+  const out = new SectionWriter("account_access_sequence", input);
   const access = [...(factValue(input, "access_events") ?? [])].sort(byTime);
   const cardEvents = [...(factValue(input, "card_auth_events") ?? [])].sort(byTime);
   const recognition = factValue(input, "device_recognition") ?? [];
@@ -378,9 +242,9 @@ async function buildSequence(input: SectionInput): Promise<SectionResult> {
   const cardIds = evidenceFor(input, "card_auth_events");
 
   // Step 1: how the credentials, card details or code were given, in the confirmed wording.
-  const credentials = input.facts.credentials_or_otp_shared;
-  if (credentials && credentials.label === "confirmed" && credentials.value && CREDENTIALS_STATED[credentials.value]) {
-    out.text(`The complainant states that ${CREDENTIALS_STATED[credentials.value]}.`, {
+  const credentials = factValue(input, "credentials_or_otp_shared");
+  if (credentials && CREDENTIALS_STATED[credentials]) {
+    out.text(`The complainant states that ${CREDENTIALS_STATED[credentials]}.`, {
       step: 1,
       evidenceIds: evidenceFor(input, "credentials_or_otp_shared"),
     });
@@ -403,12 +267,8 @@ async function buildSequence(input: SectionInput): Promise<SectionResult> {
 
     // Step 3: the complainant's statement about that device.
     const answer = recognition.find((r) => sameDevice(r, anchor))?.answer;
-    const stated = answer === "not_mine"
-      ? "The complainant states that this device is not hers."
-      : answer === "mine"
-      ? "The complainant states that this device is hers."
-      : answer === "not_sure"
-      ? "The complainant states that she is not sure whether this device is hers."
+    const stated = answer
+      ? deviceRecognitionSentence(answer, null)
       : "The records provided do not show the complainant's statement about this device.";
     out.text(stated, { step: 3, evidenceIds: answer ? evidenceFor(input, "device_recognition") : [] });
 
@@ -543,15 +403,20 @@ async function buildSequence(input: SectionInput): Promise<SectionResult> {
     responseLine(out, input);
   }
 
-  return out.result("account_access_sequence");
+  return out.result();
 }
 
-/** Scheme lines after step 9: per scheme whose rules are held on the payment date, by statement key only. */
-async function schemeLines(out: SectionCollector, input: SectionInput, cardEvents: CardAuthEvent[]): Promise<void> {
+/**
+ * Scheme lines after step 9: per scheme, by statement key only. The edition in force on the payment date when held;
+ * otherwise the nearest edition held (3.2 rule 6; Decision 12), after the fallback line, with the statements read for
+ * that edition (a statement approved for one edition does not print for another, 3.2 rule 8). Then the card
+ * loss-sharing statement (`bridge.card_loss_sharing`, Decision 9).
+ */
+async function schemeLines(out: SectionWriter, input: SectionInput, cardEvents: CardAuthEvent[]): Promise<void> {
   const paid = cardPaymentEvents(cardEvents, input.payments);
   const cardIds = evidenceFor(input, "card_auth_events");
   let standingPrinted = false;
-  let anyStatement = false;
+  let anySchemeLine = false;
   let firstDate: IsoDate | null = null;
   for (const scheme of ["visa", "mastercard"] as const) {
     const events = paid.filter((e) => e.cardScheme === scheme);
@@ -560,15 +425,23 @@ async function schemeLines(out: SectionCollector, input: SectionInput, cardEvent
     if (!onDate) continue;
     const keys = schemeStatementKeys(scheme, events);
     if (keys.length === 0) continue;
-    firstDate ??= onDate;
-    const anchor = await out.clause(SCHEME_ANCHOR_CLAUSE_KEYS[scheme], onDate);
-    if (!anchor) {
+    const nearest = await out.nearestClause(SCHEME_ANCHOR_CLAUSE_KEYS[scheme], onDate);
+    if (!nearest) {
+      // No edition of the scheme's rules is held at all.
       out.text(`This pack does not hold ${SCHEME_NAMES[scheme]}'s rules in force on ${formatDate(onDate)}.`);
       continue;
     }
+    const anchor = nearest.clause;
+    firstDate ??= onDate;
+    anySchemeLine = true;
     if (!standingPrinted) {
       out.text(SCHEME_STANDING_SENTENCE);
       standingPrinted = true;
+    }
+    // The date the statements are read for: the payment date, or the nearest edition's own date.
+    const readOn: IsoDate = nearest.relation === "in_force" ? onDate : anchor.effective_from;
+    if (nearest.relation !== "in_force") {
+      out.text(NEAREST_VERSION_FALLBACK(SCHEME_NAMES[scheme], onDate, anchor.effective_from), { clauseKeys: [anchor.clause_key] });
     }
     if (anchor.coverage === "selected_sections") {
       out.text(
@@ -576,14 +449,13 @@ async function schemeLines(out: SectionCollector, input: SectionInput, cardEvent
         { clauseKeys: [anchor.clause_key] },
       );
     }
-    for (const key of keys) await out.printStatement(key, onDate, cardIds);
-    anyStatement = true;
+    for (const key of keys) await out.statement(key, readOn, cardIds);
   }
-  if (anyStatement && firstDate) await out.printStatement(CARD_LOSS_SHARING_STATEMENT_KEY, firstDate);
+  if (anySchemeLine && firstDate) await out.statement(CARD_LOSS_SHARING_STATEMENT_KEY, firstDate);
 }
 
 /** The institution's response (Phase 7), from its letters only. */
-function responseLine(out: SectionCollector, input: SectionInput): void {
+function responseLine(out: SectionWriter, input: SectionInput): void {
   const response = factValue(input, "card_dispute_response");
   const ids = evidenceFor(input, "card_dispute_response");
   if (response?.status === "raised") {
