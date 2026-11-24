@@ -1,0 +1,314 @@
+{
+  "$comment": "UOB Debit Cardmember Agreement, footer 'Updated as of 1 October 2026 (R10.26)', fetched from the bank's site on 24 November 2026 (same file as the Wayback Machine's capture of 1 October 2026). effective_from is the footer date. Cut as for the earlier versions; the 'UOB Debit Card Fees and Charges' schedule that this version adds at the end is one clause.",
+  "document": {
+    "document_key": "uob.debit_cardmember_agreement",
+    "title": "UOB Debit Cardmember Agreement",
+    "publisher": "United Overseas Bank Limited",
+    "binding_level": "contract",
+    "applies_to": ["bank"],
+    "instrument_scope": ["sg_card"],
+    "institution": "uob",
+    "card_scheme": null,
+    "canonical_url": "https://www.uob.com.sg/assets/pdfs/personal/cards/uob-debit-cardmember-agreement.pdf"
+  },
+  "version": {
+    "version_label": "Updated as of 1 October 2026 (R10.26)",
+    "effective_from": "2026-10-01",
+    "issued_on": null,
+    "retrieved_at": "2026-11-24T04:27:00Z",
+    "source_url": "https://www.uob.com.sg/assets/pdfs/personal/cards/uob-debit-cardmember-agreement.pdf",
+    "snapshot_path": "uob/debit-cardmember-agreement.pdf",
+    "content_sha256": "d5d5e8cbb068eb75c6de96eeced93d2134856ad1d0f9d2c7978dde52ea6eeee7",
+    "provenance": "publisher_site",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["^## RESTRICTED ##\\s*$", "^Updated (as of )?\\d{1,2} [A-Z][a-z]+ \\d{4} [^\\n]*Co\\. Reg\\. No\\.[^\\n]*$"]
+  },
+  "markers": [
+    {
+      "at": "UOB\\s+Debit\\s+Cardmember\\s+Agreement",
+      "clause": "uob.debit_cardmember_agreement/preamble"
+    },
+    {
+      "at": "1\\.\\s+DEFINITIONS",
+      "clause": "uob.debit_cardmember_agreement/1"
+    },
+    {
+      "at": "THE\\s+CARD\\s+AND\\s+ATM\\s+CARD",
+      "clause": "uob.debit_cardmember_agreement/2"
+    },
+    {
+      "at": "3\\.\\s+CARD\\s+LIMITS",
+      "clause": "uob.debit_cardmember_agreement/3"
+    },
+    {
+      "at": "HOLD\\s+ON\\s+ACCOUNT",
+      "clause": "uob.debit_cardmember_agreement/4"
+    },
+    {
+      "at": "REVERSAL",
+      "clause": "uob.debit_cardmember_agreement/5"
+    },
+    {
+      "at": "TRANSACTIONS\\s+IN\\s+FOREIGN\\s+CURRENCY\\s+&\\s+TRANSACTIONS\\s+PROCESSED\\s+OUTSIDE\\s+SINGAPORE",
+      "clause": "uob.debit_cardmember_agreement/6"
+    },
+    {
+      "at": "BANK’S\\s+DISCRETION",
+      "clause": "uob.debit_cardmember_agreement/7"
+    },
+    {
+      "at": "CHARGES",
+      "clause": "uob.debit_cardmember_agreement/8"
+    },
+    {
+      "at": "PIN\\s+AND\\s+USE\\s+AT\\s+ATMS\\s+AND\\s+FOR\\s+OTHER\\s+SERVICES",
+      "clause": "uob.debit_cardmember_agreement/9"
+    },
+    {
+      "at": "10\\.\\s+JOINT\\s+ACCOUNT",
+      "clause": "uob.debit_cardmember_agreement/10"
+    },
+    {
+      "at": "11\\.\\s+SAFEGUARDING\\s+YOUR\\s+CARD,\\s+ATM\\s+CARD\\s+AND\\s+PIN\\s+AND\\s+REPORTING\\s+LOSS\\s+OR\\s+THEFT\\s+OF\\s+ATM\\s+CARD\\s+OR\\s+CARD\\s+/\\s+DISCLOSURE\\s+OF\\s+PIN",
+      "clause": "uob.debit_cardmember_agreement/11"
+    },
+    {
+      "at": "12\\.\\s+TERMINATION",
+      "clause": "uob.debit_cardmember_agreement/12"
+    },
+    {
+      "at": "13\\.\\s+EXCLUSION\\s+OF\\s+LIABILITY",
+      "clause": "uob.debit_cardmember_agreement/13"
+    },
+    {
+      "at": "14\\.\\s+VARIATION\\s+OF\\s+THIS\\s+AGREEMENT",
+      "clause": "uob.debit_cardmember_agreement/14"
+    },
+    {
+      "at": "15\\.\\s+CONSENT\\s+TO\\s+DISCLOSURE\\s+OF\\s+INFORMATION",
+      "clause": "uob.debit_cardmember_agreement/15"
+    },
+    {
+      "at": "16\\.\\s+PRIVILEGE\\s+SCHEME",
+      "clause": "uob.debit_cardmember_agreement/16"
+    },
+    {
+      "at": "17\\.\\s+CONTACTLESS\\s+TRANSACTIONS\\s+\\(NOT\\s+APPLICABLE\\s+TO\\s+UOB\\s+VISA\\s+PLATINUM\\s+DEBIT\\s+CARD\\)",
+      "clause": "uob.debit_cardmember_agreement/17"
+    },
+    {
+      "at": "18\\.\\s+GENERAL",
+      "clause": "uob.debit_cardmember_agreement/18"
+    },
+    {
+      "at": "UOB\\s+Debit\\s+Card\\s+Fees\\s+and\\s+Charges",
+      "clause": "uob.debit_cardmember_agreement/fees-and-charges"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "uob.debit_cardmember_agreement/preamble",
+      "clause_ref": "Opening paragraph",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "c74ae65eb353b734b3fd5bef50f3cd5943b73e80ba219ec97edc18595cd39d12"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/1",
+      "clause_ref": "clause 1",
+      "heading_path": ["DEFINITIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1, 2, 3],
+      "text_sha256": "7004e519a5c632f2ea8b3d0f213c6e2ef2f1b8ed305e9da97c9505a3ad1e7177"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/2",
+      "clause_ref": "clause 2",
+      "heading_path": ["THE CARD AND ATM CARD"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3, 4],
+      "text_sha256": "f80b079c7979b2c2452a3e01da53a290ce9b0c59f97b4bf4bb98aff73367053b"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/3",
+      "clause_ref": "clause 3",
+      "heading_path": ["CARD LIMITS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4, 5],
+      "text_sha256": "f6b18ab11e2de64da98819b6301c6689050487bcf9580ab95a1a73c2836d4a88"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/4",
+      "clause_ref": "clause 4",
+      "heading_path": ["HOLD ON ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5, 6],
+      "text_sha256": "fea3f8e0ddbcffc4e43ec3e17453f8a5cf382aeb7cb55b88325fa1f716c694ab"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/5",
+      "clause_ref": "clause 5",
+      "heading_path": ["REVERSAL"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "34ae6b5908f5bf8676120790fa166af3da6f71d2af579fccfc3edd81466d8345"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/6",
+      "clause_ref": "clause 6",
+      "heading_path": ["TRANSACTIONS IN FOREIGN CURRENCY & TRANSACTIONS PROCESSED OUTSIDE SINGAPORE"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "33808c68a015b7ffd2d0da8fc3c06259831c892dcc5ad772eeaac238364f681c"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/7",
+      "clause_ref": "clause 7",
+      "heading_path": ["BANK’S DISCRETION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6, 7],
+      "text_sha256": "2da8245dd24cfe1372b9542949eeca2e4814abd98d8209e3629759ee2edc4ee2"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/8",
+      "clause_ref": "clause 8",
+      "heading_path": ["CHARGES"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "30555a357ccc8775749e432c58ac39d9e6cdbf6120b89755bcd39deaab994638"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/9",
+      "clause_ref": "clause 9",
+      "heading_path": ["PIN AND USE AT ATMS AND FOR OTHER SERVICES"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7, 8],
+      "text_sha256": "cdf4bade546bc343f92f3209aeb7040b41054a3f1e2fa56fb8508387c1f261d0"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/10",
+      "clause_ref": "clause 10",
+      "heading_path": ["JOINT ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [8],
+      "text_sha256": "ae0e8953d3e48c47d9d5487ec8dacf3364153c5fcbb0753101d32295ff51af33"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/11",
+      "clause_ref": "clause 11",
+      "heading_path": ["SAFEGUARDING YOUR CARD, ATM CARD AND PIN AND REPORTING LOSS OR THEFT OF ATM CARD OR CARD / DISCLOSURE OF PIN"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [8, 9],
+      "text_sha256": "3cac8cfa77c5469fbc29acd93920f3d4358a008ec8a53f6d60734fd949a19af4"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/12",
+      "clause_ref": "clause 12",
+      "heading_path": ["TERMINATION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9, 10],
+      "text_sha256": "ae94ae4efcb44fae8f7911e8483e108784ee7edd589c6cbd71b05c86a0096085"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/13",
+      "clause_ref": "clause 13",
+      "heading_path": ["EXCLUSION OF LIABILITY"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [10, 11],
+      "text_sha256": "3dd2dd3380372e22c96c6b466341735f4b8f19534a550ebc4dc7a4453f6c2fa4"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/14",
+      "clause_ref": "clause 14",
+      "heading_path": ["VARIATION OF THIS AGREEMENT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "112e579cd7f1a5a95ea0682904f279c1b4b9ea4dd3b257223f2f5c33ea67538d"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/15",
+      "clause_ref": "clause 15",
+      "heading_path": ["CONSENT TO DISCLOSURE OF INFORMATION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11, 12, 13],
+      "text_sha256": "0a0b5cc0d53f38b2a2d93f311b92697648d6224d45785f56df4fd701cf44fa58"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/16",
+      "clause_ref": "clause 16",
+      "heading_path": ["PRIVILEGE SCHEME"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14],
+      "text_sha256": "5323915391ad7f7e276636c42853d8956384be441c7a1d3c342410384cecdd3a"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/17",
+      "clause_ref": "clause 17",
+      "heading_path": ["CONTACTLESS TRANSACTIONS (NOT APPLICABLE TO UOB VISA PLATINUM DEBIT CARD)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14],
+      "text_sha256": "581474262d82be6a29fad4d5421972d76b9242d77729a9f2deae86e8c6a9357a"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/18",
+      "clause_ref": "clause 18",
+      "heading_path": ["GENERAL"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14, 15, 16],
+      "text_sha256": "4a9b120aec04bd7c8cd3ae4229f124e329bf0ef61abb5c7039d14ff543d2740a"
+    },
+    {
+      "clause_key": "uob.debit_cardmember_agreement/fees-and-charges",
+      "clause_ref": "UOB Debit Card Fees and Charges",
+      "heading_path": ["UOB Debit Card Fees and Charges"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [17],
+      "text_sha256": "e591d05ff796d717a384efb47ba5468fa083e26f9b023b0ea75c108baf771403"
+    }
+  ]
+}

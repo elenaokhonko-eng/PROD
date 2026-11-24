@@ -1,0 +1,342 @@
+{
+  "$comment": "DBS Debit Card Agreement, fetched from the bank's site on 24 November 2026. The text ends 'October 2020' and states no effective date, so effective_from is left for Elena. The Wayback Machine's only capture of this URL (22 June 2024) is the same file (same sha256), so this file was published throughout from before 1 October 2025. One clause per numbered clause; the opening paragraphs before clause 1 are one clause.",
+  "document": {
+    "document_key": "dbs.debit_card_agreement",
+    "title": "DBS Debit Card Agreement",
+    "publisher": "DBS Bank Ltd",
+    "binding_level": "contract",
+    "applies_to": ["bank"],
+    "instrument_scope": ["sg_card"],
+    "institution": "dbs",
+    "card_scheme": null,
+    "canonical_url": "https://www.dbs.com.sg/iwov-resources/pdf/cards/dbs_debit_card_agreement%5B1%5D.pdf"
+  },
+  "version": {
+    "version_label": "October 2020",
+    "effective_from": null,
+    "issued_on": null,
+    "retrieved_at": "2026-11-24T04:26:00Z",
+    "source_url": "https://www.dbs.com.sg/iwov-resources/pdf/cards/dbs_debit_card_agreement%5B1%5D.pdf",
+    "snapshot_path": "dbs/debit-card-agreement.pdf",
+    "content_sha256": "7f7224052c242a10062a146ea47d332b3f55b29920ac76d8ab9d48afb0881ca1",
+    "provenance": "publisher_site",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "DBS\\s+DEBIT\\s+CARD\\s+AGREEMENT",
+      "clause": "dbs.debit_card_agreement/preamble"
+    },
+    {
+      "at": "1\\.\\s+USE\\s+OF\\s+CARD/PIN",
+      "clause": "dbs.debit_card_agreement/1"
+    },
+    {
+      "at": "2\\.\\s+SPENDING\\s+LIMIT",
+      "clause": "dbs.debit_card_agreement/2"
+    },
+    {
+      "at": "3\\.\\s+LOSS/THEFT\\s+OF\\s+CARD/DISCLOSURE\\s+OF\\s+PIN",
+      "clause": "dbs.debit_card_agreement/3"
+    },
+    {
+      "at": "4\\.\\s+OPERATING\\s+YOUR\\s+CARD\\s+ACCOUNT",
+      "clause": "dbs.debit_card_agreement/4"
+    },
+    {
+      "at": "5\\.\\s+CHARGES\\s+AND\\s+FEES",
+      "clause": "dbs.debit_card_agreement/5"
+    },
+    {
+      "at": "6\\.\\s+TERMINATION\\s+OF\\s+USE\\s+OF\\s+CARD\\s+AND\\s+CARD\\s+ACCOUNT",
+      "clause": "dbs.debit_card_agreement/6"
+    },
+    {
+      "at": "7\\.\\s+LIABILITY\\s+OF\\s+CARDHOLDERS",
+      "clause": "dbs.debit_card_agreement/7"
+    },
+    {
+      "at": "8\\.\\s+EXCLUSIONS\\s+AND\\s+EXCEPTIONS",
+      "clause": "dbs.debit_card_agreement/8"
+    },
+    {
+      "at": "9\\.\\s+CONCLUSIVENESS\\s+OF\\s+DOCUMENTS\\s+AND\\s+CERTIFICATES",
+      "clause": "dbs.debit_card_agreement/9"
+    },
+    {
+      "at": "10\\.\\s+AMENDMENTS",
+      "clause": "dbs.debit_card_agreement/10"
+    },
+    {
+      "at": "11\\.\\s+DISCLOSURE\\s+OF\\s+INFORMATION",
+      "clause": "dbs.debit_card_agreement/11"
+    },
+    {
+      "at": "12\\.\\s+SET\\s+OFF\\s+AND\\s+CONSOLIDATION",
+      "clause": "dbs.debit_card_agreement/12"
+    },
+    {
+      "at": "13\\.\\s+COMMUNICATION\\s+AND\\s+SERVICE\\s+OF\\s+DOCUMENTS",
+      "clause": "dbs.debit_card_agreement/13"
+    },
+    {
+      "at": "14\\.\\s+THE\\s+EZ-LINK\\s+FACILITY",
+      "clause": "dbs.debit_card_agreement/14"
+    },
+    {
+      "at": "15\\.\\s+SMS\\s+ALERTS\\s+SERVICE",
+      "clause": "dbs.debit_card_agreement/15"
+    },
+    {
+      "at": "16\\.\\s+MISCELLANEOUS",
+      "clause": "dbs.debit_card_agreement/16"
+    },
+    {
+      "at": "17\\.\\s+INDEMNITY",
+      "clause": "dbs.debit_card_agreement/17"
+    },
+    {
+      "at": "18\\.\\s+TERMS\\s+AND\\s+CONDITIONS",
+      "clause": "dbs.debit_card_agreement/18"
+    },
+    {
+      "at": "19\\.\\s+SEVERABILITY",
+      "clause": "dbs.debit_card_agreement/19"
+    },
+    {
+      "at": "20\\.\\s+NO\\s+WAIVER",
+      "clause": "dbs.debit_card_agreement/20"
+    },
+    {
+      "at": "21\\.\\s+DEFINITIONS",
+      "clause": "dbs.debit_card_agreement/21"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "dbs.debit_card_agreement/preamble",
+      "clause_ref": "Opening paragraphs",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "5bd93bfbb83029fdec18c387e11be715a3981a70b6191bd0f2838b143d9f884e"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/1",
+      "clause_ref": "clause 1",
+      "heading_path": ["USE OF CARD/PIN"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1, 2, 3],
+      "text_sha256": "716a3957c1221364b7e02d04f1aceea4c1a01e84e59dde4776a6545e5b07b733"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/2",
+      "clause_ref": "clause 2",
+      "heading_path": ["SPENDING LIMIT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4, 5],
+      "text_sha256": "9d198ba59d152b7af8376f2e5b9bfe5ef5cef140892981a93909115a6fd4fe63"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/3",
+      "clause_ref": "clause 3",
+      "heading_path": ["LOSS/THEFT OF CARD/DISCLOSURE OF PIN"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5, 6],
+      "text_sha256": "9c56016458cd0d8c10b5a363ddbee28d9b91260060af08d73164fdc67f1c3763"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/4",
+      "clause_ref": "clause 4",
+      "heading_path": ["OPERATING YOUR CARD ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "228708c0fe726307e2aa307fc1a520fbec37730d1d8464a58bbf405319573822"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/5",
+      "clause_ref": "clause 5",
+      "heading_path": ["CHARGES AND FEES"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7, 8, 9],
+      "text_sha256": "0e2fdb5e1415f38b47370b4cc1cf46d55f42552fe5193131d43eaf43373af225"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/6",
+      "clause_ref": "clause 6",
+      "heading_path": ["TERMINATION OF USE OF CARD AND CARD ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9, 10],
+      "text_sha256": "f8a66f011a095d9b88377d32826b0491e32e301936fbdf34461674e7ac53fb2f"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/7",
+      "clause_ref": "clause 7",
+      "heading_path": ["LIABILITY OF CARDHOLDERS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "5942659088bfd9a508a12e690f5cedd56742c5d61e5e82b87de59cb3178ab3eb"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/8",
+      "clause_ref": "clause 8",
+      "heading_path": ["EXCLUSIONS AND EXCEPTIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11, 12],
+      "text_sha256": "c265b18355a281e670ef7f5c1c9b1140fff4009b26c8dfb67b9cd146256ba8c4"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/9",
+      "clause_ref": "clause 9",
+      "heading_path": ["CONCLUSIVENESS OF DOCUMENTS AND CERTIFICATES"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "9f7c1db6c0dd1f4e12e8b57505a4322c657bd8120218508ca33b1b7f02d59f0a"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/10",
+      "clause_ref": "clause 10",
+      "heading_path": ["AMENDMENTS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "6ed08c88891f86443d6fb2b94ba39b74adeeeaa2194bd31fe7942440f861beef"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/11",
+      "clause_ref": "clause 11",
+      "heading_path": ["DISCLOSURE OF INFORMATION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12, 13, 14],
+      "text_sha256": "adeec19bc50b5b03eec91f1da47aba7e5d574b56f04f8c17bb629c68a0b93565"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/12",
+      "clause_ref": "clause 12",
+      "heading_path": ["SET OFF AND CONSOLIDATION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14, 15],
+      "text_sha256": "26e3174f44b488d7f1dab6a0954044c1daa0387922b13ebe4c4ba9b4c5e4fe8c"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/13",
+      "clause_ref": "clause 13",
+      "heading_path": ["COMMUNICATION AND SERVICE OF DOCUMENTS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [15],
+      "text_sha256": "0bf3aca8c7e6c27dce502188efb9ce9da9dde19f485646c22437d597d9ad8f09"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/14",
+      "clause_ref": "clause 14",
+      "heading_path": ["THE EZ-LINK FACILITY"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [15, 16, 17, 18, 19],
+      "text_sha256": "77248af3aeda57363b96b659cc19a0daab6e03b8c9c719d31d6bcf9644b3bec0"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/15",
+      "clause_ref": "clause 15",
+      "heading_path": ["SMS ALERTS SERVICE"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [19, 20],
+      "text_sha256": "28502e038ac0e0b9d963dbd5a364e7238252408d189ca7b92f155a2dcc0e9d77"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/16",
+      "clause_ref": "clause 16",
+      "heading_path": ["MISCELLANEOUS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [20, 21, 22],
+      "text_sha256": "18946f9c952e161dc9e0afd67e11d4a724a4282a49b2dc1986644c62f6d2d7b2"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/17",
+      "clause_ref": "clause 17",
+      "heading_path": ["INDEMNITY"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [22],
+      "text_sha256": "3e706ff39a3db045c76e806f69056093ca35745a30bab7f7af8f2893cd4d8c6d"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/18",
+      "clause_ref": "clause 18",
+      "heading_path": ["TERMS AND CONDITIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [22],
+      "text_sha256": "35c65ced280cb219ab0141d2b586615e47efa8ddbb6a9207a12f177266b2e6f1"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/19",
+      "clause_ref": "clause 19",
+      "heading_path": ["SEVERABILITY"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [23],
+      "text_sha256": "c8d9bf0b203ebafcef0d22d573f1c57a82b8aeb672479d61f5526495b244c146"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/20",
+      "clause_ref": "clause 20",
+      "heading_path": ["NO WAIVER"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [23],
+      "text_sha256": "9da2fc0ddcae538de2649aca7efc793c90c05b502e423b06a4c3856c4aebdbe4"
+    },
+    {
+      "clause_key": "dbs.debit_card_agreement/21",
+      "clause_ref": "clause 21",
+      "heading_path": ["DEFINITIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [23],
+      "text_sha256": "511a79c7fe21f2bf47839187a38d6900b77093c8a15006658f1e968a081cb072"
+    }
+  ]
+}

@@ -1,0 +1,1512 @@
+{
+  "$comment": "DBS Terms and Conditions Governing Accounts (individuals), stamped '(01/08/2026)', from the Wayback Machine (capture 29 August 2026). effective_from is the stamp date. A second file with the same stamp and different text was captured on 29 September 2026 (see dbs.accounts.2026-09-29.json). One clause per numbered clause within each lettered section.",
+  "document": {
+    "document_key": "dbs.accounts",
+    "title": "Terms and Conditions Governing Accounts (Applicable to individuals)",
+    "publisher": "DBS Bank Ltd",
+    "binding_level": "contract",
+    "applies_to": ["bank"],
+    "instrument_scope": ["account_transfer"],
+    "institution": "dbs",
+    "card_scheme": null,
+    "canonical_url": "https://www.dbs.com.sg/iwov-resources/pdf/deposits/termsupdate.pdf"
+  },
+  "version": {
+    "version_label": "(01/08/2026)",
+    "effective_from": "2026-08-01",
+    "issued_on": null,
+    "retrieved_at": "2026-08-29T20:01:18Z",
+    "source_url": "https://web.archive.org/web/20260829200118/https://www.dbs.com.sg/iwov-resources/pdf/deposits/termsupdate.pdf",
+    "snapshot_path": "dbs/archive/accounts-termsupdate_wb20260829200118.pdf",
+    "content_sha256": "e5daff8047ce63f8ef74058d3be994c581fef3b77ed85eeedd8974d7a3b09f3a",
+    "provenance": "web_archive",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["^Page \\d+ of \\d+\\s*$", "^\\(\\d{2}/\\d{2}/\\d{4}\\)\\s*$", "^DBS Bank Ltd\\. Co\\. Reg\\. No\\. \\S+\\s*$"]
+  },
+  "markers": [
+    {
+      "at": "A\\s+DEFINITIONS",
+      "clause": "dbs.accounts/a"
+    },
+    {
+      "at": "B\\s+TERMS\\s+AND\\s+CONDITIONS\\s+OF\\s+GENERAL\\s+APPLICATION",
+      "clause": null
+    },
+    {
+      "at": "1\\s+OPENING\\s+OF\\s+ACCOUNT",
+      "clause": "dbs.accounts/b.1"
+    },
+    {
+      "at": "2\\s+DEPOSITS",
+      "clause": "dbs.accounts/b.2"
+    },
+    {
+      "at": "3\\s+WITHDRAWALS",
+      "clause": "dbs.accounts/b.3"
+    },
+    {
+      "at": "4\\s+PASSBOOKS",
+      "clause": "dbs.accounts/b.4"
+    },
+    {
+      "at": "5\\s+CHEQUES",
+      "clause": "dbs.accounts/b.5"
+    },
+    {
+      "at": "6\\s+CHEQUE\\s+TRUNCATION",
+      "clause": "dbs.accounts/b.6"
+    },
+    {
+      "at": "7\\s+INTEREST",
+      "clause": "dbs.accounts/b.7"
+    },
+    {
+      "at": "8\\s+OVERDRAFTS",
+      "clause": "dbs.accounts/b.8"
+    },
+    {
+      "at": "9\\s+CHARGES,\\s+FEES,\\s+COSTS\\s+AND\\s+TAXES",
+      "clause": "dbs.accounts/b.9"
+    },
+    {
+      "at": "10\\s+STATEMENTS\\s+OF\\s+ACCOUNT\\s+AND\\s+TRANSACTION\\s+RECORDS",
+      "clause": "dbs.accounts/b.10"
+    },
+    {
+      "at": "11\\s+CUSTOMER’S\\s+DUTY",
+      "clause": "dbs.accounts/b.11"
+    },
+    {
+      "at": "12\\s+OPERATION\\s+OF\\s+JOINT\\s+ACCOUNT",
+      "clause": "dbs.accounts/b.12"
+    },
+    {
+      "at": "13\\s+OPERATION\\s+OF\\s+ACCOUNT\\s+“IN\\s+TRUST”\\s+OTHER\\s+THAN\\s+TRUST\\s+POSBKIDS\\s+ACCOUNT",
+      "clause": "dbs.accounts/b.13"
+    },
+    {
+      "at": "14\\s+RIGHTS\\s+OF\\s+APPROPRIATION,\\s+DEBIT,\\s+SET-OFF\\s+AND/OR\\s+CONSOLIDATION\\s+OF\\s+ACCOUNTS",
+      "clause": "dbs.accounts/b.14"
+    },
+    {
+      "at": "15\\s+INDEMNITY",
+      "clause": "dbs.accounts/b.15"
+    },
+    {
+      "at": "16\\s+CONFIDENTIALITY\\s+OF\\s+ACCOUNT",
+      "clause": "dbs.accounts/b.16"
+    },
+    {
+      "at": "17\\s+PLACE\\s+OF\\s+PAYMENT",
+      "clause": "dbs.accounts/b.17"
+    },
+    {
+      "at": "18\\s+BANK’S\\s+AGENTS",
+      "clause": "dbs.accounts/b.18"
+    },
+    {
+      "at": "19\\s+NO\\s+LIABILITY\\s+FOR\\s+LOSS",
+      "clause": "dbs.accounts/b.19"
+    },
+    {
+      "at": "20\\s+DISCHARGE\\s+OF\\s+PAYMENT\\s+OBLIGATION",
+      "clause": "dbs.accounts/b.20"
+    },
+    {
+      "at": "21\\s+SUSPENSION\\s+OF\\s+ACCOUNTS/SERVICES",
+      "clause": "dbs.accounts/b.21"
+    },
+    {
+      "at": "22\\s+CONVERSION\\s+OF\\s+ACCOUNT",
+      "clause": "dbs.accounts/b.22"
+    },
+    {
+      "at": "23\\s+CLOSURE\\s+OF\\s+ACCOUNT",
+      "clause": "dbs.accounts/b.23"
+    },
+    {
+      "at": "24\\s+COMMUNICATION",
+      "clause": "dbs.accounts/b.24"
+    },
+    {
+      "at": "25\\s+INSTRUCTIONS",
+      "clause": "dbs.accounts/b.25"
+    },
+    {
+      "at": "26\\s+AMENDMENT\\s+OF\\s+TERMS\\s+AND\\s+CONDITIONS",
+      "clause": "dbs.accounts/b.26"
+    },
+    {
+      "at": "27\\s+NO\\s+ASSIGNMENT",
+      "clause": "dbs.accounts/b.27"
+    },
+    {
+      "at": "28\\s+APPLICATION\\s+OF\\s+OTHER\\s+TERMS\\s+AND\\s+CONDITIONS",
+      "clause": "dbs.accounts/b.28"
+    },
+    {
+      "at": "29\\s+ELECTRONIC\\s+SIGNATURE\\s+AND\\s+RECORDS",
+      "clause": "dbs.accounts/b.29"
+    },
+    {
+      "at": "30\\s+DOCUMENTS",
+      "clause": "dbs.accounts/b.30"
+    },
+    {
+      "at": "31\\s+CONTRACTS\\s+\\(RIGHTS\\s+OF\\s+THIRD\\s+PARTIES\\)\\s+ACT\\s+2001",
+      "clause": "dbs.accounts/b.31"
+    },
+    {
+      "at": "32\\s+OUTSOURCING",
+      "clause": "dbs.accounts/b.32"
+    },
+    {
+      "at": "33\\s+COMPLIANCE\\s+WITH\\s+TAX\\s+REQUIREMENTS,\\s+SANCTIONS\\s+AND\\s+REGULATIONS",
+      "clause": "dbs.accounts/b.33"
+    },
+    {
+      "at": "34\\s+GOVERNING\\s+LAW\\s+AND\\s+JURISDICTION",
+      "clause": "dbs.accounts/b.34"
+    },
+    {
+      "at": "35\\s+CHANGING\\s+YOUR\\s+TIER",
+      "clause": "dbs.accounts/b.35"
+    },
+    {
+      "at": "C\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+SINGAPORE\\s+DOLLAR\\s+\\(“S\\$”\\)\\s+FIXED\\s+DEPOSIT\\s+\\(“FD”\\)\\s+ACCOUNT\\s+AND",
+      "clause": null
+    },
+    {
+      "at": "1\\s+PLACEMENTS",
+      "clause": "dbs.accounts/c.1"
+    },
+    {
+      "at": "2\\s+WITHDRAWALS",
+      "clause": "dbs.accounts/c.2"
+    },
+    {
+      "at": "D\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+FOREIGN\\s+CURRENCY\\s+ACCOUNTS",
+      "clause": null
+    },
+    {
+      "at": "1\\s+DEPOSITS\\s+AND\\s+WITHDRAWALS",
+      "clause": "dbs.accounts/d.1"
+    },
+    {
+      "at": "2\\s+TAX\\s+AND\\s+CURRENCY\\s+RISK\\s+FOR\\s+CUSTOMER’S\\s+ACCOUNT",
+      "clause": "dbs.accounts/d.2"
+    },
+    {
+      "at": "E\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+POSB\\s+CURRENT\\s+ACCOUNT\\s+\\(“POSB\\s+CA”\\)",
+      "clause": null
+    },
+    {
+      "at": "1\\s+OPENING\\s+OF\\s+POSB\\s+CA",
+      "clause": "dbs.accounts/e.1"
+    },
+    {
+      "at": "2\\s+CA\\s+GIRO\\s+FACILITY",
+      "clause": "dbs.accounts/e.2"
+    },
+    {
+      "at": "F\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+POSBKIDS\\s+ACCOUNT",
+      "clause": null
+    },
+    {
+      "at": "1\\s+OPENING\\s+OF\\s+POSBKIDS\\s+ACCOUNT",
+      "clause": "dbs.accounts/f.1"
+    },
+    {
+      "at": "2\\s+DEPOSITS\\s+AND\\s+WITHDRAWALS",
+      "clause": "dbs.accounts/f.2"
+    },
+    {
+      "at": "3\\s+DEATH\\s+OF\\s+TRUSTEE/BENEFICIARY",
+      "clause": "dbs.accounts/f.3"
+    },
+    {
+      "at": "G\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+POSB\\s+SAVE-AS-YOU-EARN\\s+\\(“SAYE”\\)\\s+ACCOUNT",
+      "clause": null
+    },
+    {
+      "at": "1\\s+OPENING\\s+OF\\s+SAYE\\s+ACCOUNT",
+      "clause": "dbs.accounts/g.1"
+    },
+    {
+      "at": "2\\s+MONTHLY\\s+CONTRIBUTIONS",
+      "clause": "dbs.accounts/g.2"
+    },
+    {
+      "at": "3\\s+CLOSURE\\s+OF\\s+SAYE\\s+ACCOUNT",
+      "clause": "dbs.accounts/g.3"
+    },
+    {
+      "at": "4\\s+MATURITY\\s+OPTIONS",
+      "clause": "dbs.accounts/g.4"
+    },
+    {
+      "at": "H\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+POSB\\s+SAYE\\s+ACCOUNT\\s+\\(ONLY\\s+APPLYING\\s+TO\\s+POSB\\s+SAYE\\s+ACCOUNTS",
+      "clause": null
+    },
+    {
+      "at": "1\\s+OPENING\\s+OF\\s+POSB\\s+SAYE\\s+ACCOUNT",
+      "clause": "dbs.accounts/h.1"
+    },
+    {
+      "at": "2\\s+DEPOSITS",
+      "clause": "dbs.accounts/h.2"
+    },
+    {
+      "at": "3\\s+OTHER\\s+DEPOSITS",
+      "clause": "dbs.accounts/h.3"
+    },
+    {
+      "at": "4\\s+WITHDRAWALS",
+      "clause": "dbs.accounts/h.4"
+    },
+    {
+      "at": "5\\s+INTEREST",
+      "clause": "dbs.accounts/h.5"
+    },
+    {
+      "at": "6\\s+OTHERS",
+      "clause": "dbs.accounts/h.6"
+    },
+    {
+      "at": "I\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+MYSAVINGS\\s+ACCOUNT\\s+\\(“MSA”\\)",
+      "clause": null
+    },
+    {
+      "at": "1\\s+OPENING\\s+OF\\s+MSA",
+      "clause": "dbs.accounts/i.1"
+    },
+    {
+      "at": "2\\s+DEPOSITS",
+      "clause": "dbs.accounts/i.2"
+    },
+    {
+      "at": "3\\s+OTHER\\s+DEPOSITS",
+      "clause": "dbs.accounts/i.3"
+    },
+    {
+      "at": "4\\s+WITHDRAWALS",
+      "clause": "dbs.accounts/i.4"
+    },
+    {
+      "at": "5\\s+INTEREST",
+      "clause": "dbs.accounts/i.5"
+    },
+    {
+      "at": "6\\s+OTHERS",
+      "clause": "dbs.accounts/i.6"
+    },
+    {
+      "at": "J\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+STANDING\\s+INSTRUCTIONS\\s+INCLUDING\\s+GIRO",
+      "clause": null
+    },
+    {
+      "at": "1\\s+APPLICATION\\s+FOR\\s+STANDING\\s+INSTRUCTIONS",
+      "clause": "dbs.accounts/j.1"
+    },
+    {
+      "at": "2\\s+PAYMENT",
+      "clause": "dbs.accounts/j.2"
+    },
+    {
+      "at": "3\\s+OTHERS",
+      "clause": "dbs.accounts/j.3"
+    },
+    {
+      "at": "K\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+eMYSAVINGS\\s+ACCOUNT\\s+\\+\\s+\\(“eMSA\\+”\\)",
+      "clause": null
+    },
+    {
+      "at": "1\\s+OPENING\\s+OF\\s+ACCOUNT",
+      "clause": "dbs.accounts/k.1"
+    },
+    {
+      "at": "2\\s+DEPOSITS",
+      "clause": "dbs.accounts/k.2"
+    },
+    {
+      "at": "3\\s+WITHDRAWALS",
+      "clause": "dbs.accounts/k.3"
+    },
+    {
+      "at": "4\\s+INTEREST",
+      "clause": "dbs.accounts/k.4"
+    },
+    {
+      "at": "5\\s+CLOSURE\\s+OF\\s+ACCOUNT",
+      "clause": "dbs.accounts/k.5"
+    },
+    {
+      "at": "6\\s+OTHERS",
+      "clause": "dbs.accounts/k.6"
+    },
+    {
+      "at": "L\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+eMYSAVINGS\\s+ACCOUNT\\s+\\(MSA\\)\\s+–\\s+Home\\s+\\(“eMSA\\s+–\\s+Home”\\)",
+      "clause": null
+    },
+    {
+      "at": "1\\s+OPENING\\s+OF\\s+ACCOUNT",
+      "clause": "dbs.accounts/l.1"
+    },
+    {
+      "at": "2\\s+INTEREST",
+      "clause": "dbs.accounts/l.2"
+    },
+    {
+      "at": "3\\s+DEPOSITS",
+      "clause": "dbs.accounts/l.3"
+    },
+    {
+      "at": "4\\s+WITHDRAWALS",
+      "clause": "dbs.accounts/l.4"
+    },
+    {
+      "at": "5\\s+CLOSURE\\s+OF\\s+ACCOUNT",
+      "clause": "dbs.accounts/l.5"
+    },
+    {
+      "at": "6\\s+OTHERS",
+      "clause": "dbs.accounts/l.6"
+    },
+    {
+      "at": "M\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+MULTIPLIER\\s+ACCOUNT\\s+\\(“MULTIPLIER\\s+TERMS”\\)",
+      "clause": null
+    },
+    {
+      "at": "1\\s+ACCOUNT\\s+OPENING",
+      "clause": "dbs.accounts/m.1"
+    },
+    {
+      "at": "2\\s+INTEREST",
+      "clause": "dbs.accounts/m.2"
+    },
+    {
+      "at": "3\\s+ELIGIBILITY\\s+OF\\s+TRANSACTIONS",
+      "clause": "dbs.accounts/m.3"
+    },
+    {
+      "at": "4\\s+GENERAL",
+      "clause": "dbs.accounts/m.4"
+    },
+    {
+      "at": "N\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+RMB\\s+DENOMINATED\\s+DEPOSITS\\s+AND\\s+TELEGRAPHPIC\\s+TRANSFERS",
+      "clause": null
+    },
+    {
+      "at": "1\\s+GENERAL",
+      "clause": "dbs.accounts/n.1"
+    },
+    {
+      "at": "2\\s+RMB\\s+DEPOSITS",
+      "clause": "dbs.accounts/n.2"
+    },
+    {
+      "at": "3\\s+RMB\\s+TELEGRAPHIC\\s+TRANSFERS",
+      "clause": "dbs.accounts/n.3"
+    },
+    {
+      "at": "4\\s+RISKS\\s+ASSOCIATED\\s+WITH\\s+RMB\\s+DEPOSITS\\s+AND\\s+RMB\\s+TELEGRAPHIC\\s+TRANSFERS",
+      "clause": "dbs.accounts/n.4"
+    },
+    {
+      "at": "O\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+POSB\\s+CHILD\\s+DEVELOPMENT\\s+ACCOUNT\\s+\\(“POSB\\s+CDA”\\)",
+      "clause": null
+    },
+    {
+      "at": "1\\s+DEFINITIONS",
+      "clause": "dbs.accounts/o.1"
+    },
+    {
+      "at": "2\\s+OPENING\\s+OF\\s+POSB\\s+CDA",
+      "clause": "dbs.accounts/o.2"
+    },
+    {
+      "at": "3\\s+OPENING\\s+OF\\s+ACCOUNTS\\s+TOGETHER\\s+WITH\\s+POSB\\s+CDA",
+      "clause": "dbs.accounts/o.3"
+    },
+    {
+      "at": "4\\s+MATCHING\\s+GOVERNMENT\\s+CONTRIBUTION",
+      "clause": "dbs.accounts/o.4"
+    },
+    {
+      "at": "5\\s+OPERATION\\s+OF\\s+POSB\\s+CDA",
+      "clause": "dbs.accounts/o.5"
+    },
+    {
+      "at": "6\\s+CHANGE\\s+OF\\s+TRUSTEE",
+      "clause": "dbs.accounts/o.6"
+    },
+    {
+      "at": "7\\s+DEATH\\s+OF\\s+MEMBER",
+      "clause": "dbs.accounts/o.7"
+    },
+    {
+      "at": "8\\s+CLOSURE\\s+OF\\s+POSB\\s+CDA",
+      "clause": "dbs.accounts/o.8"
+    },
+    {
+      "at": "9\\s+PERSONAL\\s+DATA\\s+AND\\s+CONSENT\\s+FOR\\s+DISCLOSURE",
+      "clause": "dbs.accounts/o.9"
+    },
+    {
+      "at": "P\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+PAYLAH!\\s+ACCOUNT\\s+\\(“PAYLAH!\\s+TERMS\\s+WITH\\s+EFFECT\\s+FROM\\s+30",
+      "clause": null
+    },
+    {
+      "at": "1\\s+ACCOUNT\\s+OPENING",
+      "clause": "dbs.accounts/p.1"
+    },
+    {
+      "at": "2\\s+OPERATION\\s+OF\\s+PAYLAH!\\s+ACCOUNT",
+      "clause": "dbs.accounts/p.2"
+    },
+    {
+      "at": "Q\\s+ADDITIONAL\\s+TERMS\\s+AND\\s+CONDITIONS\\s+GOVERNING\\s+ELECTRONIC\\s+DEFERRED\\s+PAYMENT\\s+\\(EDP\\)\\s+SERVICE",
+      "clause": null
+    },
+    {
+      "at": "1\\s+EDP\\s+SCHEME",
+      "clause": "dbs.accounts/q.1"
+    },
+    {
+      "at": "2\\.\\s+DEFINITIONS",
+      "clause": "dbs.accounts/q.2"
+    },
+    {
+      "at": "3\\.\\s+TRANSACTIONS\\s+VIA\\s+EDP\\s+SCHEME",
+      "clause": "dbs.accounts/q.3"
+    },
+    {
+      "at": "4\\.\\s+COLLECTION,\\s+USE,\\s+DISCLOSURE\\s+AND\\s+PROCESSING\\s+OF\\s+INFORMATION",
+      "clause": "dbs.accounts/q.4"
+    },
+    {
+      "at": "5\\.\\s+LIABILITY",
+      "clause": "dbs.accounts/q.5"
+    },
+    {
+      "at": "6\\.\\s+GENERAL",
+      "clause": "dbs.accounts/q.6"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "dbs.accounts/a",
+      "clause_ref": "Section A",
+      "heading_path": ["A DEFINITIONS", "DEFINITIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2, 3],
+      "text_sha256": "73ce4a4a8f955809eabbc41019c80d7175e88465e1729270d6cb5254765aef8b"
+    },
+    {
+      "clause_key": "dbs.accounts/b.1",
+      "clause_ref": "Section B, clause 1",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "OPENING OF ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "9c2557a1bf742937928cbc0d5b91d14e8792fb7305676edcf90fc949e7dbbbab"
+    },
+    {
+      "clause_key": "dbs.accounts/b.2",
+      "clause_ref": "Section B, clause 2",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "DEPOSITS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "e465c2b22bdd3eccae4595bc86f46d4b9e9da64952f6b21706c432c00b3485e3"
+    },
+    {
+      "clause_key": "dbs.accounts/b.3",
+      "clause_ref": "Section B, clause 3",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "WITHDRAWALS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3, 4],
+      "text_sha256": "8c9e8d8611095b65def7e65b27360c2c084f5a984690e30974061e826a21929f"
+    },
+    {
+      "clause_key": "dbs.accounts/b.4",
+      "clause_ref": "Section B, clause 4",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "PASSBOOKS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "6f4535d72b919ff97112ff3717ccef40fa5bf1d86a6ba592a1877287c7571508"
+    },
+    {
+      "clause_key": "dbs.accounts/b.5",
+      "clause_ref": "Section B, clause 5",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "CHEQUES"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4, 5],
+      "text_sha256": "04e179a8e68ae7b9f79587090cf380fa393ee7734f2c07443a2389e1bd7106f9"
+    },
+    {
+      "clause_key": "dbs.accounts/b.6",
+      "clause_ref": "Section B, clause 6",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "CHEQUE TRUNCATION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5, 6],
+      "text_sha256": "5842a0e8a3d8422a28323831371553b3638f2cf92ff2a66e3ae5eeab94afbace"
+    },
+    {
+      "clause_key": "dbs.accounts/b.7",
+      "clause_ref": "Section B, clause 7",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "INTEREST"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "45d976b59f764241fbea9764611570fcede35eb6285123141e729ae7c2cffcef"
+    },
+    {
+      "clause_key": "dbs.accounts/b.8",
+      "clause_ref": "Section B, clause 8",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "OVERDRAFTS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "484148430ae5d737e714c7a2dbbba4f327d431bf39f472454907ad8eeceba52b"
+    },
+    {
+      "clause_key": "dbs.accounts/b.9",
+      "clause_ref": "Section B, clause 9",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "CHARGES, FEES, COSTS AND TAXES"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6, 7],
+      "text_sha256": "5834cbc3ab9062257b4e8245cfd85baa302123f337ed04d40d043a5933440023"
+    },
+    {
+      "clause_key": "dbs.accounts/b.10",
+      "clause_ref": "Section B, clause 10",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "STATEMENTS OF ACCOUNT AND TRANSACTION RECORDS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "0fb6acf22024a6c4404287e95f3c380aa6a6043454dbe88ba47bab9388a0c800"
+    },
+    {
+      "clause_key": "dbs.accounts/b.11",
+      "clause_ref": "Section B, clause 11",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "CUSTOMER’S DUTY"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [8, 9],
+      "text_sha256": "4c0af5ba01d01568bb668fcf59f4e9cb34432ae38eb960a84c7701f7d9105f74"
+    },
+    {
+      "clause_key": "dbs.accounts/b.12",
+      "clause_ref": "Section B, clause 12",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "OPERATION OF JOINT ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "472e188c03d9a3d281d16d6ecf0111aee5b321c89fbc1dc2ed77348149cb239f"
+    },
+    {
+      "clause_key": "dbs.accounts/b.13",
+      "clause_ref": "Section B, clause 13",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "OPERATION OF ACCOUNT “IN TRUST” OTHER THAN TRUST POSBKIDS ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9, 10],
+      "text_sha256": "ba5dd2675cf63137d72835bbc9843ddf6d641662ebb12b71bc8e087af414f66a"
+    },
+    {
+      "clause_key": "dbs.accounts/b.14",
+      "clause_ref": "Section B, clause 14",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "RIGHTS OF APPROPRIATION, DEBIT, SET-OFF AND/OR CONSOLIDATION OF ACCOUNTS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [10, 11],
+      "text_sha256": "4ec055e6d429cf987f8d7bf9e3cb576b79f77d04c6b2bd06dd37bf9e97cd5c59"
+    },
+    {
+      "clause_key": "dbs.accounts/b.15",
+      "clause_ref": "Section B, clause 15",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "INDEMNITY"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "4d1442d13e15bd3e273e7bdd08fdbae82c07531ee749c8b277167beb6817bb96"
+    },
+    {
+      "clause_key": "dbs.accounts/b.16",
+      "clause_ref": "Section B, clause 16",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "CONFIDENTIALITY OF ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11, 12, 13],
+      "text_sha256": "4ca9115e3e7aacfd1268f20e1dfc3c4b31a5ee985f936430c28261483fe27297"
+    },
+    {
+      "clause_key": "dbs.accounts/b.17",
+      "clause_ref": "Section B, clause 17",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "PLACE OF PAYMENT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [13],
+      "text_sha256": "550e20ff29b9bbb80df46492d696520483542b8316704acbfc51c9c9e57f5eda"
+    },
+    {
+      "clause_key": "dbs.accounts/b.18",
+      "clause_ref": "Section B, clause 18",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "BANK’S AGENTS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [13],
+      "text_sha256": "e3585df3e9cbdb3eac48177a58d0c8aece82dcb2dec988f80e6371e17fdfd187"
+    },
+    {
+      "clause_key": "dbs.accounts/b.19",
+      "clause_ref": "Section B, clause 19",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "NO LIABILITY FOR LOSS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [13, 14],
+      "text_sha256": "38f6e7b349dc5f9ab5305a72ea3b35d990a0f005206d0e9ee19083397c39d608"
+    },
+    {
+      "clause_key": "dbs.accounts/b.20",
+      "clause_ref": "Section B, clause 20",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "DISCHARGE OF PAYMENT OBLIGATION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14],
+      "text_sha256": "3b98c3a014b03e41ae3df3186865e414b9efad9ed8b97145b5b777d153ea7e6d"
+    },
+    {
+      "clause_key": "dbs.accounts/b.21",
+      "clause_ref": "Section B, clause 21",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "SUSPENSION OF ACCOUNTS/SERVICES"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14],
+      "text_sha256": "a6a9e7814c359d803e26c19cc807ff5206965fc40532a27974a8717a9a276a62"
+    },
+    {
+      "clause_key": "dbs.accounts/b.22",
+      "clause_ref": "Section B, clause 22",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "CONVERSION OF ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14],
+      "text_sha256": "4bf5487d674aeb932c884b8daaa62b4a5b0a95b91dc5dd1b392a9a774638f647"
+    },
+    {
+      "clause_key": "dbs.accounts/b.23",
+      "clause_ref": "Section B, clause 23",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "CLOSURE OF ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14, 15],
+      "text_sha256": "c7fb817d0a8014cacf1a83fbd2ec4fbd7b4e10fe13f5f162c180513ffeb50c19"
+    },
+    {
+      "clause_key": "dbs.accounts/b.24",
+      "clause_ref": "Section B, clause 24",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "COMMUNICATION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [15],
+      "text_sha256": "6d0458d0a0d7eee414fa8f961c98e64476e7ed70d1acbc70706793532ab0a82e"
+    },
+    {
+      "clause_key": "dbs.accounts/b.25",
+      "clause_ref": "Section B, clause 25",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "INSTRUCTIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [15, 16],
+      "text_sha256": "3ba47e416cb50807ce050a332d3cd285dacb85fb67441e7680f7d6bfd2aa7d8b"
+    },
+    {
+      "clause_key": "dbs.accounts/b.26",
+      "clause_ref": "Section B, clause 26",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "AMENDMENT OF TERMS AND CONDITIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [16],
+      "text_sha256": "866a05bcdb064b5e3217bb504136dc1ca1b1132e11eaea338f9ef1ba8bf84b4f"
+    },
+    {
+      "clause_key": "dbs.accounts/b.27",
+      "clause_ref": "Section B, clause 27",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "NO ASSIGNMENT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [16],
+      "text_sha256": "d64c4d4db97da03298a3c85742529834948d2d0100aebf40deb2bd1f5ee144cb"
+    },
+    {
+      "clause_key": "dbs.accounts/b.28",
+      "clause_ref": "Section B, clause 28",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "APPLICATION OF OTHER TERMS AND CONDITIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [16, 17],
+      "text_sha256": "104a20e8ac4832651364179c609d1c0e83a41242dcaf89fd56bcc0311b73a4f9"
+    },
+    {
+      "clause_key": "dbs.accounts/b.29",
+      "clause_ref": "Section B, clause 29",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "ELECTRONIC SIGNATURE AND RECORDS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [17],
+      "text_sha256": "07439e2cde632e6e9b5a723905e98dbcd950f6bbe319bb97c9ef2997985bd57d"
+    },
+    {
+      "clause_key": "dbs.accounts/b.30",
+      "clause_ref": "Section B, clause 30",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "DOCUMENTS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [17],
+      "text_sha256": "85d12407b3aa23e1c7566a74353b7b32c2ad3c6830820a5ab439c681d2b7512c"
+    },
+    {
+      "clause_key": "dbs.accounts/b.31",
+      "clause_ref": "Section B, clause 31",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "CONTRACTS (RIGHTS OF THIRD PARTIES) ACT 2001"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [17],
+      "text_sha256": "c60fe0e0f6eb15f638eb41ba5c7677546beec49690003f94a92c4bb8dafe8bf8"
+    },
+    {
+      "clause_key": "dbs.accounts/b.32",
+      "clause_ref": "Section B, clause 32",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "OUTSOURCING"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [17],
+      "text_sha256": "d5e6c0d8a839c1a7507ef27a94da5c14c8e533d27dc1c1ba67141e72f9ab9cce"
+    },
+    {
+      "clause_key": "dbs.accounts/b.33",
+      "clause_ref": "Section B, clause 33",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "COMPLIANCE WITH TAX REQUIREMENTS, SANCTIONS AND REGULATIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [18],
+      "text_sha256": "89fe03fbec03abc6466cf16cfe33e8a3535d74f24f13b82e6032c3b508f50889"
+    },
+    {
+      "clause_key": "dbs.accounts/b.34",
+      "clause_ref": "Section B, clause 34",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "GOVERNING LAW AND JURISDICTION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [18],
+      "text_sha256": "355758329a35fd1e80c62e158cc6533d6299eb3d0446e57d287b58de1e555c0c"
+    },
+    {
+      "clause_key": "dbs.accounts/b.35",
+      "clause_ref": "Section B, clause 35",
+      "heading_path": ["B TERMS AND CONDITIONS OF GENERAL APPLICATION", "CHANGING YOUR TIER"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [18],
+      "text_sha256": "1da88ca7a22425e3133971b8957042c0f27a44a1ba72438ef14be94655b2c1ad"
+    },
+    {
+      "clause_key": "dbs.accounts/c.1",
+      "clause_ref": "Section C, clause 1",
+      "heading_path": ["C ADDITIONAL TERMS AND CONDITIONS GOVERNING SINGAPORE DOLLAR (“S$”) FIXED DEPOSIT (“FD”) ACCOUNT AND", "PLACEMENTS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [18, 19],
+      "text_sha256": "20d33aab55ccd3a0b43dd3b82c717ebfcc395687081e992314492e620dee1445"
+    },
+    {
+      "clause_key": "dbs.accounts/c.2",
+      "clause_ref": "Section C, clause 2",
+      "heading_path": ["C ADDITIONAL TERMS AND CONDITIONS GOVERNING SINGAPORE DOLLAR (“S$”) FIXED DEPOSIT (“FD”) ACCOUNT AND", "WITHDRAWALS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [19, 20],
+      "text_sha256": "af0db0cc2e09ea2d0d023668ba13d99ee96cf25ad532eb6139a9f1c2ffc01603"
+    },
+    {
+      "clause_key": "dbs.accounts/d.1",
+      "clause_ref": "Section D, clause 1",
+      "heading_path": ["D ADDITIONAL TERMS AND CONDITIONS GOVERNING FOREIGN CURRENCY ACCOUNTS", "DEPOSITS AND WITHDRAWALS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [20],
+      "text_sha256": "a90569ee986d98286925d88851c4ad331ef6e4da90b86a3b101337a6d93cbc0e"
+    },
+    {
+      "clause_key": "dbs.accounts/d.2",
+      "clause_ref": "Section D, clause 2",
+      "heading_path": ["D ADDITIONAL TERMS AND CONDITIONS GOVERNING FOREIGN CURRENCY ACCOUNTS", "TAX AND CURRENCY RISK FOR CUSTOMER’S ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [20, 21],
+      "text_sha256": "65b1107b39fa3730888e0b3833cc14758b3e8dd5704bbb6eceae36e373339995"
+    },
+    {
+      "clause_key": "dbs.accounts/e.1",
+      "clause_ref": "Section E, clause 1",
+      "heading_path": ["E ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB CURRENT ACCOUNT (“POSB CA”)", "OPENING OF POSB CA"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [21],
+      "text_sha256": "48d8dfac76ec8e02c231f768bad28c628aa64ed17d45480703cc9d1978c03e05"
+    },
+    {
+      "clause_key": "dbs.accounts/e.2",
+      "clause_ref": "Section E, clause 2",
+      "heading_path": ["E ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB CURRENT ACCOUNT (“POSB CA”)", "CA GIRO FACILITY"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [21],
+      "text_sha256": "b198d9ada436979a8b3ea1d6708fe832dc7e02be14243057cdde914e6d8b4065"
+    },
+    {
+      "clause_key": "dbs.accounts/f.1",
+      "clause_ref": "Section F, clause 1",
+      "heading_path": ["F ADDITIONAL TERMS AND CONDITIONS GOVERNING POSBKIDS ACCOUNT", "OPENING OF POSBKIDS ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [21, 22],
+      "text_sha256": "7b5110649f0ccedea2798f8afed366a0c79c05a3c7e0bb3b7f2921847ebb5b61"
+    },
+    {
+      "clause_key": "dbs.accounts/f.2",
+      "clause_ref": "Section F, clause 2",
+      "heading_path": ["F ADDITIONAL TERMS AND CONDITIONS GOVERNING POSBKIDS ACCOUNT", "DEPOSITS AND WITHDRAWALS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [22],
+      "text_sha256": "b2f9d3cef5fbbea5ca16d8a4954b433ba7b7aace0a0ef39e776f447770ea0e8e"
+    },
+    {
+      "clause_key": "dbs.accounts/f.3",
+      "clause_ref": "Section F, clause 3",
+      "heading_path": ["F ADDITIONAL TERMS AND CONDITIONS GOVERNING POSBKIDS ACCOUNT", "DEATH OF TRUSTEE/BENEFICIARY"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [22],
+      "text_sha256": "d58fd564944741f4cec3e89a78e03dfb50dccb332ebc8fc5fa1a31fa81b205e3"
+    },
+    {
+      "clause_key": "dbs.accounts/g.1",
+      "clause_ref": "Section G, clause 1",
+      "heading_path": ["G ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB SAVE-AS-YOU-EARN (“SAYE”) ACCOUNT", "OPENING OF SAYE ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [22],
+      "text_sha256": "1c57e1be1221047ed5d0027e4a05433c2299ec7cd47d5698b43a9ad82ff43b79"
+    },
+    {
+      "clause_key": "dbs.accounts/g.2",
+      "clause_ref": "Section G, clause 2",
+      "heading_path": ["G ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB SAVE-AS-YOU-EARN (“SAYE”) ACCOUNT", "MONTHLY CONTRIBUTIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [22, 23],
+      "text_sha256": "708a9eefcbeb7d81732e4c7975fffb0f601bb07cf789754167c36164bb6b9db7"
+    },
+    {
+      "clause_key": "dbs.accounts/g.3",
+      "clause_ref": "Section G, clause 3",
+      "heading_path": ["G ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB SAVE-AS-YOU-EARN (“SAYE”) ACCOUNT", "CLOSURE OF SAYE ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [23],
+      "text_sha256": "194c8bddfb82c13e74c8bc409151320722411c9f3b6e6f989628e78d0f51e3b1"
+    },
+    {
+      "clause_key": "dbs.accounts/g.4",
+      "clause_ref": "Section G, clause 4",
+      "heading_path": ["G ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB SAVE-AS-YOU-EARN (“SAYE”) ACCOUNT", "MATURITY OPTIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [23],
+      "text_sha256": "284c64bf10e1fbb337d6845875efa15e9ceeecabbce6dabc90f2163a0ea78bce"
+    },
+    {
+      "clause_key": "dbs.accounts/h.1",
+      "clause_ref": "Section H, clause 1",
+      "heading_path": ["H ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB SAYE ACCOUNT (ONLY APPLYING TO POSB SAYE ACCOUNTS", "OPENING OF POSB SAYE ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [24],
+      "text_sha256": "de53b8de669c65c0ff8fc86d97e6d70c3776b1257c131c34870467284f1a5e63"
+    },
+    {
+      "clause_key": "dbs.accounts/h.2",
+      "clause_ref": "Section H, clause 2",
+      "heading_path": ["H ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB SAYE ACCOUNT (ONLY APPLYING TO POSB SAYE ACCOUNTS", "DEPOSITS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [24],
+      "text_sha256": "a95e362f7e98420624a5465df92389ec888aeca101928344738488e89df64ece"
+    },
+    {
+      "clause_key": "dbs.accounts/h.3",
+      "clause_ref": "Section H, clause 3",
+      "heading_path": ["H ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB SAYE ACCOUNT (ONLY APPLYING TO POSB SAYE ACCOUNTS", "OTHER DEPOSITS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [24],
+      "text_sha256": "855fdf62268f59f029aaca6ce0356023a0b88c2521cd6e52bddb1861430dd0ec"
+    },
+    {
+      "clause_key": "dbs.accounts/h.4",
+      "clause_ref": "Section H, clause 4",
+      "heading_path": ["H ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB SAYE ACCOUNT (ONLY APPLYING TO POSB SAYE ACCOUNTS", "WITHDRAWALS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [24],
+      "text_sha256": "6be408e50723cc4141272677959fe0dc1070a6b98dade0e9f90cfb96edb97d41"
+    },
+    {
+      "clause_key": "dbs.accounts/h.5",
+      "clause_ref": "Section H, clause 5",
+      "heading_path": ["H ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB SAYE ACCOUNT (ONLY APPLYING TO POSB SAYE ACCOUNTS", "INTEREST"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [25],
+      "text_sha256": "4318c5a824a7d901c934550a31869179887439fafedfd975ec0701ef812e26e0"
+    },
+    {
+      "clause_key": "dbs.accounts/h.6",
+      "clause_ref": "Section H, clause 6",
+      "heading_path": ["H ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB SAYE ACCOUNT (ONLY APPLYING TO POSB SAYE ACCOUNTS", "OTHERS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [25],
+      "text_sha256": "69b108545a6c0bf135e822c7e630c0e74829725173fe61fc88efb0c1a895ddda"
+    },
+    {
+      "clause_key": "dbs.accounts/i.1",
+      "clause_ref": "Section I, clause 1",
+      "heading_path": ["I ADDITIONAL TERMS AND CONDITIONS GOVERNING MYSAVINGS ACCOUNT (“MSA”)", "OPENING OF MSA"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [25, 26],
+      "text_sha256": "27e628f4c03c4c42c4d64458d3d9a119ef74079702dfaabe17cc91a0c8d70f54"
+    },
+    {
+      "clause_key": "dbs.accounts/i.2",
+      "clause_ref": "Section I, clause 2",
+      "heading_path": ["I ADDITIONAL TERMS AND CONDITIONS GOVERNING MYSAVINGS ACCOUNT (“MSA”)", "DEPOSITS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [26],
+      "text_sha256": "7537be41dc4b630f8a6540f3e501ae088a4fcc97e158a43a2e610a946ece3dd8"
+    },
+    {
+      "clause_key": "dbs.accounts/i.3",
+      "clause_ref": "Section I, clause 3",
+      "heading_path": ["I ADDITIONAL TERMS AND CONDITIONS GOVERNING MYSAVINGS ACCOUNT (“MSA”)", "OTHER DEPOSITS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [26],
+      "text_sha256": "df9678cfcff377c0830f6012afe7ea68173cf517a7bd29097d42b23e5bda1614"
+    },
+    {
+      "clause_key": "dbs.accounts/i.4",
+      "clause_ref": "Section I, clause 4",
+      "heading_path": ["I ADDITIONAL TERMS AND CONDITIONS GOVERNING MYSAVINGS ACCOUNT (“MSA”)", "WITHDRAWALS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [26],
+      "text_sha256": "5900da8badaa40d41c725eb45f3f9a71b424ad163574216205600a343cc33b4c"
+    },
+    {
+      "clause_key": "dbs.accounts/i.5",
+      "clause_ref": "Section I, clause 5",
+      "heading_path": ["I ADDITIONAL TERMS AND CONDITIONS GOVERNING MYSAVINGS ACCOUNT (“MSA”)", "INTEREST"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [26],
+      "text_sha256": "b1b085d0e8dc63747b150dd4bc902b87fcc49c27983d30df3738b69e1b46b12f"
+    },
+    {
+      "clause_key": "dbs.accounts/i.6",
+      "clause_ref": "Section I, clause 6",
+      "heading_path": ["I ADDITIONAL TERMS AND CONDITIONS GOVERNING MYSAVINGS ACCOUNT (“MSA”)", "OTHERS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [27],
+      "text_sha256": "79ec7f29e961d738919c9de57cee01cc0554f4d00cb9e738e7a7f7cbdcf2f290"
+    },
+    {
+      "clause_key": "dbs.accounts/j.1",
+      "clause_ref": "Section J, clause 1",
+      "heading_path": ["J ADDITIONAL TERMS AND CONDITIONS GOVERNING STANDING INSTRUCTIONS INCLUDING GIRO", "APPLICATION FOR STANDING INSTRUCTIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [27],
+      "text_sha256": "1d4d28eea90f3c739d2d7afa8c9377950a78c9f125e997e8cf869cbecc637b5e"
+    },
+    {
+      "clause_key": "dbs.accounts/j.2",
+      "clause_ref": "Section J, clause 2",
+      "heading_path": ["J ADDITIONAL TERMS AND CONDITIONS GOVERNING STANDING INSTRUCTIONS INCLUDING GIRO", "PAYMENT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [27],
+      "text_sha256": "92daffc7b468426889505d2f35caca951b331f97c26873df7749316c7aaa27f4"
+    },
+    {
+      "clause_key": "dbs.accounts/j.3",
+      "clause_ref": "Section J, clause 3",
+      "heading_path": ["J ADDITIONAL TERMS AND CONDITIONS GOVERNING STANDING INSTRUCTIONS INCLUDING GIRO", "OTHERS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [27],
+      "text_sha256": "445458ff28354dae9f3b9f6581ed854a182d57412458830b4c3e56e277fb0c65"
+    },
+    {
+      "clause_key": "dbs.accounts/k.1",
+      "clause_ref": "Section K, clause 1",
+      "heading_path": ["K ADDITIONAL TERMS AND CONDITIONS GOVERNING eMYSAVINGS ACCOUNT + (“eMSA+”)", "OPENING OF ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [27],
+      "text_sha256": "905c01854922e0ed236e9edbd8b827a2bc2738eada0c00022f568cce36771c5f"
+    },
+    {
+      "clause_key": "dbs.accounts/k.2",
+      "clause_ref": "Section K, clause 2",
+      "heading_path": ["K ADDITIONAL TERMS AND CONDITIONS GOVERNING eMYSAVINGS ACCOUNT + (“eMSA+”)", "DEPOSITS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [27, 28],
+      "text_sha256": "792fec37114e44ef99496e85c01a51042748cf3e3e8290af489cf537860cf43e"
+    },
+    {
+      "clause_key": "dbs.accounts/k.3",
+      "clause_ref": "Section K, clause 3",
+      "heading_path": ["K ADDITIONAL TERMS AND CONDITIONS GOVERNING eMYSAVINGS ACCOUNT + (“eMSA+”)", "WITHDRAWALS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [28],
+      "text_sha256": "573b81df489ea793ddb2f408e2954b2bbd40e52882527c22f23846fed64a5ab4"
+    },
+    {
+      "clause_key": "dbs.accounts/k.4",
+      "clause_ref": "Section K, clause 4",
+      "heading_path": ["K ADDITIONAL TERMS AND CONDITIONS GOVERNING eMYSAVINGS ACCOUNT + (“eMSA+”)", "INTEREST"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [28],
+      "text_sha256": "1ece4dd6dae18528215252baa8b85c9ac4d1a664ad5e45616be5dde13a48030b"
+    },
+    {
+      "clause_key": "dbs.accounts/k.5",
+      "clause_ref": "Section K, clause 5",
+      "heading_path": ["K ADDITIONAL TERMS AND CONDITIONS GOVERNING eMYSAVINGS ACCOUNT + (“eMSA+”)", "CLOSURE OF ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [28],
+      "text_sha256": "5e0660836a3ff1540a78c46f8b0cd204dbe5508c075e4c6ce6a583d671724d3d"
+    },
+    {
+      "clause_key": "dbs.accounts/k.6",
+      "clause_ref": "Section K, clause 6",
+      "heading_path": ["K ADDITIONAL TERMS AND CONDITIONS GOVERNING eMYSAVINGS ACCOUNT + (“eMSA+”)", "OTHERS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [28],
+      "text_sha256": "cfb0d17cc7d3b0a4f7d053161c231541b29b40e9f0e801843451f07d36e6f0d9"
+    },
+    {
+      "clause_key": "dbs.accounts/l.1",
+      "clause_ref": "Section L, clause 1",
+      "heading_path": ["L ADDITIONAL TERMS AND CONDITIONS GOVERNING eMYSAVINGS ACCOUNT (MSA) – Home (“eMSA – Home”)", "OPENING OF ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [29],
+      "text_sha256": "4eb76972fda5c2c1806ee4434b11e219dd93133513221bff2a1e9642742906f6"
+    },
+    {
+      "clause_key": "dbs.accounts/l.2",
+      "clause_ref": "Section L, clause 2",
+      "heading_path": ["L ADDITIONAL TERMS AND CONDITIONS GOVERNING eMYSAVINGS ACCOUNT (MSA) – Home (“eMSA – Home”)", "INTEREST"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [29],
+      "text_sha256": "96a816daccb88308dffd045cc6cdfdb59713a73de65ea3d95e83c1f90c5b49e6"
+    },
+    {
+      "clause_key": "dbs.accounts/l.3",
+      "clause_ref": "Section L, clause 3",
+      "heading_path": ["L ADDITIONAL TERMS AND CONDITIONS GOVERNING eMYSAVINGS ACCOUNT (MSA) – Home (“eMSA – Home”)", "DEPOSITS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [29, 30],
+      "text_sha256": "a4eaba12ceb94c5157cd39753eefd988dfbb67ade8087787503adbb5aea5465e"
+    },
+    {
+      "clause_key": "dbs.accounts/l.4",
+      "clause_ref": "Section L, clause 4",
+      "heading_path": ["L ADDITIONAL TERMS AND CONDITIONS GOVERNING eMYSAVINGS ACCOUNT (MSA) – Home (“eMSA – Home”)", "WITHDRAWALS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [30],
+      "text_sha256": "eb3661af5545d75f054f54ece37c341927862aae42cd6b73dba08a6affde11bf"
+    },
+    {
+      "clause_key": "dbs.accounts/l.5",
+      "clause_ref": "Section L, clause 5",
+      "heading_path": ["L ADDITIONAL TERMS AND CONDITIONS GOVERNING eMYSAVINGS ACCOUNT (MSA) – Home (“eMSA – Home”)", "CLOSURE OF ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [30],
+      "text_sha256": "75c6dcf02048e8f094eaf2de87f3b494e646d81e34425eab1bdae12414faa0ba"
+    },
+    {
+      "clause_key": "dbs.accounts/l.6",
+      "clause_ref": "Section L, clause 6",
+      "heading_path": ["L ADDITIONAL TERMS AND CONDITIONS GOVERNING eMYSAVINGS ACCOUNT (MSA) – Home (“eMSA – Home”)", "OTHERS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [30],
+      "text_sha256": "6db433fb447d211578121159b71c8ffbc8b22ae98d996b274acfaf5eb512c10a"
+    },
+    {
+      "clause_key": "dbs.accounts/m.1",
+      "clause_ref": "Section M, clause 1",
+      "heading_path": ["M ADDITIONAL TERMS AND CONDITIONS GOVERNING MULTIPLIER ACCOUNT (“MULTIPLIER TERMS”)", "ACCOUNT OPENING"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [30],
+      "text_sha256": "22953d77527e70e53569a73d3841433c4856dcc32d9daf677a7506ef0b32dfd7"
+    },
+    {
+      "clause_key": "dbs.accounts/m.2",
+      "clause_ref": "Section M, clause 2",
+      "heading_path": ["M ADDITIONAL TERMS AND CONDITIONS GOVERNING MULTIPLIER ACCOUNT (“MULTIPLIER TERMS”)", "INTEREST"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [30, 31],
+      "text_sha256": "c0df475f55f4c05666891803a6483007ef92017ec88e828e63a5110dff50704c"
+    },
+    {
+      "clause_key": "dbs.accounts/m.3",
+      "clause_ref": "Section M, clause 3",
+      "heading_path": ["M ADDITIONAL TERMS AND CONDITIONS GOVERNING MULTIPLIER ACCOUNT (“MULTIPLIER TERMS”)", "ELIGIBILITY OF TRANSACTIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [31, 32, 33],
+      "text_sha256": "15c5235dcd9faa59b4c416b3c22a5b693d2825dd8cb092501441e127158b668c"
+    },
+    {
+      "clause_key": "dbs.accounts/m.4",
+      "clause_ref": "Section M, clause 4",
+      "heading_path": ["M ADDITIONAL TERMS AND CONDITIONS GOVERNING MULTIPLIER ACCOUNT (“MULTIPLIER TERMS”)", "GENERAL"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [33, 34],
+      "text_sha256": "7616e03f2fee195795c968685a4854b8aaadcfdc5aa347973006c40665516849"
+    },
+    {
+      "clause_key": "dbs.accounts/n.1",
+      "clause_ref": "Section N, clause 1",
+      "heading_path": ["N ADDITIONAL TERMS AND CONDITIONS GOVERNING RMB DENOMINATED DEPOSITS AND TELEGRAPHPIC TRANSFERS", "GENERAL"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [34],
+      "text_sha256": "3bf580613c23ec47d5176e9baf55ee7279ad2754495569e95f3c318c2fe6f886"
+    },
+    {
+      "clause_key": "dbs.accounts/n.2",
+      "clause_ref": "Section N, clause 2",
+      "heading_path": ["N ADDITIONAL TERMS AND CONDITIONS GOVERNING RMB DENOMINATED DEPOSITS AND TELEGRAPHPIC TRANSFERS", "RMB DEPOSITS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [34],
+      "text_sha256": "38aa2df443f9e6bea921d346efbec7807d9bc4d0433572914883532adca0d7cd"
+    },
+    {
+      "clause_key": "dbs.accounts/n.3",
+      "clause_ref": "Section N, clause 3",
+      "heading_path": ["N ADDITIONAL TERMS AND CONDITIONS GOVERNING RMB DENOMINATED DEPOSITS AND TELEGRAPHPIC TRANSFERS", "RMB TELEGRAPHIC TRANSFERS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [34, 35],
+      "text_sha256": "91dd4da5f9549b2450e34a6335721df89a28b9e5288ddd451b0fcfc65a2880dd"
+    },
+    {
+      "clause_key": "dbs.accounts/n.4",
+      "clause_ref": "Section N, clause 4",
+      "heading_path": ["N ADDITIONAL TERMS AND CONDITIONS GOVERNING RMB DENOMINATED DEPOSITS AND TELEGRAPHPIC TRANSFERS", "RISKS ASSOCIATED WITH RMB DEPOSITS AND RMB TELEGRAPHIC TRANSFERS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [35],
+      "text_sha256": "3c956823745d31f23926523f2c1ee8e422aa8167e7201f82ead3a434f840f325"
+    },
+    {
+      "clause_key": "dbs.accounts/o.1",
+      "clause_ref": "Section O, clause 1",
+      "heading_path": ["O ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB CHILD DEVELOPMENT ACCOUNT (“POSB CDA”)", "DEFINITIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [35],
+      "text_sha256": "0dd40d0a7516eee965ccdf79745d3938e4ed55eef5d68f981527151b8c1f45c9"
+    },
+    {
+      "clause_key": "dbs.accounts/o.2",
+      "clause_ref": "Section O, clause 2",
+      "heading_path": ["O ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB CHILD DEVELOPMENT ACCOUNT (“POSB CDA”)", "OPENING OF POSB CDA"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [35, 36],
+      "text_sha256": "bcf8be964e3206c156a5fa26ca1392e8d7d9a955f215918e70138dee3d0ce843"
+    },
+    {
+      "clause_key": "dbs.accounts/o.3",
+      "clause_ref": "Section O, clause 3",
+      "heading_path": ["O ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB CHILD DEVELOPMENT ACCOUNT (“POSB CDA”)", "OPENING OF ACCOUNTS TOGETHER WITH POSB CDA"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [36],
+      "text_sha256": "c6b91cf2dcd3f1988038aec86101d6895ee879fc0a10472c79e104636ab1a403"
+    },
+    {
+      "clause_key": "dbs.accounts/o.4",
+      "clause_ref": "Section O, clause 4",
+      "heading_path": ["O ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB CHILD DEVELOPMENT ACCOUNT (“POSB CDA”)", "MATCHING GOVERNMENT CONTRIBUTION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [36],
+      "text_sha256": "0b20a4d4ca67eee758e53b20ddc20942b690c1ada535996e9443484d50d3968c"
+    },
+    {
+      "clause_key": "dbs.accounts/o.5",
+      "clause_ref": "Section O, clause 5",
+      "heading_path": ["O ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB CHILD DEVELOPMENT ACCOUNT (“POSB CDA”)", "OPERATION OF POSB CDA"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [36],
+      "text_sha256": "9bc283dae9df2c56edb8e7f255eee111ee8f7b4d690593219c0f2e5b5319895e"
+    },
+    {
+      "clause_key": "dbs.accounts/o.6",
+      "clause_ref": "Section O, clause 6",
+      "heading_path": ["O ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB CHILD DEVELOPMENT ACCOUNT (“POSB CDA”)", "CHANGE OF TRUSTEE"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [36],
+      "text_sha256": "6c807860ecdad059c6c449032b3903b27c6e913e5c33dfd6b8660d98f4a2553f"
+    },
+    {
+      "clause_key": "dbs.accounts/o.7",
+      "clause_ref": "Section O, clause 7",
+      "heading_path": ["O ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB CHILD DEVELOPMENT ACCOUNT (“POSB CDA”)", "DEATH OF MEMBER"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [36],
+      "text_sha256": "b8701dac4289d03daa3335f3bc0d923073025b968e54a01642258d8143e49325"
+    },
+    {
+      "clause_key": "dbs.accounts/o.8",
+      "clause_ref": "Section O, clause 8",
+      "heading_path": ["O ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB CHILD DEVELOPMENT ACCOUNT (“POSB CDA”)", "CLOSURE OF POSB CDA"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [36, 37],
+      "text_sha256": "5ffb1ab05236ab7ee57b996f40e6ae628ae9411c00d4f1c502649bec2870a1be"
+    },
+    {
+      "clause_key": "dbs.accounts/o.9",
+      "clause_ref": "Section O, clause 9",
+      "heading_path": ["O ADDITIONAL TERMS AND CONDITIONS GOVERNING POSB CHILD DEVELOPMENT ACCOUNT (“POSB CDA”)", "PERSONAL DATA AND CONSENT FOR DISCLOSURE"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [37],
+      "text_sha256": "3e048b431f04d4676ec858b9b011ba75e097eba0663dbb327e05a305db06ee2c"
+    },
+    {
+      "clause_key": "dbs.accounts/p.1",
+      "clause_ref": "Section P, clause 1",
+      "heading_path": ["P ADDITIONAL TERMS AND CONDITIONS GOVERNING PAYLAH! ACCOUNT (“PAYLAH! TERMS WITH EFFECT FROM 30", "ACCOUNT OPENING"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [37],
+      "text_sha256": "c6fd5cbee9126d1850dfbf895735b0bbd1c716d17bfbcb841cf5ccb0e7b0c76e"
+    },
+    {
+      "clause_key": "dbs.accounts/p.2",
+      "clause_ref": "Section P, clause 2",
+      "heading_path": ["P ADDITIONAL TERMS AND CONDITIONS GOVERNING PAYLAH! ACCOUNT (“PAYLAH! TERMS WITH EFFECT FROM 30", "OPERATION OF PAYLAH! ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [37],
+      "text_sha256": "ec6b8b32d95a77d34851b75172cffcc8bd2e670b0bc945b28ec4c4c8963c79ff"
+    },
+    {
+      "clause_key": "dbs.accounts/q.1",
+      "clause_ref": "Section Q, clause 1",
+      "heading_path": ["Q ADDITIONAL TERMS AND CONDITIONS GOVERNING ELECTRONIC DEFERRED PAYMENT (EDP) SERVICE", "EDP SCHEME"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [38],
+      "text_sha256": "de6f6a92326654fb2c4c79e86a014fefc66f0564e62d54c11e435e2998f7cff3"
+    },
+    {
+      "clause_key": "dbs.accounts/q.2",
+      "clause_ref": "Section Q, clause 2",
+      "heading_path": ["Q ADDITIONAL TERMS AND CONDITIONS GOVERNING ELECTRONIC DEFERRED PAYMENT (EDP) SERVICE", "DEFINITIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [38],
+      "text_sha256": "a3387ad61daeb29e25ed9c992a66ead4da7ed6980da58c17a70d7b42e3c48449"
+    },
+    {
+      "clause_key": "dbs.accounts/q.3",
+      "clause_ref": "Section Q, clause 3",
+      "heading_path": ["Q ADDITIONAL TERMS AND CONDITIONS GOVERNING ELECTRONIC DEFERRED PAYMENT (EDP) SERVICE", "TRANSACTIONS VIA EDP SCHEME"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [39, 40, 41, 42, 43, 44],
+      "text_sha256": "a90d01ba97bd91e4816088c8617c6dd92fc2d6e4416a61dbc40d3041c39c9fda"
+    },
+    {
+      "clause_key": "dbs.accounts/q.4",
+      "clause_ref": "Section Q, clause 4",
+      "heading_path": ["Q ADDITIONAL TERMS AND CONDITIONS GOVERNING ELECTRONIC DEFERRED PAYMENT (EDP) SERVICE", "COLLECTION, USE, DISCLOSURE AND PROCESSING OF INFORMATION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [44],
+      "text_sha256": "dc6357a44d427923f79ff4e75b3c9907d30d3695ad84ccd4206294a3269ad6af"
+    },
+    {
+      "clause_key": "dbs.accounts/q.5",
+      "clause_ref": "Section Q, clause 5",
+      "heading_path": ["Q ADDITIONAL TERMS AND CONDITIONS GOVERNING ELECTRONIC DEFERRED PAYMENT (EDP) SERVICE", "LIABILITY"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [45],
+      "text_sha256": "f781ee0191277ffd0801732ed3e2b0c6a1cdbf3ed98e1a3315e32ce0dcd48262"
+    },
+    {
+      "clause_key": "dbs.accounts/q.6",
+      "clause_ref": "Section Q, clause 6",
+      "heading_path": ["Q ADDITIONAL TERMS AND CONDITIONS GOVERNING ELECTRONIC DEFERRED PAYMENT (EDP) SERVICE", "GENERAL"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [45],
+      "text_sha256": "0840c2487b9ac59d766837651d09954614873a2970150c522c51bdbbbb820de8"
+    }
+  ]
+}
