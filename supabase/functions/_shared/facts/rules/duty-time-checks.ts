@@ -9,49 +9,54 @@
 // Each line states what the record shows and carries the clause key; the expected side is the clause text in force on
 // the payment date, read through the provider. No line says whether a duty was met.
 
-import { formatMoney } from "../display.ts";
 import type { InstitutionType } from "../keys.ts";
-import type {
-  AccessEvent,
-  AccessEventKind,
-  CardAuthEvent,
-  ComparisonOutcome,
-  DisputedPayment,
-  IsoDate,
-  IsoDateTime,
-  RuleClauseKey,
-  SectionBuilder,
-  SectionInput,
-  SectionResult,
+import {
+  type AccessEvent,
+  type AccessEventKind,
+  type CardAuthEvent,
+  type ComparisonOutcome,
+  type DisputedPayment,
+  type IsoDate,
+  type IsoDateTime,
+  recognitionAnswerFor,
+  type RuleClauseKey,
+  type SectionBuilder,
+  type SectionInput,
+  type SectionResult,
+  STATEMENT_KEYS,
+  TWELVE_HOUR_EXCLUDED_KINDS,
+  TWELVE_HOUR_NAMED_KINDS,
+  TWELVE_HOUR_WINDOW_MS,
+  type TwelveHourActivity,
+  type TwelveHourBlock,
 } from "../update/contract.ts";
+import { deviceRecognitionSentence, formatDate, formatDateTime as formatTime, formatGap, formatMoney } from "../update/section-writer.ts";
 import {
   businessDaysBetween,
   calendarDaysBetween,
+  ComparisonWriter,
   earliestDate,
   evidenceFor,
   factValue,
-  formatDate,
-  formatDuration,
-  formatTime,
   HOUR,
   localDate,
   ms,
   type PaymentGroup,
   paymentsIn,
   paymentTime,
-  SectionWriter,
 } from "./link-statements.ts";
+import { SG_PUBLIC_HOLIDAY_DATES, sgHolidayListCovers } from "./sg-public-holidays.ts";
 import { assessSrf, srfFactsFromSnapshot } from "./srf.ts";
 
-// proposed key, awaiting Elena's approval and Lane 6's contract update
-// Brief 4a: where a card was added to a wallet inside the 12 hours after a token activation, the cooling-off check
-// prints a reviewed statement that the definition of high-risk activities does not name adding a card to a mobile
-// wallet. One statement per framework, because the brief asks for an EUPG version of it (EUPG 2.1 may be
-// non-exhaustive; the SRF's 2.1 is closed).
-export const PROPOSED_HIGH_RISK_WALLET_STATEMENT_KEYS = {
-  srf: "srf.highrisk.wallet",
-  eupg: "eupg.highrisk.wallet",
-} as const;
+/**
+ * The statements the 12-hour block prints (Decision 4; Decision 9 keys): both definitions in every case, and the
+ * Section 4 card sentence where there are card payments. They replace the proposed `*.highrisk.wallet` keys.
+ */
+export const TWELVE_HOUR_STATEMENT_KEYS = {
+  srfDefinition: "srf.highrisk.definition",
+  eupgDefinition: "eupg.highrisk.definition",
+  eupgSection4Cards: "eupg.section4.cards",
+} as const satisfies Record<string, (typeof STATEMENT_KEYS)[keyof typeof STATEMENT_KEYS][number]>;
 
 /** The clause each row compares against, per framework (CLAUSE_KEYS.duty_time_checks). */
 export const DUTY_TIME_CLAUSES = {
@@ -146,7 +151,7 @@ export function alertFor(event: AccessEvent, events: readonly AccessEvent[]): Ac
 
 function alertWords(alert: AccessEvent | null, event: AccessEvent): string {
   if (!alert) return "The record shows no alert between this event and the next recorded event.";
-  const lag = formatDuration(ms(alert.timestamp)! - ms(event.timestamp)!);
+  const lag = formatGap(ms(alert.timestamp)! - ms(event.timestamp)!);
   return `The record shows an alert sent at ${formatTime(alert.timestamp!)}${alert.sentTo ? ` to ${alert.sentTo}` : ""}${alert.channel ? ` by ${alert.channel}` : ""}, ${lag} after it.`;
 }
 
@@ -211,18 +216,22 @@ function drainPayments(input: SectionInput, account: readonly DisputedPayment[])
 // ---------------------------------------------------------------------------------------------------------------
 
 export interface DutyTimeCheckOptions {
-  /** Public holidays left out of the business-day count (SRF 7.9). The brief names no list; none by default. */
+  /**
+   * Public holidays left out of the business-day count (SRF 7.9). Default: the Singapore list (Decision 11,
+   * sg-public-holidays.ts), used only where it holds both years. A list given here is used for any dates.
+   */
   publicHolidays?: Iterable<IsoDate>;
 }
 
 interface Context {
   input: SectionInput;
-  w: SectionWriter;
+  w: ComparisonWriter;
   srfInScope: boolean;
   institutionType: InstitutionType | null;
   access: AccessEvent[] | null;
   cards: CardAuthEvent[] | null;
-  holidays: Set<IsoDate>;
+  holidays: ReadonlySet<IsoDate>;
+  holidaysCover: (from: IsoDate, to: IsoDate) => boolean;
 }
 
 interface Row {
@@ -266,7 +275,7 @@ async function coolingOff(ctx: Context, account: DisputedPayment[]): Promise<voi
     const parts = [`The record shows ${eventWords(trigger)}${trigger.authorisedBy ? `, authorised by ${trigger.authorisedBy}` : ""}.`];
     if (trigger.kind === "token_activated" && method === "mailed_code") parts.push("The record shows the token was activated with a code sent by post; the time shown is the activation.");
     const firstPayment = firstPaymentTimes.find((p) => ms(p)! >= t);
-    if (firstPayment) parts.push(`The first disputed payment after it is at ${formatTime(firstPayment)}, ${formatDuration(ms(firstPayment)! - t)} after it.`);
+    if (firstPayment) parts.push(`The first disputed payment after it is at ${formatTime(firstPayment)}, ${formatGap(ms(firstPayment)! - t)} after it.`);
 
     const inWindow = byTime(access).filter((e) => isHighRisk(e) && ms(e.timestamp)! >= t && ms(e.timestamp)! - t < COOLING_OFF_MS);
     if (!inWindow.length) {
@@ -280,28 +289,117 @@ async function coolingOff(ctx: Context, account: DisputedPayment[]): Promise<voi
     for (const activity of inWindow) {
       await row(ctx, {
         ...base,
-        record: [...parts, `The record shows ${eventWords(activity)}, ${formatDuration(ms(activity.timestamp)! - t)} after it.`].join(" "),
+        record: [...parts, `The record shows ${eventWords(activity)}, ${formatGap(ms(activity.timestamp)! - t)} after it.`].join(" "),
         outcome: "differs",
         evidenceIds: ev,
       });
     }
   }
+}
 
-  // A card added to a mobile wallet inside the 12 hours after a token activation (4a, last paragraph).
-  const activations = triggers.filter((e) => e.kind === "token_activated");
-  for (const card of ctx.cards ?? []) {
-    const added = ms(card.walletProvisionedAt);
-    if (added === null) continue;
-    const activation = activations.find((a) => added >= ms(a.timestamp)! && added - ms(a.timestamp)! < COOLING_OFF_MS);
-    if (!activation) continue;
-    const cardEv = evidenceFor(input, "access_events", "card_auth_events");
-    ctx.w.text(
-      `The record shows the card added to a mobile wallet at ${formatTime(card.walletProvisionedAt!)}${device(card.walletDeviceLabel)}, ${formatDuration(added - ms(activation.timestamp)!)} after the digital token was activated.`,
-      cardEv,
-    );
-    const key = ctx.srfInScope ? PROPOSED_HIGH_RISK_WALLET_STATEMENT_KEYS.srf : PROPOSED_HIGH_RISK_WALLET_STATEMENT_KEYS.eupg;
-    await ctx.w.statement(key, onDate, cardEv);
-    break;
+// ---------------------------------------------------------------------------------------------------------------
+// "The 12 hours after the digital token was activated" (Decision 4)
+// ---------------------------------------------------------------------------------------------------------------
+
+/**
+ * Every activity the records show from the trigger up to 12 hours after it (a line at exactly 12 hours is outside, as
+ * in the cooling-off rows), in the two groups of Decision 4. The institution's own messages (alerts and one-time codes
+ * sent) are not listed. A card added to a wallet and a card payment are listed from the card record.
+ */
+export function twelveHourActivities(
+  trigger: AccessEvent,
+  access: readonly AccessEvent[],
+  cards: readonly CardAuthEvent[],
+  evidence: { access: string[]; cards: string[] },
+): { named: TwelveHourActivity[]; other: TwelveHourActivity[] } {
+  const start = ms(trigger.timestamp)!;
+  const inWindow = (t: number | null): t is number => t !== null && t >= start && t - start < TWELVE_HOUR_WINDOW_MS;
+  const activities: Array<{ activity: TwelveHourActivity; named: boolean }> = [];
+  access.forEach((e, index) => {
+    const t = ms(e.timestamp);
+    if (e === trigger || !inWindow(t) || (TWELVE_HOUR_EXCLUDED_KINDS as readonly string[]).includes(e.kind)) return;
+    activities.push({
+      activity: {
+        at: e.timestamp!,
+        sinceActivationMs: t - start,
+        source: { fact: "access_events", index, kind: e.kind },
+        deviceLabel: e.deviceLabel,
+        deviceRef: e.deviceRef,
+        evidenceIds: evidence.access,
+      },
+      named: (TWELVE_HOUR_NAMED_KINDS as readonly string[]).includes(e.kind),
+    });
+  });
+  cards.forEach((c, index) => {
+    const added = ms(c.walletProvisionedAt);
+    if (inWindow(added)) {
+      activities.push({
+        activity: {
+          at: c.walletProvisionedAt!,
+          sinceActivationMs: added - start,
+          source: { fact: "card_auth_events", index, kind: "wallet_provisioned" },
+          deviceLabel: c.walletDeviceLabel,
+          deviceRef: null,
+          evidenceIds: evidence.cards,
+        },
+        named: false,
+      });
+    }
+    const paid = ms(c.timestamp);
+    if (c.transactionIndex !== null && inWindow(paid)) {
+      activities.push({
+        activity: {
+          at: c.timestamp!,
+          sinceActivationMs: paid - start,
+          source: { fact: "card_auth_events", index, kind: "card_payment" },
+          deviceLabel: c.deviceLabel,
+          deviceRef: c.deviceRef,
+          evidenceIds: evidence.cards,
+        },
+        named: false,
+      });
+    }
+  });
+  activities.sort((a, b) => a.activity.sinceActivationMs - b.activity.sinceActivationMs);
+  return {
+    named: activities.filter((a) => a.named).map((a) => a.activity),
+    other: activities.filter((a) => !a.named).map((a) => a.activity),
+  };
+}
+
+/**
+ * One block per token activation (and per new-device login for an account issued by a payment service provider), in
+ * every case, card-only included. No outcome, no link statement, and no "high-risk" in the pack's own words: the
+ * documents speak only through the statements. The account cooling-off rows below are unchanged.
+ */
+async function twelveHourBlocks(ctx: Context, account: DisputedPayment[], card: DisputedPayment[]): Promise<void> {
+  const { input, access } = ctx;
+  if (!access) return;
+  const cards = ctx.cards ?? [];
+  const evidence = { access: evidenceFor(input, "access_events"), cards: evidenceFor(input, "card_auth_events") };
+  const triggers = coolingOffTriggers(access, account.length ? ctx.institutionType : null);
+  const walletCheckPointer = cards.some((c) => ms(c.walletProvisionedAt) !== null);
+  for (const trigger of triggers) {
+    const onDate = localDate(trigger.timestamp!);
+    const keys: string[] = [TWELVE_HOUR_STATEMENT_KEYS.srfDefinition, TWELVE_HOUR_STATEMENT_KEYS.eupgDefinition];
+    if (card.length) keys.push(TWELVE_HOUR_STATEMENT_KEYS.eupgSection4Cards);
+    const statements = [];
+    for (const key of keys) statements.push(await ctx.w.readStatement(key, onDate));
+    const block: TwelveHourBlock = {
+      trigger: trigger.kind === "token_activated" ? "token_activated" : "new_device_login",
+      activation: {
+        at: trigger.timestamp!,
+        index: access.indexOf(trigger),
+        deviceLabel: trigger.deviceLabel,
+        deviceRef: trigger.deviceRef,
+        tokenRef: trigger.tokenRef,
+        evidenceIds: evidence.access,
+      },
+      ...twelveHourActivities(trigger, access, cards, evidence),
+      statements,
+      walletCheckPointer,
+    };
+    ctx.w.twelveHours(block);
   }
 }
 
@@ -336,15 +434,8 @@ async function furtherLogins(ctx: Context, account: DisputedPayment[]): Promise<
   const recognition = factValue(input.facts, "device_recognition") ?? [];
   const ev = evidenceFor(input, "access_events", "device_recognition");
   for (const { login, activation } of logins) {
-    const answer = recognition.find((d) => d.deviceRef === login.deviceRef)?.answer;
-    const states =
-      answer === "not_mine"
-        ? "The complainant states that this device is not theirs."
-        : answer === "mine"
-          ? "The complainant states that this device is theirs."
-          : answer === "not_sure"
-            ? "The complainant states that they are not sure whether this device is theirs."
-            : "The complainant has not said whether this device is theirs.";
+    // What the complainant said, as said (Decision 2 forms; the not-sure rule does not change the sentence).
+    const states = deviceRecognitionSentence(recognitionAnswerFor(recognition, login), null);
     const parts = [
       `The institution's record shows ${eventWords(login)}.`,
       states,
@@ -354,9 +445,9 @@ async function furtherLogins(ctx: Context, account: DisputedPayment[]): Promise<
     if (login.authorisedBy && /token/i.test(login.authorisedBy)) {
       parts.push(`The record shows this login was approved with the digital token activated at ${formatTime(activation.timestamp!)}.`);
     }
-    ctx.w.text(parts.join(" "), ev);
+    ctx.w.text(parts.join(" "), { evidenceIds: ev });
   }
-  if (ctx.institutionType === "bank") await ctx.w.statement("srf.newdevice.bank", groupDate(account), evidenceFor(input, "access_events"));
+  if (ctx.institutionType === "bank") await ctx.w.statementOn("srf.newdevice.bank", groupDate(account), evidenceFor(input, "access_events"));
 }
 
 async function paymentAlerts(ctx: Context, group: PaymentGroup, payments: DisputedPayment[]): Promise<void> {
@@ -449,6 +540,21 @@ async function fraudSurveillance(ctx: Context, account: DisputedPayment[]): Prom
     }
   }
 
+  // EUPG 4.21 starts on 16 June 2025, like SRF 4.2.5 (EUPG 1.5; Lane 1). Before it, the line prints the date the SRF
+  // row prints, as not_applicable, with the paragraph as it reads from its start (review of 24 Nov 2026, Lane 3 issue 3).
+  if (onDate && onDate < FRAUD_SURVEILLANCE_FROM) {
+    await ctx.w.compare({
+      clauseKey: DUTY_TIME_CLAUSES.fraudSurveillance.eupg,
+      onDate: FRAUD_SURVEILLANCE_FROM,
+      record: `The first disputed payment from the account is dated ${formatDate(onDate)}.`,
+      outcome: "not_applicable",
+      evidenceIds: evidenceFor(input, "transactions"),
+      group: "account",
+      payments: account,
+    });
+    return;
+  }
+
   // EUPG 4.21 gives no figures: the record cannot show what the institution's monitoring identified.
   const times = account.map((p) => paymentTime(p, access ?? [], ctx.cards ?? [])).filter((t): t is IsoDateTime => Boolean(t)).sort((a, b) => ms(a)! - ms(b)!);
   const parts = [
@@ -531,8 +637,10 @@ async function investigationTime(ctx: Context, account: DisputedPayment[]): Prom
   if (!reply || reply.status !== "final_reply" || !reply.date) {
     return row(ctx, { ...base, record: `The complainant reported to the institution on ${formatDate(report.date)}. The records provided do not show a final reply.`, outcome: "not_shown", evidenceIds: ev });
   }
-  const days = businessDaysBetween(report.date, reply.date, ctx.holidays);
-  const counting = ctx.holidays.size ? "Monday to Friday, less public holidays" : "Monday to Friday; public holidays not deducted";
+  // Decision 11: the Singapore list, where it covers both dates; the line says how the days were counted.
+  const holidays = ctx.holidaysCover(report.date, reply.date) ? ctx.holidays : new Set<IsoDate>();
+  const days = businessDaysBetween(report.date, reply.date, holidays);
+  const counting = holidays.size ? "Monday to Friday, less public holidays" : "Monday to Friday; public holidays not deducted";
   const record = `The complainant reported to the institution on ${formatDate(report.date)}. The institution's final reply is dated ${formatDate(reply.date)}, ${days} business day${days === 1 ? "" : "s"} later (${counting}).`;
   if (days <= INVESTIGATION_BUSINESS_DAYS) return row(ctx, { ...base, record, outcome: "matches", evidenceIds: ev });
   if (days <= INVESTIGATION_BUSINESS_DAYS_COMPLEX) {
@@ -612,9 +720,10 @@ async function holderReportingTime(ctx: Context, account: DisputedPayment[]): Pr
 }
 
 export function createDutyTimeChecks(options: DutyTimeCheckOptions = {}): SectionBuilder {
-  const holidays = new Set(options.publicHolidays ?? []);
+  const holidays: ReadonlySet<IsoDate> = options.publicHolidays ? new Set(options.publicHolidays) : SG_PUBLIC_HOLIDAY_DATES;
+  const holidaysCover = options.publicHolidays ? () => true : sgHolidayListCovers;
   return async (input: SectionInput): Promise<SectionResult> => {
-    const w = new SectionWriter("duty_time_checks", input.provider);
+    const w = new ComparisonWriter("duty_time_checks", input);
     const srf = assessSrf(srfFactsFromSnapshot(input.facts as never)).portions.find((p) => p.kind === "srf");
     const ctx: Context = {
       input,
@@ -624,9 +733,13 @@ export function createDutyTimeChecks(options: DutyTimeCheckOptions = {}): Sectio
       access: factValue(input.facts, "access_events"),
       cards: factValue(input.facts, "card_auth_events"),
       holidays,
+      holidaysCover,
     };
     const account = paymentsIn(input.payments, "account");
     const card = paymentsIn(input.payments, "card");
+
+    // Decision 4: the 12 hours after each token activation, at the top of the section, in every case.
+    if (account.length || card.length) await twelveHourBlocks(ctx, account, card);
 
     if (account.length) {
       await coolingOff(ctx, account);
@@ -648,5 +761,5 @@ export function createDutyTimeChecks(options: DutyTimeCheckOptions = {}): Sectio
   };
 }
 
-/** Section `duty_time_checks` (brief 4a), with no public holidays configured. */
+/** Section `duty_time_checks` (brief 4a), counting business days with the Singapore public holidays. */
 export const buildDutyTimeChecks: SectionBuilder = createDutyTimeChecks();

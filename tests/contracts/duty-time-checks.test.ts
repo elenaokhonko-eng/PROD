@@ -7,7 +7,7 @@ import {
   buildDutyTimeChecks,
   createDutyTimeChecks,
   DUTY_TIME_CLAUSES,
-  PROPOSED_HIGH_RISK_WALLET_STATEMENT_KEYS,
+  TWELVE_HOUR_STATEMENT_KEYS,
 } from '../../supabase/functions/_shared/facts/rules/duty-time-checks.ts'
 import {
   CLAUSE_KEYS,
@@ -16,7 +16,10 @@ import {
   type FakeCorpus,
   type SectionResult,
   STATEMENT_KEYS,
+  TWELVE_HOUR_BLOCK_HEADINGS,
+  type TwelveHourBlock,
 } from '../../supabase/functions/_shared/facts/update/contract.ts'
+import { formatGap } from '../../supabase/functions/_shared/facts/update/section-writer.ts'
 import {
   accountSrfCase,
   cardOnlyCase,
@@ -61,8 +64,9 @@ function testCorpus(): FakeCorpus {
     })
   }
   approve('link.srf_4_2', ['mas.srf/4.2.1'])
-  approve(PROPOSED_HIGH_RISK_WALLET_STATEMENT_KEYS.srf, ['mas.srf/2.1'])
-  approve(PROPOSED_HIGH_RISK_WALLET_STATEMENT_KEYS.eupg, ['mas.eupg/2.1'])
+  approve(TWELVE_HOUR_STATEMENT_KEYS.srfDefinition, ['mas.srf/2.1(high-risk-activities)', 'mas.srf/4.2.1'])
+  approve(TWELVE_HOUR_STATEMENT_KEYS.eupgDefinition, ['mas.eupg/2.1(high-risk-activities)', 'mas.eupg/4.7'])
+  approve(TWELVE_HOUR_STATEMENT_KEYS.eupgSection4Cards, ['mas.eupg/4.7'])
   return corpus
 }
 
@@ -81,7 +85,7 @@ const access = (d: CaseSectionData) => d.facts.access_events!.value!
 
 test('every line carries a contract clause key or statement key; expected is the corpus text for the date', async () => {
   const allowedClauses = new Set<string>(CLAUSE_KEYS.duty_time_checks)
-  const allowedStatements = new Set<string>([...STATEMENT_KEYS.link, ...STATEMENT_KEYS.srf, ...Object.values(PROPOSED_HIGH_RISK_WALLET_STATEMENT_KEYS)])
+  const allowedStatements = new Set<string>([...STATEMENT_KEYS.link, ...STATEMENT_KEYS.srf])
   for (const c of FIDREC_UPDATE_CASES) {
     const r = await run(c.data)
     assert.equal(r.sectionId, 'duty_time_checks')
@@ -143,7 +147,7 @@ test('SRF clauses are cited only where assessSrf places the account payments in 
 })
 
 // ---------------------------------------------------------------------------------------------------------------
-// Cooling-off: 11 h 59 min / 12 h; the trigger by institution type; the wallet statement
+// Cooling-off: 11 hours 59 minutes / 12 hours; the trigger by institution type
 // ---------------------------------------------------------------------------------------------------------------
 
 function payeeAfterActivation(minutes: number): CaseSectionData {
@@ -157,7 +161,7 @@ function payeeAfterActivation(minutes: number): CaseSectionData {
 test('gate: a high-risk activity 11 h 59 min after the token activation differs; at 12 h it is outside the period', async () => {
   const inside = withKey(await run(payeeAfterActivation(11 * 60 + 59)), DUTY_TIME_CLAUSES.coolingOff.srf)
   assert.deepEqual(inside.map((c) => c.outcome), ['differs'])
-  assert.match(inside[0].record, /a payee added at 09:05 on 4 Jul 2025 .*, 11 h 59 min after it\./)
+  assert.match(inside[0].record, /a payee added at 09:05 on 4 July 2025 .*, 11 hours 59 minutes after it\./)
   const atTwelve = withKey(await run(payeeAfterActivation(12 * 60)), DUTY_TIME_CLAUSES.coolingOff.srf)
   assert.deepEqual(atTwelve.map((c) => c.outcome), ['matches'])
   assert.match(atTwelve[0].record, /no payee added, transaction limit increased, notifications disabled or contact details changed in the 12 hours/)
@@ -165,7 +169,7 @@ test('gate: a high-risk activity 11 h 59 min after the token activation differs;
 
 test('the cooling-off record prints the time to the first disputed payment as a fact', async () => {
   const [line] = withKey(await run(accountSrfCase.data), DUTY_TIME_CLAUSES.coolingOff.eupg)
-  assert.match(line.record, /The first disputed payment after it is at 21:40 on 3 Jul 2025, 0 h 34 min after it\./)
+  assert.match(line.record, /The first disputed payment after it is at 21:40 on 3 July 2025, 34 minutes after it\./)
   assert.deepEqual(line.evidenceIds, ['E4'])
 })
 
@@ -175,8 +179,8 @@ function newDeviceLoginCase(type: 'bank' | 'payment_service_provider'): CaseSect
   d.facts.access_events = {
     label: 'confirmed',
     value: [
-      { timestamp: '2025-07-03T20:00:00+08:00', kind: 'new_device_login', deviceLabel: 'Phone model EX-900', deviceRef: 'dev-ex-0900', ip: null, channel: 'mobile app', authorisedBy: 'password and SMS one-time code', sentTo: null, relatedTransactionIndex: null },
-      { timestamp: '2025-07-03T21:00:00+08:00', kind: 'payee_added', deviceLabel: 'Phone model EX-900', deviceRef: 'dev-ex-0900', ip: null, channel: 'mobile app', authorisedBy: 'SMS one-time code', sentTo: null, relatedTransactionIndex: null },
+      { timestamp: '2025-07-03T20:00:00+08:00', kind: 'new_device_login', deviceLabel: 'Phone model EX-900', deviceRef: 'dev-ex-0900', ip: null, channel: 'mobile app', authorisedBy: 'password and SMS one-time code', sentTo: null, tokenRef: null, relatedTransactionIndex: null },
+      { timestamp: '2025-07-03T21:00:00+08:00', kind: 'payee_added', deviceLabel: 'Phone model EX-900', deviceRef: 'dev-ex-0900', ip: null, channel: 'mobile app', authorisedBy: 'SMS one-time code', sentTo: null, tokenRef: null, relatedTransactionIndex: null },
     ],
   }
   return d
@@ -191,7 +195,7 @@ test('gate: new_device_login starts the cooling-off and calls for an alert for a
   const psp = await run(newDeviceLoginCase('payment_service_provider'))
   const cooling = withKey(psp, DUTY_TIME_CLAUSES.coolingOff.srf)
   assert.deepEqual(cooling.map((c) => c.outcome), ['differs'])
-  assert.match(cooling[0].record, /login recorded as from a new device at 20:00 on 3 Jul 2025.*a payee added at 21:00 on 3 Jul 2025.*1 h 0 min after it/)
+  assert.match(cooling[0].record, /login recorded as from a new device at 20:00 on 3 July 2025.*a payee added at 21:00 on 3 July 2025.*1 hour after it/)
   assert.ok(withKey(psp, DUTY_TIME_CLAUSES.eventAlerts.srf).some((c) => /login recorded as from a new device/.test(c.record) && c.outcome === 'differs'))
 })
 
@@ -199,12 +203,12 @@ test('further-device logins on a bank account: each login with its authenticatio
   const r = await run(accountSrfCase.data)
   const lines = texts(r).filter((t) => t.startsWith("The institution's record shows a login"))
   assert.equal(lines.length, 2)
-  assert.match(lines[0], /21:35 on 3 Jul 2025 from a device labelled 'Browser on desktop EX-PC'\. The complainant states that this device is not theirs\. The record shows the login was authorised by digital token\. The record shows no alert/)
-  assert.match(lines[0], /approved with the digital token activated at 21:06 on 3 Jul 2025\./)
+  assert.match(lines[0], /21:35 on 3 July 2025 from a device labelled 'Browser on desktop EX-PC'\. The complainant states that this device is not theirs\. The record shows the login was authorised by digital token\. The record shows no alert/)
+  assert.match(lines[0], /approved with the digital token activated at 21:06 on 3 July 2025\./)
   assert.match(lines[1], /'Tablet model EX-T1'\. The complainant states that they are not sure whether this device is theirs\./)
   const statement = statements(r).find((s) => s.statementKey === 'srf.newdevice.bank')
   assert.ok(statement)
-  assert.equal(statement.revision, 1, 'the revision checked against the wording in force on 3 Jul 2025')
+  assert.equal(statement.revision, 1, 'the revision checked against the wording in force on 3 July 2025')
   // The logins themselves are not cooling-off triggers for a bank.
   assert.ok(!withKey(r, DUTY_TIME_CLAUSES.coolingOff.srf).some((c) => /EX-PC|EX-T1/.test(c.record.split('.')[0])))
 })
@@ -215,30 +219,101 @@ test('further-device logins on a payment service provider account get the coolin
   const r = await run(d)
   assert.equal(statements(r).filter((s) => s.statementKey === 'srf.newdevice.bank').length, 0)
   const cooling = withKey(r, DUTY_TIME_CLAUSES.coolingOff.srf)
-  assert.ok(cooling.some((c) => c.record.startsWith("The record shows a login at 21:35 on 3 Jul 2025 from a device labelled 'Browser on desktop EX-PC'")))
-  assert.ok(cooling.some((c) => c.record.startsWith("The record shows a login at 07:05 on 4 Jul 2025 from a device labelled 'Tablet model EX-T1'")))
+  assert.ok(cooling.some((c) => c.record.startsWith("The record shows a login at 21:35 on 3 July 2025 from a device labelled 'Browser on desktop EX-PC'")))
+  assert.ok(cooling.some((c) => c.record.startsWith("The record shows a login at 07:05 on 4 July 2025 from a device labelled 'Tablet model EX-T1'")))
   const alerts = withKey(r, DUTY_TIME_CLAUSES.eventAlerts.srf)
   assert.ok(alerts.some((c) => /login at 21:35/.test(c.record) && c.outcome === 'differs'))
 })
 
-test('a card added to a mobile wallet inside the 12 hours after a token activation prints the high-risk-activity statement', async () => {
-  const withWallet = (minutes: number) => {
-    const d = clone(accountSrfCase.data)
-    const provisioned = new Date(Date.parse('2025-07-03T21:06:00+08:00') + minutes * 60_000 + 8 * 3_600_000).toISOString().replace('.000Z', '+08:00')
-    d.facts.card_auth_events = { label: 'confirmed', value: [{ ...cardOnlyCase.data.facts.card_auth_events!.value![0], walletProvisionedAt: provisioned, timestamp: provisioned }] }
-    d.evidenceIds.card_auth_events = ['E6']
-    return d
+// ---------------------------------------------------------------------------------------------------------------
+// "The 12 hours after the digital token was activated" (review of 24 Nov 2026, Decision 4). Replaces the wallet
+// statement test: `*.highrisk.wallet` is removed, and the block prints in every case, card-only included.
+// ---------------------------------------------------------------------------------------------------------------
+
+const blocks = (r: SectionResult): TwelveHourBlock[] => r.lines.flatMap((l) => (l.kind === 'twelve_hours' ? [l.block] : []))
+const kinds = (b: TwelveHourBlock, group: 'named' | 'other') => b[group].map((a) => a.source.kind)
+
+test('Decision 4: the card-only case prints the block with the wallet line (22 minutes) and the three card payments in group 2', async () => {
+  const r = await run(cardOnlyCase.data)
+  assert.equal(r.lines[0].kind, 'twelve_hours', 'at the top of the section')
+  const [block] = blocks(r)
+  assert.equal(blocks(r).length, 1)
+  assert.equal(block.trigger, 'token_activated')
+  assert.equal(block.activation.at, '2025-09-12T20:10:00+08:00')
+  assert.equal(block.activation.tokenRef, 'tok-ex-0102')
+  assert.deepEqual(block.named, [])
+  const wallet = block.other.find((a) => a.source.kind === 'wallet_provisioned')
+  assert.ok(wallet)
+  assert.equal(formatGap(wallet.sinceActivationMs), '22 minutes')
+  assert.equal(wallet.deviceLabel, 'Phone model EX-300')
+  assert.deepEqual(wallet.evidenceIds, ['E6'])
+  assert.deepEqual(block.other.filter((a) => a.source.kind === 'card_payment').map((a) => a.at), [
+    '2025-09-12T20:48:00+08:00',
+    '2025-09-12T21:02:00+08:00',
+    '2025-09-13T00:15:00+08:00',
+  ])
+  // The login is another activity; the alert (the institution's own message) and the block at 08:45 (outside) are not.
+  assert.deepEqual(kinds(block, 'other'), ['login', 'wallet_provisioned', 'card_payment', 'card_payment', 'card_payment'])
+  assert.equal(block.walletCheckPointer, true)
+  // Both definitions and, for card payments, the Section 4 sentence; statements, never a comparison.
+  assert.deepEqual(block.statements.map((s) => s.statementKey), ['srf.highrisk.definition', 'eupg.highrisk.definition', 'eupg.section4.cards'])
+  assert.ok(block.statements.every((s) => s.text !== null))
+  assert.equal(comparisons(r).filter((c) => c.clauseKey === 'mas.eupg/4.7').length, 0, 'no comparison against EUPG 4.7 for a card payment')
+})
+
+test('Decision 4: the account case prints the payee in group 1; the cooling-off rows stay as they were', async () => {
+  const r = await run(accountSrfCase.data)
+  const [block] = blocks(r)
+  assert.equal(r.lines[0].kind, 'twelve_hours')
+  assert.deepEqual(kinds(block, 'named'), ['payee_added'])
+  assert.equal(formatGap(block.named[0].sinceActivationMs), '14 minutes')
+  assert.ok(!kinds(block, 'other').some((k) => k === 'otp_sent' || k === 'alert_sent'))
+  assert.deepEqual(block.statements.map((s) => s.statementKey), ['srf.highrisk.definition', 'eupg.highrisk.definition'])
+  assert.equal(block.walletCheckPointer, false)
+  assert.deepEqual(withKey(r, DUTY_TIME_CLAUSES.coolingOff.srf).map((c) => c.outcome), ['differs'])
+  assert.equal(statements(r).filter((s) => s.statementKey === 'link.srf_4_2').length, 1)
+})
+
+test('Decision 4: both definitions print for an account case outside SRF scope too', async () => {
+  const out = clone(accountSrfCase.data)
+  out.facts.credentials_or_otp_shared = { value: 'not_shared', label: 'confirmed' }
+  out.facts.scam_type = { value: ['investment'], label: 'confirmed' }
+  const [block] = blocks(await run(out))
+  assert.deepEqual(block.statements.map((s) => s.statementKey), ['srf.highrisk.definition', 'eupg.highrisk.definition'])
+})
+
+test('Decision 4: a case with no token activation prints no block; a new-device login starts one only for a payment service provider', async () => {
+  const none = clone(accountSrfCase.data)
+  none.facts.access_events!.value = access(none).filter((e) => e.kind !== 'token_activated')
+  assert.equal(blocks(await run(none)).length, 0)
+  assert.equal(blocks(await run(noTechnicalRecordsCase.data)).length, 0)
+  assert.equal(blocks(await run(newDeviceLoginCase('bank'))).length, 0)
+  const psp = blocks(await run(newDeviceLoginCase('payment_service_provider')))
+  assert.equal(psp.length, 1)
+  assert.equal(psp[0].trigger, 'new_device_login')
+  assert.deepEqual(kinds(psp[0], 'named'), ['payee_added'])
+})
+
+test('Decision 4: an activity at exactly 12 hours is outside the block; 11 hours 59 minutes is inside', async () => {
+  const inside = blocks(await run(payeeAfterActivation(11 * 60 + 59)))[0]
+  assert.deepEqual(kinds(inside, 'named'), ['payee_added'])
+  const atTwelve = blocks(await run(payeeAfterActivation(12 * 60)))[0]
+  assert.deepEqual(kinds(atTwelve, 'named'), [])
+})
+
+test('Decision 4: no "high-risk" in the pack\'s own words, and the headings are the decided ones', async () => {
+  assert.deepEqual(TWELVE_HOUR_BLOCK_HEADINGS, {
+    block: 'The 12 hours after the digital token was activated',
+    named: 'Activities the definitions name',
+    other: 'Other activities the record shows in the 12 hours',
+  })
+  for (const c of FIDREC_UPDATE_CASES) {
+    const r = await run(c.data)
+    for (const line of r.lines) {
+      const text = line.kind === 'comparison' ? line.comparison.record : line.kind === 'text' ? line.text : ''
+      assert.doesNotMatch(text, /high-risk/i, `${c.id}: ${text}`)
+    }
   }
-  const inside = await run(withWallet(11 * 60 + 59))
-  const statement = statements(inside).find((s) => s.statementKey === PROPOSED_HIGH_RISK_WALLET_STATEMENT_KEYS.srf)
-  assert.ok(statement, 'SRF version where the payments are in SRF scope')
-  assert.equal(statement.text, `Placeholder statement ${PROPOSED_HIGH_RISK_WALLET_STATEMENT_KEYS.srf}.`)
-  assert.deepEqual(statement.evidenceIds, ['E4', 'E6'])
-  assert.ok(texts(inside).some((t) => /card added to a mobile wallet at 09:05 on 4 Jul 2025.*11 h 59 min after the digital token was activated/.test(t)))
-  const outside = await run(withWallet(12 * 60))
-  assert.equal(statements(outside).filter((s) => s.statementKey.endsWith('.highrisk.wallet')).length, 0)
-  // The fixture card case is card-only: the cooling-off row does not run for cards, so the statement does not print.
-  assert.equal(statements(await run(cardOnlyCase.data)).length, 0)
 })
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -248,14 +323,14 @@ test('a card added to a mobile wallet inside the 12 hours after a token activati
 test('alerts for the token activation and high-risk activities: the record shows one, or none before the next event', async () => {
   const lines = withKey(await run(accountSrfCase.data), DUTY_TIME_CLAUSES.eventAlerts.eupg)
   assert.deepEqual(lines.map((c) => c.outcome), ['matches', 'differs'])
-  assert.match(lines[0].record, /alert sent at 21:06 on 3 Jul 2025 to registered mobile number by sms/)
+  assert.match(lines[0].record, /alert sent at 21:06 on 3 July 2025 to registered mobile number by sms/)
   assert.match(lines[1].record, /a payee added at 21:20.*no alert between this event and the next recorded event/)
 })
 
 test('outgoing payment alerts: threshold not known is not_shown, below it not_applicable, at it compared', async () => {
   const lines = withKey(await run(accountSrfCase.data), DUTY_TIME_CLAUSES.paymentAlerts.srf)
   assert.deepEqual(lines.map((c) => c.outcome), ['matches', 'matches', 'differs'])
-  assert.match(lines[2].record, /^Payment 3 of S\$7,000 on 4 Jul 2025 is at or above the default threshold, S\$100\. The record shows no alert for it\.$/)
+  assert.match(lines[2].record, /^Payment 3 of S\$7,000 on 4 July 2025 is at or above the default threshold, S\$100\. The record shows no alert for it\.$/)
 
   const mixed = withKey(await run(mixedCase.data), DUTY_TIME_CLAUSES.paymentAlerts.eupg)
   assert.ok(mixed.length === 5 && mixed.every((c) => c.outcome === 'not_shown'))
@@ -301,8 +376,8 @@ test('gate: exactly 50% out within 24 hours does not reach the condition; over 5
   assert.match(exactly[0].record, /S\$28,000 \(3 payments\), 50\.00% of that balance/)
   const over = await fraud(drainCase({ amounts: [12_000, 12_500, 3_500.01] }))
   assert.equal(over[0].outcome, 'differs')
-  assert.match(over[0].record, /Payment 3, at 07:10 on 4 Jul 2025, brings the amount transferred out within 24 hours to S\$28,000\.01/)
-  assert.match(over[0].record, /does not show that payment 3 or any later payment was blocked or held; it shows access blocked at 09:30 on 4 Jul 2025\./)
+  assert.match(over[0].record, /Payment 3, at 07:10 on 4 July 2025, brings the amount transferred out within 24 hours to S\$28,000\.01/)
+  assert.match(over[0].record, /does not show that payment 3 or any later payment was blocked or held; it shows access blocked at 09:30 on 4 July 2025\./)
 })
 
 test('the fixture account case reaches both figures and prints balance, total and percentage', async () => {
@@ -317,14 +392,14 @@ test('a block recorded before the payment that crossed 50% is set beside it', as
   access(d).find((e) => e.kind === 'account_blocked')!.timestamp = '2025-07-04T07:00:00+08:00'
   const [line] = await fraud(d)
   assert.equal(line.outcome, 'matches')
-  assert.match(line.record, /The record shows access blocked at 07:00 on 4 Jul 2025\.$/)
+  assert.match(line.record, /The record shows access blocked at 07:00 on 4 July 2025\.$/)
 })
 
 test('gate: a payment on 15 June 2025 is before SRF 4.2.5 took effect; one on 16 June is compared', async () => {
   const before = await run(drainCase({ date: '2025-06-15' }))
   assert.equal(withKey(before, DUTY_TIME_CLAUSES.fraudSurveillance.srf).length, 0)
   const start = withKey(before, DUTY_TIME_CLAUSES.fraudSurveillanceStart.srf)
-  assert.deepEqual(start.map((c) => [c.outcome, c.record]), [['not_applicable', 'The first disputed payment from the account is dated 15 Jun 2025.']])
+  assert.deepEqual(start.map((c) => [c.outcome, c.record]), [['not_applicable', 'The first disputed payment from the account is dated 15 June 2025.']])
   assert.ok(start[0].expected, 'SRF 4.4 is in force and printed')
 
   const on = await run(drainCase({ date: '2025-06-16' }))
@@ -344,7 +419,7 @@ test('gate: an excluded payment type is left out of the percentage', async () =>
 test('EUPG 4.21 has no figures: the line prints the payments and any block, as not_shown', async () => {
   const [line] = withKey(await run(accountSrfCase.data), DUTY_TIME_CLAUSES.fraudSurveillance.eupg)
   assert.equal(line.outcome, 'not_shown')
-  assert.match(line.record, /3 disputed payments from the account between 21:40 on 3 Jul 2025 and 07:10 on 4 Jul 2025\. The record shows access blocked at 09:30 on 4 Jul 2025\./)
+  assert.match(line.record, /3 disputed payments from the account between 21:40 on 3 July 2025 and 07:10 on 4 July 2025\. The record shows access blocked at 09:30 on 4 July 2025\./)
 })
 
 test('the mixed case is before 16 June 2025 and below both figures', async () => {
@@ -368,7 +443,7 @@ test('gate: a final reply 21 business days after the report matches; 22 is withi
   const investigation = async (replied: string, builder = buildDutyTimeChecks) => withKey(await run(replyCase('2025-07-07', replied), builder), DUTY_TIME_CLAUSES.investigationTime.srf)[0]
   const at21 = await investigation('2025-08-05')
   assert.equal(at21.outcome, 'matches')
-  assert.match(at21.record, /reported to the institution on 7 Jul 2025\. The institution's final reply is dated 5 Aug 2025, 21 business days later \(Monday to Friday; public holidays not deducted\)\./)
+  assert.match(at21.record, /reported to the institution on 7 July 2025\. The institution's final reply is dated 5 August 2025, 21 business days later \(Monday to Friday, less public holidays\)\./)
   const at22 = await investigation('2025-08-06')
   assert.equal(at22.outcome, 'not_shown')
   assert.match(at22.record, /22 business days later.*do not show whether the institution treated the case as complex/)
@@ -388,7 +463,7 @@ test('gate: the account holder reports 30 calendar days after the first alert (m
   }
   const at30 = await holder('2025-08-02')
   assert.equal(at30[0].outcome, 'matches')
-  assert.match(at30[0].record, /first alert sent at 21:06 on 3 Jul 2025\. The complainant reported to the institution on 2 Aug 2025, 30 calendar days later\./)
+  assert.match(at30[0].record, /first alert sent at 21:06 on 3 July 2025\. The complainant reported to the institution on 2 August 2025, 30 calendar days later\./)
   assert.equal((await holder('2025-08-03'))[0].outcome, 'differs')
   // Supporting information: no fact records when it was given.
   assert.equal(at30[1].outcome, 'not_shown')
@@ -469,4 +544,46 @@ test('no record or fixed line carries verdict wording', async () => {
   assert.match('The bank was negligent', VERDICT, 'the pattern rejects verdict wording')
   assert.match('The institution failed to block', VERDICT)
   assert.match('a breach of the duty', VERDICT)
+})
+
+// ---------------------------------------------------------------------------------------------------------------
+// Review of 24 Nov 2026: EUPG 4.21 before 16 June 2025 (Lane 3 issue 3), public holidays (Decision 11), pronouns
+// (Decision 2)
+// ---------------------------------------------------------------------------------------------------------------
+
+test('EUPG 4.21 before 16 June 2025 prints the date line the SRF row prints, with the paragraph from its start', async () => {
+  for (const date of ['2025-06-15', '2025-05-20']) {
+    const d = drainCase({ date })
+    const [eupg] = withKey(await run(d), DUTY_TIME_CLAUSES.fraudSurveillance.eupg)
+    assert.equal(eupg.outcome, 'not_applicable')
+    assert.equal(eupg.record, `The first disputed payment from the account is dated ${date === '2025-06-15' ? '15 June 2025' : '20 May 2025'}.`)
+    assert.equal(eupg.expected, 'Placeholder text of mas.eupg/4.21.', 'not an empty Expected')
+  }
+  const r = await run(drainCase({ date: '2025-06-15' }))
+  assert.ok(!r.flags.some((f) => f.key === DUTY_TIME_CLAUSES.fraudSurveillance.eupg && f.code === 'clause_not_held'))
+  const [mixed] = withKey(await run(mixedCase.data), DUTY_TIME_CLAUSES.fraudSurveillance.eupg)
+  assert.equal(mixed.outcome, 'not_applicable')
+  const [on] = withKey(await run(drainCase({ date: '2025-06-16' })), DUTY_TIME_CLAUSES.fraudSurveillance.eupg)
+  assert.equal(on.outcome, 'not_shown', 'from 16 June 2025 the row reads the record as before')
+})
+
+test('Decision 11: Singapore public holidays are left out of the business-day count, and the line says so', async () => {
+  const investigation = async (reported: string, replied: string) => withKey(await run(replyCase(reported, replied)), DUTY_TIME_CLAUSES.investigationTime.srf)[0]
+  // Deepavali, Monday 20 October 2025: report on Friday 17 October, reply on Monday 17 November is 20 business days.
+  const deepavali = await investigation('2025-10-17', '2025-11-17')
+  assert.match(deepavali.record, /20 business days later \(Monday to Friday, less public holidays\)\./)
+  // Outside the years the list holds (2023), no holiday is deducted and the line says so.
+  const old = await investigation('2023-10-02', '2023-10-31')
+  assert.match(old.record, /21 business days later \(Monday to Friday; public holidays not deducted\)\./)
+})
+
+test('Decision 2: no line uses she, her or hers', async () => {
+  const GENDERED = /\b(she|her|hers|herself|he|him|his|himself)\b/i
+  for (const c of FIDREC_UPDATE_CASES) {
+    const r = await run(c.data)
+    for (const line of r.lines) {
+      const text = line.kind === 'comparison' ? line.comparison.record : line.kind === 'text' ? line.text : ''
+      assert.doesNotMatch(text.replace(/'[^']*'/g, "''"), GENDERED, `${c.id}: ${text}`)
+    }
+  }
 })

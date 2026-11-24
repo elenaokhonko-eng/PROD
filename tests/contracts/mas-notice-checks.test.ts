@@ -6,7 +6,7 @@ import {
   createMasNoticeChecks,
   MAS_NOTICE_ROUTES,
   noticeClassOf,
-  PROPOSED_CARD_OPENING_STATEMENT_KEY,
+  CARD_OPENING_STATEMENT_KEY,
 } from '../../supabase/functions/_shared/facts/rules/mas-notice-checks.ts'
 import {
   ALL_STATEMENT_KEYS,
@@ -31,8 +31,8 @@ import {
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex')
 const FSM_N07_9 = CLAUSE_KEYS.mas_notice_comparison[0]
-/** A synthetic key standing in for FSM-N05's customer-information paragraph, which is located at ingestion. */
-const TEST_N05_KEY = 'mas.fsm-n05/test'
+/** FSM-N05's customer-information paragraph, `mas.fsm-n05/9` (Lane 1; review of 24 Nov 2026, Lane 3 issue 1). */
+const TEST_N05_KEY = CLAUSE_KEYS.mas_notice_comparison[1]
 
 function testCorpus(): FakeCorpus {
   const corpus: FakeCorpus = structuredClone(syntheticCorpus)
@@ -55,7 +55,7 @@ function testCorpus(): FakeCorpus {
       clauses: [{ clause_id: `t-${clauseKey}`, clause_key: clauseKey, clause_ref: clauseKey.split('/')[1], text_content: `Placeholder text of ${clauseKey}.`, text_sha256: sha(clauseKey) }],
     })
   }
-  for (const statementKey of ['bridge.mas_requirement', PROPOSED_CARD_OPENING_STATEMENT_KEY]) {
+  for (const statementKey of ['bridge.mas_requirement', CARD_OPENING_STATEMENT_KEY]) {
     corpus.statements.push({
       statement_id: `t-${statementKey}`,
       statement_key: statementKey,
@@ -107,11 +107,20 @@ test('no route compares against FSM-N06 4.6 (its wording is about the bank\'s ow
   }
 })
 
-test('a route whose clause is not located yet prints the opening only and flags the notice', async () => {
-  const r = await run(accountSrfCase.data)
+// Changed with the review of 24 Nov 2026 (issue 1): the bank route is now keyed, so the unkeyed route tested is the
+// payment-system licensee's.
+test('the bank route compares against FSM-N05 paragraph 9; a route whose clause is not located yet prints the opening only', async () => {
+  assert.equal(MAS_NOTICE_ROUTES.bank.customerInformationClause, 'mas.fsm-n05/9')
+  const bank = await run(accountSrfCase.data)
+  assert.ok(comparisons(bank).length > 0)
+  assert.ok(comparisons(bank).every((c) => c.clauseKey === 'mas.fsm-n05/9' && c.expected === 'Placeholder text of mas.fsm-n05/9.'))
+
+  const d = clone(accountSrfCase.data)
+  d.institution = { name: 'Example Pay', type: 'payment_service_provider', code: null }
+  const r = await run(d)
   assert.deepEqual(statementKeys(r), ['bridge.mas_requirement'])
   assert.equal(comparisons(r).length, 0)
-  assert.deepEqual(r.flags, [{ code: 'clause_not_held', key: 'mas.fsm-n05', onDate: '2025-07-03' }])
+  assert.deepEqual(r.flags, [{ code: 'clause_not_held', key: 'mas.fsm-n13', onDate: '2025-07-03' }])
 })
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -121,28 +130,29 @@ test('a route whose clause is not located yet prints the opening only and flags 
 test('the group opens with bridge.mas_requirement for account payments and the card statement for card payments', async () => {
   const account = await run(accountSrfCase.data, withBankKey)
   assert.equal(statementKeys(account)[0], 'bridge.mas_requirement')
-  assert.ok(!statementKeys(account).includes(PROPOSED_CARD_OPENING_STATEMENT_KEY))
+  assert.ok(!statementKeys(account).includes(CARD_OPENING_STATEMENT_KEY))
   const opening = account.lines[0]
   assert.equal(opening.kind === 'statement' && opening.statement.text, 'Placeholder statement bridge.mas_requirement.')
 
   const card = await run(cardOnlyCase.data, withBankKey)
-  assert.deepEqual(statementKeys(card), [PROPOSED_CARD_OPENING_STATEMENT_KEY], 'no bridge statement for card payments, even after a differs line')
+  assert.deepEqual(statementKeys(card), [CARD_OPENING_STATEMENT_KEY], 'no bridge statement for card payments, even after a differs line')
   assert.ok(comparisons(card).some((c) => c.outcome === 'differs'))
 
   const mixed = await run(mixedCase.data, withBankKey)
-  assert.deepEqual(statementKeys(mixed), ['bridge.mas_requirement', PROPOSED_CARD_OPENING_STATEMENT_KEY])
+  assert.deepEqual(statementKeys(mixed), ['bridge.mas_requirement', CARD_OPENING_STATEMENT_KEY])
 })
 
-test('the card opening key is proposed, not yet in the contract, and fits the statement key pattern', () => {
-  assert.ok(!(ALL_STATEMENT_KEYS as readonly string[]).includes(PROPOSED_CARD_OPENING_STATEMENT_KEY))
-  assert.match(PROPOSED_CARD_OPENING_STATEMENT_KEY, /^[a-z0-9_]+(\.[a-z0-9_]+)+$/)
+// Changed with PR #56 (Decision 9): the card opening key is agreed and in the contract.
+test('the card opening key is bridge.mas_requirement.cards, a contract key', () => {
+  assert.equal(CARD_OPENING_STATEMENT_KEY, 'bridge.mas_requirement.cards')
+  assert.ok((ALL_STATEMENT_KEYS as readonly string[]).includes(CARD_OPENING_STATEMENT_KEY))
 })
 
 test('an opening statement with no approved revision prints as under review and flags the run', async () => {
   const r = await buildMasNoticeChecks({ ...cardOnlyCase.data, provider: createFakeClauseProvider(syntheticCorpus) })
   const [line] = r.lines
   assert.ok(line.kind === 'statement' && line.statement.text === null)
-  assert.ok(r.flags.some((f) => f.code === 'statement_under_review' && f.key === PROPOSED_CARD_OPENING_STATEMENT_KEY))
+  assert.ok(r.flags.some((f) => f.code === 'statement_under_review' && f.key === CARD_OPENING_STATEMENT_KEY))
 })
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -153,11 +163,14 @@ test('access by a device the complainant states is not theirs, with how it was a
   const r = await run(accountSrfCase.data, withBankKey)
   const lines = comparisons(r)
   assert.ok(lines.every((c) => c.clauseKey === TEST_N05_KEY && c.outcome === 'differs'))
-  assert.equal(lines[0].record, "The institution's record shows a login at 21:10 on 3 Jul 2025 from a device labelled 'Phone model EX-200'. The complainant states that this device is not theirs. The record shows the login was authorised by digital token.")
+  assert.equal(lines[0].record, "The institution's record shows a login at 21:10 on 3 July 2025 from a device labelled 'Phone model EX-200'. The complainant states that this device is not theirs. The record shows the login was authorised by digital token.")
   assert.equal(lines[0].expected, `Placeholder text of ${TEST_N05_KEY}.`)
   assert.deepEqual(lines[0].evidenceIds, ['E4'])
-  // The tablet the complainant is not sure about is not listed.
-  assert.ok(!lines.some((c) => /EX-T1/.test(c.record)))
+  // Changed with PR #56 (the not-sure rule): a device the complainant is not sure about counts as not recognised. The
+  // line still prints what they said.
+  const tablet = lines.find((c) => /EX-T1/.test(c.record))
+  assert.ok(tablet)
+  assert.match(tablet.record, /The complainant states that they are not sure whether this device is theirs./)
   assert.ok(r.citations.some((c) => c.clauseKey === TEST_N05_KEY && c.versionId === 't-mas.fsm-n05'))
 })
 
@@ -165,7 +178,7 @@ test('changes made in the session from such a device, and the alert the record s
   const lines = comparisons(await run(accountSrfCase.data, withBankKey))
   const change = lines.find((c) => /payee added/.test(c.record))
   assert.ok(change)
-  assert.match(change.record, /a payee added at 21:20 on 3 Jul 2025 .*not theirs\. The record shows no alert between this change and the next recorded event\./)
+  assert.match(change.record, /a payee added at 21:20 on 3 July 2025 .*not theirs\. The record shows no alert between this change and the next recorded event\./)
   const mixed = comparisons(await run(mixedCase.data, withBankKey))
   assert.ok(mixed.some((c) => /transaction limit changed at 10:05 on 20 May 2025/.test(c.record)))
 })

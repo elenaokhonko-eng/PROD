@@ -1,11 +1,14 @@
-// Link statements (FIDReC standards brief v5, 4a "Link statements", decision 20) and the section writer the
+// Link statements (FIDReC standards brief v5, 4a "Link statements", decision 20) and the comparison writer the
 // server-written comparison sections share (4a duty_time_checks, 4b mas_notice_comparison, 4c
-// industry_practice_comparison).
+// industry_practice_comparison, and the Section 8 check disputed_amount_charges).
 //
 // For account payments, after a `differs` line the section prints, once per section, the statement that matches the
 // clause compared: `link.srf_4_2` against an SRF 4.2 duty, `link.eupg_s4` against an EUPG Section 4 duty,
 // `bridge.mas_requirement` against an MAS notice or another requirement imposed by MAS. For card payments none of the
 // three prints. Statements are printed from the corpus through the clause provider; no wording lives here.
+//
+// Dates, times, gaps, money and the complainant's pronouns come from the shared section writer
+// (update/section-writer.ts, Lane 6 Step 0b). `ComparisonWriter` extends its `SectionWriter` with Lane 3's `compare`.
 //
 // Every line carries a clause key or a statement key. `expected` is the clause text as the provider returns it for the
 // date (the corpus's words), never wording written in code. No line says whether a duty was met.
@@ -14,8 +17,6 @@ import type { Instrument } from "../keys.ts";
 import type {
   AccessEvent,
   CardAuthEvent,
-  ClauseCitation,
-  ClauseProvider,
   ComparisonOutcome,
   ContractFactKey,
   ContractFacts,
@@ -23,12 +24,10 @@ import type {
   DisputedPayment,
   IsoDate,
   IsoDateTime,
-  SectionFlag,
   SectionId,
   SectionInput,
-  SectionLine,
-  SectionResult,
 } from "../update/contract.ts";
+import { SectionWriter } from "../update/section-writer.ts";
 import { appliesToInstrument } from "./instrument-scope.ts";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -41,12 +40,22 @@ export const LINK_STATEMENT_KEYS = {
   masRequirement: "bridge.mas_requirement",
 } as const;
 
+/**
+ * The two bridge statements agreed in the review of 24 Nov 2026 (Decision 9). Neither follows a `differs` line.
+ * `bridge.mas_requirement.cards` opens the MAS notice section for card payments (4b); `bridge.card_loss_sharing` is a
+ * pointer in the wallet check (Decision 5, Part D).
+ */
+export const BRIDGE_STATEMENT_KEYS = {
+  masRequirementCards: "bridge.mas_requirement.cards",
+  cardLossSharing: "bridge.card_loss_sharing",
+} as const;
+
 /** Documents whose requirements MAS imposes on the institution (layer 2): the notices and the MPI circular. */
 export function isMasRequirementDocument(documentKey: string): boolean {
   return /^mas\.(?:fsm-n\d+|notice|circular)/.test(documentKey);
 }
 
-/** The link statement for a clause compared, or null where none follows (for example SRF 7.x, EUPG 3.x or 7.x). */
+/** The link statement for a clause compared, or null where none follows (for example SRF 7.x, EUPG 3.x, 7.x or 8.x). */
 export function linkStatementKeyFor(clauseKey: string): string | null {
   const [documentKey, paragraph = ""] = clauseKey.split("/");
   if (documentKey === "mas.srf" && /^4\.2(?:\.|$)/.test(paragraph)) return LINK_STATEMENT_KEYS.srf42;
@@ -94,7 +103,11 @@ export function clauseAppliesToGroup(clauseKey: string, payments: readonly Dispu
 // Reading facts
 // ---------------------------------------------------------------------------------------------------------------
 
-/** A fact's value when it is confirmed or the complainant's own (as srfFactsFromSnapshot reads them); otherwise null. */
+/**
+ * A fact's value when it is confirmed or the complainant's own (as srfFactsFromSnapshot reads them); otherwise null.
+ * A fact labelled `not_sure` is not read for a record line; whether it should be is open (PR #56, "Not decided here").
+ * Recognition of a device follows the contract's not-sure rule (`complainantRecognisesDevice`).
+ */
 export function factValue<K extends ContractFactKey>(facts: ContractFacts, key: K): ContractFactValues[K] | null {
   const fact = facts[key];
   if (!fact || fact.value === null || fact.value === undefined) return null;
@@ -107,10 +120,10 @@ export function evidenceFor(input: Pick<SectionInput, "evidenceIds">, ...keys: C
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Times and dates (facts only; no wording about duties)
+// Times and day counts (facts only; no wording about duties). Dates, times and gaps are printed with the shared
+// section writer: "3 July 2025", "21:06 on 3 July 2025", "11 hours 59 minutes".
 // ---------------------------------------------------------------------------------------------------------------
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 export const MINUTE = 60_000;
 export const HOUR = 60 * MINUTE;
 
@@ -125,27 +138,6 @@ export function localDate(timestamp: IsoDateTime): IsoDate {
   return timestamp.slice(0, 10);
 }
 
-export function formatDate(date: IsoDate): string {
-  const [y, m, d] = date.split("-").map(Number);
-  return `${d} ${MONTHS[m - 1]} ${y}`;
-}
-
-/** "21:06 on 3 Jul 2025", in the time zone the record gives. */
-export function formatTime(timestamp: IsoDateTime): string {
-  const time = timestamp.slice(11, 16);
-  return time ? `${time} on ${formatDate(localDate(timestamp))}` : formatDate(localDate(timestamp));
-}
-
-/** "11 h 59 min", "3 days 2 h 0 min". */
-export function formatDuration(milliseconds: number): string {
-  const minutes = Math.round(milliseconds / MINUTE);
-  const days = Math.floor(minutes / (24 * 60));
-  const hours = Math.floor((minutes % (24 * 60)) / 60);
-  const rest = minutes % 60;
-  const time = `${hours} h ${rest} min`;
-  return days ? `${days} day${days === 1 ? "" : "s"} ${time}` : time;
-}
-
 function dayNumber(date: IsoDate): number {
   const [y, m, d] = date.split("-").map(Number);
   return Date.UTC(y, m - 1, d) / (24 * HOUR);
@@ -156,9 +148,14 @@ export function calendarDaysBetween(from: IsoDate, to: IsoDate): number {
   return dayNumber(to) - dayNumber(from);
 }
 
+/** The date a number of calendar days after another. */
+export function addCalendarDays(date: IsoDate, days: number): IsoDate {
+  return new Date((dayNumber(date) + days) * 24 * HOUR).toISOString().slice(0, 10);
+}
+
 /**
- * Business days after `from` up to and including `to`: Monday to Friday, less the public holidays given. The brief does
- * not name a holiday list; the builder takes one as an option (none by default), and the record line says which applied.
+ * Business days after `from` up to and including `to`: Monday to Friday, less the public holidays given (Decision 11:
+ * the Singapore list in sg-public-holidays.ts).
  */
 export function businessDaysBetween(from: IsoDate, to: IsoDate, holidays: ReadonlySet<IsoDate> = new Set()): number {
   let count = 0;
@@ -189,7 +186,7 @@ export function paymentTime(
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Section writer: comparisons, statements and fixed lines, with pinned citations and run flags
+// The comparison writer: the shared SectionWriter with Lane 3's `compare` (instrument guard and link statements)
 // ---------------------------------------------------------------------------------------------------------------
 
 export interface CompareArgs {
@@ -202,39 +199,26 @@ export interface CompareArgs {
   /** The payments the line is about; the instrument guard runs against them and link statements follow account lines. */
   group: PaymentGroup;
   payments: readonly DisputedPayment[];
+  /**
+   * Skip the Phase 0b instrument guard. Only for EUPG Section 8 (Decision 3: 8.3 and 8.4 cover credit cards), whose
+   * card scope instrument-scope.ts does not know until Lane 1's scope table is confirmed. The Section 8 check chooses
+   * its payments itself.
+   */
+  skipInstrumentGuard?: boolean;
 }
 
-export class SectionWriter {
-  readonly lines: SectionLine[] = [];
-  readonly citations: ClauseCitation[] = [];
-  readonly flags: SectionFlag[] = [];
-  private readonly statementsPrinted = new Set<string>();
-
-  constructor(readonly sectionId: SectionId, readonly provider: ClauseProvider) {}
-
-  private flag(code: SectionFlag["code"], key: string, onDate: IsoDate | null): void {
-    const date = onDate ?? "";
-    if (!this.flags.some((f) => f.code === code && f.key === key && f.onDate === date)) this.flags.push({ code, key, onDate: date });
+export class ComparisonWriter extends SectionWriter {
+  constructor(sectionId: SectionId, input: Pick<SectionInput, "provider" | "evidenceIds">) {
+    super(sectionId, input);
   }
 
-  /** Reads the clause in force on the date and pins it; null (with a flag) when no verified version holds it. */
+  /** The clause text in force on the date, cited; null (with a `clause_not_held` flag) when no verified version holds it. */
   async clauseText(clauseKey: string, onDate: IsoDate | null): Promise<string | null> {
-    const clause = onDate ? await this.provider.getClauseAsOf(clauseKey, onDate) : null;
-    if (!clause || !onDate) {
-      this.flag("clause_not_held", clauseKey, onDate);
+    if (!onDate) {
+      this.flag("clause_not_held", clauseKey, "");
       return null;
     }
-    if (!this.citations.some((c) => c.clauseKey === clauseKey && c.onDate === onDate)) {
-      this.citations.push({
-        clauseKey,
-        onDate,
-        clauseId: clause.clause_id,
-        textSha256: clause.text_sha256,
-        versionId: clause.version_id,
-        versionLabel: clause.version_label,
-      });
-    }
-    return clause.text_content;
+    return (await this.clause(clauseKey, onDate))?.text_content ?? null;
   }
 
   /**
@@ -242,49 +226,24 @@ export class SectionWriter {
    * After a `differs` line on account payments, the matching link statement prints once in the section.
    */
   async compare(args: CompareArgs): Promise<boolean> {
-    if (!args.payments.length || !clauseAppliesToGroup(args.clauseKey, args.payments)) return false;
+    if (!args.payments.length) return false;
+    if (!args.skipInstrumentGuard && !clauseAppliesToGroup(args.clauseKey, args.payments)) return false;
     const text = await this.clauseText(args.clauseKey, args.onDate);
-    this.lines.push({
-      kind: "comparison",
-      comparison: {
-        clauseKey: args.clauseKey,
-        record: args.record,
-        expected: text ?? "",
-        outcome: args.outcome,
-        evidenceIds: args.evidenceIds,
-      },
-    });
+    this.comparison({ clauseKey: args.clauseKey, record: args.record, expected: text ?? "", outcome: args.outcome, evidenceIds: args.evidenceIds });
     const [link] = linkStatementsFor([{ clauseKey: args.clauseKey, outcome: args.outcome, group: args.group }]);
-    if (link) await this.statement(link, args.onDate, args.evidenceIds);
+    if (link) await this.statementOn(link, args.onDate, args.evidenceIds);
     return true;
   }
 
-  /** A reviewed statement, once per section. Text is null and the run is flagged when no approved revision fits the date. */
-  async statement(statementKey: string, onDate: IsoDate | null, evidenceIds: string[] = []): Promise<void> {
-    if (this.statementsPrinted.has(statementKey)) return;
-    this.statementsPrinted.add(statementKey);
-    const row = onDate ? await this.provider.getStatementAsOf(statementKey, onDate) : null;
-    if (!row) this.flag("statement_under_review", statementKey, onDate);
-    this.lines.push({
-      kind: "statement",
-      statement: {
-        statementKey,
-        onDate: onDate ?? "",
-        statementId: row?.statement_id ?? null,
-        revision: row?.revision ?? null,
-        text: row?.text ?? null,
-        clauseKeys: row?.clause_keys ?? [],
-        evidenceIds,
-      },
-    });
+  /** A reviewed statement once per section, read for the date. With no date it prints as under review. */
+  async statementOn(statementKey: string, onDate: IsoDate | null, evidenceIds: string[] = []): Promise<boolean> {
+    if (onDate) return this.statement(statementKey, onDate, evidenceIds);
+    if (this.undatedStatements.has(statementKey)) return false;
+    this.undatedStatements.add(statementKey);
+    this.flag("statement_under_review", statementKey, "");
+    this.lines.push({ kind: "statement", statement: { statementKey, onDate: "", statementId: null, revision: null, text: null, clauseKeys: [], evidenceIds } });
+    return false;
   }
 
-  /** A fixed line of facts chosen by code (dates, times, labels from the record); never wording about a duty. */
-  text(text: string, evidenceIds: string[], clauseKeys: string[] = []): void {
-    this.lines.push({ kind: "text", text, step: null, evidenceIds, clauseKeys });
-  }
-
-  result(): SectionResult {
-    return { sectionId: this.sectionId, lines: this.lines, citations: this.citations, flags: this.flags };
-  }
+  private readonly undatedStatements = new Set<string>();
 }

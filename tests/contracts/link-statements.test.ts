@@ -1,24 +1,32 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  addCalendarDays,
+  BRIDGE_STATEMENT_KEYS,
   businessDaysBetween,
   calendarDaysBetween,
   clauseAppliesToGroup,
-  formatDuration,
-  formatTime,
+  ComparisonWriter,
   groupOf,
   LINK_STATEMENT_KEYS,
   linkStatementKeyFor,
   linkStatementsFor,
-  SectionWriter,
 } from '../../supabase/functions/_shared/facts/rules/link-statements.ts'
-import { PROPOSED_HIGH_RISK_WALLET_STATEMENT_KEYS } from '../../supabase/functions/_shared/facts/rules/duty-time-checks.ts'
-import { PROPOSED_CARD_OPENING_STATEMENT_KEY } from '../../supabase/functions/_shared/facts/rules/mas-notice-checks.ts'
+import { TWELVE_HOUR_STATEMENT_KEYS } from '../../supabase/functions/_shared/facts/rules/duty-time-checks.ts'
+import { CARD_OPENING_STATEMENT_KEY } from '../../supabase/functions/_shared/facts/rules/mas-notice-checks.ts'
+import {
+  SG_PUBLIC_HOLIDAY_DATES,
+  SG_PUBLIC_HOLIDAYS,
+  SG_PUBLIC_HOLIDAYS_SOURCE,
+  sgHolidayListCovers,
+} from '../../supabase/functions/_shared/facts/rules/sg-public-holidays.ts'
 import {
   ALL_STATEMENT_KEYS,
   createFakeClauseProvider,
+  DECIDED_STATEMENT_KEYS_2026_11_24,
   STATEMENT_KEYS,
 } from '../../supabase/functions/_shared/facts/update/contract.ts'
+import { formatDateTime, formatGap } from '../../supabase/functions/_shared/facts/update/section-writer.ts'
 import { accountSrfCase, cardOnlyCase, EUPG_A_TO, mixedCase, syntheticCorpus } from '../fixtures/fidrec-update/index.ts'
 
 // FIDReC standards brief v5, 4a "Link statements" (decision 20), and the section writer the comparison sections share.
@@ -27,8 +35,9 @@ const provider = createFakeClauseProvider(syntheticCorpus)
 const account = accountSrfCase.data.payments
 const cards = cardOnlyCase.data.payments
 
-test('the link keys are the contract keys', () => {
-  assert.deepEqual(Object.values(LINK_STATEMENT_KEYS), [...STATEMENT_KEYS.link])
+// Changed with PR #56: the contract's link group now also holds the two Decision 9 bridge statements.
+test('the link and bridge keys are the contract keys', () => {
+  assert.deepEqual([...Object.values(LINK_STATEMENT_KEYS), ...Object.values(BRIDGE_STATEMENT_KEYS)], [...STATEMENT_KEYS.link])
 })
 
 test('each clause compared calls for its own link statement, or none', () => {
@@ -83,14 +92,14 @@ test('the instrument guard refuses SRF clauses and non-card EUPG paragraphs for 
 })
 
 test('the writer refuses a guarded clause rather than printing it', async () => {
-  const w = new SectionWriter('duty_time_checks', provider)
+  const w = new ComparisonWriter('duty_time_checks', { provider, evidenceIds: {} })
   const printed = await w.compare({ clauseKey: 'mas.eupg/4.7', onDate: '2025-09-12', record: 'r', outcome: 'differs', evidenceIds: [], group: 'card', payments: cards })
   assert.equal(printed, false)
   assert.deepEqual(w.result().lines, [])
 })
 
 test('a differs line on account payments prints its link statement once; the statement is read for the date', async () => {
-  const w = new SectionWriter('duty_time_checks', provider)
+  const w = new ComparisonWriter('duty_time_checks', { provider, evidenceIds: {} })
   for (let i = 0; i < 2; i++) {
     await w.compare({ clauseKey: 'mas.eupg/4.7', onDate: '2025-07-03', record: `r${i}`, outcome: 'differs', evidenceIds: ['E4'], group: 'account', payments: account })
   }
@@ -108,7 +117,7 @@ test('a differs line on account payments prints its link statement once; the sta
 })
 
 test('after a change of wording the link statement prints as under review and the run is flagged', async () => {
-  const w = new SectionWriter('duty_time_checks', provider)
+  const w = new ComparisonWriter('duty_time_checks', { provider, evidenceIds: {} })
   await w.compare({ clauseKey: 'mas.eupg/4.7', onDate: EUPG_A_TO, record: 'r', outcome: 'differs', evidenceIds: [], group: 'account', payments: account })
   const r = w.result()
   const s = r.lines[1]
@@ -118,7 +127,7 @@ test('after a change of wording the link statement prints as under review and th
 })
 
 test('a clause not held prints with an empty expected side and one flag per clause and date', async () => {
-  const w = new SectionWriter('duty_time_checks', provider)
+  const w = new ComparisonWriter('duty_time_checks', { provider, evidenceIds: {} })
   for (let i = 0; i < 2; i++) {
     await w.compare({ clauseKey: 'mas.srf/7.9', onDate: '2025-07-03', record: 'r', outcome: 'matches', evidenceIds: [], group: 'account', payments: account })
   }
@@ -129,22 +138,49 @@ test('a clause not held prints with an empty expected side and one flag per clau
   assert.deepEqual(r.citations, [])
 })
 
+// Changed with PR #56: gaps and times print with the shared section writer ("11 hours 59 minutes", "3 July 2025").
 test('time helpers: calendar days, business days, durations and times as the record gives them', () => {
   assert.equal(calendarDaysBetween('2025-07-01', '2025-07-31'), 30)
   assert.equal(calendarDaysBetween('2025-02-28', '2025-03-01'), 1)
   assert.equal(businessDaysBetween('2025-07-04', '2025-07-07'), 1, 'Friday to Monday')
   assert.equal(businessDaysBetween('2025-07-07', '2025-08-05'), 21)
   assert.equal(businessDaysBetween('2025-07-07', '2025-08-05', new Set(['2025-07-31'])), 20)
-  assert.equal(formatDuration(11 * 3_600_000 + 59 * 60_000), '11 h 59 min')
-  assert.equal(formatDuration(26 * 3_600_000), '1 day 2 h 0 min')
-  assert.equal(formatTime('2025-07-03T21:06:00+08:00'), '21:06 on 3 Jul 2025')
+  assert.equal(formatGap(11 * 3_600_000 + 59 * 60_000), '11 hours 59 minutes')
+  assert.equal(formatGap(26 * 3_600_000), '1 day 2 hours')
+  assert.equal(formatDateTime('2025-07-03T21:06:00+08:00'), '21:06 on 3 July 2025')
+  assert.equal(addCalendarDays('2025-07-07', 30), '2025-08-06')
 })
 
-test('the two proposed keys fit the statement key pattern and are not in the contract yet', () => {
-  const proposed = [...Object.values(PROPOSED_HIGH_RISK_WALLET_STATEMENT_KEYS), PROPOSED_CARD_OPENING_STATEMENT_KEY]
-  assert.deepEqual(proposed, ['srf.highrisk.wallet', 'eupg.highrisk.wallet', 'bridge.mas_requirement.cards'])
-  for (const key of proposed) {
-    assert.match(key, /^[a-z0-9_]+(\.[a-z0-9_]+)+$/)
-    assert.ok(!(ALL_STATEMENT_KEYS as readonly string[]).includes(key), key)
+// Changed with PR #56 (Decision 9): the proposed keys were agreed. `*.highrisk.wallet` is replaced by the definitions.
+test('the statement keys Lane 3 prints are agreed contract keys; no *.highrisk.wallet key is used', () => {
+  const used = [...Object.values(TWELVE_HOUR_STATEMENT_KEYS), CARD_OPENING_STATEMENT_KEY, BRIDGE_STATEMENT_KEYS.cardLossSharing, 'mas.reply.20260113.wallet', 'eupg.section8.outofscope']
+  for (const key of used) {
+    assert.ok((DECIDED_STATEMENT_KEYS_2026_11_24 as readonly string[]).includes(key), key)
+    assert.ok((ALL_STATEMENT_KEYS as readonly string[]).includes(key), key)
   }
+  assert.ok(!(ALL_STATEMENT_KEYS as readonly string[]).some((k) => k.endsWith('.highrisk.wallet')))
+})
+
+// ---------------------------------------------------------------------------------------------------------------
+// Singapore public holidays (Decision 11)
+// ---------------------------------------------------------------------------------------------------------------
+
+test('the public-holiday list: MOM source, 2024 to 2027, every Sunday holiday followed by its Monday in lieu', () => {
+  assert.equal(SG_PUBLIC_HOLIDAYS_SOURCE.publisher, 'Ministry of Manpower')
+  assert.ok(SG_PUBLIC_HOLIDAYS_SOURCE.urls.every((u) => u.startsWith('https://www.mom.gov.sg/')))
+  const years = new Set(SG_PUBLIC_HOLIDAYS.map((h) => h.date.slice(0, 4)))
+  assert.deepEqual([...years], ['2024', '2025', '2026', '2027'])
+  for (const h of SG_PUBLIC_HOLIDAYS) {
+    const day = new Date(`${h.date}T00:00:00Z`).getUTCDay()
+    if (day === 0) {
+      const monday = addCalendarDays(h.date, 1)
+      assert.ok(SG_PUBLIC_HOLIDAYS.some((x) => x.date === monday && x.inLieuOf === h.date), `Monday after ${h.date}`)
+    }
+    if (h.inLieuOf) assert.equal(day, 1, h.date)
+  }
+  assert.equal(SG_PUBLIC_HOLIDAY_DATES.size, SG_PUBLIC_HOLIDAYS.length, 'no date twice')
+  assert.ok(sgHolidayListCovers('2025-07-07', '2027-12-31'))
+  assert.ok(!sgHolidayListCovers('2023-12-20', '2024-01-10'))
+  // National Day 2026 is a Sunday: Monday 10 August is not a business day.
+  assert.equal(businessDaysBetween('2026-08-07', '2026-08-11', SG_PUBLIC_HOLIDAY_DATES), 1)
 })
