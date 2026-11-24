@@ -15,7 +15,7 @@ import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.
 import { bankPackTransactions } from "./bank-pack.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
 import { normaliseDate } from "./normalise.ts";
-import { factsForModel, isTechnicalRecordDocument, redactServerOnly } from "./update/model-guard.ts";
+import { factsForModel, withoutDeviceAnswers, isTechnicalRecordDocument, redactServerOnly } from "./update/model-guard.ts";
 import type { PinnedCitation, PinnedStatement, PrintedSection, RenderedUpdate } from "./update/render.ts";
 import {
   DATE_PATTERN,
@@ -485,7 +485,7 @@ export function buildFidrecPackInput(args: {
   const update = args.update ?? null;
   const redact = (text: string | null) => (update && text !== null ? redactServerOnly(text, update.redact) : text);
   const { fidrec_check: _fidrec, ...input } = buildTier0Input({
-    facts: update ? factsForModel(args.facts) : args.facts,
+    facts: update ? factsForModel(args.facts) : withoutDeviceAnswers(args.facts),
     findings: args.findings,
     storyText: redact(args.storyText),
     fidrecCheck: null,

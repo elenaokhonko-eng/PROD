@@ -70,8 +70,8 @@ export const optionalKeys = [
   "PAID_STAGES_ENABLED",
   "PAID_STAGES_AVAILABLE_FROM",
   "BANK_PACK_ENABLED",
-  // The FIDReC update's server-written sections (Supabase function secret for run_fidrec_pack_v1 and
-  // run_bank_pack_v1). Off in every environment until Elena turns it on (condition A, 24 Nov 2026).
+  // The FIDReC update (web app on Render, and a Supabase function secret for run_fidrec_pack_v1 and
+  // run_bank_pack_v1; the same value in both). Off in every environment until Elena turns it on (condition A).
   "FIDREC_UPDATE_SECTIONS_ENABLED",
   "STRIPE_PRICE_ID_HUMAN_CONSULT_30M_SGD",
   "GOOGLE_GENERATIVE_AI_MODEL",
@@ -551,7 +551,7 @@ export function renderChecklist(blueprint: Record<string, RenderVariable[]>, set
     }
   }
   lines.push(
-    "\nNot on Render: `RENDER_GIT_COMMIT` is injected by Render. `GuideBuoy_EdgeFunction`, `GEMINI_API_KEY`, `SIMULATION_KEY` and `EDGE_PROXY_HMAC_SECRET` must also be set as Supabase function secrets. `FIDREC_UPDATE_SECTIONS_ENABLED` is read by the pack functions only, so it is a Supabase function secret too, and stays off.",
+    "\nNot on Render: `RENDER_GIT_COMMIT` is injected by Render. `GuideBuoy_EdgeFunction`, `GEMINI_API_KEY`, `SIMULATION_KEY` and `EDGE_PROXY_HMAC_SECRET` must also be set as Supabase function secrets. `FIDREC_UPDATE_SECTIONS_ENABLED` is read by the web app (fact extraction, the facts screens) and by the pack functions, so set it on Render and as a Supabase function secret, to the same value; it stays off.",
     "`WORKER_SECRET` is generated per Render service pair, so the env-file value is for local runs only.",
   )
   return lines.join("\n")

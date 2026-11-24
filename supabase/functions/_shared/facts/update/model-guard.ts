@@ -92,6 +92,16 @@ export function factsForModel(facts: SnapshotFacts): SnapshotFacts {
   return out;
 }
 
+/**
+ * The model's facts with the switch off: everything except the complainant's device answers, which never reach the
+ * model in any pack (Elena, 24 Nov 2026). The access-record document's text stays as on main with the switch off.
+ */
+export function withoutDeviceAnswers(facts: SnapshotFacts): SnapshotFacts {
+  if (!("device_recognition" in facts)) return facts;
+  const { device_recognition: _answers, ...rest } = facts;
+  return rest;
+}
+
 export function isTechnicalRecordDocument(evidenceType: string | null | undefined): boolean {
   return (TECHNICAL_RECORD_EVIDENCE_TYPES as readonly string[]).includes(evidenceType ?? "");
 }
