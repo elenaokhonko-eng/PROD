@@ -211,18 +211,42 @@ export async function payWithTestCard(page: Page, email: string) {
     if (!field) throw new Error(`Stripe Checkout field not found: ${placeholder}`)
     await field.fill(value)
   }
-  // GitHub's runners are in the US, where Stripe asks for a US ZIP code; the release tests pay as a Singapore customer.
-  const country = page.locator('#billingCountry')
-  if (await country.isVisible().catch(() => false)) await country.selectOption('SG')
-  const postal = page.locator('#billingPostalCode')
-  if (await postal.isVisible().catch(() => false)) await postal.fill('123456')
+  // GitHub's runners are in the US, where Stripe asks for a country and a ZIP code (it shows neither in Singapore). The
+  // release tests pay as a Singapore customer; the postcode always fits the country Stripe ends up with, since a
+  // 6-digit postcode under "United States" leaves the form invalid and Pay does nothing (23 Nov 2026 gate run).
+  const country = await visibleIn(page, '#billingCountry')
+  if (country) await country.selectOption('SG').catch(() => undefined)
+  const selected = country ? await country.inputValue().catch(() => null) : null
+  const postal = await visibleIn(page, '#billingPostalCode')
+  if (postal) await postal.fill(selected === 'SG' ? '123456' : '10001')
   // The Pay button can sit inside Stripe's frame too.
+  let submitted = false
   for (const scope of [page, ...page.frames().slice(1)]) {
     for (const submit of [scope.locator('[data-testid="hosted-payment-submit-button"]'), scope.getByRole('button', { name: 'Pay', exact: true })]) {
-      if (await submit.first().isVisible().catch(() => false)) return submit.first().click()
+      if (!submitted && (await submit.first().isVisible().catch(() => false))) {
+        await submit.first().click()
+        submitted = true
+      }
     }
   }
-  throw new Error('Stripe Checkout Pay button not found')
+  if (!submitted) throw new Error('Stripe Checkout Pay button not found')
+  // Still on Stripe a minute later means it refused the form: fail now with its own words, not after the return timeout.
+  const left = await page.waitForURL((url) => url.hostname !== 'checkout.stripe.com', { timeout: 60_000 }).then(() => true, () => false)
+  if (!left) {
+    const messages: string[] = []
+    for (const scope of [page, ...page.frames().slice(1)]) {
+      messages.push(...(await scope.locator('[role="alert"], .FieldError').allInnerTexts().catch(() => [])))
+    }
+    throw new Error(`Stripe Checkout did not accept the payment (country ${selected ?? 'not asked'}): ${messages.filter(Boolean).join(' | ') || 'no message shown'}`)
+  }
+}
+
+async function visibleIn(page: Page, selector: string): Promise<Locator | null> {
+  for (const scope of [page, ...page.frames().slice(1)]) {
+    const candidate = scope.locator(selector).first()
+    if (await candidate.isVisible().catch(() => false)) return candidate
+  }
+  return null
 }
 
 async function stripeField(page: Page, id: string, placeholder: string, timeoutMs: number): Promise<Locator | null> {
