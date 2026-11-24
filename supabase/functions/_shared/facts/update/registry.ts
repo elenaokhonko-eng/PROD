@@ -14,7 +14,7 @@ import { buildAccountAccessSequence, CARD_AUTH_METHOD, factValue } from "../rule
 import { buildCardDisputeComparison } from "../rules/card-dispute-checks.ts";
 import { createCustomerConductBuilder } from "../rules/customer-conduct.ts";
 import { createCustomerFaultDefinitionsBuilder } from "../rules/customer-fault-definitions.ts";
-import { buildDisputeChargesChecks } from "../rules/dispute-charges-checks.ts";
+import { createDisputeChargesChecks } from "../rules/dispute-charges-checks.ts";
 import { createDutyTimeChecks } from "../rules/duty-time-checks.ts";
 import { createIndustryPracticeChecks } from "../rules/industry-practice-checks.ts";
 import { NO_TERM_REQUESTS, type TermRequestSource } from "../rules/institution-terms.ts";
@@ -177,6 +177,11 @@ export const buildStandardsStub: SectionBuilder = (input: SectionInput): Promise
 export interface RegistryOptions {
   /** The institutions' configured term requests (4e; wallet pages, Decision 5). None: their terms print "not held". */
   termRequests?: TermRequestSource;
+  /**
+   * A ready document classified `credit_bureau_report` was read (Lane 3, `creditBureauReportReadFrom`). Only then may
+   * EUPG 8.3 and 8.4(a) read "no report" (contract CREDIT_RECORDS_RULE). Default false.
+   */
+  creditBureauReportRead?: boolean;
 }
 
 export function sectionBuilders(options: RegistryOptions = {}): Record<SectionId, SectionBuilder> {
@@ -187,7 +192,7 @@ export function sectionBuilders(options: RegistryOptions = {}): Record<SectionId
     ip_locations: buildIpLocations,
     account_access_sequence: buildAccountAccessSequence,
     duty_time_checks: createDutyTimeChecks(),
-    disputed_amount_charges: buildDisputeChargesChecks,
+    disputed_amount_charges: createDisputeChargesChecks({ creditBureauReportRead: () => options.creditBureauReportRead === true }),
     mas_notice_comparison: createMasNoticeChecks(),
     industry_practice_comparison: createIndustryPracticeChecks({ termRequests }),
     card_dispute_comparison: buildCardDisputeComparison,

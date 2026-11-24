@@ -12,10 +12,13 @@ import {
   periodDaysIn84a,
   REPAYMENT_NOT_SHOWN,
   SECTION_8_ROWS_AWAITING_WORDING,
+  creditBureauReportReadFrom,
 } from '../../supabase/functions/_shared/facts/rules/dispute-charges-checks.ts'
+import { sectionBuilders } from '../../supabase/functions/_shared/facts/update/registry.ts'
 import {
   CLAUSE_KEYS,
   type ComparisonLine,
+  type CreditAccountStatus,
   createFakeClauseProvider,
   type FakeCorpus,
   type QuotationLine,
@@ -387,4 +390,102 @@ test('a credit bureau report document read with no matching report: 8.3 and 8.4(
     assert.match(row.record, /The records show no report of non-payment of the disputed amount to a credit bureau between those dates\.$/, key)
   }
   assert.ok(texts(r).some((t) => t.endsWith('The records show no report of non-payment of the disputed amount to a credit bureau.')))
+})
+
+// ---------------------------------------------------------------------------------------------------------------
+// The account shown overdue (contract CREDIT_RECORDS_RULE, Lane 6 #92, 25 Nov 2026)
+// ---------------------------------------------------------------------------------------------------------------
+
+/** A synthetic status line, in the shape Lane 2 extracts. */
+function status(over: Partial<CreditAccountStatus>): CreditAccountStatus {
+  return {
+    asOf: '2025-10-15',
+    statusText: '30 days overdue',
+    facility: 'credit card ending 0001',
+    bureau: 'Example Credit Bureau',
+    source: 'credit_bureau_report',
+    evidenceId: 'E9',
+    quote: 'Synthetic: credit card ending 0001, 30 days overdue as at 15/10/2025',
+    ...over,
+  }
+}
+function withStatuses(list: CreditAccountStatus[], base = creditCase()): CaseSectionData {
+  base.facts.credit_account_status = { label: 'confirmed', value: list }
+  base.evidenceIds.credit_account_status = ['E9']
+  return base
+}
+const accountStatuses = (r: SectionResult) => r.lines.flatMap((l) => (l.kind === 'account_status' ? [l] : []))
+
+test('overdue statuses: 8.3 and 8.4(a) carry no outcome, and each status prints beside its row', async () => {
+  // 15 Oct 2025 is inside 8.3's window (13 Sep to 20 Oct); 5 Nov 2025 is inside 8.4(a)'s (20 Oct to 19 Nov).
+  const d = withStatuses([status({}), status({ asOf: '2025-11-05', statusText: '60 days past due' })])
+  for (const r of [await runWithPeriods(d), await runWithPeriodsRead(d)]) {
+    assert.equal(withKey(r, SECTION_8_CLAUSES.p8_3).length, 0, 'no 8.3 comparison: no outcome')
+    assert.equal(withKey(r, SECTION_8_CLAUSES.p8_4).length, 0, 'no 8.4(a) comparison: no outcome')
+    assert.ok(!comparisons(r).some((c) => c.outcome === 'matches' && (c.clauseKey === SECTION_8_CLAUSES.p8_3 || c.clauseKey === SECTION_8_CLAUSES.p8_4)))
+    const lines = accountStatuses(r)
+    assert.deepEqual(lines.map((l) => [l.clauseKey, l.status.statusText]), [[SECTION_8_CLAUSES.p8_3, '30 days overdue'], [SECTION_8_CLAUSES.p8_4, '60 days past due']])
+    assert.deepEqual(lines[0].evidenceIds, ['E9'])
+    // 8.3: its record, the status beside it, then paragraph 8.3 quoted (no outcome).
+    const at = r.lines.findIndex((l) => l.kind === 'account_status' && l.clauseKey === SECTION_8_CLAUSES.p8_3)
+    const before = r.lines[at - 1]
+    assert.ok(before.kind === 'text' && before.text === 'The complainant reported the disputed transactions to the institution on 13 September 2025. The institution\'s final reply is dated 20 October 2025.')
+    const after = r.lines[at + 1]
+    assert.ok(after.kind === 'quotation' && after.quotation.passages[0].clauseKey === SECTION_8_CLAUSES.p8_3)
+    // 8.4: paragraph 8.4 is quoted once, after the 8.4(b) record line.
+    assert.equal(quotations(r).filter((q) => q.passages[0].clauseKey === SECTION_8_CLAUSES.p8_4).length, 1)
+  }
+})
+
+test('an overdue status with no date counts in every window; one outside the window does not block "matches"', async () => {
+  const undated = await runWithPeriodsRead(withStatuses([status({ asOf: null })]))
+  assert.equal(withKey(undated, SECTION_8_CLAUSES.p8_3).length, 0)
+  assert.equal(withKey(undated, SECTION_8_CLAUSES.p8_4).length, 0)
+  assert.equal(accountStatuses(undated).length, 2, 'beside both rows')
+  // Overdue on 1 February 2026: after both windows, so a read bureau report still reads "no report" in them.
+  const later = await runWithPeriodsRead(withStatuses([status({ asOf: '2026-02-01' })]))
+  assert.equal(withKey(later, SECTION_8_CLAUSES.p8_3)[0].outcome, 'matches')
+  assert.equal(withKey(later, SECTION_8_CLAUSES.p8_4)[0].outcome, 'matches')
+  assert.equal(accountStatuses(later).length, 0)
+})
+
+test('a bureau report read with nothing overdue: matches; not read: not_shown', async () => {
+  const fine = withStatuses([status({ statusText: 'up to date' })])
+  const read = await runWithPeriodsRead(fine)
+  assert.equal(withKey(read, SECTION_8_CLAUSES.p8_3)[0].outcome, 'matches')
+  assert.equal(withKey(read, SECTION_8_CLAUSES.p8_4)[0].outcome, 'matches')
+  assert.equal(accountStatuses(read).length, 0)
+  const notRead = await runWithPeriods(fine)
+  assert.equal(withKey(notRead, SECTION_8_CLAUSES.p8_3)[0].outcome, 'not_shown')
+  assert.equal(withKey(notRead, SECTION_8_CLAUSES.p8_4)[0].outcome, 'not_shown')
+})
+
+test('a status from the institution\'s letter blocks "matches" but never produces it', async () => {
+  const letter = (statusText: string) => status({ source: 'institution_letter', bureau: null, statusText })
+  // Overdue per the letter, bureau report read: no "matches", the letter's status prints beside the row.
+  const blocked = await runWithPeriodsRead(withStatuses([letter('overdue')]))
+  assert.equal(withKey(blocked, SECTION_8_CLAUSES.p8_3).length, 0)
+  assert.equal(accountStatuses(blocked)[0].status.source, 'institution_letter')
+  // Not overdue per the letter, and no bureau report read: not_shown, never "matches".
+  const notProduced = await runWithPeriods(withStatuses([letter('current')]))
+  assert.equal(withKey(notProduced, SECTION_8_CLAUSES.p8_3)[0].outcome, 'not_shown')
+  assert.equal(withKey(notProduced, SECTION_8_CLAUSES.p8_4)[0].outcome, 'not_shown')
+})
+
+test('a report of non-payment of the disputed amount in the window still differs, whatever the status', async () => {
+  const d = withStatuses([status({})], creditCase({ reports: ['2025-10-05'] }))
+  const [row] = withKey(await runWithPeriodsRead(d), SECTION_8_CLAUSES.p8_3)
+  assert.equal(row.outcome, 'differs')
+})
+
+test('creditBureauReportRead is wired from the ready documents through the registry', async () => {
+  assert.equal(creditBureauReportReadFrom([{ evidenceType: 'credit_bureau_report', text: 'Synthetic report text' }]), true)
+  assert.equal(creditBureauReportReadFrom([{ evidenceType: 'credit_bureau_report', text: '  ' }]), false, 'no text read')
+  assert.equal(creditBureauReportReadFrom([{ evidenceType: 'bank_correspondence', text: 'A letter' }]), false)
+  assert.equal(creditBureauReportReadFrom([]), false)
+  const d = creditCase()
+  const read = await sectionBuilders({ creditBureauReportRead: true }).disputed_amount_charges({ ...d, provider: periodProvider })
+  assert.equal(withKey(read, SECTION_8_CLAUSES.p8_3)[0].outcome, 'matches')
+  const unread = await sectionBuilders().disputed_amount_charges({ ...d, provider: periodProvider })
+  assert.equal(withKey(unread, SECTION_8_CLAUSES.p8_3)[0].outcome, 'not_shown')
 })

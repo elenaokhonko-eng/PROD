@@ -39,6 +39,7 @@ import {
   modelDocumentExcerpts,
 } from "../_shared/facts/index.ts";
 import { buildFidrecUpdate, type FidrecUpdate } from "../_shared/facts/update/assemble.ts";
+import { creditBureauReportReadFrom } from "../_shared/facts/rules/dispute-charges-checks.ts";
 import type { AccessEvent, IpLocation } from "../_shared/facts/update/contract.ts";
 import { createDbClauseProvider, createDbTermRequestSource } from "../_shared/facts/update/db-clause-provider.ts";
 import { verdictFailures } from "../_shared/facts/update/model-guard.ts";
@@ -227,6 +228,7 @@ Deno.serve(async (req) => {
         update = await buildFidrecUpdate({
           facts,
           evidenceIndex,
+          creditBureauReportRead: creditBureauReportReadFrom(caseDocuments),
           institutionCode: await institutionCode(supabase, facts),
           ipLocations: await caseIpLocations(supabase, case_id, facts),
           provider: createDbClauseProvider((fn, args) => supabase.rpc(fn, args)),

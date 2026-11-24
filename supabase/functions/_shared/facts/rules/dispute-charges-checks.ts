@@ -26,7 +26,10 @@ import {
   type ChargeOnDisputedAmount,
   CLAUSE_KEYS,
   type ComparisonOutcome,
+  type CreditAccountStatus,
   type CreditBureauReport,
+  CREDIT_BUREAU_REPORT_DOCUMENT_TYPE,
+  creditRecordsReading,
   type DisputedAmountPaymentRequest,
   type DisputedPayment,
   type IsoDate,
@@ -157,19 +160,42 @@ function fidrecWords(fidrec: { startedOn: IsoDate | null; institutionToldOn: Iso
 
 const BUREAU_NOT_SHOWN = "The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau.";
 
+/** How 8.3 and 8.4(a) read the credit records for one period: a row with its outcome, or the account shown overdue. */
+type CreditRecordsRow =
+  | { kind: "row"; sentence: string; outcome: ComparisonOutcome }
+  | { kind: "overdue"; statuses: CreditAccountStatus[] };
+
 /**
- * Credit bureau reports in a period (8.3, 8.4(a)): the record sentence and the outcome. "No report" (`matches`) only
- * where a credit bureau report document is in the records and was read: a bureau report shows an account as overdue
- * without naming a transaction, so an empty extraction, or letters and the complainant's statement alone, never read
- * as "no report" (`not_shown`).
+ * Credit bureau reports in a period (8.3, 8.4(a)). A report of non-payment of the disputed amount in the period is
+ * `differs`. Otherwise the contract's CREDIT_RECORDS_RULE decides (`creditRecordsReading`, Lane 6, 25 Nov 2026):
+ * - `matches` ("no report") only where a credit bureau report document was read and no status shows the account
+ *   overdue in the period;
+ * - `overdue`: a status (from a bureau report or the institution's letter) shows the account overdue in the period, or
+ *   with no date. The row then carries no outcome, and each status prints beside it as an `account_status` line;
+ * - `not_read`: `not_shown`, as before.
  */
-function bureauInPeriod(bureau: CreditBureauReport[] | null, period: Period, bureauReportRead: boolean, window: WindowWords): { sentence: string; outcome: ComparisonOutcome } {
+function bureauInPeriod(
+  bureau: CreditBureauReport[] | null,
+  period: Period,
+  window: WindowWords,
+  records: { bureauReportRead: boolean; statuses: readonly CreditAccountStatus[]; today: IsoDate },
+): CreditRecordsRow {
   const inPeriod = (bureau ?? []).filter((r) => within(r.date, period));
   if (inPeriod.length) {
-    return { sentence: `The records show ${plural(inPeriod.length, "report")} of non-payment of the disputed amount to a credit bureau ${window}: ${reportWords(inPeriod)}.`, outcome: "differs" };
+    return { kind: "row", sentence: `The records show ${plural(inPeriod.length, "report")} of non-payment of the disputed amount to a credit bureau ${window}: ${reportWords(inPeriod)}.`, outcome: "differs" };
   }
-  if (!bureauReportRead) return { sentence: BUREAU_NOT_SHOWN, outcome: "not_shown" };
-  return { sentence: `The records show no report of non-payment of the disputed amount to a credit bureau ${window}.`, outcome: "matches" };
+  const reading = creditRecordsReading({ bureauReportRead: records.bureauReportRead, statuses: records.statuses, from: period.from, until: period.until, today: records.today });
+  if (reading.kind === "overdue") return { kind: "overdue", statuses: reading.statuses };
+  if (reading.kind === "not_read") return { kind: "row", sentence: BUREAU_NOT_SHOWN, outcome: "not_shown" };
+  return { kind: "row", sentence: `The records show no report of non-payment of the disputed amount to a credit bureau ${window}.`, outcome: "matches" };
+}
+
+/**
+ * The ready documents show a credit bureau report that was read: a document classified `credit_bureau_report` with text.
+ * What the registry passes as `creditBureauReportRead` (run_fidrec_pack_v1 has the ready documents).
+ */
+export function creditBureauReportReadFrom(documents: ReadonlyArray<{ evidenceType: string | null; text: string | null }>): boolean {
+  return documents.some((d) => d.evidenceType === CREDIT_BUREAU_REPORT_DOCUMENT_TYPE && Boolean(d.text?.trim()));
 }
 
 /** Every credit bureau report the records show, with no period (the record line beside 8.4(b) or a quoted 8.5). */
@@ -219,8 +245,8 @@ function settlementInPeriods(
 export interface DisputeChargesCheckOptions {
   /**
    * Whether a credit bureau report document (`credit_bureau_report`) is in the case's records and was read. Only then
-   * can "no report" print as `matches`. SectionInput does not carry the documents read; Lane 6 wires this from the
-   * evidence index. Default: false (never "no report").
+   * can "no report" print as `matches`. SectionInput does not carry the documents read; the registry passes it from the
+   * ready documents (`creditBureauReportReadFrom`, run_fidrec_pack_v1). Default: false (never "no report").
    */
   creditBureauReportRead?: (input: SectionInput) => boolean;
 }
@@ -234,6 +260,12 @@ export function createDisputeChargesChecks(options: DisputeChargesCheckOptions =
     const credit = creditCardPayments(payments, factValue(input.facts, "account_types") ?? []);
     const base = { group, skipInstrumentGuard: true };
     const bureauReportRead = options.creditBureauReportRead?.(input) ?? false;
+    const statuses = factValue(input.facts, "credit_account_status") ?? [];
+    const records = { bureauReportRead, statuses, today: input.generatedOn };
+    /** Each status beside the 8.3 or 8.4 row, with its own document's E-number where the pack has set it. */
+    const printStatuses = (list: readonly CreditAccountStatus[], clauseKey: string) => {
+      for (const s of list) w.accountStatus(s, clauseKey, s.evidenceId ? [s.evidenceId] : evidenceFor(input, "credit_account_status"));
+    };
 
     const report = factValue(input.facts, "reported_to_bank");
     const reply = factValue(input.facts, "bank_reply");
@@ -299,8 +331,15 @@ export function createDisputeChargesChecks(options: DisputeChargesCheckOptions =
 
     // 8.3: credit cards; credit records not adversely affected until the investigation is completed.
     if (credit.length) {
-      const { sentence, outcome } = bureauInPeriod(bureau, investigation, bureauReportRead, "between those dates");
-      await w.compare({ ...base, clauseKey: P8_3, payments: credit, onDate, record: `${reported} ${replyWords} ${sentence}`, outcome, evidenceIds: bureauEv });
+      const read = bureauInPeriod(bureau, investigation, "between those dates", records);
+      if (read.kind === "row") {
+        await w.compare({ ...base, clauseKey: P8_3, payments: credit, onDate, record: `${reported} ${replyWords} ${read.sentence}`, outcome: read.outcome, evidenceIds: bureauEv });
+      } else {
+        // The account shown overdue: the row has no outcome. The record, the statuses beside it, then 8.3 quoted.
+        w.text(`${reported} ${replyWords}`, { evidenceIds: bureauEv, clauseKeys: [P8_3] });
+        printStatuses(read.statuses, P8_3);
+        await w.quotation({ documentKey: "mas.eupg", clauseKeys: [P8_3], eventDate: onDate, generatedOn: onDate, caseEventDates: [], evidenceIds: bureauEv });
+      }
     }
 
     // 8.4 and 8.5: credit cards only, as 8.3.
@@ -320,16 +359,16 @@ export function createDisputeChargesChecks(options: DisputeChargesCheckOptions =
       } else if (days84a !== null) {
         periodAEnd = addCalendarDays(finalReply.date!, days84a);
         const periodA: Period = { from: finalReply.date!, until: addCalendarDays(finalReply.date!, days84a + 1) };
-        const { sentence, outcome } = bureauInPeriod(bureau, periodA, bureauReportRead, "between those dates");
-        printed84a = await w.compare({
-          ...base,
-          clauseKey: P8_4,
-          payments: credit,
-          onDate,
-          record: [outcomeWords(finalReply), countedWords(finalReply.date!, days84a), sentence].join(" "),
-          outcome,
-          evidenceIds: bureauEv,
-        });
+        const read = bureauInPeriod(bureau, periodA, "between those dates", records);
+        const opening = [outcomeWords(finalReply), countedWords(finalReply.date!, days84a)];
+        if (read.kind === "row") {
+          printed84a = await w.compare({ ...base, clauseKey: P8_4, payments: credit, onDate, record: [...opening, read.sentence].join(" "), outcome: read.outcome, evidenceIds: bureauEv });
+        } else {
+          // The account shown overdue: the row has no outcome. The record and the statuses beside it; paragraph 8.4 is
+          // quoted once below, after the 8.4(b) record line.
+          w.text(opening.join(" "), { evidenceIds: bureauEv, clauseKeys: [P8_4] });
+          printStatuses(read.statuses, P8_4);
+        }
       }
 
       // 8.4(b) names no period ("after the completion of mediation and/or adjudication by FIDReC …"), so nothing is
