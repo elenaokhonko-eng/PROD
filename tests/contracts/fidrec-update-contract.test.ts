@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import test from 'node:test'
 import { assessSrf, normaliseInstitution, srfFactsFromSnapshot } from '../../lib/facts'
 import {
@@ -11,21 +11,44 @@ import {
   CARD_AUTHENTICATIONS,
   CARD_DISPUTE_STATUSES,
   CARD_SCHEMES,
+  AS_OF_RULE_OUTCOMES,
+  AS_OF_RULES,
+  type AsOfRuleCase,
   CLAUSE_KEYS,
+  COMPARISON_OUTCOMES,
+  complainantRecognisesDevice,
+  CONDUCT_LINE_KINDS,
+  CONDUCT_MARKERS,
+  CONDUCT_TOPICS,
   CORPUS_INSTRUMENTS,
   createFakeClauseProvider,
+  CREDIT_BUREAU_REPORT_DOCUMENT_TYPE,
+  DECIDED_STATEMENT_KEYS_2026_11_24,
   DEVICE_RECOGNITION_ANSWERS,
+  documentDatedAfterEvents,
   ENTRY_MODES,
   IP_NETWORK_FLAGS,
+  NAMED_CLAUSE_KEYS,
+  readDateFor,
+  readUnderAsOfRule,
+  recognitionAnswerFor,
   RULE_CLAUSE_KEYS,
   SECTION_IDS,
   type SectionBuilder,
   type SectionInput,
+  TECHNICAL_RECORD_DOCUMENT_TYPES,
+  TERM_REQUEST_PURPOSES,
   TOKEN_ACTIVATION_METHODS,
+  TWELVE_HOUR_BLOCK_HEADINGS,
+  TWELVE_HOUR_EXCLUDED_KINDS,
+  TWELVE_HOUR_NAMED_KINDS,
+  TWELVE_HOUR_WINDOW_MS,
   UPDATE_FACT_KEYS,
   WALLET_PROVISIONING_AUTHENTICATIONS,
 } from '../../supabase/functions/_shared/facts/update/contract.ts'
 import {
+  accountSrfCase,
+  cardOnlyCase,
   EUPG_A_TO,
   FIDREC_UPDATE_CASES,
   SRF_FRAUD_SURVEILLANCE_FROM,
@@ -38,6 +61,7 @@ import {
 const BRIEF = 'docs/agent-briefs/2026-11-20-agent-brief-fidrec-technical-records-and-standards-corpus.md'
 const CORPUS_MIGRATION = 'supabase/migrations/20261201120000_standards_corpus.sql'
 const REVIEW_LINKS_MIGRATION = 'supabase/migrations/20261202120000_standards_review_links.sql'
+const AS_OF_RULE_CASES_FILE = 'tests/fixtures/fidrec-update/as-of-rule-cases.json'
 
 const read = (path: string) => readFileSync(path, 'utf8').replace(/\r\n/g, '\n')
 const has = (list: readonly string[], value: unknown) => typeof value === 'string' && list.includes(value)
@@ -182,24 +206,31 @@ test('fixtures hold no real-looking personal data', () => {
 // Sections and keys against the brief and the migrations
 // ---------------------------------------------------------------------------------------------------------------
 
-test('section IDs follow the order of brief 4i', () => {
+test('section IDs follow the order of brief 4i, with disputed_amount_charges after duty_time_checks (review Decision 8)', () => {
   const line = read(BRIEF).split('\n').find((l) => l.startsWith('Existing sections, then:'))
   assert.ok(line, 'brief 4i order line')
   const ids = [...line.matchAll(/`([a-z_]+)`/g)].map((m) => m[1])
+  // Brief v5 does not have the Section 8 check yet (brief v6 will); the review of 24 Nov 2026 places it here.
+  assert.ok(!ids.includes('disputed_amount_charges'), 'once the brief names it, compare with the brief alone')
+  ids.splice(ids.indexOf('duty_time_checks') + 1, 0, 'disputed_amount_charges')
   assert.deepEqual([...SECTION_IDS], ids)
   assert.ok(line.trimEnd().endsWith('arguments for each side.'))
 })
 
-test('every statement key is one the brief names, and matches the definition_statements key pattern', () => {
+test('every statement key is one the brief names or the review of 24 Nov decided, and matches the key pattern', () => {
   const brief = read(BRIEF)
   const migration = read(CORPUS_MIGRATION)
   const pattern = '^[a-z0-9_]+(\\.[a-z0-9_]+)+$'
   assert.ok(migration.includes(`statement_key ~ '${pattern}'`))
   assert.equal(new Set(ALL_STATEMENT_KEYS).size, ALL_STATEMENT_KEYS.length)
+  const decided: readonly string[] = DECIDED_STATEMENT_KEYS_2026_11_24
   for (const key of ALL_STATEMENT_KEYS) {
-    assert.ok(brief.includes(`\`${key}\``), `${key} is not in the brief`)
+    assert.ok(brief.includes(`\`${key}\``) || decided.includes(key), `${key} is neither in the brief nor decided`)
     assert.match(key, new RegExp(pattern), key)
   }
+  // Every decided key is in the contract's list, and the replaced proposals are not.
+  for (const key of decided) assert.ok((ALL_STATEMENT_KEYS as readonly string[]).includes(key), key)
+  for (const key of ['srf.highrisk.wallet', 'eupg.highrisk.wallet']) assert.ok(!(ALL_STATEMENT_KEYS as readonly string[]).includes(key), key)
 })
 
 test('every rule clause key matches the standard_clauses key pattern and names a document the corpus knows', () => {
@@ -207,13 +238,109 @@ test('every rule clause key matches the standard_clauses key pattern and names a
   const pattern = '^[a-z0-9]+(\\.[a-z0-9_-]+)+/[a-z0-9._()~-]+$'
   assert.ok(migration.includes(`clause_key ~ '${pattern}'`))
   assert.equal(new Set(RULE_CLAUSE_KEYS).size, Object.values(CLAUSE_KEYS).flat().length)
-  // Documents loaded today or named by the brief for Phase 2 and Phase 7.
-  const documents = new Set(['mas.eupg', 'mas.srf', 'mas.fsm-n07', 'abs.card_code', 'visa.core_rules'])
+  // Documents loaded today or named by the brief for Phase 2 and Phase 7; since Step 0b also those Lanes 1 and 5 loaded.
+  const documents = new Set([
+    'mas.eupg',
+    'mas.srf',
+    'mas.fsm-n05',
+    'mas.fsm-n07',
+    'abs.card_code',
+    'abs.media_2025_02_card_provisioning',
+    'mas.reply.20250107',
+    'visa.core_rules',
+    'mastercard.chargeback_guide',
+  ])
   for (const key of RULE_CLAUSE_KEYS) {
     assert.match(key, new RegExp(pattern), key)
     assert.ok(documents.has(key.split('/')[0]), key)
   }
   for (const section of Object.keys(CLAUSE_KEYS)) assert.ok((SECTION_IDS as readonly string[]).includes(section), section)
+})
+
+test('Step 0b: clause keys use the names Lanes 1 and 5 loaded, and cite the 2.1 definitions, not the chapeau', () => {
+  const keys: readonly string[] = RULE_CLAUSE_KEYS
+  for (const wrong of ['mas.reply_20250107/3ds', 'mastercard.chargeback_guide/no_cardholder_authorization', 'mas.srf/2.1', 'mas.eupg/2.1']) {
+    assert.ok(!keys.includes(wrong), wrong)
+  }
+  for (const key of Object.values(NAMED_CLAUSE_KEYS)) assert.ok(keys.includes(key), key)
+  assert.equal(NAMED_CLAUSE_KEYS.masReply3ds, 'mas.reply.20250107/3(a).3ds')
+  assert.equal(NAMED_CLAUSE_KEYS.mastercardIssuerChargeback, 'mastercard.chargeback_guide/dms.4837.issuer-chargeback')
+  assert.equal(NAMED_CLAUSE_KEYS.mastercardIneligible, 'mastercard.chargeback_guide/dms.4837.ineligible')
+  assert.equal(NAMED_CLAUSE_KEYS.srfHighRiskDefinition, 'mas.srf/2.1(high-risk-activities)')
+  assert.equal(NAMED_CLAUSE_KEYS.eupgHighRiskDefinition, 'mas.eupg/2.1(high-risk-activities)')
+})
+
+test('Decision 8: the new facts and the optional credit bureau report document type', () => {
+  for (const key of ['disputed_amount_payment_requests', 'charges_on_disputed_amount', 'credit_bureau_reports', 'fidrec_dispute_dates']) {
+    assert.ok((UPDATE_FACT_KEYS as readonly string[]).includes(key), key)
+  }
+  assert.equal(CREDIT_BUREAU_REPORT_DOCUMENT_TYPE, 'credit_bureau_report')
+  assert.ok(!(TECHNICAL_RECORD_DOCUMENT_TYPES as readonly string[]).includes(CREDIT_BUREAU_REPORT_DOCUMENT_TYPE))
+})
+
+test('Decision 1: seven conduct topics, four conduct line kinds, comparison outcomes unchanged', () => {
+  assert.deepEqual(CONDUCT_MARKERS, [
+    'credentials_entered',
+    'credentials_given',
+    'app_installed',
+    'card_payment_approved',
+    'alerts_and_report',
+    'block_used',
+    'police_report',
+  ])
+  assert.equal(CONDUCT_TOPICS.alerts_and_report, 'notifications and alerts from the institution')
+  assert.equal(CONDUCT_TOPICS.card_payment_approved, 'authenticating a card payment')
+  assert.deepEqual([...CONDUCT_LINE_KINDS], ['refers_to', 'does_not_refer_to', 'no_conduct_test', 'records_do_not_show'])
+  assert.deepEqual([...COMPARISON_OUTCOMES], ['differs', 'matches', 'not_shown', 'not_applicable'])
+  for (const topic of Object.values(CONDUCT_TOPICS)) assert.doesNotMatch(topic, /\b(matches|differs|negligen|reckless|fault)/i, topic)
+})
+
+test('Decision 4: the 12-hour block headings and groups; the institution\'s own messages are not activities', () => {
+  assert.equal(TWELVE_HOUR_BLOCK_HEADINGS.block, 'The 12 hours after the digital token was activated')
+  assert.equal(TWELVE_HOUR_BLOCK_HEADINGS.named, 'Activities the definitions name')
+  assert.equal(TWELVE_HOUR_BLOCK_HEADINGS.other, 'Other activities the record shows in the 12 hours')
+  assert.deepEqual([...TWELVE_HOUR_NAMED_KINDS], ['payee_added', 'limit_changed', 'notifications_disabled', 'contact_details_changed'])
+  assert.deepEqual([...TWELVE_HOUR_EXCLUDED_KINDS], ['otp_sent', 'alert_sent'])
+  assert.equal(TWELVE_HOUR_WINDOW_MS, 12 * 60 * 60 * 1000)
+  for (const h of Object.values(TWELVE_HOUR_BLOCK_HEADINGS)) assert.doesNotMatch(h, /high-risk/i)
+})
+
+test('the card-only case names its digital token on the activation line (tokenRef)', () => {
+  const events = cardOnlyCase.data.facts.access_events!.value!
+  const activation = events.find((e) => e.kind === 'token_activated')!
+  const payments = cardOnlyCase.data.facts.card_auth_events!.value!.filter((e) => e.transactionIndex !== null)
+  assert.ok(activation.tokenRef)
+  assert.ok(payments.every((p) => p.tokenRef === activation.tokenRef))
+})
+
+test('the not-sure rule: only a clear "mine" on a confirmed or claimant-only fact counts as recognised', () => {
+  const device = { deviceRef: 'dev-x', deviceLabel: 'Phone X' }
+  const fact = (answer: 'mine' | 'not_mine' | 'not_sure', label: 'confirmed' | 'claimant_only' | 'not_sure' | 'not_known' = 'confirmed') =>
+    ({ value: [{ deviceRef: 'dev-x', deviceLabel: 'Phone X', firstSeenAt: null, answer }], label })
+  assert.equal(complainantRecognisesDevice(fact('mine'), device), true)
+  assert.equal(complainantRecognisesDevice(fact('mine', 'claimant_only'), device), true)
+  assert.equal(complainantRecognisesDevice(fact('not_mine'), device), false)
+  assert.equal(complainantRecognisesDevice(fact('not_sure'), device), false)
+  assert.equal(complainantRecognisesDevice(fact('mine', 'not_sure'), device), false)
+  assert.equal(complainantRecognisesDevice(fact('mine', 'not_known'), device), false)
+  assert.equal(complainantRecognisesDevice(undefined, device), false)
+  assert.equal(complainantRecognisesDevice(fact('mine'), null), false, 'the record names no device')
+  assert.equal(complainantRecognisesDevice(fact('mine'), { deviceRef: 'dev-y', deviceLabel: null }), false, 'no answer for this device')
+  assert.equal(complainantRecognisesDevice(fact('mine'), { deviceRef: null, deviceLabel: 'Phone X' }), true, 'matched by label')
+  // The answer itself is kept for printing.
+  assert.equal(recognitionAnswerFor(fact('not_sure').value, device), 'not_sure')
+  // The account case: one device is not_sure; it is not recognised.
+  const accountFact = accountSrfCase.data.facts.device_recognition
+  assert.equal(complainantRecognisesDevice(accountFact, { deviceRef: 'dev-ex-0004', deviceLabel: null }), false)
+})
+
+test('Decision 6: any_date documents are read on the generation date; a later document is dated after the events', () => {
+  assert.deepEqual([...AS_OF_RULES], ['event_date', 'any_date'])
+  assert.equal(readDateFor('event_date', '2025-07-03', '2026-11-24'), '2025-07-03')
+  assert.equal(readDateFor('any_date', '2025-07-03', '2026-11-24'), '2026-11-24')
+  assert.equal(documentDatedAfterEvents('2026-01-13', ['2025-09-12', '2025-10-20', null]), '2026-01-13')
+  assert.equal(documentDatedAfterEvents('2025-01-07', ['2025-09-12', '2025-10-20']), null)
+  assert.equal(documentDatedAfterEvents('2026-01-13', [null]), null)
 })
 
 test('the provider mirrors the database as-of functions: names, arguments and columns', async () => {
@@ -291,6 +418,111 @@ test('a statement prints in the revision checked against the wording in force on
   // A draft never prints; a clause not yet in force means no statement.
   assert.equal(await provider.getStatementAsOf('abs.fault.term', '2025-03-01'), null)
   assert.equal(await provider.getStatementAsOf('eupg.fault.term', '2024-12-15'), null)
+})
+
+test('nearest version held: in force when held, else the nearest verified version, never a draft', async () => {
+  // In force: the same row as the as-of read.
+  const inForce = await provider.getNearestClause('mas.eupg/4.7', '2025-03-01')
+  assert.equal(inForce?.relation, 'in_force')
+  assert.equal(inForce?.clause.version_label, 'A')
+  // Before the first version: the earliest verified version, marked as later than the date.
+  const before = await provider.getNearestClause('mas.eupg/4.7', '2024-01-01')
+  assert.equal(before?.relation, 'later_version')
+  assert.equal(before?.clause.version_label, 'A')
+  // A paragraph that starts later than its document: the nearest is its own start.
+  const surveillance = await provider.getNearestClause('mas.srf/4.2.5', '2025-06-15')
+  assert.equal(surveillance?.relation, 'later_version')
+  assert.equal(surveillance?.clause.clause_key, 'mas.srf/4.2.5')
+  assert.equal(await provider.getNearestClause('mas.eupg/no-such-clause', '2025-03-01'), null)
+  await assert.rejects(async () => provider.getNearestClause('mas.eupg/4.7', 'March 2025'))
+
+  // An earlier version that has ended, and a draft that is never read.
+  const ended = createFakeClauseProvider({
+    versions: [
+      { ...syntheticCorpus.versions[0], effective_to: '2025-01-01', version_label: 'old' },
+      { ...syntheticCorpus.versions[2] },
+    ],
+    statements: [],
+  })
+  const after = await ended.getNearestClause('mas.eupg/4.7', '2026-07-01')
+  assert.equal(after?.relation, 'earlier_version')
+  assert.equal(after?.clause.version_label, 'old')
+})
+
+test('as-of rule: a document marked any_date reports it; others default to event_date', async () => {
+  const reply = createFakeClauseProvider({
+    versions: [{ ...syntheticCorpus.versions[0], document_key: 'mas.reply.20260113', as_of_rule: 'any_date' }],
+    statements: [],
+  })
+  assert.equal(await reply.getAsOfRule('mas.reply.20260113'), 'any_date')
+  assert.equal(await reply.getAsOfRule('mas.eupg'), 'event_date')
+  assert.equal(await provider.getAsOfRule('mas.eupg'), 'event_date')
+})
+
+test('as-of rule: the fake provider gives the expected result for every row of the shared table', async () => {
+  const table = JSON.parse(read(AS_OF_RULE_CASES_FILE)) as { cases: AsOfRuleCase[] }
+  assert.ok(table.cases.length >= 8)
+  const ids = new Set<string>()
+  for (const c of table.cases) {
+    assert.ok(!ids.has(c.id), `duplicate ${c.id}`)
+    ids.add(c.id)
+    assert.ok(has(AS_OF_RULES, c.asOfRule) && has(AS_OF_RULE_OUTCOMES, c.expected), c.id)
+    assert.match(c.documentKey, /^test\./, `${c.id}: synthetic keys only`)
+    const p = createFakeClauseProvider({
+      versions: [{
+        version_id: `ver-${c.id}`,
+        document_key: c.documentKey,
+        title: 'Synthetic document',
+        publisher: 'Synthetic publisher',
+        binding_level: c.asOfRule === 'any_date' ? 'announcement' : 'guideline',
+        institution: null,
+        card_scheme: null,
+        document_instrument_scope: ['account_transfer', 'sg_card', 'ewallet'],
+        version_label: c.documentDate,
+        effective_from: c.documentDate,
+        effective_to: null,
+        status: 'verified',
+        source_url: null,
+        coverage: 'full',
+        as_of_rule: c.asOfRule,
+        clauses: [{ clause_id: `cl-${c.id}`, clause_key: c.clauseKey, text_content: 'Placeholder.', text_sha256: 'e'.repeat(64), effective_from_override: c.clauseStart }],
+      }],
+      statements: [],
+    })
+    const got = await readUnderAsOfRule(p, c.documentKey, c.clauseKey, c.eventDate, c.generatedOn)
+    assert.equal(got.outcome, c.expected, `${c.id}: ${c.standsFor}`)
+  }
+  // The two cases the review names.
+  const byId = new Map(table.cases.map((c) => [c.id, c]))
+  assert.equal(byId.get('eupg-4.21-before-start')?.expected, 'not_held')
+  assert.equal(byId.get('eupg-4.21-before-start')?.clauseStart, '2025-06-16')
+  assert.equal(byId.get('reply-2026-for-2025-event')?.expected, 'held_after_the_events')
+  assert.equal(byId.get('reply-2026-for-2025-event')?.documentDate, '2026-01-13')
+})
+
+test('term-request purposes are named once: the database check and Lane 4\'s list match the contract', async () => {
+  assert.ok((TERM_REQUEST_PURPOSES as readonly string[]).includes('wallet_provisioning'))
+  assert.equal(new Set(TERM_REQUEST_PURPOSES).size, TERM_REQUEST_PURPOSES.length)
+  // The latest migration that sets the purpose CHECK: every purpose it allows is in the contract; the contract may be
+  // ahead only by wallet_provisioning until Lane 1's migration (Elena's OK) adds it, then the two are equal.
+  const migrations = readdirSync('supabase/migrations').filter((f) => f.endsWith('.sql')).sort()
+  let dbPurposes: string[] | null = null
+  for (const f of migrations) {
+    const sql = read(`supabase/migrations/${f}`)
+    for (const m of sql.matchAll(/CHECK\s*\(\s*purpose\s+IN\s*\(([^)]*)\)/gi)) {
+      dbPurposes = [...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1])
+    }
+  }
+  assert.ok(dbPurposes, 'institution_term_requests.purpose CHECK')
+  for (const p of dbPurposes) assert.ok((TERM_REQUEST_PURPOSES as readonly string[]).includes(p), p)
+  const ahead = TERM_REQUEST_PURPOSES.filter((p) => !dbPurposes!.includes(p))
+  assert.ok(ahead.every((p) => p === 'wallet_provisioning'), `contract ahead of the database by ${ahead.join(', ')}`)
+  // Lane 4's list, once its rule file is on this branch.
+  const lane4 = 'supabase/functions/_shared/facts/rules/institution-terms.ts'
+  if (existsSync(lane4)) {
+    const mod = await import(`../../${lane4}`) as { TERM_PURPOSES?: readonly string[] }
+    if (mod.TERM_PURPOSES) assert.deepEqual([...mod.TERM_PURPOSES], [...TERM_REQUEST_PURPOSES])
+  }
 })
 
 test('the provider refuses a value that is not a date', async () => {
