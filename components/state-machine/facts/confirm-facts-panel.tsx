@@ -141,6 +141,9 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
         <CardContent className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={() => setReviewing(true)}>Review my facts</Button>
           <Button onClick={handleConfirm} disabled={confirm.isPending || refreshing}>Continue</Button>
+          {refreshing ? (
+            <p className="w-full text-sm text-muted-foreground" aria-live="polite" data-facts-refreshing>Checking your facts…</p>
+          ) : null}
         </CardContent>
       </Card>
     )
@@ -266,11 +269,14 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
         <Button size="lg" onClick={handleConfirm} disabled={!canContinue || confirm.isPending || refreshing}>
           {confirm.isPending ? 'Saving…' : `Confirm and continue to your ${stageName}`}
         </Button>
-        {!canContinue && (
+        {!canContinue ? (
           <p className="text-sm text-muted-foreground">
             {view.consistencyIssues.length ? 'You can continue once your answers fit together.' : 'You can continue once every fact above is answered.'}
           </p>
-        )}
+        ) : refreshing ? (
+          // Approved by Elena on 25 Nov 2026: says why the button is waiting while the facts reload.
+          <p className="text-sm text-muted-foreground" aria-live="polite" data-facts-refreshing>Checking your facts…</p>
+        ) : null}
       </div>
     </div>
   )
