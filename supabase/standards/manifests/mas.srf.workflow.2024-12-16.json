@@ -1,0 +1,151 @@
+{
+  "$comment": "MAS infographic on the operational workflow for the Shared Responsibility Framework (published with the Guidelines, 24 October 2024). A flowchart: one clause per box or group of boxes, in the reading order pdftotext gives; the sheet shows each beside the page. Clause text is cut from the private source file.",
+  "document": {
+    "document_key": "mas.srf.workflow",
+    "title": "Infographic on Operational Workflow for Shared Responsibility Framework",
+    "publisher": "Monetary Authority of Singapore",
+    "binding_level": "announcement",
+    "applies_to": ["bank", "payment_service_provider", "telco"],
+    "instrument_scope": ["account_transfer", "ewallet"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/regulation/guidelines/guidelines-on-shared-responsibility-framework"
+  },
+  "version": {
+    "version_label": "24 October 2024",
+    "effective_from": "2024-12-16",
+    "issued_on": "2024-10-24",
+    "retrieved_at": "2026-11-24T04:20:00Z",
+    "source_url": "https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/pso/guidelines-on-shared-responsibility-framework/infographic-on-operational-workflow-for-shared-responsibility-framework.pdf",
+    "snapshot_path": "mas.srf.workflow/2024-10-24/infographic-on-operational-workflow-for-shared-responsibility-framework.pdf",
+    "content_sha256": "8c7acb15687a24529e455c81371a021879ea8d6a394b0a35e07ff10dd7ccc6f0",
+    "provenance": "publisher_site",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "^1\\. Claim Stage$",
+      "clause": "mas.srf.workflow/claim"
+    },
+    {
+      "at": "^2\\. Investigation Stage$",
+      "clause": "mas.srf.workflow/investigation"
+    },
+    {
+      "at": "^Existing Investigation and Dispute Resolution",
+      "clause": "mas.srf.workflow/existing-process"
+    },
+    {
+      "at": "^Responsible FI to investigate SRF claim$",
+      "clause": "mas.srf.workflow/investigation.srf"
+    },
+    {
+      "at": "^3\\. Outcome Stage$",
+      "clause": "mas.srf.workflow/outcome"
+    },
+    {
+      "at": "^4\\. Recourse Stage",
+      "clause": "mas.srf.workflow/recourse"
+    },
+    {
+      "at": "^For scams not perpetrated via SMS$",
+      "clause": "mas.srf.workflow/outcome.not-sms"
+    },
+    {
+      "at": "^Victim complains to IMDA$",
+      "clause": "mas.srf.workflow/recourse"
+    },
+    {
+      "at": "^FIDReC’s assessment includes",
+      "clause": "mas.srf.workflow/recourse.fidrec"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.srf.workflow/claim",
+      "clause_ref": "1. Claim Stage",
+      "heading_path": ["1. Claim Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "90313a2247a9211e29675d0cfbb118a6335cb12328df3f979648224a5193e7d3"
+    },
+    {
+      "clause_key": "mas.srf.workflow/investigation",
+      "clause_ref": "2. Investigation Stage",
+      "heading_path": ["2. Investigation Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "6386b1dc3178aa0f8b55e38c52c6c90bc273e0a2ba6e2be981efb3c0364bd691"
+    },
+    {
+      "clause_key": "mas.srf.workflow/existing-process",
+      "clause_ref": "Existing Investigation and Dispute Resolution Process (claims outside the SRF)",
+      "heading_path": ["Existing Investigation and Dispute Resolution Process (claims outside the SRF)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "259c39c333d9010bf42fc7c520088a753f35a94510928a9018668ff40b1b9898"
+    },
+    {
+      "clause_key": "mas.srf.workflow/investigation.srf",
+      "clause_ref": "2. Investigation Stage: SRF claim, by whether the scam was perpetrated via SMS",
+      "heading_path": ["2. Investigation Stage: SRF claim, by whether the scam was perpetrated via SMS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "edc3f1a5632fa4ebdceb9dfbc749ef1854882b8e23fc48f5626037ffb5ff9a55"
+    },
+    {
+      "clause_key": "mas.srf.workflow/outcome",
+      "clause_ref": "3. Outcome Stage: scams perpetrated via SMS",
+      "heading_path": ["3. Outcome Stage: scams perpetrated via SMS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "375b9e7fa203b156372c846e572694ee69bed52688b9904023a49e28a4e86038"
+    },
+    {
+      "clause_key": "mas.srf.workflow/recourse",
+      "clause_ref": "4. Recourse Stage (existing avenues of dispute resolution)",
+      "heading_path": ["4. Recourse Stage (existing avenues of dispute resolution)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "3f1d621d0bfd03e37b7d4561afedb6061ef7c023435de1ac9a62a623bd95fd72"
+    },
+    {
+      "clause_key": "mas.srf.workflow/outcome.not-sms",
+      "clause_ref": "3. Outcome Stage: scams not perpetrated via SMS",
+      "heading_path": ["3. Outcome Stage: scams not perpetrated via SMS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "e92e41c1c4a47c9d2fd0c519418c7055d5eb4b396bdc0da41e7ad86ecd2e18da"
+    },
+    {
+      "clause_key": "mas.srf.workflow/recourse.fidrec",
+      "clause_ref": "4. Recourse Stage: FIDReC's assessment",
+      "heading_path": ["4. Recourse Stage: FIDReC's assessment"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "99da0eb9fcd280835beef6fff0e5cff693a95e8fde9fc20e942a5c3146baedcd",
+      "note": "The box srf.fidrec.scope links to."
+    }
+  ]
+}

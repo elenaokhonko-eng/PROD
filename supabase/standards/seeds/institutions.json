@@ -1,0 +1,31 @@
+{
+  "$comment": "standard_institutions seed, from supabase/functions/_shared/facts/institutions.ts (ALIASES). code: the fixed key contracts and term requests use; name: the canonical name institutions.ts returns; aliases: names a case may give, matched without regard to case by standard_institution_code_v1. type is for the cross-check test only (the table has no type column). Loaded by scripts/standards/seed.ts.",
+  "institutions": [
+    { "code": "dbs_paylah", "name": "DBS PayLah!", "type": "payment_service_provider", "aliases": ["PayLah", "PayLah!", "DBS PayLah"] },
+    { "code": "grabpay", "name": "GrabPay", "type": "payment_service_provider", "aliases": ["Grab Pay"] },
+    { "code": "shopeepay", "name": "ShopeePay", "type": "payment_service_provider", "aliases": ["Shopee Pay"] },
+    { "code": "youtrip", "name": "YouTrip", "type": "payment_service_provider", "aliases": ["You Trip"] },
+    { "code": "singtel_dash", "name": "Singtel Dash", "type": "payment_service_provider", "aliases": [] },
+    { "code": "revolut", "name": "Revolut", "type": "payment_service_provider", "aliases": [] },
+    { "code": "wise", "name": "Wise", "type": "payment_service_provider", "aliases": ["TransferWise"] },
+    { "code": "paypal", "name": "PayPal", "type": "payment_service_provider", "aliases": [] },
+    { "code": "dbs", "name": "DBS/POSB", "type": "bank", "aliases": ["DBS", "POSB", "DBS Bank", "POSB Bank"] },
+    { "code": "ocbc", "name": "OCBC", "type": "bank", "aliases": ["OCBC Bank"] },
+    { "code": "uob", "name": "UOB", "type": "bank", "aliases": ["United Overseas Bank"] },
+    { "code": "citibank", "name": "Citibank", "type": "bank", "aliases": ["Citi"] },
+    { "code": "standard_chartered", "name": "Standard Chartered", "type": "bank", "aliases": ["StanChart", "SCB", "Standard Chartered Bank"] },
+    { "code": "hsbc", "name": "HSBC", "type": "bank", "aliases": [] },
+    { "code": "maybank", "name": "Maybank", "type": "bank", "aliases": [] },
+    { "code": "trust_bank", "name": "Trust Bank", "type": "bank", "aliases": [] },
+    { "code": "gxs", "name": "GXS Bank", "type": "bank", "aliases": ["GXS"] },
+    { "code": "icbc", "name": "ICBC", "type": "bank", "aliases": ["Industrial and Commercial Bank of China"] },
+    { "code": "bank_of_china", "name": "Bank of China", "type": "bank", "aliases": [] },
+    { "code": "cimb", "name": "CIMB", "type": "bank", "aliases": ["CIMB Bank"] },
+    { "code": "maribank", "name": "MariBank", "type": "bank", "aliases": ["Mari Bank"] },
+    { "code": "rhb", "name": "RHB", "type": "bank", "aliases": ["RHB Bank"] },
+    { "code": "singtel", "name": "Singtel", "type": "telco", "aliases": [] },
+    { "code": "starhub", "name": "StarHub", "type": "telco", "aliases": [] },
+    { "code": "m1", "name": "M1", "type": "telco", "aliases": [] },
+    { "code": "simba", "name": "SIMBA", "type": "telco", "aliases": ["TPG Telecom"] }
+  ]
+}

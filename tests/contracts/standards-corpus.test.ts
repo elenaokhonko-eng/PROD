@@ -80,3 +80,14 @@ test('statements are read by the wording they were checked against, and rules co
   assert.match(sql, /institution_term_requests_institution_fkey FOREIGN KEY \(institution\) REFERENCES public\.standard_institutions\(code\)/)
   assert.match(sql, /'rule ' \|\| rc\.rule_id/)
 })
+
+test('a statement can cite a paragraph as not applying to its payment types, by an explicit flag only', () => {
+  const sql = readFileSync('supabase/migrations/20261203120000_standards_statement_exclusions.sql', 'utf8')
+  assert.match(sql, /ADD COLUMN exclusion_clause_keys text\[\] NOT NULL DEFAULT '\{\}'/)
+  assert.match(sql, /CHECK \(exclusion_clause_keys <@ clause_keys\)/)
+  // The usual scope check skips only the flagged clauses, and a flagged clause must leave the payment types out.
+  assert.match(sql, /NOT \(k = ANY \(NEW\.exclusion_clause_keys\)\)\s+AND NOT NEW\.applies_to_instrument <@ c\.instrument_scope/)
+  assert.match(sql, /FROM unnest\(NEW\.exclusion_clause_keys\) k[^;]*WHERE NEW\.applies_to_instrument && c\.instrument_scope/)
+  // The flag is part of the approved revision that cannot change.
+  assert.match(sql, /NEW\.clauses_as_of, NEW\.exclusion_clause_keys\)\s+IS DISTINCT FROM/)
+})

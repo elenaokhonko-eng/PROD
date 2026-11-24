@@ -1,0 +1,1432 @@
+{
+  "$comment": "MAS and IMDA Guidelines on Shared Responsibility Framework, issued 24 October 2024, in force from 16 December 2024 (paragraph 4.2.5 from 16 June 2025, para 4.4). The text Elena supplied is the same file as on the MAS page (brief decision 17); confirm by its hash. Clause text is cut from the private source file; only keys, hashes and markers are held here. The responsibility sharing does not apply to Singapore-issued card transactions (footnote 1), so the document's scope is accounts and e-wallets.",
+  "document": {
+    "document_key": "mas.srf",
+    "title": "Guidelines on Shared Responsibility Framework",
+    "publisher": "Monetary Authority of Singapore and Infocomm Media Development Authority",
+    "binding_level": "guideline",
+    "applies_to": ["bank", "payment_service_provider", "telco"],
+    "instrument_scope": ["account_transfer", "ewallet"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/regulation/guidelines/guidelines-on-shared-responsibility-framework"
+  },
+  "version": {
+    "version_label": "24 October 2024",
+    "effective_from": "2024-12-16",
+    "issued_on": "2024-10-24",
+    "retrieved_at": "2026-11-24T04:20:00Z",
+    "source_url": "https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/pso/guidelines-on-shared-responsibility-framework/guidelines-on-shared-responsibility-framework.pdf",
+    "snapshot_path": "mas.srf/2024-12-16/guidelines-on-shared-responsibility-framework.pdf",
+    "content_sha256": "bc5f937a1baffac0758532b3ae95c9f7cc4b7db5ba9d2c2d7b5a5124892af6a1",
+    "provenance": "publisher_site",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["(?<=payment profile;) 2[ \\t]*$", "^[ \\t]*\\d+[ \\t]*$"]
+  },
+  "markers": [
+    {
+      "at": "(?:^|(?<=\\s))1\\.1 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/1.1",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))1\\.2 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/1.2",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))1\\.3 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/1.3",
+      "skip": true
+    },
+    {
+      "at": "^1 (?=[A-Za-z])",
+      "clause": "mas.srf/fn1",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))1\\.4 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/1.4",
+      "skip": true
+    },
+    {
+      "at": "^Definitions$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))2\\.1 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/2.1",
+      "skip": true
+    },
+    {
+      "at": "^\\s*“account agreement”",
+      "clause": "mas.srf/2.1(account-agreement)"
+    },
+    {
+      "at": "^\\s*“account user”",
+      "clause": "mas.srf/2.1(account-user)"
+    },
+    {
+      "at": "^\\s*“account holder”",
+      "clause": "mas.srf/2.1(account-holder)"
+    },
+    {
+      "at": "^\\s*“bank”",
+      "clause": "mas.srf/2.1(bank)"
+    },
+    {
+      "at": "^\\s*“currency”",
+      "clause": "mas.srf/2.1(currency)"
+    },
+    {
+      "at": "^\\s*“e-money”",
+      "clause": "mas.srf/2.1(e-money)"
+    },
+    {
+      "at": "^\\s*“fabricated digital platform”",
+      "clause": "mas.srf/2.1(fabricated-digital-platform)"
+    },
+    {
+      "at": "^\\s*“high-risk activities”",
+      "clause": "mas.srf/2.1(high-risk-activities)"
+    },
+    {
+      "at": "^\\s*“legitimate business or government entity”",
+      "clause": "mas.srf/2.1(legitimate-business-or-government-entity)"
+    },
+    {
+      "at": "^\\s*“money”",
+      "clause": "mas.srf/2.1(money)"
+    },
+    {
+      "at": "^\\s*“payment account”",
+      "clause": "mas.srf/2.1(payment-account)"
+    },
+    {
+      "at": "^\\s*“payment transaction”",
+      "clause": "mas.srf/2.1(payment-transaction)"
+    },
+    {
+      "at": "^\\s*“protected account2”",
+      "clause": "mas.srf/2.1(protected-account)"
+    },
+    {
+      "at": "^\\s*“relevant payment service provider”",
+      "clause": "mas.srf/2.1(relevant-payment-service-provider)"
+    },
+    {
+      "at": "^2 (?=[A-Za-z])",
+      "clause": "mas.srf/fn2",
+      "skip": true
+    },
+    {
+      "at": "^\\s*“responsible FI”",
+      "clause": "mas.srf/2.1(responsible-fi)"
+    },
+    {
+      "at": "^\\s*“responsible Telco”",
+      "clause": "mas.srf/2.1(responsible-telco)"
+    },
+    {
+      "at": "^\\s*“seemingly authorised transaction”",
+      "clause": "mas.srf/2.1(seemingly-authorised-transaction)"
+    },
+    {
+      "at": "^\\s*[“\"]SMS”",
+      "clause": "mas.srf/2.1(sms)"
+    },
+    {
+      "at": "^\\s*[“\"]Sender ID SMS”",
+      "clause": "mas.srf/2.1(sender-id-sms)"
+    },
+    {
+      "at": "^\\s*“subscriber”",
+      "clause": "mas.srf/2.1(subscriber)"
+    },
+    {
+      "at": "^3 (?=[A-Za-z])",
+      "clause": "mas.srf/fn3",
+      "skip": true
+    },
+    {
+      "at": "^\\s*“telecommunication service”",
+      "clause": "mas.srf/2.1(telecommunication-service)"
+    },
+    {
+      "at": "(?:^|(?<=\\s))2\\.2 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/2.2",
+      "skip": true
+    },
+    {
+      "at": "^Duties of account users$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.1 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/3.1",
+      "skip": true
+    },
+    {
+      "at": "^Duties of the responsible FI$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.1 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/4.1",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.2 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/4.2",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.2\\.1 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/4.2.1",
+      "skip": true
+    },
+    {
+      "at": "^4 (?=[A-Za-z])",
+      "clause": "mas.srf/fn4",
+      "skip": true
+    },
+    {
+      "at_page": 7,
+      "clause": "mas.srf/4.2.1"
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.2\\.2 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/4.2.2",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.2\\.3 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/4.2.3",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.2\\.4 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/4.2.4",
+      "skip": true
+    },
+    {
+      "at": "^5 (?=[A-Za-z])",
+      "clause": "mas.srf/fn5",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)6 (?=[A-Z])",
+      "clause": "mas.srf/fn6",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)7 (?=[A-Z])",
+      "clause": "mas.srf/fn7",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.2\\.5 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/4.2.5",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.3 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/4.3",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.4 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/4.4",
+      "skip": true
+    },
+    {
+      "at": "^Duties of the responsible Telco$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.1 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/5.1",
+      "skip": true
+    },
+    {
+      "at": "^8 (?=[A-Za-z])",
+      "clause": "mas.srf/fn8",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.2 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/5.2",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.2\\.1 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/5.2.1",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.2\\.2 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/5.2.2",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.2\\.3 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/5.2.3",
+      "skip": true
+    },
+    {
+      "at": "^Responsibility for losses arising from seemingly authorised transactions$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.1 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/6.1",
+      "skip": true
+    },
+    {
+      "at": "^9 (?=[A-Za-z])",
+      "clause": "mas.srf/fn9",
+      "skip": true
+    },
+    {
+      "at": "^10 (?=[A-Za-z])",
+      "clause": "mas.srf/fn10",
+      "skip": true
+    },
+    {
+      "at": "^11 (?=[A-Za-z])",
+      "clause": "mas.srf/fn11",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.2 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/6.2",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.3 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/6.3",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.4 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/6.4",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.5 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/6.5",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.6 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/6.6",
+      "skip": true
+    },
+    {
+      "at": "^12 (?=[A-Za-z])",
+      "clause": "mas.srf/fn12",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.7 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/6.7",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.8 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/6.8",
+      "skip": true
+    },
+    {
+      "at": "^Application of this section to joint accounts$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.9 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/6.9",
+      "skip": true
+    },
+    {
+      "at": "^Operational workflow$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.1 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.1",
+      "skip": true
+    },
+    {
+      "at": "^\\(a\\) Claim Stage$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.1\\.1 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.1.1",
+      "skip": true
+    },
+    {
+      "at": "^\\(b\\) Investigation Stage$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.1\\.2 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.1.2",
+      "skip": true
+    },
+    {
+      "at": "^13 (?=[A-Za-z])",
+      "clause": "mas.srf/fn13",
+      "skip": true
+    },
+    {
+      "at": "^\\(c\\) Outcome Stage$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.1\\.3 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.1.3",
+      "skip": true
+    },
+    {
+      "at": "^\\(d\\) Recourse Stage$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.1\\.4 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.1.4",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.2 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.2",
+      "skip": true
+    },
+    {
+      "at": "^Claim Stage$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.3 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.3",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.4 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.4",
+      "skip": true
+    },
+    {
+      "at": "^14 (?=[A-Za-z])",
+      "clause": "mas.srf/fn14",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)15 (?=[A-Z])",
+      "clause": "mas.srf/fn15",
+      "skip": true
+    },
+    {
+      "at_page": 13,
+      "clause": "mas.srf/7.4"
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.5 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.5",
+      "skip": true
+    },
+    {
+      "at": "^Investigation Stage$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.6 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.6",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.7 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.7",
+      "skip": true
+    },
+    {
+      "at": "^\\(a\\) Scam was perpetrated through SMS$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.7\\.1 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.7.1",
+      "skip": true
+    },
+    {
+      "at": "^\\(b\\) Scam was not perpetrated through SMS$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.7\\.2 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.7.2",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.8 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.8",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.9 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.9",
+      "skip": true
+    },
+    {
+      "at": "^Outcome Stage$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.10 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.10",
+      "skip": true
+    },
+    {
+      "at": "^Recourse Stage$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.11 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.11",
+      "skip": true
+    },
+    {
+      "at": "^16 (?=[A-Za-z])",
+      "clause": "mas.srf/fn16",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)17 (?=[A-Z])",
+      "clause": "mas.srf/fn17",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.12 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.12",
+      "skip": true
+    },
+    {
+      "at": "^Means by which Responsible FI",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.13 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.13",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.14 (?=[A-Z“\"(\\[])",
+      "clause": "mas.srf/7.14",
+      "skip": true
+    },
+    {
+      "at": "^18 (?=[A-Za-z])",
+      "clause": "mas.srf/fn18",
+      "skip": true
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.srf/1.1",
+      "clause_ref": "1.1",
+      "heading_path": ["1 Overview and Application of the Guidelines"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "c7e0de2cee57a1bf7b2b3fc50ce76c80fd37f540ce4b6ac938fa7b3ff096e235"
+    },
+    {
+      "clause_key": "mas.srf/1.2",
+      "clause_ref": "1.2",
+      "heading_path": ["1 Overview and Application of the Guidelines"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "483e6ff1a74fe0e789d123714b5b6c1ca1b557d67ced2b1529156bb8f2ce8f4b"
+    },
+    {
+      "clause_key": "mas.srf/1.3",
+      "clause_ref": "1.3",
+      "heading_path": ["1 Overview and Application of the Guidelines"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "4029c7488c052bee384f65ddc09ddacdd1e4df9378897f0db40fb6b2f056f52b"
+    },
+    {
+      "clause_key": "mas.srf/fn1",
+      "clause_ref": "footnote 1",
+      "heading_path": ["1 Overview and Application of the Guidelines"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "50b9bda3c41f33fdbad0c44bda077dd378e8043b02f7c82d22bcb9bdaec401b3",
+      "note": "States that the responsibility sharing does not apply to card transactions."
+    },
+    {
+      "clause_key": "mas.srf/1.4",
+      "clause_ref": "1.4",
+      "heading_path": ["1 Overview and Application of the Guidelines"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "4fd79bf25feb8644a5ad3fe1112d0807a2ebe20f55ca252b61f93f7df20adf59"
+    },
+    {
+      "clause_key": "mas.srf/2.1",
+      "clause_ref": "2.1",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "f14ab69af42338ba5066ca8532a2848d1292b571b7178350a1ede1bb72169580"
+    },
+    {
+      "clause_key": "mas.srf/2.1(account-agreement)",
+      "clause_ref": "2.1 \"account agreement\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "1c1b201dead7a3c288e93a8e809d2a116f7e83dedf85119bc6fe6d01f5de1bcf"
+    },
+    {
+      "clause_key": "mas.srf/2.1(account-user)",
+      "clause_ref": "2.1 \"account user\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "50e73236931d0e241a41b56a57dfc74771674a3012e8dea57c33843783ea2c0e"
+    },
+    {
+      "clause_key": "mas.srf/2.1(account-holder)",
+      "clause_ref": "2.1 \"account holder\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "6506f2bb8d5c1283e9ca3936c3fe7856fbc40b175babd1ce8808114fff756eeb"
+    },
+    {
+      "clause_key": "mas.srf/2.1(bank)",
+      "clause_ref": "2.1 \"bank\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "11f480340023e00a5de5e8a154fcbf962888d9bcf21f63ec2c38dbc77bc279ce"
+    },
+    {
+      "clause_key": "mas.srf/2.1(currency)",
+      "clause_ref": "2.1 \"currency\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "51cfa3e20f3071c802a4a8ee39397ba852537471d401ad17bec4c7d7b4894a96"
+    },
+    {
+      "clause_key": "mas.srf/2.1(e-money)",
+      "clause_ref": "2.1 \"e-money\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "0794ade6658cbf5de7f2bbd88b2a2432aeac86556b854f3d9db9d43e523dee91"
+    },
+    {
+      "clause_key": "mas.srf/2.1(fabricated-digital-platform)",
+      "clause_ref": "2.1 \"fabricated digital platform\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "ef63f3dc49c02fa62787c5a8e9e25b150409b29032ee3c7418bc6269066cedc7"
+    },
+    {
+      "clause_key": "mas.srf/2.1(high-risk-activities)",
+      "clause_ref": "2.1 \"high-risk activities\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3, 4],
+      "text_sha256": "d4e9ad7d0092560be9b163bdb87baa51c1761e7a8bff82f2949e5a54875731ec",
+      "note": "Closed definition (\"means\"); the EUPG's is introduced as non-exhaustive."
+    },
+    {
+      "clause_key": "mas.srf/2.1(legitimate-business-or-government-entity)",
+      "clause_ref": "2.1 \"legitimate business or government entity\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "cfb0e74a74b2d46983ed38c7e338f9c9ca316a32c88bc0fc8c2316f271c6e0a5"
+    },
+    {
+      "clause_key": "mas.srf/2.1(money)",
+      "clause_ref": "2.1 \"money\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "f732f091cbb56bc3eeee996d598b72a56d1a5a821f6f0f3879dcc81237d88636"
+    },
+    {
+      "clause_key": "mas.srf/2.1(payment-account)",
+      "clause_ref": "2.1 \"payment account\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "f8c1ef54939a46a0c00c7f0c85b59f806e45282497222c90b3e15409bb7e57ca"
+    },
+    {
+      "clause_key": "mas.srf/2.1(payment-transaction)",
+      "clause_ref": "2.1 \"payment transaction\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "be5490fc239b45ba32a42bdb86f49687f23e8a209afb58de6a02b74cf456aa5a"
+    },
+    {
+      "clause_key": "mas.srf/2.1(protected-account)",
+      "clause_ref": "2.1 \"protected account\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "d198b4b8b4c61536f334ad1f29ff4d281c4e78b292a21b36c6a1da4b0507b9c4"
+    },
+    {
+      "clause_key": "mas.srf/2.1(relevant-payment-service-provider)",
+      "clause_ref": "2.1 \"relevant payment service provider\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "9c49098f30e03c53f6353dba20ffaa305bcf97ae67ac248868007ebfa1ab8dc5"
+    },
+    {
+      "clause_key": "mas.srf/fn2",
+      "clause_ref": "footnote 2",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "67fee65ae2e4d16ee40b8286d862df8be048dedbf7b59a975f6a6c095426f149"
+    },
+    {
+      "clause_key": "mas.srf/2.1(responsible-fi)",
+      "clause_ref": "2.1 \"responsible FI\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "e8dae2af9b89edb097623985eb2a0cb07ece58a16a65dc24fdbc77eb23dbdfa4"
+    },
+    {
+      "clause_key": "mas.srf/2.1(responsible-telco)",
+      "clause_ref": "2.1 \"responsible Telco\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "5316d39ed643b0e0bda11affb6b1529e735216d72d657a67f9d39dbee1e645e6"
+    },
+    {
+      "clause_key": "mas.srf/2.1(seemingly-authorised-transaction)",
+      "clause_ref": "2.1 \"seemingly authorised transaction\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "b4a7248ba7cf14467874d057ed31001f8f23ead99009c43b5b34484195f7cebe"
+    },
+    {
+      "clause_key": "mas.srf/2.1(sms)",
+      "clause_ref": "2.1 \"SMS\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "f0c67ef3ba1b2bbef8c12c6c020b8ddf62ebb0a51e4a238e89f3492682ee9b8b"
+    },
+    {
+      "clause_key": "mas.srf/2.1(sender-id-sms)",
+      "clause_ref": "2.1 \"Sender ID SMS\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "3e1a1ffd6e84ea842f342b6a64cbe9cc0b23aa9bd511c82c584f2ee7eefd4bdd"
+    },
+    {
+      "clause_key": "mas.srf/2.1(subscriber)",
+      "clause_ref": "2.1 \"subscriber\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "fbea06c41acb58baad8704a19f17adbcac658e92266a7990200098296690707f"
+    },
+    {
+      "clause_key": "mas.srf/fn3",
+      "clause_ref": "footnote 3",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "86fd1000219a26884a1e71d656109f67c5132bfe7f8dc26915af69903582056c"
+    },
+    {
+      "clause_key": "mas.srf/2.1(telecommunication-service)",
+      "clause_ref": "2.1 \"telecommunication service\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "00da4dd0ba8a1bbc932776796e48433e643da517b1380d39636da4ddaf987261"
+    },
+    {
+      "clause_key": "mas.srf/2.2",
+      "clause_ref": "2.2",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "97b574a238f75b7f0640eccddc646b4ae8302c67b3434bbbaf1700186c9c2eef"
+    },
+    {
+      "clause_key": "mas.srf/3.1",
+      "clause_ref": "3.1",
+      "heading_path": ["3 Duties of account users"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "ca9f8dd34d863ce83a5811a5f4f2ed0182a4b670e4d5f666e15b9f7732eda1e0"
+    },
+    {
+      "clause_key": "mas.srf/4.1",
+      "clause_ref": "4.1",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "90250ef17e9728c8f172dd570912e6c4ac4711ab10815f3dd9bdd08047c09156"
+    },
+    {
+      "clause_key": "mas.srf/4.2",
+      "clause_ref": "4.2",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "6b85cc1b365c064dcfb553c473194475ff07f7534e4f7114108696f8b11cb5b1"
+    },
+    {
+      "clause_key": "mas.srf/4.2.1",
+      "clause_ref": "4.2.1",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6, 7],
+      "text_sha256": "0ac8b2efe80adf1386ecc9c07cc2272c3ececeb29c95bb7913e92707e4ad6879"
+    },
+    {
+      "clause_key": "mas.srf/fn4",
+      "clause_ref": "footnote 4",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "05fe9c2ca41c3cdcb6d50bbc87bb2f0f37e0ff353104f74db9a14943c7966b08"
+    },
+    {
+      "clause_key": "mas.srf/4.2.2",
+      "clause_ref": "4.2.2",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "6389d1df4026a8ed561d0ab105e52bed0ac37c35241715ac76b3fbabc60da2a1"
+    },
+    {
+      "clause_key": "mas.srf/4.2.3",
+      "clause_ref": "4.2.3",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "403ecf5fd3cd094cd0815335af2faec3dd477e7bad02ebbd27e32be625571b53"
+    },
+    {
+      "clause_key": "mas.srf/4.2.4",
+      "clause_ref": "4.2.4",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "5fa2bd521be96c0c5420769d05be9d008d74a9cb8bc6d62ea86398cd4beb4b22"
+    },
+    {
+      "clause_key": "mas.srf/fn5",
+      "clause_ref": "footnote 5",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "3396a4ae6ceeaacd423732303bbceef7ffd2e5223fdb748f9b93c1e3cef19491"
+    },
+    {
+      "clause_key": "mas.srf/fn6",
+      "clause_ref": "footnote 6",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "6ec92b547af65271a7da4630824279094439438fe5958998242dfc8c7b2ad574"
+    },
+    {
+      "clause_key": "mas.srf/fn7",
+      "clause_ref": "footnote 7",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "2ea73d06de060eff040567d2e7eb4a9ce8d73652ba7f1d89983fcfca3104538a"
+    },
+    {
+      "clause_key": "mas.srf/4.2.5",
+      "clause_ref": "4.2.5",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": "2025-06-16",
+      "pages": [8],
+      "text_sha256": "96ae1ebd149dec7518cb5a995d4dec4d3e04f5b6cde8321cc63fbd7f060cd877",
+      "note": "In force six months after the Guidelines took effect, that is 16 June 2025 (para 4.4)."
+    },
+    {
+      "clause_key": "mas.srf/4.3",
+      "clause_ref": "4.3",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [8],
+      "text_sha256": "796560109c69e5153f2be982716dbb309e10c13c9e17b9e2cd1a96f7e0a226da"
+    },
+    {
+      "clause_key": "mas.srf/4.4",
+      "clause_ref": "4.4",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [8],
+      "text_sha256": "4e5a72fc68f6ccc184563acdf556effa4853a29ca01bcbac392e114d603378e5"
+    },
+    {
+      "clause_key": "mas.srf/5.1",
+      "clause_ref": "5.1",
+      "heading_path": ["5 Duties of the responsible Telco"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [8],
+      "text_sha256": "e11d9c984eaba6ca6cfeb03a12d8ab9459c6fce73ec39db9e5c7f6bcefaf4883"
+    },
+    {
+      "clause_key": "mas.srf/fn8",
+      "clause_ref": "footnote 8",
+      "heading_path": ["5 Duties of the responsible Telco"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": "2025-06-16",
+      "pages": [8],
+      "text_sha256": "9356737a612f744e135ef36c8d5fcd0d6dbffb2e3b9c1b702a001a25d83a4793",
+      "note": "In force from 16 June 2025 with paragraph 4.2.5, the duty it defines (para 4.4)."
+    },
+    {
+      "clause_key": "mas.srf/5.2",
+      "clause_ref": "5.2",
+      "heading_path": ["5 Duties of the responsible Telco"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "22561dc9eda1ad63166cfce6de68da22c56c2d0bda9a54b229fd82aad8c26374"
+    },
+    {
+      "clause_key": "mas.srf/5.2.1",
+      "clause_ref": "5.2.1",
+      "heading_path": ["5 Duties of the responsible Telco"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "9eed08a7a6bb9c5b69b8cf148ca2d9b3e41194a108fa539df1e3fea436da3b38"
+    },
+    {
+      "clause_key": "mas.srf/5.2.2",
+      "clause_ref": "5.2.2",
+      "heading_path": ["5 Duties of the responsible Telco"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "da7d2583efec7e9a243929cb1652f9ea0fda186f55f9b26d4d6020c556aa1d76"
+    },
+    {
+      "clause_key": "mas.srf/5.2.3",
+      "clause_ref": "5.2.3",
+      "heading_path": ["5 Duties of the responsible Telco"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "5369276fb37cb110fcd8d1fb257799255297df34aec98726ceebc2df838bd3a4"
+    },
+    {
+      "clause_key": "mas.srf/6.1",
+      "clause_ref": "6.1",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions", "Loss sharing for seemingly authorised transactions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "869707504ac64d05cfa258a1154f991f598cb7ac15c0042e0703ecad55ad5c26"
+    },
+    {
+      "clause_key": "mas.srf/fn9",
+      "clause_ref": "footnote 9",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "465a11f1279c7468d51ce8abe7961e373f53a7daafe48c4636dfc2f38d065ec8"
+    },
+    {
+      "clause_key": "mas.srf/fn10",
+      "clause_ref": "footnote 10",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "f9c88b55f6d39cf667d59ad6a6a7984e8a59b5b0a4fc78f566987ef42421510a"
+    },
+    {
+      "clause_key": "mas.srf/fn11",
+      "clause_ref": "footnote 11",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "3c1991c007cb7d89a37d148ad229028996a739b20514a4ae27a4f28ddd5e7c59"
+    },
+    {
+      "clause_key": "mas.srf/6.2",
+      "clause_ref": "6.2",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions", "Loss sharing for seemingly authorised transactions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "edddb60e40c45c785aec8e72a18b9242099e966bc71b81bb16e2cd51c69a2522"
+    },
+    {
+      "clause_key": "mas.srf/6.3",
+      "clause_ref": "6.3",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions", "Loss sharing for seemingly authorised transactions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "99fb82e3defad9310dc69186e32001a9f37e9fa0404835ee669664bce12d4204"
+    },
+    {
+      "clause_key": "mas.srf/6.4",
+      "clause_ref": "6.4",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions", "Loss sharing for seemingly authorised transactions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "7d7a040a178bf951b6dd7c0c2e324047c34c175bce4ed6cd6e4b9e2ba55234d7"
+    },
+    {
+      "clause_key": "mas.srf/6.5",
+      "clause_ref": "6.5",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions", "Loss sharing for seemingly authorised transactions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "bde5f03b0a03a60b169ea1862be37d8c2a8b6e9173256ab52310fb1a82627aa8"
+    },
+    {
+      "clause_key": "mas.srf/6.6",
+      "clause_ref": "6.6",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions", "Loss sharing for seemingly authorised transactions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "947b83488c2682100da3a8d3a65b7bb806cd0168de5f77f65bc5dc28c19076d9"
+    },
+    {
+      "clause_key": "mas.srf/fn12",
+      "clause_ref": "footnote 12",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "97543d3ff3e48cfef4f9ce81d2723f3428aa8a0350bec3aac3b7788541ea62ac"
+    },
+    {
+      "clause_key": "mas.srf/6.7",
+      "clause_ref": "6.7",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions", "Loss sharing for seemingly authorised transactions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "891c8f540c13d0db98936ceb26eb5736a850461496cc5dfaf33e7cc1244e87a5"
+    },
+    {
+      "clause_key": "mas.srf/6.8",
+      "clause_ref": "6.8",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions", "Loss sharing for seemingly authorised transactions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "968aa74f5ddf03866407e2f359f7e3a4230ae138511b25141cdde49cc62b3a48"
+    },
+    {
+      "clause_key": "mas.srf/6.9",
+      "clause_ref": "6.9",
+      "heading_path": ["6 Responsibility for losses arising from seemingly authorised transactions", "Application of this section to joint accounts"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "8e13b22a061ec28837755f8c60d1255e108fb9eb233672162400e74603161afc"
+    },
+    {
+      "clause_key": "mas.srf/7.1",
+      "clause_ref": "7.1",
+      "heading_path": ["7 Operational workflow", "Overview"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "d08eb08c82c960b32ee2a02e7e75457c3e1b8ef1defc72b37304bd77e196460d"
+    },
+    {
+      "clause_key": "mas.srf/7.1.1",
+      "clause_ref": "7.1.1",
+      "heading_path": ["7 Operational workflow", "Overview: (a) Claim Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "71d06057c56d736cc9669e18d9059ee6c6fc228397847bacb696f295f05682eb"
+    },
+    {
+      "clause_key": "mas.srf/7.1.2",
+      "clause_ref": "7.1.2",
+      "heading_path": ["7 Operational workflow", "Overview: (b) Investigation Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "02fe10b93e81743c580bbbad9b86c44742ee058a9d26e11e769ab7250c17c5e5"
+    },
+    {
+      "clause_key": "mas.srf/fn13",
+      "clause_ref": "footnote 13",
+      "heading_path": ["7 Operational workflow"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "15c0d2d4138043f5197b705da013a17e9bc11e2fe0997eee6a11ce040dfaf9e2"
+    },
+    {
+      "clause_key": "mas.srf/7.1.3",
+      "clause_ref": "7.1.3",
+      "heading_path": ["7 Operational workflow", "Overview: (c) Outcome Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "1dd0ee728ea437fc524596d8f6d597ea093301e23d02007a6bacf6495d069e10"
+    },
+    {
+      "clause_key": "mas.srf/7.1.4",
+      "clause_ref": "7.1.4",
+      "heading_path": ["7 Operational workflow", "Overview: (d) Recourse Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "3755504006d16a16696710644cd90e34b8c86548a971065ab99097135247c52a"
+    },
+    {
+      "clause_key": "mas.srf/7.2",
+      "clause_ref": "7.2",
+      "heading_path": ["7 Operational workflow", "Overview"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "71e03b8aa4a140089ad1d6fec2a848d22c2f94937b7218af4d42098830736836"
+    },
+    {
+      "clause_key": "mas.srf/7.3",
+      "clause_ref": "7.3",
+      "heading_path": ["7 Operational workflow", "Claim Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "937de275732a1370aabd3a6f6bb4221af6be758d026fd04616c0d0f7aa1dcac1"
+    },
+    {
+      "clause_key": "mas.srf/7.4",
+      "clause_ref": "7.4",
+      "heading_path": ["7 Operational workflow", "Claim Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12, 13],
+      "text_sha256": "1e80d79d0b21a892fa8ec8b89bf7e56c9e6d888308b4e6080fa5fbdd8bc41eac"
+    },
+    {
+      "clause_key": "mas.srf/fn14",
+      "clause_ref": "footnote 14",
+      "heading_path": ["7 Operational workflow"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "cef88f082ffcbc7e09a0a3b3bac7fbc95652b11a8cba377e1b913f42a7f41ac7"
+    },
+    {
+      "clause_key": "mas.srf/fn15",
+      "clause_ref": "footnote 15",
+      "heading_path": ["7 Operational workflow"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "086efdcca8f189fdbc40aa55262dae34ca9d8abf5cf34649970e729a3f1c59d9"
+    },
+    {
+      "clause_key": "mas.srf/7.5",
+      "clause_ref": "7.5",
+      "heading_path": ["7 Operational workflow", "Claim Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [13],
+      "text_sha256": "8e41357646fe692442d99c3e71d5ffec1c05a9003d98a167df89839c7fc6875d"
+    },
+    {
+      "clause_key": "mas.srf/7.6",
+      "clause_ref": "7.6",
+      "heading_path": ["7 Operational workflow", "Investigation Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [13],
+      "text_sha256": "85835431ff83b933d5c3985a737cb5da60675950e71d5e6c7c435eb9445feafb"
+    },
+    {
+      "clause_key": "mas.srf/7.7",
+      "clause_ref": "7.7",
+      "heading_path": ["7 Operational workflow", "Investigation Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [13],
+      "text_sha256": "678b4f38bc1efcd8db9659501a091dbc31941025f5f317ae8c3a2ad9246a5a47"
+    },
+    {
+      "clause_key": "mas.srf/7.7.1",
+      "clause_ref": "7.7.1",
+      "heading_path": ["7 Operational workflow", "Investigation Stage: (a) Scam was perpetrated through SMS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [13],
+      "text_sha256": "410f0e4311c6af48e3066c9ce4ba184583dcb863b8d75301e3d22e83444d09a8"
+    },
+    {
+      "clause_key": "mas.srf/7.7.2",
+      "clause_ref": "7.7.2",
+      "heading_path": ["7 Operational workflow", "Investigation Stage: (b) Scam was not perpetrated through SMS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [13],
+      "text_sha256": "1c961afaa822ef4aeccfa1607df7b13a96f816b3f85dcbf5223f4375abd39d98"
+    },
+    {
+      "clause_key": "mas.srf/7.8",
+      "clause_ref": "7.8",
+      "heading_path": ["7 Operational workflow", "Investigation Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14],
+      "text_sha256": "9052705c60e3bc0b545d9df75a54f0f259a0b4235f5c7ee7cf1b27e95d272b9d"
+    },
+    {
+      "clause_key": "mas.srf/7.9",
+      "clause_ref": "7.9",
+      "heading_path": ["7 Operational workflow", "Investigation Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14],
+      "text_sha256": "ffacc826df2de01bb01c00e873f8e29c5b8f6ce363478969a196947c2b9b136a"
+    },
+    {
+      "clause_key": "mas.srf/7.10",
+      "clause_ref": "7.10",
+      "heading_path": ["7 Operational workflow", "Outcome Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14],
+      "text_sha256": "7b2e811dc0082b2c8db041b029c35ad0cffac974f1361397064930b41ab6f0db"
+    },
+    {
+      "clause_key": "mas.srf/7.11",
+      "clause_ref": "7.11",
+      "heading_path": ["7 Operational workflow", "Recourse Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14],
+      "text_sha256": "8c876dd3f57e3f387cdab4f165efddf247a136ff7064e6a63b3a0b33f5307424"
+    },
+    {
+      "clause_key": "mas.srf/fn16",
+      "clause_ref": "footnote 16",
+      "heading_path": ["7 Operational workflow"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14],
+      "text_sha256": "a077913d6b27485818102f2cf9597afa51145227bd354c7eb65f5571f5d55460"
+    },
+    {
+      "clause_key": "mas.srf/fn17",
+      "clause_ref": "footnote 17",
+      "heading_path": ["7 Operational workflow"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [14],
+      "text_sha256": "a8b41046170819759a472366ff1515859c854da2d002efd6f1c88be6446888fa"
+    },
+    {
+      "clause_key": "mas.srf/7.12",
+      "clause_ref": "7.12",
+      "heading_path": ["7 Operational workflow", "Recourse Stage"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [15],
+      "text_sha256": "b382bc6e6c37a7042c5442efea83a74db08a410944b55604b02e6d731ea303e7"
+    },
+    {
+      "clause_key": "mas.srf/7.13",
+      "clause_ref": "7.13",
+      "heading_path": ["7 Operational workflow", "Means by which Responsible FI and Responsible Telco are to credit account holder"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [15],
+      "text_sha256": "fd5723e33c4c9b790a3d12512e5d4931f4891dce9c6876d23d0a45d66bb08a97"
+    },
+    {
+      "clause_key": "mas.srf/7.14",
+      "clause_ref": "7.14",
+      "heading_path": ["7 Operational workflow", "Means by which Responsible FI and Responsible Telco are to credit account holder"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [15],
+      "text_sha256": "feaa6d77bf0ca4a5667d51ebb64377572d5517c9935b945ec720399a59f5da0c"
+    },
+    {
+      "clause_key": "mas.srf/fn18",
+      "clause_ref": "footnote 18",
+      "heading_path": ["7 Operational workflow"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [15],
+      "text_sha256": "12a60de644bce58a763072c3e02c657a204f12d3eaf5de5a0db57496ab907251"
+    }
+  ]
+}

@@ -1,0 +1,153 @@
+{
+  "$comment": "FIDReC Terms of Reference v2.2, with effect from 1 July 2025. Selected sections only: the rules rules/fidrec.ts cites (4, 5, 13, 21, 29 and Annex 1 para 6.6). The PDF is a two-column table (rule title | text); the title column is removed. Clause text is cut from the private source file.",
+  "document": {
+    "document_key": "fidrec.tor",
+    "title": "FIDReC Terms of Reference",
+    "publisher": "Financial Industry Disputes Resolution Centre Ltd",
+    "binding_level": "forum_rules",
+    "applies_to": ["bank", "card_issuer", "payment_service_provider"],
+    "instrument_scope": ["account_transfer", "sg_card", "ewallet"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.fidrec.com.sg/knowledgebase/article/KA-01002"
+  },
+  "version": {
+    "version_label": "v2.2",
+    "effective_from": "2025-07-01",
+    "issued_on": null,
+    "retrieved_at": "2026-11-24T05:10:00Z",
+    "source_url": "https://www.fidrec.com.sg/_entity/annotation/0587d98d-6e55-f011-bec2-0022485a9df8",
+    "snapshot_path": "fidrec.tor/2025-07-01/terms-of-reference-v2.2.pdf",
+    "content_sha256": "03414c81bb6df1410a86ee4cb8f7be9bde5cff8fde76dcdd23e4edb795e6e635",
+    "provenance": "publisher_site",
+    "coverage": "selected_sections"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["^(\\d+ )?FIDReC - Terms Of Reference v2\\.2 Date : 1/7/2025[ \\t]*$", "^(Rule|Principle|FIDReC|Be Brought Before|To Adjudicator|Agreed Fee)[ \\t]*$", "^[ \\t]*\\d+[ \\t]*$"],
+    "end": "^6\\.7 For a FI who is not a subscriber"
+  },
+  "markers": [
+    {
+      "at": "^4\\. Disputes That Can ",
+      "clause": "fidrec.tor/4",
+      "skip": true
+    },
+    {
+      "at": "^5\\. Excepted Complaints$",
+      "clause": null
+    },
+    {
+      "at": "^iv\\) the activity to which the Complaint",
+      "clause": "fidrec.tor/4"
+    },
+    {
+      "at": "^The following Complaints cannot be brought before FIDReC:",
+      "clause": "fidrec.tor/5",
+      "skip": false
+    },
+    {
+      "at": "^6\\. Eligible Complainants",
+      "clause": null
+    },
+    {
+      "at": "^13\\. Time Limits For Making An Application\\n",
+      "clause": "fidrec.tor/13",
+      "skip": true
+    },
+    {
+      "at": "^14\\. Process Upon Receipt",
+      "clause": null
+    },
+    {
+      "at": "^21\\. Referring Dispute ",
+      "clause": "fidrec.tor/21",
+      "skip": true
+    },
+    {
+      "at": "^Section 4\\.4",
+      "clause": null
+    },
+    {
+      "at": "^29\\. Limits On Awards ",
+      "clause": "fidrec.tor/29",
+      "skip": true
+    },
+    {
+      "at": "^30\\. Complying",
+      "clause": null
+    },
+    {
+      "at": "^6\\.6 (?=An additional case fee)",
+      "clause": "fidrec.tor/annex1-6.6",
+      "skip": true
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "fidrec.tor/4",
+      "clause_ref": "Rule 4",
+      "heading_path": ["Section 2 – Eligible Complaint / Complainant", "4. Disputes That Can Be Brought Before FIDReC"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4, 5],
+      "text_sha256": "1179265db3d7f6bee826a2cf50021c959ece618c77ad59b5ce162c12dd50a455",
+      "note": "4(1)(ii), (vi): subscriber; 4(1)(v): four weeks; 4(2): complain to the FI first. The rule's title column is interleaved in the PDF text and removed."
+    },
+    {
+      "clause_key": "fidrec.tor/5",
+      "clause_ref": "Rule 5",
+      "heading_path": ["Section 2 – Eligible Complaint / Complainant", "5. Excepted Complaints"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [5, 6],
+      "text_sha256": "836c3b96ccb2b93129e4db1dd397fc048e39a943a04efadc9a83fb761cae7193",
+      "note": "5(vi): six months after the final reply; 5(viii)-(x): resolved, settled or decided."
+    },
+    {
+      "clause_key": "fidrec.tor/13",
+      "clause_ref": "Rule 13",
+      "heading_path": ["Section 4 – Complaint Handling Procedure", "13. Time Limits For Making An Application"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [8],
+      "text_sha256": "ef8f0fe960c11d93b6194fe6076329fd275416dd75c7d2b9d280dae1041bf2ed",
+      "note": "13(1)(i) earliest filing; 13(1)(ii) six months after the final reply; 13(2) what a final reply is."
+    },
+    {
+      "clause_key": "fidrec.tor/21",
+      "clause_ref": "Rule 21",
+      "heading_path": ["Section 4.3 – Referring Complaint To Adjudication", "21. Referring Dispute To Adjudicator"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "ba49a4724688588463acaeba8edfe4fc6d833d0079db8792707b96b1275dba97"
+    },
+    {
+      "clause_key": "fidrec.tor/29",
+      "clause_ref": "Rule 29",
+      "heading_path": ["Section 5 – Awards by Adjudicators / Panels of Adjudicators", "29. Limits On Awards"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [15, 16],
+      "text_sha256": "e4037a63abe5572f95778b1c0e95a81dbb8a2e4c91d45142a72867aac7ae8da6"
+    },
+    {
+      "clause_key": "fidrec.tor/annex1-6.6",
+      "clause_ref": "Annex 1, para 6.6",
+      "heading_path": ["Annex 1", "6. Case Fees"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [23],
+      "text_sha256": "62d9ad7a9720713130c05a182f38375fa8d13d504c7cfc5a2b50d063a2d204dd",
+      "note": "The case fee for an Eligible Complainant at adjudication: S$50, or S$250 for a Charity or Small Business. Para 6.4 above it states the earlier S$250 fee; fidrec.ts follows 6.6 (design 8.1)."
+    }
+  ]
+}
