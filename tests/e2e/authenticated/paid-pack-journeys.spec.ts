@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test'
 import { expect, test } from '../fixtures/harbor-test'
 import { createServiceClientFromEnvironment } from '../helpers/disposable-records'
 import {
+  addPackEvidence,
   completeFreeEvaluation,
   confirmFactsInDashboard,
   deleteClerkUser,
@@ -63,6 +64,7 @@ test.describe('paid pack journeys', () => {
       await intent.getByRole('button', { name: /Get Bank dispute pack/ }).click()
       await payAndReturn(page, email, caseId, 'self_serve_report', 18)
 
+      await addPackEvidence(page, 'bank')
       await confirmFactsInDashboard(page, caseId, 'bank')
       await expect(page.getByText('Executive summary', { exact: true })).toBeVisible({ timeout: 5 * 60_000 })
       const { data: narratives } = await supabase.from('case_narratives').select('id').eq('case_id', caseId).eq('narrative_type', 'tier0_summary')
@@ -83,6 +85,7 @@ test.describe('paid pack journeys', () => {
       await buy.click()
       await payAndReturn(page, email, caseId, 'escalation_pack', 188)
 
+      await addPackEvidence(page, 'fidrec')
       await confirmFactsInDashboard(page, caseId, 'fidrec')
       await expect(page.getByText('Points for the institution', { exact: true })).toBeVisible({ timeout: 5 * 60_000 })
       await expect(page.getByText('Filing with FIDReC', { exact: true })).toBeVisible()
@@ -103,6 +106,7 @@ test.describe('paid pack journeys', () => {
       await buy.click()
       await payAndReturn(page, email, caseId, 'escalation_pack', 188)
 
+      await addPackEvidence(page, 'fidrec')
       await confirmFactsInDashboard(page, caseId, 'fidrec')
       await expect(page.getByText('Points for the institution', { exact: true })).toBeVisible({ timeout: 5 * 60_000 })
       const { data: purchases } = await supabase.from('case_purchases').select('product_code').eq('case_id', caseId)

@@ -307,6 +307,66 @@ export function clerkApi(path: string, init: RequestInit) {
   })
 }
 
+// Evidence minimums (#35): a paid pack is generated only once its documents are in. The release tests add synthetic
+// documents through the checklist, as a customer would; one the pipeline does not read as that item is marked by hand
+// ("This is my police report"), which exercises the self-confirm path too.
+const PACK_EVIDENCE = {
+  bank: [
+    { item: 'payment_proof', name: 'synthetic-bank-statement.pdf' },
+    { item: 'police_report', name: 'synthetic-police-report.pdf' },
+  ],
+  fidrec: [
+    { item: 'payment_proof', name: 'synthetic-bank-statement.pdf' },
+    { item: 'police_report', name: 'synthetic-police-report.pdf' },
+    { item: 'bank_reply_or_complaint', name: 'synthetic-bank-final-reply.pdf' },
+  ],
+} as const
+
+function syntheticEvidencePdf(item: string): Buffer {
+  if (item === 'police_report') {
+    return syntheticPdf([
+      'Police report (synthetic test document)',
+      'Report number: TEST-0000-2026',
+      'Reported on 04 Oct 2026: scam call impersonating Synthetic Bank; transfer of S$2,400.00 on 03 Oct 2026',
+    ])
+  }
+  if (item === 'bank_reply_or_complaint') {
+    return syntheticPdf([
+      'Synthetic Bank - Final reply to your complaint (synthetic test document)',
+      'Our reference: TEST-REF-0000',
+      'We have reviewed your dispute of the transfer of S$2,400.00 on 03 Oct 2026 and will not refund it.',
+    ])
+  }
+  return syntheticStatementPdf()
+}
+
+export async function addPackEvidence(page: Page, product: keyof typeof PACK_EVIDENCE) {
+  const checklist = page.locator(`[data-pack-evidence="${product}"]`)
+  await expect(checklist, 'the evidence checklist after payment').toBeVisible({ timeout: 120_000 })
+  for (const document of PACK_EVIDENCE[product]) {
+    const row = checklist.locator(`[data-evidence-item="${document.item}"]`)
+    if ((await row.getAttribute('data-added')) === 'true') continue
+    await row.locator('input[type="file"]').setInputFiles({
+      name: document.name,
+      mimeType: 'application/pdf',
+      buffer: syntheticEvidencePdf(document.item),
+    })
+    // Read by the pipeline as this item, or ready and offered to be marked by hand.
+    const option = row.locator('select option', { hasText: document.name })
+    await expect
+      .poll(async () => (await row.getAttribute('data-added')) === 'true' || (await option.count()) > 0, {
+        timeout: 5 * 60_000,
+        message: `${document.item}: the uploaded document is read`,
+      })
+      .toBe(true)
+    if ((await row.getAttribute('data-added')) !== 'true') {
+      await row.locator('select').selectOption({ label: document.name })
+      await row.getByRole('button', { name: /^This is / }).click()
+    }
+    await expect(row).toHaveAttribute('data-added', 'true', { timeout: 60_000 })
+  }
+}
+
 // A one-page synthetic statement, built here so no document file is committed.
 export function syntheticStatementPdf(): Buffer {
   return syntheticPdf([

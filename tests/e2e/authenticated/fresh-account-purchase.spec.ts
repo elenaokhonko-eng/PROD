@@ -1,6 +1,7 @@
 import { expect, test } from '../fixtures/harbor-test'
 import { createServiceClientFromEnvironment } from '../helpers/disposable-records'
 import {
+  addPackEvidence,
   completeFreeEvaluation,
   confirmFactsInDashboard,
   deleteClerkUser,
@@ -89,6 +90,8 @@ test.describe('fresh free account', () => {
         .toEqual([{ product_code: 'self_serve_report', payment_status: 'paid', amount: 18 }])
 
       // Stage 2 (Elena, 13 Nov 2026): pay first, then confirm the bank facts; the pack is generated from them.
+      // Evidence minimums (#35): the police report is added after payment; the statement was uploaded before.
+      await addPackEvidence(page, 'bank')
       await confirmFactsInDashboard(page, caseId, 'bank')
 
       // A generated pack has its own title; every pack shows these.
