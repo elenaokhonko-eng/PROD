@@ -1,0 +1,318 @@
+{
+  "$comment": "MAS Notice FSM-N08, Notice on Cyber Hygiene, to credit card or charge card licensees in Singapore (was MAS Notice 655A). Issued 9 May 2024, in force from 10 May 2024 (para 5.1). Clause text is cut from the private source file.",
+  "document": {
+    "document_key": "mas.fsm-n08",
+    "title": "Notice on Cyber Hygiene (FSM-N08)",
+    "publisher": "Monetary Authority of Singapore",
+    "binding_level": "notice",
+    "applies_to": ["card_issuer"],
+    "instrument_scope": ["sg_card"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/regulation/notices/notice-fsm-n08"
+  },
+  "version": {
+    "version_label": "9 May 2024",
+    "effective_from": "2024-05-10",
+    "issued_on": "2024-05-09",
+    "retrieved_at": "2026-11-24T10:20:00Z",
+    "source_url": "https://www.mas.gov.sg/-/media/mas-media-library/regulation/notices/trpd/notice-fsm-n08/mas-notices-fsm-n08.pdf",
+    "snapshot_path": "mas.fsm-n08/2024-05-10/mas-notices-fsm-n08.pdf",
+    "provenance": "publisher_site",
+    "coverage": "full",
+    "content_sha256": "b474f53ed8a1c31d0812148610e1ca08174c1b7393d7f6019fbcd9d2bc931940"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "^I\\.$",
+      "clause": null
+    },
+    {
+      "at": "^1\\.1 ",
+      "clause": "mas.fsm-n08/1.1",
+      "skip": true
+    },
+    {
+      "at": "^II\\. Definitions$",
+      "clause": null
+    },
+    {
+      "at": "^2\\.1 ",
+      "clause": "mas.fsm-n08/2.1",
+      "skip": true
+    },
+    {
+      "at": "^“administrative account”",
+      "clause": "mas.fsm-n08/2.1(administrative-account)"
+    },
+    {
+      "at": "^“critical system”",
+      "clause": "mas.fsm-n08/2.1(critical-system)"
+    },
+    {
+      "at": "^“multi-factor authentication”",
+      "clause": "mas.fsm-n08/2.1(multi-factor-authentication)"
+    },
+    {
+      "at": "^“security patch”",
+      "clause": "mas.fsm-n08/2.1(security-patch)"
+    },
+    {
+      "at": "^“security standards”",
+      "clause": "mas.fsm-n08/2.1(security-standards)"
+    },
+    {
+      "at": "^“system”",
+      "clause": "mas.fsm-n08/2.1(system)"
+    },
+    {
+      "at": "^“vulnerability”",
+      "clause": "mas.fsm-n08/2.1(vulnerability)"
+    },
+    {
+      "at": "^2\\.2 ",
+      "clause": "mas.fsm-n08/2.2",
+      "skip": true
+    },
+    {
+      "at": "^III\\. Application of Notice$",
+      "clause": null
+    },
+    {
+      "at": "^3\\.1 ",
+      "clause": "mas.fsm-n08/3.1",
+      "skip": true
+    },
+    {
+      "at": "^IV\\. Cyber Hygiene Practices$",
+      "clause": null
+    },
+    {
+      "at": "^4\\.1 ",
+      "clause": "mas.fsm-n08/4.1",
+      "skip": true
+    },
+    {
+      "at": "^4\\.2 ",
+      "clause": "mas.fsm-n08/4.2",
+      "skip": true
+    },
+    {
+      "at": "^4\\.3 ",
+      "clause": "mas.fsm-n08/4.3",
+      "skip": true
+    },
+    {
+      "at": "^4\\.4 ",
+      "clause": "mas.fsm-n08/4.4",
+      "skip": true
+    },
+    {
+      "at": "^4\\.5 ",
+      "clause": "mas.fsm-n08/4.5",
+      "skip": true
+    },
+    {
+      "at": "^4\\.6 ",
+      "clause": "mas.fsm-n08/4.6",
+      "skip": true
+    },
+    {
+      "at": "^V\\. Effective Date",
+      "clause": null
+    },
+    {
+      "at": "(?<=Effective Date )5\\.1 ",
+      "clause": "mas.fsm-n08/5.1",
+      "skip": true
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.fsm-n08/1.1",
+      "clause_ref": "1.1",
+      "heading_path": ["I. Introduction"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "d891ce5de1f7f731ed789bac6d0dae1c79a6b02aa34f5fd0a9a9600be13f8dd7"
+    },
+    {
+      "clause_key": "mas.fsm-n08/2.1",
+      "clause_ref": "2.1",
+      "heading_path": ["II. Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "4c88f0c894168e1ac6ad350da4659a21d9763b63c8b6422f1106054bc5a74fce"
+    },
+    {
+      "clause_key": "mas.fsm-n08/2.1(administrative-account)",
+      "clause_ref": "2.1 \"administrative account\"",
+      "heading_path": ["II. Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "3b9cd1284a4ab6f0302d2457ade46aa6dbcd909b0daeafd88c2028440ad1019c"
+    },
+    {
+      "clause_key": "mas.fsm-n08/2.1(critical-system)",
+      "clause_ref": "2.1 \"critical system\"",
+      "heading_path": ["II. Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "51e7d40c2756fd10a65e93bfeaa84d801077a5fb76447e436ee690020b1a48f9"
+    },
+    {
+      "clause_key": "mas.fsm-n08/2.1(multi-factor-authentication)",
+      "clause_ref": "2.1 \"multi-factor authentication\"",
+      "heading_path": ["II. Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1, 2],
+      "text_sha256": "6c0b15c08bc8e2cd45f1c3bf83308b498a45a4194253aeeb911bfa2df7fed536"
+    },
+    {
+      "clause_key": "mas.fsm-n08/2.1(security-patch)",
+      "clause_ref": "2.1 \"security patch\"",
+      "heading_path": ["II. Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "f94590caf6d25aece5f03d62364849d8b92c51042108e7cd1b849ed23ed486ab"
+    },
+    {
+      "clause_key": "mas.fsm-n08/2.1(security-standards)",
+      "clause_ref": "2.1 \"security standards\"",
+      "heading_path": ["II. Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "63725fbc2137ad94ca2626cc20e1ff7d0c3dda1d77529c947dc23b9ea39eead6"
+    },
+    {
+      "clause_key": "mas.fsm-n08/2.1(system)",
+      "clause_ref": "2.1 \"system\"",
+      "heading_path": ["II. Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "47a928c2e640f5cd319a29f4b3936d65179382dfa731dbbc9df2d70798e5bb14"
+    },
+    {
+      "clause_key": "mas.fsm-n08/2.1(vulnerability)",
+      "clause_ref": "2.1 \"vulnerability\"",
+      "heading_path": ["II. Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "f4a6fd63ecd706e4236df8fe60491da01dc9b125656435093f447ddb45981db3"
+    },
+    {
+      "clause_key": "mas.fsm-n08/2.2",
+      "clause_ref": "2.2",
+      "heading_path": ["II. Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "83783682af5ea8383108259ae4f4d88d916a72ec613cafabe94e3c9149f295b0"
+    },
+    {
+      "clause_key": "mas.fsm-n08/3.1",
+      "clause_ref": "3.1",
+      "heading_path": ["III. Application of Notice"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "eef2f6e8cb5e12c2c37dc55a2fc356d2b256c1e51f324a8d2d5ced83d0bfc918"
+    },
+    {
+      "clause_key": "mas.fsm-n08/4.1",
+      "clause_ref": "4.1",
+      "heading_path": ["IV. Cyber Hygiene Practices"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "a1710541b76fc776418fcc7c34a035335f26880bdfe148c1233385622b1592f3"
+    },
+    {
+      "clause_key": "mas.fsm-n08/4.2",
+      "clause_ref": "4.2",
+      "heading_path": ["IV. Cyber Hygiene Practices"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "1fb2e2c98620a0dd212cae30156aadc660d7cab14a6ac2da85f3e52b8fedee46"
+    },
+    {
+      "clause_key": "mas.fsm-n08/4.3",
+      "clause_ref": "4.3",
+      "heading_path": ["IV. Cyber Hygiene Practices"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "e657dcd4559193b84b1609b63208b8616b0dffd41757f329b2cba35ee84f0ddb"
+    },
+    {
+      "clause_key": "mas.fsm-n08/4.4",
+      "clause_ref": "4.4",
+      "heading_path": ["IV. Cyber Hygiene Practices"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "d1847193eaa9f8d218c383607c355202d459a102baba7f5283d9a51934ce8115"
+    },
+    {
+      "clause_key": "mas.fsm-n08/4.5",
+      "clause_ref": "4.5",
+      "heading_path": ["IV. Cyber Hygiene Practices"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "69ea20483e07fdc88d39a78f6e2e7462c477e7c09a9166d9c2c0f651fd5c98d4"
+    },
+    {
+      "clause_key": "mas.fsm-n08/4.6",
+      "clause_ref": "4.6",
+      "heading_path": ["IV. Cyber Hygiene Practices"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "165d5171d8c252014587b6cd0978eb60e3eb6fadaa0e4c1290ef8ce55a9d135f",
+      "note": "As FSM-N06 4.6 (brief 1.3): on its wording this covers the licensee's own accounts (administrative accounts; accounts it uses to access customer information through the internet), not a customer logging in."
+    },
+    {
+      "clause_key": "mas.fsm-n08/5.1",
+      "clause_ref": "5.1",
+      "heading_path": ["V. Effective Date"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "5da3eb8957604ed80cf59df5261409a15b4d2c477567b3b1a52005aeaea26d30"
+    }
+  ]
+}
