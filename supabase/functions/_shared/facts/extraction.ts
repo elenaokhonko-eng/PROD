@@ -22,6 +22,7 @@ import {
 import type { FactCandidate } from "./reconcile.ts";
 import { normaliseInstitution } from "./institutions.ts";
 import { normaliseDate, normaliseMoney, normaliseYesNo } from "./normalise.ts";
+import { DATE_PATTERN } from "./validate-output.ts";
 import {
   ACCESS_EVENT_KINDS,
   type AccessEvent,
@@ -229,7 +230,18 @@ const DOCUMENT_TEMPLATE = {
   disputed_amount_payment_requests: [{ date: "YYYY-MM-DD|null", source: DISPUTED_AMOUNT_REQUEST_SOURCES.join("|"), amount: "number|null", currency: "string|null", quote: "string" }],
   charges_on_disputed_amount: [{ date: "YYYY-MM-DD|null", kind: DISPUTED_AMOUNT_CHARGE_KINDS.join("|"), amount: "number", currency: "string", description: "string|null", quote: "string" }],
   // A credit bureau report or the institution's letter only (Elena, 25 Nov 2026).
-  credit_account_status: [{ as_of: "YYYY-MM-DD|null", status_text: "string", facility: "string|null", bureau: "string|null", quote: "string" }],
+  credit_account_status: [{
+    as_of: "YYYY-MM-DD|null",
+    status_text: "string",
+    account_name: "string|null",
+    lender: "string|null",
+    last4: "string|null",
+    facility: "string|null",
+    bureau: "string|null",
+    quote: "string",
+  }],
+  // The document's own date, once per document (a report's date of issue; a letter's date). Every status takes it.
+  report_date: { date: "YYYY-MM-DD|null", quote: "string" },
 };
 
 const SOURCE_DESCRIPTIONS: Record<SourceType, string> = {
@@ -276,7 +288,11 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
       "- credit_account_status: only from a credit_bureau_report or the institution's letter: each status the document",
       "  gives for the account (for example overdue, in arrears, default, current), one entry per status line. status_text",
       "  is the status in the document's own words, copied exactly from quote; as_of is the date it is given for. This is",
-      "  not a report of the disputed amount: a status line goes here, never in credit_bureau_reports.",
+      "  not a report of the disputed amount: a status line goes here, never in credit_bureau_reports. In a credit bureau",
+      "  report, one entry for EVERY account line, whatever its status (current and paid as agreed too, not only overdue).",
+      "  account_name is the account as the line names it, lender the lender it names, last4 the card's last four digits",
+      "  where given; copy each exactly as written, null when not given. report_date: the document's own date (the report's",
+      "  date of issue; for a letter, the letter's date), with the line that gives it as quote.",
     ]
     : [];
   return [
@@ -701,6 +717,26 @@ export function namesDisputedAmountReport(quote: string, source: CreditBureauRep
   return NAMES_REPORTING.test(quote) && (amount || NAMES_BUREAU.test(quote));
 }
 
+/** A card's last four digits, kept only when the document has those four digits standing alone ("ending 0001"). */
+export function last4InDocument(value: unknown, sourceText: string): string | null {
+  const digits = typeof value === "string" || typeof value === "number" ? String(value).replace(/\D/g, "") : "";
+  if (!/^\d{4}$/.test(digits)) return null;
+  return new RegExp(`(?<!\\d)${digits}(?!\\d)`).test(sourceText) ? digits : null;
+}
+
+/**
+ * The document's own date (a report's date of issue, a letter's date): kept only when its quote is in the document and
+ * the quote itself writes that date (any written form of it), so the date is the document's, not inferred.
+ */
+export function documentDateIn(item: unknown, sourceText: string): string | null {
+  const e = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
+  const date = normaliseDate(e.date);
+  const quote = quoted(sourceText, e);
+  if (!date || !quote) return null;
+  const written = [...quote.matchAll(new RegExp(DATE_PATTERN.source, "gi"))].map((m) => normaliseDate(m[0]));
+  return written.includes(date) ? date : null;
+}
+
 /** Where an account status may be read from: a credit bureau report or the institution's letter; null otherwise. */
 export function creditAccountStatusSource(documentType: DocumentType | null): CreditAccountStatusSource | null {
   if (documentType === "credit_bureau_report") return "credit_bureau_report";
@@ -758,9 +794,12 @@ function parseSection8Facts(
   // document yields nothing, not even context. The status must be inside the entry's own quoted words.
   const statusSource = creditAccountStatusSource(documentType);
   if (statusSource) {
-    // The facility and the bureau can be named on another line of the document (a heading), so they are checked against
-    // the whole document: a name the document does not contain is dropped (null), never guessed.
+    // The account's name, the lender, the facility and the bureau can be on another line of the document (the account's
+    // heading, the report's header), so they are checked against the whole document: a value the document does not
+    // contain word for word is dropped (null), never guessed.
     const inDocument = (value: string | null) => (value && squash(sourceText).includes(squash(value)) ? value : null);
+    // The report's own date, once per document, so every status from one report carries the same date.
+    const reportDate = documentDateIn(out.report_date, sourceText);
     const statuses = entries<CreditAccountStatus>("credit_account_status", (e) => {
       const quote = quoted(sourceText, e);
       const statusText = shortText(e.status_text, 120);
@@ -773,6 +812,10 @@ function parseSection8Facts(
         source: statusSource,
         evidenceId: null,
         quote,
+        accountName: inDocument(shortText(e.account_name, 160)),
+        lender: inDocument(shortText(e.lender, 120)),
+        last4: last4InDocument(e.last4, sourceText),
+        reportDate,
       };
     });
     if (statuses.length) add("credit_account_status", statuses.map((x) => x.value), statuses.map((x) => x.quote), statuses.map((x) => x.raw));
