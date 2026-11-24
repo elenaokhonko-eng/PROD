@@ -114,6 +114,9 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
     { type: 'missing', title: 'Still needed' },
   ]
   const canContinue = view.openCount === 0 && view.documentsProcessing === 0 && view.consistencyIssues.length === 0
+  // While the facts reload in the background (a document just finished, an answer was saved) the list on screen may be
+  // out of date, and the server refuses a confirmation made then (facts_in_progress; 24 Nov 2026 gate run).
+  const refreshing = facts.isFetching
 
   async function handleConfirm() {
     if (confirming.current) return
@@ -137,7 +140,7 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={() => setReviewing(true)}>Review my facts</Button>
-          <Button onClick={handleConfirm} disabled={confirm.isPending}>Continue</Button>
+          <Button onClick={handleConfirm} disabled={confirm.isPending || refreshing}>Continue</Button>
         </CardContent>
       </Card>
     )
@@ -260,7 +263,7 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
 
       <div className="flex flex-col gap-2">
         {confirm.isError && <p role="alert" className="text-sm text-destructive">{errorText(confirm.error)}</p>}
-        <Button size="lg" onClick={handleConfirm} disabled={!canContinue || confirm.isPending}>
+        <Button size="lg" onClick={handleConfirm} disabled={!canContinue || confirm.isPending || refreshing}>
           {confirm.isPending ? 'Saving…' : `Confirm and continue to your ${stageName}`}
         </Button>
         {!canContinue && (
