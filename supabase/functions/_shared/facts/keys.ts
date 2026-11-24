@@ -1,6 +1,8 @@
 // Canonical fact keys for the SRF / scam route (design: docs/release/fact-reconciliation-design.md, section 2).
 // Shared by the Next.js server (through lib/facts) and the Edge Functions, so the rules are written once.
 
+import type { UpdateFactValues } from "./update/contract.ts";
+
 export type SourceType = "story" | "answer" | "document";
 export type Stage = "free" | "bank" | "fidrec";
 export type YesNoUnsure = "yes" | "no" | "unsure";
@@ -155,7 +157,9 @@ export interface BankReply {
 
 export type ImpersonatedEntityType = "bank_or_fi" | "government" | "other_business" | "private_person" | "unsure";
 
-export interface FactValues {
+// The FIDReC update's facts (brief v5, 3b; the EUPG Section 8 facts of decision 8) are typed by the contract and stored
+// like every other fact.
+export interface FactValues extends UpdateFactValues {
   institution_names: Institution[];
   account_types: AccountType[];
   scam_type: ScamType[];
@@ -206,6 +210,51 @@ export const ANSWER_ONLY_FACT_KEYS = [
   "impersonated_entity_type",
 ] as const satisfies readonly FactKey[];
 
+// The FIDReC update's facts (brief v5, 3b). They belong to the paid stages only (`bank`, `fidrec`): the free stage
+// neither shows nor freezes them. None of them gets a "missing" finding when no source states it.
+export const UPDATE_RECONCILED_FACT_KEYS = [
+  "access_events",
+  "card_auth_events",
+  "access_record_requested",
+  "card_dispute_requested",
+  "card_dispute_response",
+  "institution_fault_label",
+  "balance_before_first_disputed_payment",
+  "transaction_alert_threshold",
+  "token_activation_method",
+  // EUPG Section 8 (decision 8).
+  "disputed_amount_payment_requests",
+  "charges_on_disputed_amount",
+  "credit_bureau_reports",
+  "fidrec_dispute_dates",
+] as const satisfies readonly FactKey[];
+
+export const PAID_STAGE_ONLY_FACT_KEYS: ReadonlySet<FactKey> = new Set<FactKey>([...UPDATE_RECONCILED_FACT_KEYS, "device_recognition"]);
+
+// Facts only a document can state (brief 3b): the institution's own records, its letters, a bank statement.
+// The Section 8 requests and charges are read from statements, reminders and letters only (decision 8).
+export const DOCUMENT_ONLY_FACT_KEYS: ReadonlySet<FactKey> = new Set<FactKey>([
+  "access_events",
+  "card_auth_events",
+  "card_dispute_response",
+  "institution_fault_label",
+  "balance_before_first_disputed_payment",
+  "disputed_amount_payment_requests",
+  "charges_on_disputed_amount",
+]);
+
+// List facts whose entries from different sources are combined, never set against each other: two statements show
+// different charges, and a letter and the complainant can each mention a report to a credit bureau.
+export const COMBINED_LIST_FACT_KEYS: ReadonlySet<FactKey> = new Set<FactKey>([
+  "disputed_amount_payment_requests",
+  "charges_on_disputed_amount",
+  "credit_bureau_reports",
+]);
+
+// The record lists themselves: device identifiers and IP addresses, personal data that may be a third party's
+// (brief 3e). Never logged, never sent to analytics, and summarised (never listed) in "Facts you confirmed".
+export const TECHNICAL_RECORD_FACT_KEYS: ReadonlySet<FactKey> = new Set<FactKey>(["access_events", "card_auth_events"]);
+
 export const FACT_LABELS: Record<FactKey, string> = {
   institution_names: "Banks or payment providers involved",
   account_types: "Accounts or cards the money was taken from",
@@ -224,17 +273,36 @@ export const FACT_LABELS: Record<FactKey, string> = {
   fidrec_filed: "Whether you have filed with FIDReC",
   date_discovered: "When you found out",
   impersonated_entity_type: "Who the scammer pretended to be",
+  // FIDReC update (Lane 2): draft wording for Elena, except institution_fault_label (approved 24 Nov).
+  access_events: "Your bank's record of logins, devices and alerts",
+  card_auth_events: "Your bank's record of how the card payments were approved",
+  device_recognition: "Which devices in the records are yours",
+  access_record_requested: "Whether you asked your bank for its records of logins and devices",
+  card_dispute_requested: "Whether you asked your bank to dispute the card payments",
+  card_dispute_response: "What your bank did about disputing the card payments",
+  institution_fault_label: "The word your bank used to describe your actions",
+  balance_before_first_disputed_payment: "Your balance before the first payment you dispute",
+  transaction_alert_threshold: "The amount above which your bank sends a payment alert",
+  token_activation_method: "How the digital token was activated",
+  // EUPG Section 8 (decision 8): approved by Elena, 24 Nov.
+  disputed_amount_payment_requests: "Your bank's requests to pay the disputed amount",
+  charges_on_disputed_amount: "Fees or interest charged on the disputed amount",
+  credit_bureau_reports: "Reports to a credit bureau about the disputed amount",
+  fidrec_dispute_dates: "Dates of your dispute with FIDReC",
 };
 
 // Facts each stage needs before it can be generated (spec section 7, adapted to the launch set).
 // phishing_channel is required only when the confirmed scam type includes phishing.
 const FREE_REQUIRED: FactKey[] = ["institution_names", "scam_type", "phishing_channel", "reported_to_bank", "bank_reply"];
+// device_recognition has a finding only when an uploaded record lists a device; then the paid packs wait for the
+// complainant's answers (brief 3b).
 const BANK_REQUIRED: FactKey[] = [
   ...FREE_REQUIRED,
   "transactions",
   "total_loss",
   "credentials_or_otp_shared",
   "reported_to_police",
+  "device_recognition",
 ];
 const FIDREC_REQUIRED: FactKey[] = [...BANK_REQUIRED, "written_complaint_sent", "amount_recovered_or_offered"];
 

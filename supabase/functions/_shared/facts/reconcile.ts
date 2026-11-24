@@ -4,6 +4,8 @@
 import {
   ANSWER_ONLY_FACT_KEYS,
   type BankReply,
+  COMBINED_LIST_FACT_KEYS,
+  DOCUMENT_ONLY_FACT_KEYS,
   type FactKey,
   type FactValues,
   type Institution,
@@ -11,10 +13,22 @@ import {
   RECONCILED_FACT_KEYS,
   type ReportedEvent,
   type SourceType,
+  TECHNICAL_RECORD_FACT_KEYS,
   type TotalLoss,
   type Transaction,
+  UPDATE_RECONCILED_FACT_KEYS,
 } from "./keys.ts";
 import { daysBetween } from "./normalise.ts";
+import {
+  type AccessEvent,
+  type CardAuthEvent,
+  type CardDisputeResponse,
+  type DeviceRecognition,
+  type FidrecDisputeDates,
+  type InstitutionFaultLabel,
+  TECHNICAL_RECORD_DOCUMENT_TYPES,
+  type TransactionAlertThreshold,
+} from "./update/contract.ts";
 
 export interface FactCandidate<K extends FactKey = FactKey> {
   factKey: K;
@@ -90,10 +104,159 @@ function setValues(key: FactKey, value: unknown): string[] | null {
 // "Unsure" adds no information when another source gives a definite value.
 function isUnsure(key: FactKey, value: unknown): boolean {
   if (value === "unsure") return true;
-  if (key === "reported_to_bank" || key === "reported_to_police" || key === "written_complaint_sent" || key === "fidrec_filed") {
+  if (
+    key === "reported_to_bank" || key === "reported_to_police" || key === "written_complaint_sent" || key === "fidrec_filed" ||
+    key === "access_record_requested" || key === "card_dispute_requested"
+  ) {
     return (value as ReportedEvent).value === "unsure";
   }
+  if (key === "token_activation_method") return value === "not_known";
+  if (key === "card_dispute_response") return (value as CardDisputeResponse).status === "not_known";
   return false;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Technical records (brief 3b). Two records of the same account can cover different days, so their lines are
+// combined; they differ only when the same line (same time and kind) says different things.
+// ---------------------------------------------------------------------------------------------------------------
+
+type RecordEvent = AccessEvent | CardAuthEvent;
+
+function eventKey(key: FactKey, event: RecordEvent): string {
+  if (!event.timestamp) return `untimed:${JSON.stringify(event)}`;
+  const when = Date.parse(event.timestamp);
+  if (key === "access_events") return `${when}|${(event as AccessEvent).kind}`;
+  const card = event as CardAuthEvent;
+  return `${when}|${(card.merchant ?? "").toLowerCase()}|${card.walletProvisionedAt ? Date.parse(card.walletProvisionedAt) : ""}`;
+}
+
+// The fields a comparison turns on. Wording such as the channel's name can differ between two exports of one line.
+const COMPARED_FIELDS: Record<"access_events" | "card_auth_events", string[]> = {
+  access_events: ["deviceRef", "ip"],
+  card_auth_events: ["deviceRef", "tokenRef", "entryMode", "authentication", "authenticationResult"],
+};
+
+function eventsAgree(key: FactKey, a: RecordEvent, b: RecordEvent): boolean {
+  const x = a as unknown as Record<string, unknown>;
+  const y = b as unknown as Record<string, unknown>;
+  return COMPARED_FIELDS[key as "access_events" | "card_auth_events"].every((field) => {
+    if (x[field] === null || y[field] === null || x[field] === undefined || y[field] === undefined) return true;
+    if (x[field] === "not_known" || y[field] === "not_known") return true;
+    return typeof x[field] === "string" && typeof y[field] === "string"
+      ? (x[field] as string).toLowerCase() === (y[field] as string).toLowerCase()
+      : x[field] === y[field];
+  });
+}
+
+function sameEventLists(key: FactKey, a: readonly RecordEvent[], b: readonly RecordEvent[]): boolean {
+  const byKey = new Map(a.map((e) => [eventKey(key, e), e]));
+  return b.every((e) => {
+    const other = byKey.get(eventKey(key, e));
+    return !other || eventsAgree(key, other, e);
+  });
+}
+
+function fillEvent(a: RecordEvent, b: RecordEvent): RecordEvent {
+  const x = a as unknown as Record<string, unknown>;
+  const y = b as unknown as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...x };
+  for (const field of Object.keys(y)) {
+    if (out[field] === null || out[field] === undefined || out[field] === "not_known") out[field] = y[field] ?? out[field];
+  }
+  return out as unknown as RecordEvent;
+}
+
+function byTime(a: { timestamp: string | null }, b: { timestamp: string | null }): number {
+  if (!a.timestamp || !b.timestamp) return a.timestamp ? -1 : b.timestamp ? 1 : 0;
+  return Date.parse(a.timestamp) - Date.parse(b.timestamp);
+}
+
+function mergeEventLists(key: FactKey, a: readonly RecordEvent[], b: readonly RecordEvent[]): RecordEvent[] {
+  const merged = new Map<string, RecordEvent>();
+  for (const event of [...a, ...b]) {
+    const k = eventKey(key, event);
+    const prior = merged.get(k);
+    merged.set(k, prior ? fillEvent(prior, event) : event);
+  }
+  return [...merged.values()].sort(byTime);
+}
+
+/** A device the records show, before the complainant says whether it is theirs (the confirm screen's list). */
+export type RecordedDevice = Omit<DeviceRecognition, "answer">;
+
+function earlier(a: string | null, b: string | null): string | null {
+  if (!a || !b) return a ?? b;
+  return Date.parse(b) < Date.parse(a) ? b : a;
+}
+
+/**
+ * Each distinct device in the records, with the time it was first seen. A device is known by its reference; a line
+ * that names a device only by its label (a wallet provisioned on "Phone model X") is the device with that label.
+ */
+export function devicesInRecords(access: readonly AccessEvent[], card: readonly CardAuthEvent[]): RecordedDevice[] {
+  const sightings = [
+    ...access.map((e) => ({ ref: e.deviceRef, label: e.deviceLabel, at: e.timestamp })),
+    ...card.map((e) => ({ ref: e.deviceRef, label: e.deviceLabel, at: e.timestamp })),
+    ...card.map((e) => ({ ref: null, label: e.walletDeviceLabel, at: e.walletProvisionedAt ?? e.timestamp })),
+  ].filter((s) => s.ref || s.label);
+  const devices: RecordedDevice[] = [];
+  const sameLabel = (a: string | null, b: string | null) => Boolean(a && b && a.trim().toLowerCase() === b.trim().toLowerCase());
+  for (const s of [...sightings.filter((s) => s.ref), ...sightings.filter((s) => !s.ref)]) {
+    const known = s.ref
+      ? devices.find((d) => d.deviceRef === s.ref)
+      : devices.find((d) => sameLabel(d.deviceLabel, s.label));
+    if (known) {
+      known.firstSeenAt = earlier(known.firstSeenAt, s.at);
+      known.deviceLabel = known.deviceLabel ?? s.label;
+    } else {
+      devices.push({ deviceRef: s.ref, deviceLabel: s.label, firstSeenAt: s.at });
+    }
+  }
+  return devices.sort((a, b) => byTime({ timestamp: a.firstSeenAt }, { timestamp: b.firstSeenAt }));
+}
+
+/** The key the confirm screen and the validation use for one device. */
+export function deviceKey(device: { deviceRef: string | null; deviceLabel: string | null }): string {
+  return device.deviceRef ? `ref:${device.deviceRef}` : `label:${(device.deviceLabel ?? "").trim().toLowerCase()}`;
+}
+
+function normalisedName(value: string | null): string {
+  return (value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function localDate(timestamp: string | null): string | null {
+  return timestamp ? timestamp.slice(0, 10) : null;
+}
+
+/**
+ * Links record lines to the confirmed payments (`transactionIndex`, `relatedTransactionIndex`) where exactly one
+ * payment fits: same date and, for a card line, the same merchant. Everything else stays null; nothing is guessed.
+ * Indices the record already carries are kept.
+ */
+export function linkRecordsToTransactions(
+  transactions: readonly Transaction[],
+  access: readonly AccessEvent[],
+  card: readonly CardAuthEvent[],
+): { access: AccessEvent[]; card: CardAuthEvent[] } {
+  const only = (matches: number[]) => (matches.length === 1 ? matches[0] : null);
+  const indices = transactions.map((_, i) => i);
+  const linkedCard = card.map((e) => {
+    if (e.transactionIndex !== null || !e.merchant || !e.timestamp) return e;
+    const merchant = normalisedName(e.merchant);
+    const matches = indices.filter((i) => {
+      const t = transactions[i];
+      const payee = normalisedName(t.payee);
+      return t.date === localDate(e.timestamp) && (t.instrument === "sg_card" || t.instrument === null) &&
+        payee.length > 0 && (payee.includes(merchant) || merchant.includes(payee));
+    });
+    return { ...e, transactionIndex: only(matches) };
+  });
+  const linkedAccess = access.map((e) => {
+    if (e.relatedTransactionIndex !== null || e.kind !== "payment_authenticated" || !e.timestamp) return e;
+    const matches = indices.filter((i) => transactions[i].date === localDate(e.timestamp) && transactions[i].instrument !== "sg_card");
+    return { ...e, relatedTransactionIndex: only(matches) };
+  });
+  return { access: linkedAccess, card: linkedCard };
 }
 
 // Matching for transactions: date within a day and amount within 1%, one-to-one, largest amounts first.
@@ -149,9 +312,52 @@ function equivalent(key: FactKey, a: unknown, b: unknown): boolean {
       const m = matchTransactions(a as Transaction[], b as Transaction[]);
       return m.unmatchedA.length === 0 && m.unmatchedB.length === 0;
     }
+    case "access_events":
+    case "card_auth_events":
+      return sameEventLists(key, a as RecordEvent[], b as RecordEvent[]);
+    case "access_record_requested":
+    case "card_dispute_requested":
+      return sameEvent(a as ReportedEvent, b as ReportedEvent);
+    case "card_dispute_response": {
+      const x = a as CardDisputeResponse;
+      const y = b as CardDisputeResponse;
+      return x.status === y.status && sameDate(x.date, y.date);
+    }
+    case "institution_fault_label":
+      return (a as InstitutionFaultLabel).label.toLowerCase() === (b as InstitutionFaultLabel).label.toLowerCase();
+    case "balance_before_first_disputed_payment":
+      return sameMoney(a as Money, b as Money);
+    case "transaction_alert_threshold": {
+      const x = a as TransactionAlertThreshold;
+      const y = b as TransactionAlertThreshold;
+      return sameMoney(x.amount, y.amount, 0) && (x.setBy === y.setBy || x.setBy === "not_known" || y.setBy === "not_known");
+    }
+    // EUPG Section 8 (decision 8): lists from different sources are combined, never set against each other.
+    case "disputed_amount_payment_requests":
+    case "charges_on_disputed_amount":
+    case "credit_bureau_reports":
+      return true;
+    case "fidrec_dispute_dates": {
+      const x = a as FidrecDisputeDates;
+      const y = b as FidrecDisputeDates;
+      return sameDate(x.startedOn, y.startedOn) && sameDate(x.institutionToldOn, y.institutionToldOn) &&
+        sameDate(x.completedOrClosedOn, y.completedOrClosedOn);
+    }
     default:
       return JSON.stringify(a) === JSON.stringify(b);
   }
+}
+
+// Section 8 list entries (requests, charges, credit bureau reports): the union, one entry per distinct entry, by date.
+// A report stated both by a letter and by the complainant stays twice, each with its own label.
+function combineListEntries(a: readonly unknown[], b: readonly unknown[]): unknown[] {
+  const byKey = new Map<string, unknown>();
+  for (const entry of [...a, ...b]) byKey.set(stableStringify(entry), entry);
+  return [...byKey.values()].sort((x, y) => {
+    const dx = (x as { date?: string | null }).date ?? "";
+    const dy = (y as { date?: string | null }).date ?? "";
+    return dx < dy ? -1 : dx > dy ? 1 : 0;
+  });
 }
 
 // Merging equivalent values: sets take the union, events and replies keep the most complete record.
@@ -168,10 +374,39 @@ function merge(key: FactKey, a: unknown, b: unknown): unknown {
     const portions = x.portions?.length ? x.portions : y.portions;
     return { ...x, account: x.account ?? y.account ?? null, ...(portions?.length ? { portions } : {}) };
   }
-  if (key === "reported_to_bank" || key === "reported_to_police" || key === "written_complaint_sent" || key === "fidrec_filed") {
+  if (
+    key === "reported_to_bank" || key === "reported_to_police" || key === "written_complaint_sent" || key === "fidrec_filed" ||
+    key === "access_record_requested" || key === "card_dispute_requested"
+  ) {
     const x = a as ReportedEvent;
     const y = b as ReportedEvent;
     return { value: x.value, date: x.date ?? y.date, reference: x.reference ?? y.reference, channel: x.channel ?? y.channel };
+  }
+  if (key === "access_events" || key === "card_auth_events") return mergeEventLists(key, a as RecordEvent[], b as RecordEvent[]);
+  if (key === "card_dispute_response") {
+    const x = a as CardDisputeResponse;
+    const y = b as CardDisputeResponse;
+    return { status: x.status, date: x.date ?? y.date, reasonStated: x.reasonStated ?? y.reasonStated, outcome: x.outcome ?? y.outcome };
+  }
+  if (key === "institution_fault_label") {
+    const x = a as InstitutionFaultLabel;
+    const y = b as InstitutionFaultLabel;
+    return { ...x, conduct: x.conduct ?? y.conduct };
+  }
+  if (key === "transaction_alert_threshold") {
+    const x = a as TransactionAlertThreshold;
+    const y = b as TransactionAlertThreshold;
+    return { amount: x.amount, setBy: x.setBy === "not_known" ? y.setBy : x.setBy };
+  }
+  if (COMBINED_LIST_FACT_KEYS.has(key)) return combineListEntries(a as unknown[], b as unknown[]);
+  if (key === "fidrec_dispute_dates") {
+    const x = a as FidrecDisputeDates;
+    const y = b as FidrecDisputeDates;
+    return {
+      startedOn: x.startedOn ?? y.startedOn,
+      institutionToldOn: x.institutionToldOn ?? y.institutionToldOn,
+      completedOrClosedOn: x.completedOrClosedOn ?? y.completedOrClosedOn,
+    };
   }
   if (key === "bank_reply") {
     const x = a as BankReply;
@@ -353,6 +588,47 @@ export async function reconcile(input: readonly FactCandidate[]): Promise<Reconc
     const chosen = forKey.find((c) => c.sourceType === "answer") ?? forKey[0];
     const values: FindingValue[] = chosen ? [{ value: chosen.value, sources: [{ sourceType: chosen.sourceType, sourceRef: chosen.sourceRef }] }] : [];
     findings.push({ factKey: key, findingType: chosen ? "agreed" : "missing", values, valuesHash: await valuesHash(values) });
+  }
+  findings.push(...(await reconcileUpdateFacts(candidates)));
+  return findings;
+}
+
+function isTechnicalRecordSource(candidate: FactCandidate): boolean {
+  return candidate.sourceType === "document" &&
+    (TECHNICAL_RECORD_DOCUMENT_TYPES as readonly unknown[]).includes(candidate.sourceRef.documentType);
+}
+
+/** Whether a candidate may state this fact at all (brief 3b): some facts only a document, the record lists only a technical record. */
+export function canStateUpdateFact(candidate: FactCandidate): boolean {
+  if (TECHNICAL_RECORD_FACT_KEYS.has(candidate.factKey)) return isTechnicalRecordSource(candidate);
+  if (DOCUMENT_ONLY_FACT_KEYS.has(candidate.factKey)) return candidate.sourceType === "document";
+  return true;
+}
+
+// The FIDReC update's facts get a finding only when a source states them: no "missing" finding asks for a record the
+// complainant may not have. The device list becomes its own finding, which the complainant answers on the confirm
+// screen ("Is this one of your devices?"); its values are the devices, so a new device in a later record reopens it.
+async function reconcileUpdateFacts(candidates: readonly FactCandidate[]): Promise<ReconciledFinding[]> {
+  const findings: ReconciledFinding[] = [];
+  const stated = (key: FactKey) => candidates.filter((c) => c.factKey === key && canStateUpdateFact(c));
+  for (const key of UPDATE_RECONCILED_FACT_KEYS) {
+    const forKey = stated(key);
+    if (!forKey.length) continue;
+    const { findingType, values } = reconcileKey(key, forKey);
+    findings.push({ factKey: key, findingType, values, valuesHash: await valuesHash(values) });
+  }
+  const access = stated("access_events");
+  const card = stated("card_auth_events");
+  const devices = devicesInRecords(
+    access.flatMap((c) => c.value as AccessEvent[]),
+    card.flatMap((c) => c.value as CardAuthEvent[]),
+  );
+  if (devices.length) {
+    const values: FindingValue[] = [{
+      value: devices,
+      sources: [...access, ...card].map((c) => ({ sourceType: c.sourceType, sourceRef: c.sourceRef })),
+    }];
+    findings.push({ factKey: "device_recognition", findingType: "missing", values, valuesHash: await valuesHash(values) });
   }
   return findings;
 }

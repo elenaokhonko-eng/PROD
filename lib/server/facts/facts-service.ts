@@ -1,20 +1,27 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import {
+  answerDevices,
   buildSnapshot,
   type CurrentFinding,
   type FactKey,
   factLabel,
   formatFactValue,
+  linkRecordsToTransactions,
   MULTI_SELECT_FACT_KEYS,
   openCount,
+  PAID_STAGE_ONLY_FACT_KEYS,
+  type RecordedDevice,
   relevantFindings,
   type Resolution,
   sha256Hex,
   type SnapshotBlock,
+  type SnapshotResult,
   type Stage,
+  type Transaction,
   validateFactValue,
 } from "@/lib/facts"
+import type { AccessEvent, CardAuthEvent, DeviceRecognition } from "../../../supabase/functions/_shared/facts/update/contract"
 import { ensureReconciled, type ExtractJson, FactsUnavailableError } from "./run-reconcile"
 
 export const STAGES: readonly Stage[] = ["free", "bank", "fidrec"]
@@ -28,6 +35,44 @@ function sourceLabel(source: { sourceType: string; sourceRef: Record<string, unk
   if (source.sourceType === "answer") return "Your answer"
   const name = source.sourceRef.documentName
   return typeof name === "string" && name ? name : "An uploaded document"
+}
+
+// The FIDReC update's facts belong to the paid stages (brief 3b): the free stage neither shows nor freezes them, so
+// device identifiers and IP addresses never reach the free evaluation.
+export function findingsForStage<T extends { factKey: FactKey }>(findings: readonly T[], stage: Stage): T[] {
+  return stage === "free" ? findings.filter((f) => !PAID_STAGE_ONLY_FACT_KEYS.has(f.factKey)) : [...findings]
+}
+
+// The snapshot a stage freezes. Record lines are linked to the confirmed payments where exactly one fits, so the
+// snapshot (and its hash) is the same every time it is built from the same findings.
+export function stageSnapshot(findings: readonly CurrentFinding[], stage: Stage): SnapshotResult {
+  const snapshot = buildSnapshot(findingsForStage(findings, stage), stage)
+  const facts = snapshot.facts
+  const transactions = facts.transactions?.label === "confirmed" ? (facts.transactions.value as Transaction[] | null) : null
+  const access = facts.access_events?.label === "confirmed" ? (facts.access_events.value as AccessEvent[] | null) : null
+  const card = facts.card_auth_events?.label === "confirmed" ? (facts.card_auth_events.value as CardAuthEvent[] | null) : null
+  if (transactions?.length && (access?.length || card?.length)) {
+    const linked = linkRecordsToTransactions(transactions, access ?? [], card ?? [])
+    if (access?.length) facts.access_events = { ...facts.access_events!, value: linked.access }
+    if (card?.length) facts.card_auth_events = { ...facts.card_auth_events!, value: linked.card }
+  }
+  return snapshot
+}
+
+/** "Is this one of your devices?": the devices the records show, and the answers given so far. */
+export interface DeviceStep {
+  findingId: string
+  status: CurrentFinding["status"]
+  devices: RecordedDevice[]
+  answers: DeviceRecognition[] | null
+}
+
+function deviceStep(findings: readonly CurrentFinding[]): DeviceStep | null {
+  const finding = findings.find((f) => f.factKey === "device_recognition")
+  const devices = finding?.values[0]?.value as RecordedDevice[] | undefined
+  if (!finding || !devices?.length) return null
+  const answers = finding.resolution?.kind === "value" ? (finding.resolution.value as DeviceRecognition[]) : null
+  return { findingId: finding.id, status: finding.status, devices, answers }
 }
 
 export interface FactsView {
@@ -45,6 +90,8 @@ export interface FactsView {
     values: Array<{ display: string; value: unknown; sources: Array<{ sourceType: string; label: string; quotes: string[] }> }>
   }>
   latestSnapshot: { id: string; createdAt: string; unchanged: boolean } | null
+  // Answered on its own screen, not as a finding card; still counted in openCount until answered.
+  devices: DeviceStep | null
   // Answers that cannot all be true together, with the facts involved so the page can point at them; the facts
   // cannot be confirmed until one is changed (walkthrough 7 Nov).
   consistencyIssues: Array<{ message: string; factKeys: FactKey[] }>
@@ -97,10 +144,11 @@ export async function loadFactsView(
   stage: Stage,
   extractJson?: ExtractJson,
 ): Promise<FactsView> {
-  const { runId, findings, documentsProcessing } = await ensureReconciled(service, caseId, extractJson)
+  const { runId, findings: all, documentsProcessing } = await ensureReconciled(service, caseId, extractJson)
+  const findings = findingsForStage(all, stage)
   const relevant = relevantFindings(findings, stage)
   const latest = await latestSnapshotFor(service, caseId, stage)
-  const snapshot = buildSnapshot(findings, stage)
+  const snapshot = stageSnapshot(findings, stage)
   const unchanged = Boolean(latest && !snapshot.blocks.length && (await snapshotHash(snapshot.facts)) === latest.hash)
 
   return {
@@ -108,7 +156,7 @@ export async function loadFactsView(
     runId,
     openCount: openCount(findings, stage),
     documentsProcessing,
-    findings: relevant.map((f) => ({
+    findings: relevant.filter((f) => f.factKey !== "device_recognition").map((f) => ({
       id: f.id,
       factKey: f.factKey,
       label: factLabel(f.factKey),
@@ -127,6 +175,7 @@ export async function loadFactsView(
     })),
     latestSnapshot: latest ? { id: latest.id, createdAt: latest.created_at, unchanged } : null,
     consistencyIssues: consistencyMessages(snapshot.blocks),
+    devices: deviceStep(relevant),
   }
 }
 
@@ -173,6 +222,9 @@ export async function resolveFinding(
 
   const findingType = row.finding_type as CurrentFinding["findingType"]
   if (!ALLOWED[findingType].includes(input.kind)) throw new ResolutionRejectedError("resolution_not_allowed")
+  // Device answers: one per device the finding lists ("not sure" is an answer), checked against that list.
+  const isDevices = row.fact_key === "device_recognition"
+  if (isDevices && input.kind !== "value") throw new ResolutionRejectedError("resolution_not_allowed")
 
   const note = typeof input.note === "string" && input.note.trim() ? input.note.trim().slice(0, 500) : undefined
   let resolution: Resolution
@@ -202,7 +254,8 @@ export async function resolveFinding(
       break
     }
     case "value": {
-      const value = validateFactValue(row.fact_key as FactKey, input.value)
+      const recorded = isDevices ? ((row.values as Array<{ value: unknown }>)[0]?.value as RecordedDevice[] | undefined) ?? [] : []
+      const value = isDevices ? answerDevices(recorded, input.value) : validateFactValue(row.fact_key as FactKey, input.value)
       if (value === null) throw new ResolutionRejectedError("invalid_value")
       resolution = { kind: "value", value, note }
       status = "resolved"
@@ -254,7 +307,7 @@ export async function createSnapshot(
 ): Promise<SnapshotOutcome> {
   const { runId, findings, documentsProcessing } = await ensureReconciled(service, caseId, extractJson)
   if (documentsProcessing > 0) return { ok: false, reason: "documents_processing", documentsProcessing }
-  const snapshot = buildSnapshot(findings, stage)
+  const snapshot = stageSnapshot(findings, stage)
   if (snapshot.blocks.length) return { ok: false, reason: "facts_unconfirmed", blocks: snapshot.blocks }
 
   const hash = await snapshotHash(snapshot.facts)
@@ -289,7 +342,7 @@ export async function loadCurrentSnapshot(
   const latest = await latestSnapshotFor(service, caseId, stage)
   if (!latest || latest.id !== snapshotId) return null
   const { findings } = await ensureReconciled(service, caseId, extractJson)
-  const current = buildSnapshot(findings, stage)
+  const current = stageSnapshot(findings, stage)
   if (current.blocks.length || (await snapshotHash(current.facts)) !== latest.hash) return null
   return { id: latest.id, facts: latest.facts as Record<string, unknown> }
 }

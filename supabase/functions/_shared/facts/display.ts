@@ -23,6 +23,24 @@ import { FACT_LABELS } from "./keys.ts";
 import { normaliseInstitution } from "./institutions.ts";
 import { normaliseDate, normaliseMoney, normaliseYesNo } from "./normalise.ts";
 import { DATE_PATTERN } from "./validate-output.ts";
+import { deviceKey, type RecordedDevice } from "./reconcile.ts";
+import {
+  type CardDisputeResponse,
+  type ChargeOnDisputedAmount,
+  type CreditBureauReport,
+  type CreditBureauReportSource,
+  DEVICE_RECOGNITION_ANSWERS,
+  type DeviceRecognition,
+  type DeviceRecognitionAnswer,
+  type DisputedAmountChargeKind,
+  type DisputedAmountPaymentRequest,
+  type DisputedAmountRequestSource,
+  type FidrecDisputeDates,
+  type InstitutionFaultLabel,
+  TOKEN_ACTIVATION_METHODS,
+  type TokenActivationMethod,
+  type TransactionAlertThreshold,
+} from "./update/contract.ts";
 
 const CHANNEL_TEXT: Record<PhishingChannel, string> = {
   phone_call: "Phone call",
@@ -83,6 +101,109 @@ function formatDate(iso: string | null): string | null {
   const [y, m, d] = iso.split("-").map(Number);
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return `${d} ${months[m - 1]} ${y}`;
+}
+
+// FIDReC update (Lane 2): draft wording for Elena.
+const DEVICE_ANSWER_TEXT: Record<DeviceRecognitionAnswer, string> = {
+  mine: "mine",
+  not_mine: "not mine",
+  not_sure: "not sure",
+};
+
+const TOKEN_ACTIVATION_TEXT: Record<TokenActivationMethod, string> = {
+  in_app: "In the bank's app",
+  sms_code: "With a code sent by SMS",
+  mailed_code: "With a code sent by post",
+  not_known: "Not known",
+};
+
+const DISPUTE_STATUS_TEXT: Record<CardDisputeResponse["status"], string> = {
+  raised: "The bank raised a dispute",
+  declined: "The bank declined to raise a dispute",
+  no_answer: "The bank has not answered",
+  not_known: "Not known",
+};
+
+export const UNNAMED_DEVICE_TEXT = "A device the records do not name";
+
+// EUPG Section 8 (decision 8): DRAFT wording for Elena. These are the user's own screens ("you"); the pack's lines
+// are written by the Section 8 rule file (Lane 3) in the complainant form.
+const PAYMENT_REQUEST_TEXT: Record<DisputedAmountRequestSource, string> = {
+  statement: "on a statement",
+  reminder: "in a reminder",
+  letter: "in a letter",
+  other: "request",
+  not_known: "request",
+};
+
+const CHARGE_TEXT: Record<DisputedAmountChargeKind, string> = {
+  late_fee: "late fee",
+  interest: "interest",
+  other: "charge",
+  not_known: "charge",
+};
+
+export const CREDIT_BUREAU_SOURCE_TEXT: Record<CreditBureauReportSource, string> = {
+  credit_bureau_report: "shown by a credit bureau report",
+  institution_letter: "stated in the bank's letter",
+  complainant_statement: "your own statement",
+};
+
+/** A record's time as the record gives it, for example "12 Sep 2025, 20:10" (the record's own zone). */
+export function formatDateTime(iso: string | null): string | null {
+  if (!iso) return null;
+  const date = formatDate(iso.slice(0, 10));
+  const time = /T(\d{2}:\d{2})/.exec(iso)?.[1];
+  return time ? `${date}, ${time}` : date;
+}
+
+export function deviceName(device: { deviceLabel: string | null }): string {
+  return device.deviceLabel ?? UNNAMED_DEVICE_TEXT;
+}
+
+// The record lists hold device identifiers and IP addresses, so they are summarised by count and dates, never listed.
+function formatRecordSpan(events: ReadonlyArray<{ timestamp: string | null }>): string {
+  const dates = events.map((e) => e.timestamp?.slice(0, 10)).filter((d): d is string => Boolean(d)).sort();
+  const count = `${events.length} ${events.length === 1 ? "line" : "lines"}`;
+  if (!dates.length) return count;
+  const first = formatDate(dates[0]);
+  const last = formatDate(dates[dates.length - 1]);
+  return first === last ? `${count} on ${first}` : `${count} from ${first} to ${last}`;
+}
+
+function formatDevices(devices: ReadonlyArray<RecordedDevice & { answer?: DeviceRecognitionAnswer }>): string {
+  return devices
+    .map((d) => {
+      const seen = formatDateTime(d.firstSeenAt);
+      const name = seen ? `${deviceName(d)} (first seen ${seen})` : deviceName(d);
+      return d.answer ? `${name}: ${DEVICE_ANSWER_TEXT[d.answer]}` : name;
+    })
+    .join("; ");
+}
+
+/**
+ * The complainant's answers for the devices a finding lists, checked against that list: one answer per device, the
+ * device's reference, label and first-seen time taken from the records, not from the request. Null if any is missing.
+ */
+export function answerDevices(recorded: readonly RecordedDevice[], input: unknown): DeviceRecognition[] | null {
+  if (!Array.isArray(input) || !recorded.length) return null;
+  const answers = new Map<string, DeviceRecognitionAnswer>();
+  for (const raw of input) {
+    const r = (raw ?? {}) as Record<string, unknown>;
+    const answer = (DEVICE_RECOGNITION_ANSWERS as readonly unknown[]).includes(r.answer) ? (r.answer as DeviceRecognitionAnswer) : null;
+    const ref = typeof r.deviceRef === "string" ? r.deviceRef : null;
+    const label = typeof r.deviceLabel === "string" ? r.deviceLabel : null;
+    if (!answer) return null;
+    answers.set(deviceKey({ deviceRef: ref, deviceLabel: label }), answer);
+  }
+  if (answers.size !== input.length || answers.size !== recorded.length) return null;
+  const out: DeviceRecognition[] = [];
+  for (const device of recorded) {
+    const answer = answers.get(deviceKey(device));
+    if (!answer) return null;
+    out.push({ deviceRef: device.deviceRef, deviceLabel: device.deviceLabel, firstSeenAt: device.firstSeenAt, answer });
+  }
+  return out;
 }
 
 // Cutover checklist, week one: the model's summary writes dates in whatever form it likes; every date in it is
@@ -148,6 +269,52 @@ export function formatFactValue(key: FactKey, value: unknown): string {
     }
     case "date_discovered":
       return formatDate(value as string) ?? String(value);
+    case "access_events":
+    case "card_auth_events":
+      return formatRecordSpan(value as Array<{ timestamp: string | null }>);
+    case "device_recognition":
+      return formatDevices(value as Array<RecordedDevice & { answer?: DeviceRecognitionAnswer }>);
+    case "access_record_requested":
+    case "card_dispute_requested":
+      return formatEvent(value as ReportedEvent, false);
+    case "card_dispute_response": {
+      const response = value as CardDisputeResponse;
+      return [DISPUTE_STATUS_TEXT[response.status], formatDate(response.date), response.reasonStated].filter(Boolean).join(", ");
+    }
+    case "institution_fault_label": {
+      const fault = value as InstitutionFaultLabel;
+      return fault.conduct ? `“${fault.label}”, for: ${fault.conduct}` : `“${fault.label}”`;
+    }
+    case "balance_before_first_disputed_payment":
+      return formatMoney(value as Money);
+    case "transaction_alert_threshold": {
+      const threshold = value as TransactionAlertThreshold;
+      const by = threshold.setBy === "account_holder" ? " (set by you)" : threshold.setBy === "default" ? " (the bank's default)" : "";
+      return `${formatMoney(threshold.amount)}${by}`;
+    }
+    case "token_activation_method":
+      return TOKEN_ACTIVATION_TEXT[value as TokenActivationMethod] ?? String(value);
+    // EUPG Section 8 (decision 8): DRAFT wording for Elena.
+    case "disputed_amount_payment_requests":
+      return (value as DisputedAmountPaymentRequest[])
+        .map((r) => [formatDate(r.date) ?? "Date not given", PAYMENT_REQUEST_TEXT[r.source], r.amount ? formatMoney(r.amount) : null].filter(Boolean).join(", "))
+        .join("; ");
+    case "charges_on_disputed_amount":
+      return (value as ChargeOnDisputedAmount[])
+        .map((c) => [c.amount ? `${formatMoney(c.amount)} ${CHARGE_TEXT[c.kind]}` : CHARGE_TEXT[c.kind], formatDate(c.date)].filter(Boolean).join(", "))
+        .join("; ");
+    case "credit_bureau_reports":
+      return (value as CreditBureauReport[])
+        .map((r) => `${[formatDate(r.date) ?? "Date not given", r.bureau].filter(Boolean).join(", ")} (${CREDIT_BUREAU_SOURCE_TEXT[r.source]})`)
+        .join("; ");
+    case "fidrec_dispute_dates": {
+      const d = value as FidrecDisputeDates;
+      return [
+        d.startedOn ? `Started ${formatDate(d.startedOn)}` : null,
+        d.institutionToldOn ? `bank told ${formatDate(d.institutionToldOn)}` : null,
+        d.completedOrClosedOn ? `completed or closed ${formatDate(d.completedOrClosedOn)}` : null,
+      ].filter(Boolean).join("; ") || "Not known";
+    }
     default: {
       const option = FACT_ENUM_OPTIONS[key]?.find((o) => o.value === value);
       return option?.label ?? String(value).replace(/_/g, " ");
@@ -204,7 +371,9 @@ export function validateFactValue(key: FactKey, input: unknown): unknown | null 
     case "reported_to_bank":
     case "reported_to_police":
     case "written_complaint_sent":
-    case "fidrec_filed": {
+    case "fidrec_filed":
+    case "access_record_requested":
+    case "card_dispute_requested": {
       const value = normaliseYesNo(record.value);
       if (!value) return null;
       const date = record.date ? plausibleDate(record.date) : null;
@@ -259,6 +428,20 @@ export function validateFactValue(key: FactKey, input: unknown): unknown | null 
     }
     case "impersonated_entity_type":
       return ["bank_or_fi", "government", "other_business", "private_person", "unsure"].includes(input as string) ? input : null;
+    case "token_activation_method":
+      return (TOKEN_ACTIVATION_METHODS as readonly string[]).includes(input as string) ? input : null;
+    case "balance_before_first_disputed_payment": {
+      const money = normaliseMoney(typeof input === "number" || typeof input === "string" ? input : (record.amount as string | number | undefined) ?? null);
+      return money && money.amount >= 0 ? money : null;
+    }
+    case "transaction_alert_threshold": {
+      const amount = normaliseMoney(typeof record.amount === "number" || typeof record.amount === "string" ? record.amount : null);
+      const setBy = ["default", "account_holder", "not_known"].includes(record.setBy as string) ? record.setBy : "not_known";
+      return amount ? { amount, setBy } : null;
+    }
+    // The record lists come only from the institution's records, the dispute response and the fault label only from
+    // its letters (brief 3b), and device answers are checked against the finding's devices (answerDevices): none is
+    // typed in here.
     default:
       return null;
   }
@@ -297,6 +480,7 @@ export const FACT_ENUM_OPTIONS: Partial<Record<FactKey, Array<{ value: string; l
     { value: "private_person", label: "A private person" },
     { value: "unsure", label: "Not sure" },
   ],
+  token_activation_method: TOKEN_ACTIVATION_METHODS.filter((v) => v !== "not_known").map((value) => ({ value, label: TOKEN_ACTIVATION_TEXT[value] })),
 };
 
 export const BANK_REPLY_OPTIONS = Object.entries(REPLY_TEXT).map(([value, label]) => ({ value, label }));
