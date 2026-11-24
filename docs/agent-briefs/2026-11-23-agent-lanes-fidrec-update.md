@@ -37,7 +37,7 @@ This work touches files a lane owns later: the two pack functions and builders (
    - `ComparisonLine` — `{ clauseKey, record, expected, outcome: 'differs' | 'matches' | 'not_shown' | 'not_applicable', evidenceIds }`;
    - `SectionBuilder` — one function per pack section: `(input: SectionInput) => SectionResult`;
    - `ClauseProvider` — `getClauseAsOf`, `getClausesByTag`, `getStatementAsOf`, matching the database functions, plus an in-memory fake for tests;
-   - constants: section IDs and their order (brief 4i), the clause keys the rules cite, the statement keys (brief 4d, 4a link statements, Phase 7 seeds).
+   - constants: section IDs and their order (brief 4i, with `disputed_amount_charges` after `duty_time_checks` per the review of 24 Nov 2026, Decision 8), the clause keys the rules cite, the statement keys (brief 4d, 4a link statements, Phase 7 seeds).
 4. Add four synthetic cases under `tests/fixtures/fidrec-update/`: an account case in SRF scope; a card-only case (token activated, card added to a wallet, 3-D Secure payments); a mixed case; a case with no technical records.
 5. Commit this file to `docs/agent-briefs/`.
 
@@ -100,7 +100,8 @@ Owns (all new files):
 - `supabase/functions/_shared/facts/rules/mas-notice-checks.ts`
 - `supabase/functions/_shared/facts/rules/industry-practice-checks.ts`
 - `supabase/functions/_shared/facts/rules/link-statements.ts`
-- `tests/contracts/duty-time-checks.test.ts`, `mas-notice-checks.test.ts`, `industry-practice-checks.test.ts`, `link-statements.test.ts`
+- `supabase/functions/_shared/facts/rules/dispute-charges-checks.ts` (section `disputed_amount_charges`; review of 24 Nov 2026, Decision 8)
+- `tests/contracts/duty-time-checks.test.ts`, `mas-notice-checks.test.ts`, `industry-practice-checks.test.ts`, `link-statements.test.ts`, `dispute-charges-checks.test.ts`
 
 Work: each file exports `SectionBuilder`s that take the contract facts and a `ClauseProvider` and return `ComparisonLine`s. Build and test against the fake provider and the Step 0 fixtures. Includes the fraud-surveillance condition, the further-device login lines, routing by payment type and institution type, and the boundary tests in the brief's Phase 4 gate. Reads `rules/instrument-scope.ts`; does not edit it.
 

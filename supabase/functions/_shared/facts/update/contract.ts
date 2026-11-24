@@ -102,6 +102,11 @@ export interface CardAuthEvent {
   timestamp: IsoDateTime | null;
   /** Index into the `transactions` fact. */
   transactionIndex: number | null;
+  /**
+   * The amount as the card record states it (review of 24 Nov 2026, fix list). Null when the line states none (for
+   * example a wallet provisioning line). Printed beside the `transactions` amount, never in place of it.
+   */
+  amount: Money | null;
   cardScheme: CardScheme;
   merchant: string | null;
   merchantCountry: string | null;
@@ -504,6 +509,41 @@ export interface TwelveHourBlock {
   walletCheckPointer: boolean;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// A quoted document (Decision 5, Part B): a document's own words printed word for word, with its date, clause
+// reference and link, and no outcome. For MAS written replies and other `any_date` documents.
+// ---------------------------------------------------------------------------------------------------------------
+
+export interface QuotedPassage {
+  clauseKey: string;
+  clauseRef: string | null;
+  /** The clause text exactly as the provider returns it; never wording written in code. */
+  text: string;
+}
+
+export interface QuotationLine {
+  documentKey: string;
+  /** The document's own date (its version's effective_from), always printed. */
+  documentDate: IsoDate;
+  /** The date the clauses were read for (the generation date for an `any_date` document). */
+  readOn: IsoDate;
+  /** The reviewed statement that introduces the quotation (e.g. `mas.reply.20260113.wallet`), or null. */
+  intro: StatementLine | null;
+  /** The passages held, in the order asked. A quotation with no passage held is not printed (the run is flagged). */
+  passages: QuotedPassage[];
+  sourceUrl: string | null;
+  /** Decision 6: set when the document is dated after the events in the case (the after-the-events line follows). */
+  documentDatedAfterEvents: IsoDate | null;
+  evidenceIds: string[];
+}
+
+/**
+ * Line kinds that carry no comparison outcome (review fix list, items 1, 4, 5): the conduct section's lines, the
+ * 12-hour block and quoted documents. None of them may pass through the comparison endings.
+ */
+export const NO_OUTCOME_LINE_KINDS = ["conduct", "twelve_hours", "quotation"] as const;
+export type NoOutcomeLineKind = (typeof NO_OUTCOME_LINE_KINDS)[number];
+
 export type SectionLine =
   | { kind: "comparison"; comparison: ComparisonLine }
   | { kind: "statement"; statement: StatementLine }
@@ -511,6 +551,8 @@ export type SectionLine =
   | { kind: "conduct"; conduct: ConductLine; evidenceIds: string[] }
   /** Decision 4: one block per activation. */
   | { kind: "twelve_hours"; block: TwelveHourBlock }
+  /** Decision 5, Part B: a document quoted word for word, with no outcome. */
+  | { kind: "quotation"; quotation: QuotationLine }
   /** A fixed line chosen by code, or a numbered step of the sequence (4f). */
   | { kind: "text"; text: string; step: number | null; evidenceIds: string[]; clauseKeys: string[] }
   /** A table row: access records, card authentication records, IP locations. */
