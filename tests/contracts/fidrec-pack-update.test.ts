@@ -330,3 +330,33 @@ test('the PDF prints the update only when the report has it (Unicode fonts, ever
   assert.ok(source.indexOf('pack.update_sections') > source.indexOf('"The institution’s position"'))
   assert.ok(source.indexOf('pack.update_sections') < source.indexOf('"Points for the complainant"'))
 })
+
+test('record rows: every field a section prints has a label (card dispute rows in the contract names), and no "SGD n" amount', async () => {
+  const { RECORD_FIELD_LABELS } = await import('../../supabase/functions/_shared/facts/update/render.ts')
+  const card = FIDREC_UPDATE_CASES.find((x) => x.id === 'card-only')!
+  const u = await update(card)
+  const labels = new Set(Object.values(RECORD_FIELD_LABELS))
+  let rows = 0
+  for (const r of u.results) {
+    for (const line of r.lines) {
+      if (line.kind !== 'record') continue
+      rows += 1
+      for (const [key, value] of Object.entries(line.fields)) {
+        if (value !== null && value !== '') assert.ok(key in RECORD_FIELD_LABELS, `${r.sectionId}: no label for ${key}`)
+      }
+    }
+  }
+  assert.ok(rows > 0)
+  const printed = printedText(u.rendered)
+  const cardRows = u.rendered.sections.find((s) => s.id === 'card_dispute_comparison')!.lines.filter((l) => l.kind === 'bullet')
+  assert.ok(cardRows.length >= 3)
+  for (const row of cardRows) {
+    for (const part of row.text.replace(/ \(E[\d, E]+\)$/, '').split('; ')) assert.ok(labels.has(part.split(': ')[0]), `unlabelled: ${part}`)
+    assert.match(row.text, /^Date: \d+ \w+ 2025; Payment: S\$[\d,]+; /)
+    assert.match(row.text, /Card ending: 0001/)
+  }
+  for (const t of printed) {
+    assert.doesNotMatch(t, /\bSGD \d/, t)
+    assert.doesNotMatch(t, /\b(?:cardScheme|entryMode|authenticationResult|deviceLabel|last4)\b/, t)
+  }
+})

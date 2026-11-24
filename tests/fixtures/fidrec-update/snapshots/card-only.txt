@@ -63,6 +63,8 @@ Side by side: The records provided do not show whether what paragraph 8.2 of the
 Record: The complainant reported to the institution on 13 September 2025. The institution's final reply is dated 20 October 2025. The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau. (E2)
 Expected: The text of paragraph 8.3 of the E-Payments User Protection Guidelines in force on 13 September 2025 is not held in a verified version.
 Side by side: The records provided do not show whether what paragraph 8.3 of the E-Payments User Protection Guidelines sets out took place.
+The records provided do not show dispute resolution with FIDReC starting. The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau.
+The records provided do not show requests to pay the disputed amount. The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau. The records provided do not show dispute resolution with FIDReC starting.
 ## mas_notice_comparison: MAS notices
 MAS notices set requirements that MAS imposes on the institution. This section sets the institution's records beside those requirements. It does not say whether a requirement was met.
 A reviewed summary of this point is not yet available.
@@ -80,10 +82,10 @@ A reviewed summary of this point is not yet available.
 ## card_dispute_comparison: Card scheme rules on disputing the card payments
 Card scheme rules are an agreement between the card scheme and the card issuer. The cardholder is not a party to them. They are shown here as the process available to the issuer.
 This pack holds selected sections of Visa's rules (Synthetic scheme rules V), edition dated Synthetic edition, on how unauthorised payments are handled. It does not hold the full rules. (R1)
-- payment date: 12 September 2025; amount: SGD 1,980.00; Merchant: Example Electronics Store; card last4: 0001; scheme: Visa; Entry mode: an online (card-absent) payment; Authentication: 3-D Secure approved with a digital token; authentication result: authenticated; Device: Phone model EX-300 (E1, E6)
-Record: The complainant disputes the payment of SGD 1,980.00 on 12 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. (E1)
+- Date: 12 September 2025; Payment: S$1,980; Merchant: Example Electronics Store; Card ending: 0001; Card scheme: Visa; Entry mode: an online (card-absent) payment; Authentication: 3-D Secure approved with a digital token; Result: authenticated; Device: Phone model EX-300 (E1, E6)
+Record: The complainant disputes the payment of S$1,980 on 12 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. (E1)
 Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, Dispute Condition 10.4 applies where the cardholder denies authorising or taking part in the payment." (R1)
-Side by side: The complainant disputes the payment of SGD 1,980.00 on 12 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. The record shows this, as the document expects.
+Side by side: The complainant disputes the payment of S$1,980 on 12 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. The record shows this, as the document expects.
 Record: The record shows the payment was an online (card-absent) payment. (E6)
 Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, Dispute Condition 10.4 covers payments in a card-absent environment." (R1)
 Side by side: The record shows the payment was an online (card-absent) payment, as the document expects.
@@ -96,10 +98,10 @@ Side by side: The payment is dated 12 September 2025; the complainant asked the 
 Record: The records provided do not show whether the institution reported this payment to Visa as fraud. (E2)
 Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the issuer is to report the payment to Visa as fraud before raising the dispute." (R1)
 Side by side: The records provided do not show whether what section 11.8.5 of the Synthetic scheme rules V (R1) sets out took place.
-- payment date: 12 September 2025; amount: SGD 2,450.00; Merchant: Example Travel Agency; card last4: 0001; scheme: Visa; Entry mode: an online (card-absent) payment; Authentication: 3-D Secure approved with a digital token; authentication result: authenticated; Device: Phone model EX-300 (E1, E6)
-Record: The complainant disputes the payment of SGD 2,450.00 on 12 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. (E1)
+- Date: 12 September 2025; Payment: S$2,450; Merchant: Example Travel Agency; Card ending: 0001; Card scheme: Visa; Entry mode: an online (card-absent) payment; Authentication: 3-D Secure approved with a digital token; Result: authenticated; Device: Phone model EX-300 (E1, E6)
+Record: The complainant disputes the payment of S$2,450 on 12 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. (E1)
 Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, Dispute Condition 10.4 applies where the cardholder denies authorising or taking part in the payment." (R1)
-Side by side: The complainant disputes the payment of SGD 2,450.00 on 12 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. The record shows this, as the document expects.
+Side by side: The complainant disputes the payment of S$2,450 on 12 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. The record shows this, as the document expects.
 Record: The record shows the payment was an online (card-absent) payment. (E6)
 Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, Dispute Condition 10.4 covers payments in a card-absent environment." (R1)
 Side by side: The record shows the payment was an online (card-absent) payment, as the document expects.
@@ -112,19 +114,19 @@ Side by side: The payment is dated 12 September 2025; the complainant asked the 
 Record: The records provided do not show whether the institution reported this payment to Visa as fraud. (E2)
 Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the issuer is to report the payment to Visa as fraud before raising the dispute." (R1)
 Side by side: The records provided do not show whether what section 11.8.5 of the Synthetic scheme rules V (R1) sets out took place.
-- payment date: 13 September 2025; amount: SGD 3,120.00; Merchant: Example Luxury Goods; card last4: 0001; scheme: Visa; Entry mode: an online (card-absent) payment; Authentication: 3-D Secure approved with a digital token; authentication result: authenticated; Device: Phone model EX-300 (E1, E6)
-Record: The complainant disputes the payment of SGD 3,120.00 on 13 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. (E1)
+- Date: 13 September 2025; Payment: S$3,120; Merchant: Example Luxury Goods; Card ending: 0001; Card scheme: Visa; Entry mode: an online (card-absent) payment; Authentication: 3-D Secure approved with a digital token; Result: authenticated; Device: Phone model EX-300 (E1, E6)
+Record: The complainant disputes the payment of S$3,120 on 13 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. (E1)
 Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, Dispute Condition 10.4 applies where the cardholder denies authorising or taking part in the payment." (R1)
-Side by side: The complainant disputes the payment of SGD 3,120.00 on 13 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. The record shows this, as the document expects.
+Side by side: The complainant disputes the payment of S$3,120 on 13 September 2025 as not made or authorised by them. The complainant states that the device labelled 'Phone model EX-300' is not theirs. The record shows this, as the document expects.
 Record: The record shows the payment was an online (card-absent) payment. (E6)
 Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, Dispute Condition 10.4 covers payments in a card-absent environment." (R1)
 Side by side: The record shows the payment was an online (card-absent) payment, as the document expects.
 Record: The record shows the payment authenticated by 3-D Secure approved with a digital token, result 'authenticated'. The record does not show the electronic commerce indicator or the authentication values sent with the authorisation. (E6)
 Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the invalid disputes for Dispute Condition 10.4 include payments authenticated through Visa Secure, payments where Visa Secure authentication was attempted, and payments with an authenticated token where cardholder verification was approved." (R1)
 Side by side: The document expects what section 11.8.5 of the Synthetic scheme rules V (R1) sets out. The record shows the payment authenticated by 3-D Secure approved with a digital token, result 'authenticated'. The record does not show the electronic commerce indicator or the authentication values sent with the authorisation.
-Record: The payment is dated 13 September 2025; the complainant asked the institution to dispute it on 14 September 2025, 1 calendar days later. The records do not show the date the payment was processed by the scheme; the count runs from the payment date. (E1, E5)
+Record: The payment is dated 13 September 2025; the complainant asked the institution to dispute it on 14 September 2025, 1 calendar day later. The records do not show the date the payment was processed by the scheme; the count runs from the payment date. (E1, E5)
 Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the time limit for Dispute Condition 10.4 is 120 calendar days from the date the payment was processed." (R1)
-Side by side: The payment is dated 13 September 2025; the complainant asked the institution to dispute it on 14 September 2025, 1 calendar days later. The records do not show the date the payment was processed by the scheme; the count runs from the payment date. The record shows this, as the document expects.
+Side by side: The payment is dated 13 September 2025; the complainant asked the institution to dispute it on 14 September 2025, 1 calendar day later. The records do not show the date the payment was processed by the scheme; the count runs from the payment date. The record shows this, as the document expects.
 Record: The records provided do not show whether the institution reported this payment to Visa as fraud. (E2)
 Expected: Section 11.8.5 of the Synthetic scheme rules V, version Synthetic edition: "Under Synthetic scheme rules V, section 11.8.5, edition Synthetic edition, the issuer is to report the payment to Visa as fraud before raising the dispute." (R1)
 Side by side: The records provided do not show whether what section 11.8.5 of the Synthetic scheme rules V (R1) sets out took place.
@@ -167,9 +169,10 @@ duty_time_checks clause_not_held mas.eupg/4.14 2025-09-12
 disputed_amount_charges clause_not_held mas.eupg/8.1 2025-09-13
 disputed_amount_charges clause_not_held mas.eupg/8.2 2025-09-13
 disputed_amount_charges clause_not_held mas.eupg/8.3 2025-09-13
+disputed_amount_charges clause_not_held mas.eupg/8.4 2025-09-13
+disputed_amount_charges clause_not_held mas.eupg/8.5 2025-09-13
 mas_notice_comparison statement_under_review bridge.mas_requirement.cards 2025-09-12
 mas_notice_comparison clause_not_held mas.fsm-n05/9 2025-09-12
-industry_practice_comparison clause_not_held industry_practice.tokenActivationAlert 2025-09-12
 industry_practice_comparison statement_under_review mas.reply.20260113.wallet 2025-09-12
 industry_practice_comparison statement_under_review bridge.card_loss_sharing 2025-09-12
 card_dispute_comparison statement_under_review visa.3ds.authenticated 2025-09-12
