@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { qk } from '@/hooks/state-machine/query-keys'
 import { useSupabaseBrowser } from '@/hooks/state-machine/use-supabase-browser'
@@ -16,6 +16,14 @@ const TERMINAL_DOCUMENT_STATUSES = new Set(['ready', 'failed'])
 
 export function documentsStillProcessing(rows: Array<Pick<CaseDocumentRow, 'processing_status'>> | undefined): boolean {
   return (rows ?? []).some((row) => !TERMINAL_DOCUMENT_STATUSES.has(row.processing_status ?? 'pending'))
+}
+
+/** Each document and its processing status, in a stable order: changes when a document is added, removed or moves on. */
+export function documentStatusKey(rows: Array<Pick<CaseDocumentRow, 'id' | 'processing_status'>> | undefined): string {
+  return (rows ?? [])
+    .map((row) => `${row.id}:${row.processing_status ?? 'pending'}`)
+    .sort()
+    .join('|')
 }
 
 export function useCaseDocumentsRealtime(
@@ -41,6 +49,16 @@ export function useCaseDocumentsRealtime(
     },
     refetchInterval: (query) => (documentsStillProcessing(query.state.data) ? DOCUMENT_POLL_MS : false),
   })
+
+  // When a document starts, finishes or fails, the facts are read again with it: refresh them, whether the change came
+  // by realtime or by the poll above, so a new question appears without the customer pressing anything.
+  const statusKey = documentStatusKey(query.data)
+  const lastStatusKey = useRef(statusKey)
+  useEffect(() => {
+    if (!caseId || lastStatusKey.current === statusKey) return
+    lastStatusKey.current = statusKey
+    void queryClient.invalidateQueries({ queryKey: ['case', caseId, 'facts'] })
+  }, [caseId, queryClient, statusKey])
 
   useEffect(() => {
     if (!enabled || !caseId) return

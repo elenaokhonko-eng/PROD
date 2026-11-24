@@ -122,6 +122,9 @@ export function useUploadEvidence() {
         queryClient.invalidateQueries({ queryKey: qk.case.validation(caseId) }),
         queryClient.invalidateQueries({ queryKey: qk.case.eligibility(caseId) }),
         queryClient.invalidateQueries({ queryKey: qk.case.narratives(caseId) }),
+        // The confirm step's facts count the new document as still being read (button disabled) until it is ready,
+        // as removing a document already does (use-delete-evidence.ts). Gate B review, 24 Nov 2026.
+        queryClient.invalidateQueries({ queryKey: ['case', caseId, 'facts'] }),
       ])
     },
   })
