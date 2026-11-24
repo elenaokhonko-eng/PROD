@@ -115,7 +115,7 @@ export function routeStops(live: boolean): RouteStop[] {
 }
 
 // §E4, Pricing. The GST line is the brief's (Terms 6.2: not registered for GST). The refunds line summarises Terms 6.4;
-// draft wording, awaiting Elena's approval.
+// approved by Elena on 24 Nov 2026.
 export const GST_LINE = 'Prices in Singapore dollars. No GST is added.'
 export const REFUNDS_LINE =
   'Paid packs are made for your case on demand, so they aren’t normally refundable once made. If a pack fails, has an error caused by our systems, or you were charged twice, email info@guidebuoyai.sg within 14 days and we’ll put it right or refund you.'
