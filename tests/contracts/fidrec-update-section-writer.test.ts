@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createFakeClauseProvider, NO_OUTCOME_LINE_KINDS } from '../../supabase/functions/_shared/facts/update/contract.ts'
+import { createFakeClauseProvider, deviceOwnership, NO_OUTCOME_LINE_KINDS } from '../../supabase/functions/_shared/facts/update/contract.ts'
 import {
   afterTheEventsLine,
   COMPLAINANT,
@@ -16,6 +16,7 @@ import {
   gapBetween,
   GENDERED_PRONOUNS,
   NEAREST_VERSION_FALLBACK,
+  RECORDS_DO_NOT_SHOW_WHO_APPROVED,
   SCHEME_STANDING_SENTENCE,
   SectionWriter,
 } from '../../supabase/functions/_shared/facts/update/section-writer.ts'
@@ -216,4 +217,47 @@ test('card events carry the amount the record states; payment lines match the tr
       else assert.deepEqual(e.amount, c.data.payments[e.transactionIndex].amount)
     }
   }
+})
+
+test('device rule through the writer: a not_sure device gives no differs line, only the records-do-not-show line', () => {
+  const provider = createFakeClauseProvider(syntheticCorpus)
+  const facts = accountSrfCase.data.facts
+  const comparison = (deviceRef: string) => ({
+    clauseKey: 'mas.fsm-n05/9',
+    record: `Synthetic record line for ${deviceRef}.`,
+    expected: 'Placeholder.',
+    outcome: 'differs' as const,
+    evidenceIds: ['E4'],
+  })
+  const notShownLine = 'The records provided do not show whether this device is the complainant\'s.'
+
+  // The MAS notice row rests on the device not being theirs: dev-ex-0004 is not_sure.
+  const w = new SectionWriter('mas_notice_comparison', { provider, evidenceIds: accountSrfCase.data.evidenceIds })
+  const unsure = deviceOwnership(facts.device_recognition, { deviceRef: 'dev-ex-0004', deviceLabel: 'Tablet model EX-T1' })
+  assert.equal(unsure, 'not_shown')
+  assert.equal(w.comparisonOnDevice({ ownership: unsure, requires: 'not_mine', comparison: comparison('dev-ex-0004'), notShownLine }), false)
+  assert.ok(!w.lines.some((l) => l.kind === 'comparison'), 'no comparison, so no differs line')
+  assert.deepEqual(w.lines.map((l) => (l.kind === 'text' ? l.text : l.kind)), [notShownLine])
+
+  // dev-ex-0002 is not_mine: the row prints.
+  const notMine = deviceOwnership(facts.device_recognition, { deviceRef: 'dev-ex-0002', deviceLabel: 'Phone model EX-200' })
+  assert.equal(w.comparisonOnDevice({ ownership: notMine, requires: 'not_mine', comparison: comparison('dev-ex-0002'), notShownLine }), true)
+  assert.equal(w.lines.filter((l) => l.kind === 'comparison').length, 1)
+
+  // A device that is theirs: the row does not apply and nothing prints.
+  const before = w.lines.length
+  assert.equal(w.comparisonOnDevice({ ownership: 'mine', requires: 'not_mine', comparison: comparison('dev-mine'), notShownLine }), false)
+  assert.equal(w.lines.length, before)
+})
+
+test('Decision 1 in device terms: anything but mine means "who approved" is not shown', () => {
+  assert.equal(RECORDS_DO_NOT_SHOW_WHO_APPROVED, 'The records do not show who approved these payments.')
+  const recognition = (answer: 'mine' | 'not_mine' | 'not_sure') =>
+    ({ value: [{ deviceRef: 'dev-ex-0102', deviceLabel: 'Phone model EX-300', firstSeenAt: null, answer }], label: 'confirmed' as const })
+  const device = { deviceRef: 'dev-ex-0102', deviceLabel: 'Phone model EX-300' }
+  assert.equal(deviceOwnership(recognition('mine'), device), 'mine')
+  for (const answer of ['not_mine', 'not_sure'] as const) assert.notEqual(deviceOwnership(recognition(answer), device), 'mine', answer)
+  assert.notEqual(deviceOwnership(recognition('mine'), null), 'mine')
+  // The card-only fixture: the approving device is not_mine.
+  assert.equal(deviceOwnership(cardOnlyCase.data.facts.device_recognition, device), 'not_mine')
 })

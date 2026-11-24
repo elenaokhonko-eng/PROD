@@ -17,7 +17,6 @@ import {
   BINDING_LEVELS,
   CLAUSE_KEYS,
   COMPARISON_OUTCOMES,
-  complainantRecognisesDevice,
   CONDUCT_LINE_KINDS,
   CONDUCT_MARKERS,
   CONDUCT_TOPICS,
@@ -25,7 +24,9 @@ import {
   createFakeClauseProvider,
   CREDIT_BUREAU_REPORT_DOCUMENT_TYPE,
   DECIDED_STATEMENT_KEYS_2026_11_24,
+  DEVICE_OWNERSHIP_STATES,
   DEVICE_RECOGNITION_ANSWERS,
+  deviceOwnership,
   documentDatedAfterEvents,
   ENTRY_MODES,
   IP_NETWORK_FLAGS,
@@ -314,25 +315,30 @@ test('the card-only case names its digital token on the activation line (tokenRe
   assert.ok(payments.every((p) => p.tokenRef === activation.tokenRef))
 })
 
-test('the not-sure rule: only a clear "mine" on a confirmed or claimant-only fact counts as recognised', () => {
+test('the device rule: three states; only a clear answer on a confirmed or claimant-only fact is mine or not_mine', () => {
+  assert.deepEqual([...DEVICE_OWNERSHIP_STATES], ['mine', 'not_mine', 'not_shown'])
   const device = { deviceRef: 'dev-x', deviceLabel: 'Phone X' }
   const fact = (answer: 'mine' | 'not_mine' | 'not_sure', label: 'confirmed' | 'claimant_only' | 'not_sure' | 'not_known' = 'confirmed') =>
     ({ value: [{ deviceRef: 'dev-x', deviceLabel: 'Phone X', firstSeenAt: null, answer }], label })
-  assert.equal(complainantRecognisesDevice(fact('mine'), device), true)
-  assert.equal(complainantRecognisesDevice(fact('mine', 'claimant_only'), device), true)
-  assert.equal(complainantRecognisesDevice(fact('not_mine'), device), false)
-  assert.equal(complainantRecognisesDevice(fact('not_sure'), device), false)
-  assert.equal(complainantRecognisesDevice(fact('mine', 'not_sure'), device), false)
-  assert.equal(complainantRecognisesDevice(fact('mine', 'not_known'), device), false)
-  assert.equal(complainantRecognisesDevice(undefined, device), false)
-  assert.equal(complainantRecognisesDevice(fact('mine'), null), false, 'the record names no device')
-  assert.equal(complainantRecognisesDevice(fact('mine'), { deviceRef: 'dev-y', deviceLabel: null }), false, 'no answer for this device')
-  assert.equal(complainantRecognisesDevice(fact('mine'), { deviceRef: null, deviceLabel: 'Phone X' }), true, 'matched by label')
+  assert.equal(deviceOwnership(fact('mine'), device), 'mine')
+  assert.equal(deviceOwnership(fact('mine', 'claimant_only'), device), 'mine')
+  assert.equal(deviceOwnership(fact('not_mine'), device), 'not_mine')
+  assert.equal(deviceOwnership(fact('not_mine', 'claimant_only'), device), 'not_mine')
+  assert.equal(deviceOwnership(fact('not_sure'), device), 'not_shown')
+  assert.equal(deviceOwnership(fact('mine', 'not_sure'), device), 'not_shown')
+  assert.equal(deviceOwnership(fact('not_mine', 'not_sure'), device), 'not_shown')
+  assert.equal(deviceOwnership(fact('mine', 'not_known'), device), 'not_shown')
+  assert.equal(deviceOwnership(undefined, device), 'not_shown')
+  assert.equal(deviceOwnership(fact('mine'), null), 'not_shown', 'the record names no device')
+  assert.equal(deviceOwnership(fact('not_mine'), { deviceRef: null, deviceLabel: null }), 'not_shown', 'no device named')
+  assert.equal(deviceOwnership(fact('not_mine'), { deviceRef: 'dev-y', deviceLabel: null }), 'not_shown', 'no answer for this device')
+  assert.equal(deviceOwnership(fact('mine'), { deviceRef: null, deviceLabel: 'Phone X' }), 'mine', 'matched by label')
   // The answer itself is kept for printing.
   assert.equal(recognitionAnswerFor(fact('not_sure').value, device), 'not_sure')
-  // The account case: one device is not_sure; it is not recognised.
+  // The account case: dev-ex-0002 is not_mine; dev-ex-0004 is not_sure, so neither mine nor not_mine.
   const accountFact = accountSrfCase.data.facts.device_recognition
-  assert.equal(complainantRecognisesDevice(accountFact, { deviceRef: 'dev-ex-0004', deviceLabel: null }), false)
+  assert.equal(deviceOwnership(accountFact, { deviceRef: 'dev-ex-0002', deviceLabel: null }), 'not_mine')
+  assert.equal(deviceOwnership(accountFact, { deviceRef: 'dev-ex-0004', deviceLabel: null }), 'not_shown')
 })
 
 test('Decision 6: any_date documents are read on the generation date; a later document is dated after the events', () => {
