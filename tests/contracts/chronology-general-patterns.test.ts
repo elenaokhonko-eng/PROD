@@ -96,9 +96,21 @@ test('a hotline call is recognised by any 1800 number, not by a file name', () =
   assert.ok(events.some((event) => event.event_type === 'hotline_call' || event.event_type === 'fraud_discovery'))
 })
 
-test('no case-specific values stay in the builder', () => {
+test('the builder holds no file names, phone numbers or fixed amounts', () => {
   const source = readFileSync('lib/server/fidrec/build-chronology-events.ts', 'utf8')
-  for (const pattern of [/\b1[56]\/10\b/, /\b1[56] Oct\b/, /OXPAY|eneba|PMMAX/i, /"100000"/, /Proof to call/i, /E_20\d{6}_\d+\\?\.pdf/, /increased her/]) {
+  for (const pattern of [/[\w-]+\\?\.pdf\b/i, /\b1800[\s-]\d{3}[\s-]\d{4}\b/, /"\d{4,}"/]) {
     assert.doesNotMatch(source, pattern, String(pattern))
+  }
+})
+
+// The real case's values are kept outside the repository (CLAUDE.md, personal data): one regular expression per line
+// in the file named by GUIDEBUOY_CHRONOLOGY_FORBIDDEN_PATTERNS. Skipped when it is not set.
+const forbiddenPatternsPath = process.env.GUIDEBUOY_CHRONOLOGY_FORBIDDEN_PATTERNS
+test('no case-specific values stay in the builder (private list)', { skip: !forbiddenPatternsPath }, () => {
+  const source = readFileSync('lib/server/fidrec/build-chronology-events.ts', 'utf8')
+  const patterns = readFileSync(forbiddenPatternsPath!, 'utf8').split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  assert.ok(patterns.length > 0, 'the private list is empty')
+  for (const [index, line] of patterns.entries()) {
+    assert.doesNotMatch(source, new RegExp(line, 'i'), `private pattern ${index + 1}`)
   }
 })
