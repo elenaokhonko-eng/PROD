@@ -1,0 +1,15 @@
+{
+  "$comment": "definition_statements seed, bridge.mas_requirement (brief 1.3, 4b, decision 20). Opens the MAS notice group for account payments. Drafts only: scripts/standards/seed.ts never approves. Elena approves it.",
+  "statements": [
+    {
+      "statement_key": "bridge.mas_requirement",
+      "revision": 1,
+      "framework": "eupg",
+      "applies_to_instrument": ["account_transfer", "ewallet"],
+      "text": "Under paragraphs 5.4 and 5.5(b) of the E-Payments User Protection Guidelines, an account holder is not liable for a loss that arises from the institution's non-compliance with a requirement imposed by MAS in respect of its provision of a financial service, where the loss does not arise from an account user's failure to comply with Section 3. Paragraph 6.3 of the Shared Responsibility Framework Guidelines says the institution is responsible for a loss from a seemingly authorised transaction that arises from such non-compliance.",
+      "clause_keys": ["mas.eupg/5.4", "mas.eupg/5.5", "mas.srf/6.3"],
+      "exclusion_clause_keys": [],
+      "note": "Framework set to 'eupg' (it rests on both documents; the table allows one). 5.5(b) also covers non-compliance by the institution's employee."
+    }
+  ]
+}
