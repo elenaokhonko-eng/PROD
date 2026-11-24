@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createFakeClauseProvider } from '../../supabase/functions/_shared/facts/update/contract.ts'
+import { createFakeClauseProvider, NO_OUTCOME_LINE_KINDS } from '../../supabase/functions/_shared/facts/update/contract.ts'
 import {
   afterTheEventsLine,
   COMPLAINANT,
@@ -19,7 +19,7 @@ import {
   SCHEME_STANDING_SENTENCE,
   SectionWriter,
 } from '../../supabase/functions/_shared/facts/update/section-writer.ts'
-import { accountSrfCase, cardOnlyCase, EUPG_A_TO, syntheticCorpus } from '../fixtures/fidrec-update/index.ts'
+import { accountSrfCase, cardOnlyCase, EUPG_A_TO, mixedCase, syntheticCorpus } from '../fixtures/fidrec-update/index.ts'
 
 // Lane 6 Step 0b: the one section writer (review of 24 Nov 2026, cross-lane finding 3; Decision 2).
 
@@ -152,4 +152,68 @@ test('the writer reads the nearest version with a flag, and attaches the after-t
   const line = w.lines.find((l) => l.kind === 'statement')
   assert.ok(line && line.kind === 'statement')
   assert.equal(line.statement.documentDatedAfterEvents, '2026-01-13')
+})
+
+test('a quoted reply prints word for word with its date and clause reference, no outcome, after-the-events date set', async () => {
+  const provider = createFakeClauseProvider({
+    versions: [{
+      version_id: 'ver-test-reply',
+      document_key: 'test.reply_20260113',
+      title: 'Synthetic written reply',
+      publisher: 'Synthetic regulator',
+      binding_level: 'announcement',
+      institution: null,
+      card_scheme: null,
+      document_instrument_scope: ['account_transfer', 'sg_card', 'ewallet'],
+      version_label: '2026-01-13',
+      effective_from: '2026-01-13',
+      effective_to: null,
+      status: 'verified',
+      source_url: 'https://example.com/reply',
+      coverage: 'full',
+      as_of_rule: 'any_date',
+      clauses: [
+        { clause_id: 'cl-r1', clause_key: 'test.reply_20260113/1', clause_ref: '1', text_content: 'Placeholder sentence one.', text_sha256: 'f'.repeat(64) },
+        { clause_id: 'cl-r2', clause_key: 'test.reply_20260113/2', clause_ref: '2', text_content: 'Placeholder sentence two.', text_sha256: '0'.repeat(64) },
+      ],
+    }],
+    statements: [],
+  })
+  const w = new SectionWriter('industry_practice_comparison', { provider, evidenceIds: {} })
+  const printed = await w.quotation({
+    documentKey: 'test.reply_20260113',
+    clauseKeys: ['test.reply_20260113/1', 'test.reply_20260113/2', 'test.reply_20260113/9'],
+    eventDate: '2025-09-12',
+    generatedOn: '2026-11-24',
+    caseEventDates: ['2025-09-12', '2025-10-20'],
+    introStatementKey: 'mas.reply.20260113.wallet',
+  })
+  assert.equal(printed, true)
+  const line = w.lines[0]
+  assert.ok(line.kind === 'quotation')
+  assert.ok(!('outcome' in line.quotation))
+  assert.deepEqual(line.quotation.passages.map((p) => [p.clauseRef, p.text]), [['1', 'Placeholder sentence one.'], ['2', 'Placeholder sentence two.']])
+  assert.equal(line.quotation.documentDate, '2026-01-13')
+  assert.equal(line.quotation.readOn, '2026-11-24')
+  assert.equal(line.quotation.documentDatedAfterEvents, '2026-01-13')
+  assert.equal(line.quotation.sourceUrl, 'https://example.com/reply')
+  assert.equal(line.quotation.intro?.text, null, 'intro statement not approved yet: under review')
+  assert.ok(w.flags.some((f) => f.code === 'clause_not_held' && f.key === 'test.reply_20260113/9'))
+  assert.ok(w.flags.some((f) => f.code === 'statement_under_review' && f.key === 'mas.reply.20260113.wallet'))
+  assert.equal(w.citations.length, 2)
+  assert.ok(NO_OUTCOME_LINE_KINDS.includes('quotation'))
+
+  // Generated before the reply existed: nothing prints.
+  const early = new SectionWriter('industry_practice_comparison', { provider, evidenceIds: {} })
+  assert.equal(await early.quotation({ documentKey: 'test.reply_20260113', clauseKeys: ['test.reply_20260113/1'], eventDate: '2025-09-12', generatedOn: '2026-01-12', caseEventDates: ['2025-09-12'] }), false)
+  assert.equal(early.lines.length, 0)
+})
+
+test('card events carry the amount the record states; payment lines match the transactions in the fixtures', () => {
+  for (const c of [cardOnlyCase, mixedCase]) {
+    for (const e of c.data.facts.card_auth_events!.value!) {
+      if (e.transactionIndex === null) assert.equal(e.amount, null)
+      else assert.deepEqual(e.amount, c.data.payments[e.transactionIndex].amount)
+    }
+  }
 })
