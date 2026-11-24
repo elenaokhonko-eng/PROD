@@ -31,6 +31,9 @@ test('an error is reduced to its name, code, status and a scrubbed message', () 
   assert.equal(scrubErrorText('login from 198.51.100.7'), 'login from #')
   assert.equal(scrubErrorText('device a1b2c3d4e5 and token DTK-7F3A92B1 unmatched'), 'device # and token DTK-# unmatched')
   assert.equal(scrubErrorText('mac 00:1a:2b:3c:4d:5e seen'), 'mac # seen')
+  assert.equal(scrubErrorText('device dev_8f3a92b1c4 and token tok_ab12cd34ef'), 'device dev_# and token tok_#')
+  assert.equal(scrubErrorText('device 3fa85f64-5717-4562-b3fc-2c963f66afa6 unknown'), 'device # unknown')
+  assert.equal(scrubErrorText('DEVICE 3FA85F64-5717-4562-B3FC-2C963F66AFA6'), 'DEVICE #')
 })
 
 test('Edge Functions never log or return raw errors, provider bodies or model text', () => {
