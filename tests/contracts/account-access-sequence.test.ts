@@ -193,6 +193,7 @@ function sha64(c: string) {
 const ev = (p: Partial<CardAuthEvent>): CardAuthEvent => ({
   timestamp: '2025-09-12T20:00:00+08:00',
   transactionIndex: 0,
+  amount: null,
   cardScheme: 'visa',
   merchant: null,
   merchantCountry: null,

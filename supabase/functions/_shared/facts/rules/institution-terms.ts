@@ -10,23 +10,19 @@
 
 import type { AccountType } from "../keys.ts";
 import type { ClauseAsOf, ClauseProvider, ClauseTag, DisputedPayment, IsoDate } from "../update/contract.ts";
-import { CLAUSE_TAGS, WALLET_PROVISIONING_PURPOSE } from "../update/contract.ts";
+import type { TermRequestPurpose } from "../update/contract.ts";
+import { CLAUSE_TAGS, TERM_REQUEST_PURPOSES, WALLET_PROVISIONING_PURPOSE } from "../update/contract.ts";
 import { formatDate, type SectionWriter } from "../update/section-writer.ts";
 
 export const TERM_PRODUCTS = ["account", "digital_banking", "credit_card", "debit_card", "ewallet"] as const;
 export type TermProduct = (typeof TERM_PRODUCTS)[number];
 
-export const TERM_PURPOSES = [
-  "fault_definition",
-  "customer_security_duty",
-  "liability_unauthorised",
-  "notification_deadline",
-  "dispute_chargeback",
-  "conclusive_evidence",
-  // Decision 5, Part A: the institution's published page on adding its cards to mobile wallets (Lane 3's wallet check).
-  WALLET_PROVISIONING_PURPOSE,
-] as const;
-export type TermPurpose = (typeof TERM_PURPOSES)[number];
+/**
+ * The term-request purposes: the contract's `TERM_REQUEST_PURPOSES`, named once there (Lane 6 Step 0b), including
+ * `wallet_provisioning` (Decision 5, Part A; Lane 3's wallet check). Kept under this name so the module's API is stable.
+ */
+export const TERM_PURPOSES = TERM_REQUEST_PURPOSES;
+export type TermPurpose = TermRequestPurpose;
 
 /**
  * Purposes not yet in the `institution_term_requests.purpose` CHECK: Lane 1 proposes the migration, Elena approves.
