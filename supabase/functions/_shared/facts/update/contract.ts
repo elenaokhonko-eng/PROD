@@ -8,6 +8,7 @@
 
 import type { FactValues, Institution, Instrument, Money, ReportedEvent, Transaction } from "../keys.ts";
 import type { FactLabel } from "../snapshot.ts";
+import { normaliseInstitution } from "../institutions.ts";
 
 /** A calendar date, YYYY-MM-DD (the database's `date`). */
 export type IsoDate = string;
@@ -291,7 +292,79 @@ export interface CreditAccountStatus {
   evidenceId: string | null;
   /** The line of the document the status was read from, word for word. */
   quote: string;
+  // Review of 25 Nov 2026 (account and coverage). Optional until Lane 2 extracts them; absent = not known.
+  /**
+   * The account as the document names it, word for word ("Example Bank A credit card ending 0001"). Printed in the
+   * status line. Lane 2: the account line's own words, inside `quote` or on the account's line of the document.
+   */
+  accountName?: string | null;
+  /** The lender as the account line names it ("Example Bank A"). Lane 2: as printed; matched here to the case. */
+  lender?: string | null;
+  /** The card's last four digits where the account line gives them ("0001"). Lane 2: digits only. */
+  last4?: string | null;
+  /**
+   * The report's own date (its "report date" or date of issue), the same on every status read from one report; for an
+   * institution's letter, the letter's date. Lane 2: from the document's header.
+   */
+  reportDate?: IsoDate | null;
+  // Review of 25 Nov 2026, gap c: the layout of a Credit Bureau Singapore report, which has one "Account Status
+  // History" row per account and no status words, no per-status date and no legend. Lane 2: as the row shows them.
+  /** The row's "Product Type", verbatim ("Credit Card"). */
+  productType?: string | null;
+  /** The row's "Overdue Balance"; zero when the row shows 0.00; null when the row shows none. */
+  overdueBalance?: Money | null;
+  /** The row's "Last 12 cycles" code string, verbatim ("AAAAAABAAAAA"). Never read for meaning: no legend is held. */
+  cycleCodes?: string | null;
 }
+
+/**
+ * Good standing, in words (gap c): the status's words, lower-cased with spaces collapsed and end punctuation removed,
+ * must be one of these exactly. Anything else (a code string, words not on the list, a non-zero overdue balance) is
+ * not good standing: the row carries no outcome and the status prints beside it. Codes are never interpreted.
+ */
+export const GOOD_STANDING_WORDS: readonly string[] = ["current", "paid as agreed", "no overdue amount", "up to date", "up-to-date"];
+
+export function showsGoodStanding(status: Pick<CreditAccountStatus, "statusText"> & Partial<Pick<CreditAccountStatus, "cycleCodes" | "overdueBalance">>): boolean {
+  if (status.cycleCodes && status.cycleCodes.trim()) return false;
+  if (status.overdueBalance && status.overdueBalance.amount !== 0) return false;
+  const words = status.statusText.toLowerCase().replace(/\s+/g, " ").trim().replace(/[.;:!]+$/, "");
+  return GOOD_STANDING_WORDS.includes(words);
+}
+
+/** What the rule needs to know about the dispute: the case's institution and the disputed cards' last four digits. */
+export interface DisputeAccounts {
+  /** The case's institution as confirmed (institution_names[0].name). */
+  institutionName: string | null;
+  /** The last four digits of every disputed card payment (Transaction.last4), de-duplicated. */
+  disputedLast4: readonly string[];
+}
+
+const sameInstitution = (a: string, b: string): boolean => {
+  const x = normaliseInstitution(a)?.name.toLowerCase();
+  const y = normaliseInstitution(b)?.name.toLowerCase();
+  return Boolean(x && y && (x === y || a.toLowerCase().includes(y) || x.includes(y)));
+};
+
+/**
+ * Whether a status is about the disputed account (review of 25 Nov 2026, gap a). A bureau report lists every account
+ * the person holds, so a status counts only when:
+ * - its account names the case's institution (the lender, else the account name, matched through the institutions
+ *   list and its aliases, normaliseInstitution); a status from the institution's own letter is the institution's; and
+ * - where it gives a card's last four digits, they are those of a disputed card (and some are known).
+ * Anything unknown or unmatched is not about the dispute: it neither blocks "matches" nor prints.
+ */
+export function statusBelongsToDispute(status: CreditAccountStatus, dispute: DisputeAccounts): boolean {
+  if (status.source !== "institution_letter") {
+    if (!dispute.institutionName) return false;
+    const named = [status.lender, status.accountName].filter((n): n is string => typeof n === "string" && n.trim() !== "");
+    if (!named.some((n) => sameInstitution(n, dispute.institutionName!))) return false;
+  }
+  const last4 = status.last4?.replace(/\D/g, "") ?? "";
+  if (last4) return dispute.disputedLast4.includes(last4);
+  return true;
+}
+
+const dayBefore = (date: IsoDate): IsoDate => new Date(Date.parse(`${date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
 
 /**
  * Words that mark a status as overdue (any of them, anywhere in `statusText`). Deliberately wide: a status that names
@@ -319,11 +392,27 @@ export function showsOverdue(status: Pick<CreditAccountStatus, "statusText">): b
  *   from the other facts (`not_shown` today); never "matches".
  *
  * A status from the institution's letter counts towards `overdue`, never towards `matches`.
+ *
+ * `dispute` is required (review of 25 Nov 2026, enforced by Lane 3), and two more conditions always apply:
+ * - (a) account: only statuses about the disputed account count (`statusBelongsToDispute`); the others neither block
+ *   nor print;
+ * - (b) coverage: `matches` also needs the period to have ended (`until` set and on or before `today`) and a read
+ *   bureau report dated on or after the period's last day (a status's `reportDate`, from a `credit_bureau_report`).
+ *   Otherwise the reading is `not_read` with its `reason`, printed as `not_shown`, never "matches".
+ *   `matches` also needs at least one status of the disputed account from a bureau report (otherwise `not_read`,
+ *   reason `account_not_listed`).
+ *
+ * Gap c (review of 25 Nov 2026): a status counts towards `matches` only when it states good standing in words from
+ * GOOD_STANDING_WORDS (`showsGoodStanding`); the allowlist decides, so "no overdue amount" is good standing. Every other
+ * status of the disputed account in the period, or with no date (a code string such as a Credit Bureau Singapore "Last
+ * 12 cycles" row, a non-zero overdue balance, words not on the list, the overdue words above), makes the reading
+ * `overdue`: the row carries no outcome and each such status prints beside it. The kind keeps its name for the
+ * callers; read it as "no outcome: print these statuses". Codes are never interpreted: no legend is held.
  */
 export type CreditRecordsReading =
   | { kind: "matches" }
   | { kind: "overdue"; statuses: CreditAccountStatus[] }
-  | { kind: "not_read" };
+  | { kind: "not_read"; reason: "no_report_read" | "period_running" | "report_before_period_end" | "account_not_listed" };
 
 export function creditRecordsReading(args: {
   bureauReportRead: boolean;
@@ -331,12 +420,23 @@ export function creditRecordsReading(args: {
   from: IsoDate;
   until: IsoDate | null;
   today: IsoDate;
+  /** The dispute's institution and cards (gaps a and b). Required: there is no reading without it. */
+  dispute: DisputeAccounts;
 }): CreditRecordsReading {
   const end = args.until ?? args.today;
   const inPeriod = (s: CreditAccountStatus) => s.asOf === null || (s.asOf >= args.from && (args.until === null ? s.asOf <= end : s.asOf < end));
-  const overdue = args.statuses.filter((s) => showsOverdue(s) && inPeriod(s));
-  if (overdue.length) return { kind: "overdue", statuses: overdue };
-  return args.bureauReportRead ? { kind: "matches" } : { kind: "not_read" };
+  const dispute = args.dispute;
+  const relevant = args.statuses.filter((s) => statusBelongsToDispute(s, dispute));
+  // Gap c: every status in the period that does not state good standing in words is printed with no outcome.
+  const noOutcome = relevant.filter((s) => inPeriod(s) && !showsGoodStanding(s));
+  if (noOutcome.length) return { kind: "overdue", statuses: noOutcome };
+  if (!args.bureauReportRead) return { kind: "not_read", reason: "no_report_read" };
+  if (args.until === null || args.until > args.today) return { kind: "not_read", reason: "period_running" };
+  if (!relevant.some((s) => s.source === "credit_bureau_report")) return { kind: "not_read", reason: "account_not_listed" };
+  const lastDay = dayBefore(args.until);
+  // The report's date is the report's, whatever account a status is about.
+  const covered = args.statuses.some((s) => s.source === "credit_bureau_report" && typeof s.reportDate === "string" && s.reportDate >= lastDay);
+  return covered ? { kind: "matches" } : { kind: "not_read", reason: "report_before_period_end" };
 }
 
 /** The new facts (stages `bank` and `fidrec`), keyed as the facts tables key them. */

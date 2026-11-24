@@ -15,6 +15,7 @@ import {
   creditBureauReportReadFrom,
 } from '../../supabase/functions/_shared/facts/rules/dispute-charges-checks.ts'
 import { sectionBuilders } from '../../supabase/functions/_shared/facts/update/registry.ts'
+import { renderUpdateSections } from '../../supabase/functions/_shared/facts/update/render.ts'
 import {
   CLAUSE_KEYS,
   type ComparisonLine,
@@ -99,9 +100,34 @@ const runWithPeriods = (data: CaseSectionData) => buildDisputeChargesChecks({ ..
 const runWithPeriodsRead = (data: CaseSectionData) => bureauRead({ ...data, provider: periodProvider })
 const sgd = (amount: number) => ({ amount, currency: 'SGD', amountSgd: amount })
 
-/** The card-only case (a credit card; reported 13 Sep 2025; final reply 20 Oct 2025) with the four Section 8 facts. */
+/**
+ * What a read credit bureau report shows for the disputed account when nothing is wrong (synthetic): the account as
+ * the report names it, and the report's own date, after both windows end (8.3 ends 19 Oct, 8.4(a) 19 Nov 2025), so a
+ * read report covers them (review of 25 Nov 2026, gap b).
+ */
+const DISPUTED_ACCOUNT = { accountName: 'Example Bank A credit card ending 0001', lender: 'Example Bank A', last4: '0001' }
+const REPORT_DATE = '2025-12-01'
+const COVERING_STATUS: CreditAccountStatus = {
+  asOf: '2025-11-30',
+  statusText: 'paid as agreed',
+  facility: 'credit card ending 0001',
+  bureau: 'Example Credit Bureau',
+  source: 'credit_bureau_report',
+  evidenceId: 'E9',
+  quote: 'Synthetic: Example Bank A credit card ending 0001, paid as agreed as at 30/11/2025',
+  ...DISPUTED_ACCOUNT,
+  reportDate: REPORT_DATE,
+}
+
+/**
+ * The card-only case (a credit card; reported 13 Sep 2025; final reply 20 Oct 2025) with the four Section 8 facts and,
+ * changed with the review of 25 Nov 2026, the account status a covering credit bureau report shows (paid as agreed).
+ * It matters only where a bureau report is read; it never prints.
+ */
 function creditCase(opts: { requests?: string[]; charges?: string[]; reports?: string[]; fidrec?: { told: string; closed: string | null } } = {}): CaseSectionData {
   const d = clone(cardOnlyCase.data)
+  d.facts.credit_account_status = { label: 'confirmed', value: [COVERING_STATUS] }
+  d.evidenceIds.credit_account_status = ['E9']
   d.facts.disputed_amount_payment_requests = { label: 'confirmed', value: (opts.requests ?? []).map((date) => ({ date, amount: sgd(7_550), source: 'statement' as const })) }
   d.facts.charges_on_disputed_amount = { label: 'confirmed', value: (opts.charges ?? []).map((date) => ({ date, amount: sgd(80), kind: 'late_fee' as const, description: 'Late payment charge', relatedTransactionIndex: null })) }
   d.facts.credit_bureau_reports = { label: 'confirmed', value: (opts.reports ?? []).map((date) => ({ date, bureau: 'Example Credit Bureau', source: 'credit_bureau_report' as const })) }
@@ -396,7 +422,11 @@ test('a credit bureau report document read with no matching report: 8.3 and 8.4(
 // The account shown overdue (contract CREDIT_RECORDS_RULE, Lane 6 #92, 25 Nov 2026)
 // ---------------------------------------------------------------------------------------------------------------
 
-/** A synthetic status line, in the shape Lane 2 extracts. */
+/**
+ * A synthetic status line, in the shape Lane 2 extracts. Changed with the review of 25 Nov 2026: it names the disputed
+ * account (Example Bank A, card ending 0001) and carries the report's date, so it counts and the report covers both
+ * windows.
+ */
 function status(over: Partial<CreditAccountStatus>): CreditAccountStatus {
   return {
     asOf: '2025-10-15',
@@ -405,7 +435,9 @@ function status(over: Partial<CreditAccountStatus>): CreditAccountStatus {
     bureau: 'Example Credit Bureau',
     source: 'credit_bureau_report',
     evidenceId: 'E9',
-    quote: 'Synthetic: credit card ending 0001, 30 days overdue as at 15/10/2025',
+    quote: 'Synthetic: Example Bank A credit card ending 0001, 30 days overdue as at 15/10/2025',
+    ...DISPUTED_ACCOUNT,
+    reportDate: '2026-03-01',
     ...over,
   }
 }
@@ -504,4 +536,59 @@ test('creditBureauReportRead is wired from the ready documents through the regis
   assert.equal(withKey(read, SECTION_8_CLAUSES.p8_3)[0].outcome, 'matches')
   const unread = await sectionBuilders().disputed_amount_charges({ ...d, provider: periodProvider })
   assert.equal(withKey(unread, SECTION_8_CLAUSES.p8_3)[0].outcome, 'not_shown')
+})
+
+// ---------------------------------------------------------------------------------------------------------------
+// The disputed account and coverage (review of 25 Nov 2026; Lane 6 #97, enforced: `dispute` is always passed)
+// ---------------------------------------------------------------------------------------------------------------
+
+test('a two-account report where only the other bank\'s card is overdue: no status line beside 8.3, and 8.3 can still match', async () => {
+  const otherBank = status({ accountName: 'Example Bank B credit card ending 0009', lender: 'Example Bank B', last4: '0009', quote: 'Synthetic: Example Bank B credit card ending 0009, 30 days overdue', reportDate: REPORT_DATE })
+  const ours = { ...COVERING_STATUS }
+  const r = await runWithPeriodsRead(withStatuses([ours, otherBank]))
+  assert.equal(accountStatuses(r).length, 0, 'the other bank\'s card neither prints nor blocks')
+  assert.equal(withKey(r, SECTION_8_CLAUSES.p8_3)[0].outcome, 'matches')
+  assert.equal(withKey(r, SECTION_8_CLAUSES.p8_4)[0].outcome, 'matches')
+  // Our bank, another card: also not the disputed account.
+  const otherCard = status({ accountName: 'Example Bank A credit card ending 0002', last4: '0002', reportDate: REPORT_DATE })
+  const c = await runWithPeriodsRead(withStatuses([ours, otherCard]))
+  assert.equal(accountStatuses(c).length, 0)
+  assert.equal(withKey(c, SECTION_8_CLAUSES.p8_3)[0].outcome, 'matches')
+})
+
+test('a read report dated before the period ends: not_shown, never "matches"', async () => {
+  // 8.3's window ends 20 Oct 2025 (last day 19 Oct); 8.4(a)'s ends 20 Nov 2025 (last day 19 Nov).
+  const early = await runWithPeriodsRead(withStatuses([{ ...COVERING_STATUS, asOf: '2025-10-01', reportDate: '2025-10-18' }]))
+  assert.equal(withKey(early, SECTION_8_CLAUSES.p8_3)[0].outcome, 'not_shown')
+  assert.equal(withKey(early, SECTION_8_CLAUSES.p8_4)[0].outcome, 'not_shown')
+  // Dated after 8.3's last day but before 8.4(a)'s: 8.3 matches, 8.4(a) does not.
+  const between = await runWithPeriodsRead(withStatuses([{ ...COVERING_STATUS, asOf: '2025-11-01', reportDate: '2025-11-02' }]))
+  assert.equal(withKey(between, SECTION_8_CLAUSES.p8_3)[0].outcome, 'matches')
+  assert.equal(withKey(between, SECTION_8_CLAUSES.p8_4)[0].outcome, 'not_shown')
+  // No report date read at all: not_shown.
+  const undated = await runWithPeriodsRead(withStatuses([{ ...COVERING_STATUS, reportDate: null }]))
+  assert.equal(withKey(undated, SECTION_8_CLAUSES.p8_3)[0].outcome, 'not_shown')
+})
+
+test('a running period: not_shown, never "matches"', async () => {
+  // No final reply: 8.3's window is still running.
+  const open = creditCase()
+  open.facts.bank_reply = { label: 'confirmed', value: { status: 'interim', date: '2025-09-20', outcome: null, qualifies: null, reference: 'EXAMPLE-REF-0102' } }
+  const r = await runWithPeriodsRead(open)
+  assert.equal(withKey(r, SECTION_8_CLAUSES.p8_3)[0].outcome, 'not_shown')
+  assert.match(withKey(r, SECTION_8_CLAUSES.p8_3)[0].record, /The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau\.$/)
+  // 8.4(a)'s window not yet ended on the day the pack is generated.
+  const recent = creditCase()
+  recent.facts.bank_reply!.value!.date = '2026-11-10'
+  recent.facts.credit_account_status = { label: 'confirmed', value: [{ ...COVERING_STATUS, reportDate: '2026-11-20' }] }
+  const s = await runWithPeriodsRead(recent)
+  assert.equal(withKey(s, SECTION_8_CLAUSES.p8_4)[0].outcome, 'not_shown', 'the 30 days run to 10 December 2026, after 24 November 2026')
+})
+
+test('the status line names the account as the document names it (accountName flows to the printed line)', async () => {
+  const r = await runWithPeriodsRead(withStatuses([status({})]))
+  const [line] = accountStatuses(r)
+  assert.equal(line.status.accountName, 'Example Bank A credit card ending 0001')
+  const printed = renderUpdateSections([r]).sections[0].lines.map((l) => l.text)
+  assert.ok(printed.some((t) => t.startsWith("The credit bureau report from Example Credit Bureau shows Example Bank A credit card ending 0001 as '30 days overdue' as at 15 October 2025.")), printed.join('\n'))
 })

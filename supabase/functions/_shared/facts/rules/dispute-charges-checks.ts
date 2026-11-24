@@ -30,6 +30,7 @@ import {
   type CreditBureauReport,
   CREDIT_BUREAU_REPORT_DOCUMENT_TYPE,
   creditRecordsReading,
+  type DisputeAccounts,
   type DisputedAmountPaymentRequest,
   type DisputedPayment,
   type IsoDate,
@@ -168,23 +169,25 @@ type CreditRecordsRow =
 /**
  * Credit bureau reports in a period (8.3, 8.4(a)). A report of non-payment of the disputed amount in the period is
  * `differs`. Otherwise the contract's CREDIT_RECORDS_RULE decides (`creditRecordsReading`, Lane 6, 25 Nov 2026):
- * - `matches` ("no report") only where a credit bureau report document was read and no status shows the account
- *   overdue in the period;
- * - `overdue`: a status (from a bureau report or the institution's letter) shows the account overdue in the period, or
- *   with no date. The row then carries no outcome, and each status prints beside it as an `account_status` line;
- * - `not_read`: `not_shown`, as before.
+ * - `matches` ("no report") only where a credit bureau report document was read, the period has ended, a read report is
+ *   dated on or after its last day, and no status about the disputed account shows it overdue in the period;
+ * - `overdue`: a status about the disputed account (from a bureau report or the institution's letter) shows it overdue
+ *   in the period, or with no date. The row then carries no outcome, and each status prints beside it as an
+ *   `account_status` line (the account named as the document names it, `accountName`);
+ * - `not_read`, whatever its reason (no report read, period still running, report dated before the period ended):
+ *   `not_shown`. Statuses about other accounts neither block nor print.
  */
 function bureauInPeriod(
   bureau: CreditBureauReport[] | null,
   period: Period,
   window: WindowWords,
-  records: { bureauReportRead: boolean; statuses: readonly CreditAccountStatus[]; today: IsoDate },
+  records: { bureauReportRead: boolean; statuses: readonly CreditAccountStatus[]; today: IsoDate; dispute: DisputeAccounts },
 ): CreditRecordsRow {
   const inPeriod = (bureau ?? []).filter((r) => within(r.date, period));
   if (inPeriod.length) {
     return { kind: "row", sentence: `The records show ${plural(inPeriod.length, "report")} of non-payment of the disputed amount to a credit bureau ${window}: ${reportWords(inPeriod)}.`, outcome: "differs" };
   }
-  const reading = creditRecordsReading({ bureauReportRead: records.bureauReportRead, statuses: records.statuses, from: period.from, until: period.until, today: records.today });
+  const reading = creditRecordsReading({ bureauReportRead: records.bureauReportRead, statuses: records.statuses, from: period.from, until: period.until, today: records.today, dispute: records.dispute });
   if (reading.kind === "overdue") return { kind: "overdue", statuses: reading.statuses };
   if (reading.kind === "not_read") return { kind: "row", sentence: BUREAU_NOT_SHOWN, outcome: "not_shown" };
   return { kind: "row", sentence: `The records show no report of non-payment of the disputed amount to a credit bureau ${window}.`, outcome: "matches" };
@@ -269,7 +272,13 @@ export function createDisputeChargesChecks(options: DisputeChargesCheckOptions =
     const base = { group, skipInstrumentGuard: true };
     const bureauReportRead = options.creditBureauReportRead?.(input) ?? false;
     const statuses = factValue(input.facts, "credit_account_status") ?? [];
-    const records = { bureauReportRead, statuses, today: input.generatedOn };
+    // The dispute the credit records are read for (review of 25 Nov 2026): the case's institution and the disputed
+    // cards' last four digits. Only statuses about that account count; a report must cover the whole period.
+    const dispute: DisputeAccounts = {
+      institutionName: factValue(input.facts, "institution_names")?.[0]?.name ?? null,
+      disputedLast4: [...new Set(paymentsIn(payments, "card").map((p) => p.last4?.replace(/\D/g, "") ?? "").filter((x) => x !== ""))],
+    };
+    const records = { bureauReportRead, statuses, today: input.generatedOn, dispute };
     /** Each status beside the 8.3 or 8.4 row, with its own document's E-number where the pack has set it. */
     const printStatuses = (list: readonly CreditAccountStatus[], clauseKey: string) => {
       // A status with no `evidenceId` falls back to every document behind the `credit_account_status` fact, so the
