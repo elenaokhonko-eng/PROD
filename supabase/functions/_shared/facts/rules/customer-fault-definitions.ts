@@ -50,11 +50,8 @@ export const ABS_MAS_REPLY_CLOSING_LINE =
 export interface CustomerFaultDefinitionsOptions {
   /** The institutions' configured term requests (4e). Without them every institution prints "not held". */
   termRequests?: TermRequestSource;
-  /**
-   * The day the pack is generated (YYYY-MM-DD). Documents read whatever the event date (`as_of_rule = 'any_date'`, the
-   * MAS replies; Decision 6) are read as of this day. Defaults to today (UTC date).
-   */
-  generatedOn?: IsoDate;
+  // The day the pack is generated is `SectionInput.generatedOn` (Lane 6, assembly): documents read whatever the event
+  // date (`as_of_rule = 'any_date'`, the MAS replies; Decision 6) are read as of it.
 }
 
 /** The document key of the MAS reply of 7 January 2025 (Lane 1), from its 3-D Secure clause key. */
@@ -125,7 +122,7 @@ async function buildDefinitions(input: SectionInput, options: CustomerFaultDefin
     // Decision 6: a MAS reply is read whatever the event date, as of the day the pack is generated, always with its own
     // date; dated after the events, it carries the "after the events" marker for the renderer.
     const rule = await input.provider.getAsOfRule(MAS_REPLY_20250107_DOCUMENT_KEY);
-    const generatedOn = options.generatedOn ?? todayIso();
+    const generatedOn = input.generatedOn;
     const readDates = (dates: IsoDate[]) => distinctDates(dates.map((d) => readDateFor(rule, d, generatedOn)));
     let extra: Pick<StatementLine, "documentDatedAfterEvents"> = {};
     if (rule === "any_date" && (threeDsDates.length || noAuthDates.length)) {

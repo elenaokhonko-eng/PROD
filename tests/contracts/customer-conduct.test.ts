@@ -259,7 +259,7 @@ test('Decision 6: the MAS reply line is read as of the generation day, with the 
     }, held),
     payments: c.data.payments.map((p) => ({ ...p, date: '2024-11-02' })),
   })
-  const r = await createCustomerConductBuilder({ generatedOn: '2026-11-24' })(early(cardOnlyCase))
+  const r = await buildCustomerConduct({ ...early(cardOnlyCase), generatedOn: '2026-11-24' })
   const reply = conduct(r).find((c) => c.kind === 'refers_to' && c.documentKey === 'mas.reply.20250107')!
   assert.equal(reply.onDate, '2026-11-24')
   const lines = printed(r)
@@ -270,7 +270,7 @@ test('Decision 6: the MAS reply line is read as of the generation day, with the 
   assert.equal(lines.filter((t) => t.includes('after the events')).length, 1)
   assert.equal(afterTheEventsLine('2025-01-07'), 'This reply is dated 7 January 2025, after the events in this case.')
   // Events after the reply: no such line.
-  const later = await createCustomerConductBuilder({ generatedOn: '2026-11-24' })(withFacts(cardOnlyCase, recognised(cardOnlyCase), held))
+  const later = await buildCustomerConduct({ ...withFacts(cardOnlyCase, recognised(cardOnlyCase), held), generatedOn: '2026-11-24' })
   assert.ok(!texts(later).some((t) => t.includes('after the events')))
 })
 

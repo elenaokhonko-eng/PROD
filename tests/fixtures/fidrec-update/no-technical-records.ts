@@ -36,6 +36,8 @@ export const noTechnicalRecordsCase = {
     institution: { name: 'Example Pay', type: 'payment_service_provider' as const, code: null },
     instruments: ['ewallet' as const],
     ipLocations: [],
+    // The day the pack is generated (SectionInput.generatedOn), fixed so the any-date reads are repeatable.
+    generatedOn: '2026-11-24',
     evidenceIds: {
       transactions: ['E1'],
       total_loss: ['E1'],

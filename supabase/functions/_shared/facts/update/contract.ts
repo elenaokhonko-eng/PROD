@@ -393,6 +393,12 @@ export interface ComparisonLine {
   expected: string;
   outcome: ComparisonOutcome;
   evidenceIds: string[];
+  /**
+   * The date the clause was read for (Lane 6, assembly). Lets the renderer give the line the reference number of the
+   * version it was compared with when a section cites one clause for several dates. Absent: the section's first
+   * citation of the clause.
+   */
+  onDate?: IsoDate | null;
 }
 
 /** A reviewed statement as printed. `text` is null when no revision is approved for the wording in force ("summary under review"). */
@@ -572,6 +578,13 @@ export interface ClauseCitation {
   textSha256: string;
   versionId: string;
   versionLabel: string;
+  /** What the renderer prints beside the reference number (Lane 6, assembly). Set by SectionWriter.cite. */
+  clauseRef?: string | null;
+  documentKey?: string;
+  documentTitle?: string;
+  /** The version's effective_from. */
+  effectiveFrom?: IsoDate;
+  sourceUrl?: string | null;
 }
 
 /**
@@ -602,6 +615,11 @@ export interface SectionInput {
   /** The evidence IDs (E1…) of the documents behind each fact, from the pack's evidence index. */
   evidenceIds: { [K in ContractFactKey]?: string[] };
   provider: ClauseProvider;
+  /**
+   * The day the pack is generated (YYYY-MM-DD, Singapore date). Documents read whatever the event date (`as_of_rule =
+   * 'any_date'`, Decision 6) are read as of this day. Replaces the builders' own `generatedOn` options (Lane 6).
+   */
+  generatedOn: IsoDate;
 }
 
 /** An empty `lines` means the section prints nothing (a stub, or nothing in the records to compare). */
@@ -806,7 +824,10 @@ export interface NearestClause {
   onDate: IsoDate;
 }
 
-/** Database functions the two new reads will need. Not created yet: Lane 1 proposes the migration; Elena approves. */
+/**
+ * Database functions for the two newer reads: `get_document_as_of_rule_v1` is Lane 1's (20261204120000);
+ * `get_clause_nearest_v1` is Lane 6's (20261205120000_standards_clause_nearest.sql; Elena's approval at merge).
+ */
 export const PROPOSED_AS_OF_FUNCTIONS = {
   getNearestClause: "get_clause_nearest_v1",
   getAsOfRule: "get_document_as_of_rule_v1",

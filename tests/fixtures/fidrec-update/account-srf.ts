@@ -68,6 +68,8 @@ export const accountSrfCase = {
       { ip: '198.51.100.7', country: 'Exampleland', region: null, city: 'Example Town', accuracyRadiusKm: 100, asn: 64501, organisation: 'Example Mobile Network', flags: [], database: 'Example IP Database', databaseEdition: '2025-10-01', institutionStatedLocation: null },
       { ip: '192.0.2.150', country: null, region: null, city: null, accuracyRadiusKm: null, asn: 64502, organisation: 'Example VPN Service', flags: ['vpn' as const], database: 'Example IP Database', databaseEdition: '2025-10-01', institutionStatedLocation: 'Exampleland' },
     ],
+    // The day the pack is generated (SectionInput.generatedOn), fixed so the any-date reads are repeatable.
+    generatedOn: '2026-11-24',
     evidenceIds: {
       transactions: ['E1'],
       total_loss: ['E1'],

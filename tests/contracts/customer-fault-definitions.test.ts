@@ -172,7 +172,7 @@ test('no verdict wording in any line the section writes', async () => {
 test('Decision 6: the MAS reply is read as of the day the pack is generated, with the after-the-events date when it is later', async () => {
   const reply = statement('mas.reply.20250107.3ds', 'mas_reply', [['mas.reply.20250107/3(a).3ds', H.reply]])
   const provider = createFakeClauseProvider(lane4Corpus([reply]))
-  const build = createCustomerFaultDefinitionsBuilder({ generatedOn: '2026-11-24' })
+  const build = (i: Parameters<typeof buildCustomerFaultDefinitions>[0]) => buildCustomerFaultDefinitions({ ...i, generatedOn: '2026-11-24' })
   // Payments in September 2025, after the reply: read on the generation day, no after-the-events date.
   const r = await build({ ...cardOnlyCase.data, provider })
   const s = statements(r).find((x) => x.statementKey === 'mas.reply.20250107.3ds')!
