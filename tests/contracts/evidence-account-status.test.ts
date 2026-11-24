@@ -3,22 +3,25 @@ import test from 'node:test'
 import {
   buildFactExtractionPrompt,
   creditAccountStatusSource,
+  documentDateIn,
   type CurrentFinding,
   type FactCandidate,
   formatFactValue,
+  last4InDocument,
   PAID_STAGE_ONLY_FACT_KEYS,
   parseFactExtraction,
   reconcile,
   requiredFactsFor,
 } from '../../lib/facts'
 import { findingsForStage, stageSnapshot } from '../../lib/server/facts/facts-service'
-import type { CreditAccountStatus } from '../../supabase/functions/_shared/facts/update/contract.ts'
+import { type CreditAccountStatus, creditRecordsReading, statusBelongsToDispute } from '../../supabase/functions/_shared/facts/update/contract.ts'
 import {
   BALANCE_LINE,
   CREDIT_BUREAU_OVERDUE_TEXT,
   MODEL_OUTPUT_WITH_STATUS,
   OVERDUE_LINE,
 } from '../fixtures/evidence/credit-bureau-overdue.ts'
+import { REPORT_DATE_LINE, TWO_ACCOUNTS_MODEL_OUTPUT, TWO_ACCOUNTS_TEXT } from '../fixtures/evidence/credit-bureau-two-accounts.ts'
 
 // The account-overdue fact, credit_account_status (Elena, 25 Nov 2026; Lane 6's contract): the account's status as a
 // credit bureau report or the institution's letter gives it, separate from credit_bureau_reports. Synthetic data only.
@@ -38,6 +41,11 @@ test('the overdue report gives one account status entry and no credit bureau rep
     source: 'credit_bureau_report',
     evidenceId: null,
     quote: OVERDUE_LINE,
+    // Fields added by Lane 6 (#97): this model output gives none of them, so they are not known.
+    accountName: null,
+    lender: null,
+    last4: null,
+    reportDate: null,
   }
   assert.deepEqual(status.value, [expected])
   assert.equal(status.sourceRef.documentType, 'credit_bureau_report')
@@ -124,4 +132,73 @@ test('display: the status in the document\'s own words, its date and who gives i
     formatFactValue('credit_account_status', [{ ...statusOf('2025-10-15', 'in arrears', 'x'), bureau: null, source: 'institution_letter', facility: 'card account ending 0001' }]),
     '“in arrears”, as at 15 Oct 2025, card account ending 0001, the bank\'s letter',
   )
+})
+
+// ---- Account and report date (Lane 6's #97, review of 25 Nov 2026): every account line of a bureau report.
+
+test('a two-account report gives a status for each account, with its lender, last four digits and the report date', () => {
+  const candidates = parseFactExtraction(TWO_ACCOUNTS_MODEL_OUTPUT, TWO_ACCOUNTS_TEXT, doc('cb-2'))
+  const [status] = byKey(candidates, 'credit_account_status')
+  const statuses = status.value as CreditAccountStatus[]
+  assert.deepEqual(statuses.map((s) => [s.statusText, s.lender, s.last4, s.accountName, s.reportDate, s.asOf]), [
+    ['current', 'Example Bank A', '0001', 'Example Bank A credit card ending 0001', '2025-11-02', '2025-10-31'],
+    ['30 days overdue', 'Example Bank B', '0002', 'Example Bank B credit card ending 0002', '2025-11-02', '2025-10-31'],
+  ])
+  // One report, one date on every status from it.
+  assert.equal(new Set(statuses.map((s) => s.reportDate)).size, 1)
+  assert.deepEqual(byKey(candidates, 'credit_bureau_reports'), [])
+})
+
+test("a letter's status carries the letter's own date", () => {
+  const letter = 'Example Bank A (synthetic letter), 20 Oct 2025.\nYour card account ending 0001 is in arrears as at 15 Oct 2025.'
+  const line = 'Your card account ending 0001 is in arrears as at 15 Oct 2025.'
+  const [status] = byKey(parseFactExtraction({
+    document_type: 'bank_correspondence',
+    report_date: { date: '2025-10-20', quote: 'Example Bank A (synthetic letter), 20 Oct 2025.' },
+    credit_account_status: [statusItem(line, 'in arrears', { last4: '0001', lender: null })],
+  }, letter, doc('l-2')), 'credit_account_status')
+  assert.deepEqual((status.value as CreditAccountStatus[]).map((s) => [s.source, s.reportDate, s.last4, s.bureau]), [['institution_letter', '2025-10-20', '0001', null]])
+})
+
+test('account, lender, last four digits and report date not in the document are dropped', () => {
+  const [status] = byKey(parseFactExtraction({
+    ...TWO_ACCOUNTS_MODEL_OUTPUT,
+    // A date the quoted line does not write, and a quote not in the document.
+    report_date: { date: '2025-11-05', quote: REPORT_DATE_LINE },
+    credit_account_status: [{
+      ...TWO_ACCOUNTS_MODEL_OUTPUT.credit_account_status[1],
+      account_name: 'Example Bank C credit card ending 0003',
+      lender: 'Example Bank C',
+      last4: '0003',
+    }, {
+      ...TWO_ACCOUNTS_MODEL_OUTPUT.credit_account_status[0],
+      last4: '000',
+    }],
+  }, TWO_ACCOUNTS_TEXT, doc('cb-3')), 'credit_account_status')
+  assert.deepEqual((status.value as CreditAccountStatus[]).map((s) => [s.accountName, s.lender, s.last4, s.reportDate]), [
+    [null, null, null, null],
+    ['Example Bank A credit card ending 0001', 'Example Bank A', null, null],
+  ])
+  assert.equal(documentDateIn({ date: '2025-11-02', quote: 'Report date: 02 Nov 2026' }, TWO_ACCOUNTS_TEXT), null)
+  assert.equal(documentDateIn({ date: '2025-11-02', quote: REPORT_DATE_LINE }, TWO_ACCOUNTS_TEXT), '2025-11-02')
+  assert.equal(last4InDocument('0001', TWO_ACCOUNTS_TEXT), '0001')
+  // Four digits inside a longer number are not a card's last four.
+  assert.equal(last4InDocument('0251', 'Reference 102513'), null)
+})
+
+test('the prompt asks for every account line, good standing included, and the report date once', () => {
+  const prompt = buildFactExtractionPrompt('document', 'x')
+  assert.match(prompt, /one entry for EVERY account line, whatever its status/)
+  assert.match(prompt, /"report_date":\{"date":"YYYY-MM-DD\|null"/)
+  assert.match(prompt, /"last4":"string\|null"/)
+})
+
+test("with Lane 6's rule, the other bank's overdue card does not count against the disputed card", () => {
+  const [status] = byKey(parseFactExtraction(TWO_ACCOUNTS_MODEL_OUTPUT, TWO_ACCOUNTS_TEXT, doc('cb-2')), 'credit_account_status')
+  const statuses = status.value as CreditAccountStatus[]
+  const dispute = { institutionName: 'Example Bank A', disputedLast4: ['0001'] }
+  assert.deepEqual(statuses.map((s) => statusBelongsToDispute(s, dispute)), [true, false])
+  // The 8.4(a) period of the synthetic card-only case has ended; the report (2 Nov 2025) is dated after its last day.
+  const reading = creditRecordsReading({ bureauReportRead: true, statuses, from: '2025-10-20', until: '2025-10-31', today: '2025-11-25', dispute })
+  assert.deepEqual(reading, { kind: 'matches' })
 })
