@@ -371,18 +371,17 @@ export function showsOverdue(status: Pick<CreditAccountStatus, "statusText">): b
  *
  * A status from the institution's letter counts towards `overdue`, never towards `matches`.
  *
- * With `dispute` given (review of 25 Nov 2026; Lane 3 passes it), two more conditions apply:
+ * `dispute` is required (review of 25 Nov 2026, enforced by Lane 3), and two more conditions always apply:
  * - (a) account: only statuses about the disputed account count (`statusBelongsToDispute`); the others neither block
  *   nor print;
  * - (b) coverage: `matches` also needs the period to have ended (`until` set and on or before `today`) and a read
  *   bureau report dated on or after the period's last day (a status's `reportDate`, from a `credit_bureau_report`).
  *   Otherwise the reading is `not_read` with its `reason`, printed as `not_shown`, never "matches".
- * Without `dispute` (Lane 3's call before it adopts this), the rule is as first written.
  */
 export type CreditRecordsReading =
   | { kind: "matches" }
   | { kind: "overdue"; statuses: CreditAccountStatus[] }
-  | { kind: "not_read"; reason?: "no_report_read" | "period_running" | "report_before_period_end" };
+  | { kind: "not_read"; reason: "no_report_read" | "period_running" | "report_before_period_end" };
 
 export function creditRecordsReading(args: {
   bureauReportRead: boolean;
@@ -390,17 +389,16 @@ export function creditRecordsReading(args: {
   from: IsoDate;
   until: IsoDate | null;
   today: IsoDate;
-  /** The dispute's institution and cards (gaps a and b). Absent: the rule as first written. */
-  dispute?: DisputeAccounts;
+  /** The dispute's institution and cards (gaps a and b). Required: there is no reading without it. */
+  dispute: DisputeAccounts;
 }): CreditRecordsReading {
   const end = args.until ?? args.today;
   const inPeriod = (s: CreditAccountStatus) => s.asOf === null || (s.asOf >= args.from && (args.until === null ? s.asOf <= end : s.asOf < end));
   const dispute = args.dispute;
-  const relevant = dispute ? args.statuses.filter((s) => statusBelongsToDispute(s, dispute)) : args.statuses;
+  const relevant = args.statuses.filter((s) => statusBelongsToDispute(s, dispute));
   const overdue = relevant.filter((s) => showsOverdue(s) && inPeriod(s));
   if (overdue.length) return { kind: "overdue", statuses: overdue };
-  if (!args.bureauReportRead) return dispute ? { kind: "not_read", reason: "no_report_read" } : { kind: "not_read" };
-  if (!dispute) return { kind: "matches" };
+  if (!args.bureauReportRead) return { kind: "not_read", reason: "no_report_read" };
   if (args.until === null || args.until > args.today) return { kind: "not_read", reason: "period_running" };
   const lastDay = dayBefore(args.until);
   // The report's date is the report's, whatever account a status is about.
