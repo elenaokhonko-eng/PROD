@@ -4,6 +4,7 @@ import { createUserClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { safeError } from "@/lib/server/safe-error"
 import { CASE_DOCUMENT_EXPORT_COLUMNS, caseDocumentsExport, type CaseDocumentRow } from "./case-documents"
+import { rowsOrEmptyWhenTableMissing } from "./optional-table"
 import { technicalRecordsExport, type FindingRow } from "./technical-records"
 
 type IdRow = { id: string }
@@ -89,9 +90,10 @@ export async function POST() {
         : Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
 
     // IP lookups made for the case's records (FIDReC update): each with the database and the date it was made with.
+    // The table can be missing while its migration is not yet applied: then there are no records, and the export goes on.
     const ipLocationsPromise =
       ownedCaseIds.length > 0
-        ? supabase.from("case_ip_locations").select("*").in("case_id", ownedCaseIds)
+        ? Promise.resolve(supabase.from("case_ip_locations").select("*").in("case_id", ownedCaseIds)).then(rowsOrEmptyWhenTableMissing)
         : Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
 
     const [profileResult, casesResult, responsesResult, paymentsResult, outcomesResult, factResults, usageResult, documentsResult, ipLocationsResult] = await Promise.all([

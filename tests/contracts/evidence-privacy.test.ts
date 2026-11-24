@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join, sep } from 'node:path'
 import test from 'node:test'
 import { CASE_DOCUMENT_EXPORT_COLUMNS, caseDocumentsExport } from '../../app/api/privacy/export/case-documents'
+import { isMissingTableError, rowsOrEmptyWhenTableMissing } from '../../app/api/privacy/export/optional-table'
 import { technicalRecordsExport } from '../../app/api/privacy/export/technical-records'
 import { scrubErrorText } from '../../lib/server/safe-error'
 import { accountSrfCase } from '../fixtures/fidrec-update/index.ts'
@@ -135,4 +136,34 @@ test('document names reach only the person\'s own export: never logs, error text
   for (const file of [...walk('lib/analytics'), 'lib/server/model-usage.ts', 'supabase/functions/_shared/model-usage.ts']) {
     assert.doesNotMatch(read(file), /original_filename|caseDocumentsExport/, file)
   }
+})
+
+test('a missing case_ip_locations table exports as no IP lookup records; any other error still fails', () => {
+  const missing = [
+    { code: '42P01', message: 'relation "public.case_ip_locations" does not exist' },
+    { code: 'PGRST205', message: "Could not find the table 'public.case_ip_locations' in the schema cache" },
+    { message: 'relation "case_ip_locations" does not exist' },
+  ]
+  for (const error of missing) {
+    assert.equal(isMissingTableError(error), true, JSON.stringify(error))
+    assert.deepEqual(rowsOrEmptyWhenTableMissing({ data: null, error }), { data: [], error: null })
+  }
+  const others = [
+    { code: '42501', message: 'permission denied for table case_ip_locations' },
+    { code: 'PGRST301', message: 'JWT expired' },
+    { code: '57014', message: 'canceling statement due to statement timeout' },
+    new Error('fetch failed'),
+  ]
+  for (const error of others) {
+    assert.equal(isMissingTableError(error), false, String((error as { message?: string }).message))
+    const result = { data: null, error }
+    assert.equal(rowsOrEmptyWhenTableMissing(result), result)
+  }
+  const ok = { data: [{ case_id: 'c', ip: '192.0.2.1' }], error: null }
+  assert.equal(rowsOrEmptyWhenTableMissing(ok), ok)
+  // The route applies it to case_ip_locations only, and still fails the export on any error left over.
+  const route = read('app/api/privacy/export/route.ts')
+  assert.match(route, /from\("case_ip_locations"\)\.select\("\*"\)\.in\("case_id", ownedCaseIds\)\)\.then\(rowsOrEmptyWhenTableMissing\)/)
+  assert.equal(route.match(/rowsOrEmptyWhenTableMissing\)/g)?.length, 1)
+  assert.match(route, /\{ label: "case IP locations", error: ipLocationsResult\.error \}/)
 })
