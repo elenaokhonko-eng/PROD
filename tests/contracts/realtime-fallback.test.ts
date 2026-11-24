@@ -48,3 +48,11 @@ test('uploading or a document changing status refreshes the confirm step facts',
   assert.notEqual(documentStatusKey([b]), documentStatusKey([a, b]), 'a new document does')
   assert.equal(documentStatusKey([{ id: 'doc-c', processing_status: null }]), 'doc-c:pending')
 })
+
+// 24 Nov 2026 gate run: a press made while the facts reloaded in the background was refused (facts_in_progress).
+test('the confirm buttons are disabled while the facts reload', () => {
+  const panel = readFileSync('components/state-machine/facts/confirm-facts-panel.tsx', 'utf8')
+  assert.match(panel, /const refreshing = facts\.isFetching/)
+  assert.match(panel, /disabled=\{!canContinue \|\| confirm\.isPending \|\| refreshing\}/)
+  assert.match(panel, /disabled=\{confirm\.isPending \|\| refreshing\}>Continue/)
+})
