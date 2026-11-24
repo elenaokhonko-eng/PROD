@@ -1,4 +1,4 @@
--- Tests for 20261123120000_standards_review_links.sql. Synthetic data only; everything is rolled back.
+-- Tests for 20261202120000_standards_review_links.sql. Synthetic data only; everything is rolled back.
 -- Run after all migrations: psql -v ON_ERROR_STOP=1 -f scripts/sql/tests/test_standards_review_links.sql
 -- Covers: institutions are named by a fixed code; a statement is approved against the wording in force on a date and
 -- is read back only for dates under that wording; a server rule citing a changed clause blocks verification until

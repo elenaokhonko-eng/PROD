@@ -1,5 +1,5 @@
 /**
- * The versioned standards corpus (migration 20261122120000; FIDReC standards brief v5, section 3.2 rules 3, 7, 8).
+ * The versioned standards corpus (migration 20261201120000; FIDReC standards brief v5, section 3.2 rules 3, 7, 8).
  * Synthetic documents only. Rolls back.
  *
  *   psql "$LOCAL_OR_STAGING_DB_URL" -v ON_ERROR_STOP=1 -f scripts/sql/tests/test_standards_corpus.sql
@@ -28,7 +28,7 @@ DECLARE
   v_text text;
   v_count integer;
 BEGIN
-  -- Institutions are named by a fixed code (20261123120000).
+  -- Institutions are named by a fixed code (20261202120000).
   INSERT INTO public.standard_institutions (code, name) VALUES
     ('synthetic_bank_a', 'Synthetic Bank A'), ('synthetic_bank_b', 'Synthetic Bank B');
   INSERT INTO public.standard_documents (document_key, title, publisher, binding_level, applies_to, instrument_scope)

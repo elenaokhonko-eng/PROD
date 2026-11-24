@@ -1,4 +1,4 @@
--- FIDReC standards brief v5, Phase 1 follow-up: the three items from the review of 20261122120000, needed before
+-- FIDReC standards brief v5, Phase 1 follow-up: the three items from the review of 20261201120000, needed before
 -- any statement is approved.
 -- 1) Institutions get one fixed code. standard_documents.institution and institution_term_requests.institution
 --    hold that code (foreign key), so a contract and the case it is read for name the bank the same way.
@@ -76,7 +76,7 @@ CREATE TRIGGER definition_statement_clauses_guard
   BEFORE UPDATE OR DELETE ON public.definition_statement_clauses
   FOR EACH ROW EXECUTE FUNCTION public.definition_statement_clauses_guard();
 
--- The approved wording and its date are fixed too (replaces the 20261122120000 guard, adding clauses_as_of).
+-- The approved wording and its date are fixed too (replaces the 20261201120000 guard, adding clauses_as_of).
 CREATE OR REPLACE FUNCTION public.definition_statements_guard()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -229,7 +229,7 @@ CREATE TABLE public.standard_rule_citations (
 
 CREATE INDEX standard_rule_citations_clause_key_idx ON public.standard_rule_citations (clause_key);
 
--- Versions (replaces the 20261122120000 guard). Verifying now also needs: a review for every server rule citing a
+-- Versions (replaces the 20261201120000 guard). Verifying now also needs: a review for every server rule citing a
 -- changed clause, and, for a statement reviewed as unchanged, its recorded wording to be this version's final text.
 CREATE OR REPLACE FUNCTION public.standard_versions_guard()
 RETURNS trigger

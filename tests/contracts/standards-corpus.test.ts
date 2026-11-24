@@ -7,8 +7,8 @@ import test from 'node:test'
 // (match_standards_v1, get_clause_as_of_v1, get_clauses_by_tag_v1), never from the corpus tables directly.
 // The database side (rules 3, 7, 8) is scripts/sql/tests/test_standards_corpus.sql.
 
-const MIGRATION = 'supabase/migrations/20261122120000_standards_corpus.sql'
-const REVIEW_LINKS = 'supabase/migrations/20261123120000_standards_review_links.sql'
+const MIGRATION = 'supabase/migrations/20261201120000_standards_corpus.sql'
+const REVIEW_LINKS = 'supabase/migrations/20261202120000_standards_review_links.sql'
 const CORPUS_TABLES = [
   'standard_clauses', 'standard_document_versions', 'standard_documents', 'definition_statements', 'definition_statement_clauses',
 ]
