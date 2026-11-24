@@ -76,15 +76,23 @@ const CONFIRM_BUTTON = {
 
 // One press, as a person would. A document added just before shows "still being read" and the facts reload with any new
 // question (use-upload-evidence.ts, use-case-documents-realtime.ts); resolveOpenFindings waits for that. A press that
-// does not confirm is a failure, not something to retry (24 Nov 2026 gate run and review).
+// does not confirm is a failure, not something to retry (24 Nov 2026 gate run and review). The server's answer to the
+// press is the proof: the button also disappears while the facts reload after a refusal, which hid two refusals.
 export async function confirmFactsInDashboard(page: Page, caseId: string, stage: keyof typeof CONFIRM_BUTTON = 'free') {
   const confirm = page.getByRole('button', { name: CONFIRM_BUTTON[stage] })
   await resolveOpenFindings(page, caseId, { stage })
+  const answer = page.waitForResponse(
+    (r) => r.url().includes(`/api/cases/${caseId}/facts/snapshot`) && r.request().method() === 'POST',
+    { timeout: 120_000 },
+  )
   await confirm.click()
-  const gone = await confirm.waitFor({ state: 'hidden', timeout: 60_000 }).then(() => true, () => false)
-  if (gone) return
+  const response = await answer
+  if (response.ok()) return
+  const body = (await response.json().catch(() => null)) as { reason?: string } | null
   const shown = await page.locator('[role="alert"]').allInnerTexts().catch(() => [])
-  throw new Error(`The ${stage} facts were not confirmed by one press. The screen shows: ${shown.join(' | ') || 'no message'}`)
+  throw new Error(
+    `The ${stage} facts were not confirmed by one press: HTTP ${response.status()} ${body?.reason ?? ''}. The screen shows: ${shown.join(' | ') || 'no message'}`,
+  )
 }
 
 // Synthetic journey: told the bank by phone, no written complaint yet, no reply, police report made, no FIDReC.
