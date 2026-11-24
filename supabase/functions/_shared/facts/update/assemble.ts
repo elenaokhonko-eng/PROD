@@ -11,7 +11,7 @@ import type { CardAuthEvent, ClauseProvider, IpLocation, IsoDate, SectionResult 
 import { serverOnlyValues } from "./model-guard.ts";
 import { buildUpdateSections } from "./registry.ts";
 import { clauseWords, type RenderedUpdate, renderUpdateSections } from "./render.ts";
-import { sectionInputFromSnapshot } from "./section-input.ts";
+import { type IndexedDocumentText, sectionInputFromSnapshot } from "./section-input.ts";
 
 export interface FidrecUpdate {
   rendered: RenderedUpdate & { generatedOn: IsoDate };
@@ -29,6 +29,8 @@ export async function buildFidrecUpdate(args: {
   /** A ready document classified `credit_bureau_report` was read (`creditBureauReportReadFrom`). Default false. */
   creditBureauReportRead?: boolean;
   generatedOn: IsoDate;
+  /** The index's documents with their text, so each account status cites only its own document. */
+  documents?: readonly IndexedDocumentText[];
   /** R-numbers continue after the clauses the model's duties section was given (R1…Rn). */
   firstClauseNumber: number;
 }): Promise<FidrecUpdate> {
