@@ -1,4 +1,4 @@
-// Singapore public holidays for the business-day count (review of 24 Nov 2026, Decision 11). Elena approves this list.
+// Singapore public holidays for the business-day count (review of 24 Nov 2026, Decision 11). Approved by Elena on 24 Nov 2026.
 //
 // Source: the Ministry of Manpower's published lists.
 // - 2024: https://www.mom.gov.sg/newsroom/press-releases/2023/0524-public-holidays-for-2024

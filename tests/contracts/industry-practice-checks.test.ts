@@ -41,8 +41,6 @@ import {
 const sha = (s: string) => createHash('sha256').update(s).digest('hex')
 const KEYS = {
   tokenActivationDelay: 'mas.media_2022_01_digital_banking/3(c)',
-  // No clause is named for the alert yet; a synthetic key stands in for it.
-  tokenActivationAlert: 'mas.media_2022_01_digital_banking/synthetic-alert',
   walletProvisioningVerification: NAMED_CLAUSE_KEYS.absProvisioningVerification,
   walletTokenRemoval: NAMED_CLAUSE_KEYS.absProvisioningRemoval,
 }
@@ -80,7 +78,7 @@ function testCorpus(): FakeCorpus {
   // The delay clause states its own figure; the code reads it from the text (review of 24 Nov 2026, Lane 3 issue 2).
   document('mas.media_2022_01_digital_banking', '2022-01-19', [
     [KEYS.tokenActivationDelay, 'Placeholder text of the delay measure: a delay of at least 12 hours before a new token is activated.'],
-    [KEYS.tokenActivationAlert, `Placeholder text of ${KEYS.tokenActivationAlert}.`],
+    ['mas.media_2022_01_digital_banking/3(d)', 'Placeholder text of the contact-change notification measure.'],
   ])
   document('abs.media_2025_02_card_provisioning', '2025-02-17', [
     [KEYS.walletProvisioningVerification, `Placeholder text of ${KEYS.walletProvisioningVerification}.`],
@@ -143,33 +141,32 @@ function uobCase(): CaseSectionData {
   return d
 }
 
-// Changed with the review of 24 Nov 2026 (issue 2) and Lane 1's #59: the ABS media statement keys and the soft-token
-// delay (19 Jan 2022, 3(c)) are wired; only the alert check waits for a clause.
-test('the default keys: the delay is 3(c) of the 19 January 2022 release; the alert check prints no line and is flagged', async () => {
+// Changed with Elena's decision of 24 Nov 2026: the token-activation alert row is dropped from this section (EUPG 4.9
+// and SRF 4.2.2 cover it in duty_time_checks; 3(d) of the January 2022 release is about contact-detail changes).
+test('the default keys: the delay is 3(c) of the 19 January 2022 release; there is no alert row and nothing is flagged as waiting', async () => {
   assert.deepEqual(INDUSTRY_PRACTICE_CLAUSE_KEYS, {
     tokenActivationDelay: 'mas.media_2022_01_digital_banking/3(c)',
-    tokenActivationAlert: null,
     walletProvisioningVerification: 'abs.media_2025_02_card_provisioning/para4.verification',
     walletTokenRemoval: 'abs.media_2025_02_card_provisioning/para4.removal',
   })
   const r = await run(cardOnlyCase.data, createIndustryPracticeChecks())
   assert.equal(r.sectionId, 'industry_practice_comparison')
   assert.deepEqual(comparisons(r).map((c) => c.clauseKey), [KEYS.tokenActivationDelay, KEYS.walletProvisioningVerification, KEYS.walletTokenRemoval])
-  const waiting = r.flags.filter((f) => f.key.startsWith('industry_practice.'))
-  assert.deepEqual([...new Set(waiting.map((f) => f.key))], ['industry_practice.tokenActivationAlert'])
-  assert.ok(waiting.every((f) => f.code === 'clause_not_held'))
+  assert.equal(r.flags.filter((f) => f.key.startsWith('industry_practice.')).length, 0)
 })
 
-test('token activation: the time from the request to the activation, and the alert to the existing contact', async () => {
+test('token activation: the time from the request to the activation; no alert row and no 3(d) row', async () => {
   const r = await run(accountSrfCase.data)
   const [delay] = withKey(r, KEYS.tokenActivationDelay)
   assert.equal(delay.outcome, 'differs')
   assert.equal(delay.record, "The record shows a one-time code sent at 21:05 on 3 July 2025 and a digital token activated at 21:06 on 3 July 2025 on a device labelled 'Phone model EX-200', 1 minute later.")
   assert.match(delay.expected, /a delay of at least 12 hours/)
-  const [alert] = withKey(r, KEYS.tokenActivationAlert)
-  assert.equal(alert.outcome, 'matches')
-  assert.match(alert.record, /an alert sent at 21:06 on 3 July 2025 to registered mobile number\.$/)
   assert.ok(r.citations.some((c) => c.clauseKey === KEYS.tokenActivationDelay && c.onDate === '2025-07-03'))
+  for (const c of FIDREC_UPDATE_CASES) {
+    const lines = comparisons(await run(c.data))
+    assert.ok(!lines.some((l) => l.clauseKey === 'mas.media_2022_01_digital_banking/3(d)'), c.id)
+    assert.ok(!lines.some((l) => /and an alert sent at|and no alert between it/.test(l.record)), c.id)
+  }
 })
 
 test('boundary: an activation 12 h after the request matches; 11 h 59 min differs (the figure read from the clause)', async () => {
@@ -249,7 +246,7 @@ test('removal of a provisioned card: recorded removal matches; none recorded is 
 test('no technical record: token lines are not_shown and no wallet line prints for an e-wallet case', async () => {
   const r = await run(noTechnicalRecordsCase.data)
   const lines = comparisons(r)
-  assert.deepEqual(lines.map((c) => [c.clauseKey, c.outcome]), [[KEYS.tokenActivationDelay, 'not_shown'], [KEYS.tokenActivationAlert, 'not_shown']])
+  assert.deepEqual(lines.map((c) => [c.clauseKey, c.outcome]), [[KEYS.tokenActivationDelay, 'not_shown']])
   const cardNoRecord = clone(cardOnlyCase.data)
   delete cardNoRecord.facts.card_auth_events
   delete cardNoRecord.facts.access_events

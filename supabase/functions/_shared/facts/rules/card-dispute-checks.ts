@@ -24,6 +24,7 @@ import type {
 } from "../update/contract.ts";
 import {
   deviceRecognitionSentence,
+  formatCalendarDays,
   formatDate,
   formatMoney,
   SCHEME_STANDING_SENTENCE,
@@ -107,9 +108,9 @@ export function calendarDaysBetween(from: IsoDate, to: IsoDate): number {
   return Math.round((ms(to) - ms(from)) / 86_400_000);
 }
 
+/** The pack's one money format (section-writer.ts): "S$1,980", "USD 120". */
 function money(p: DisputedPayment): string {
-  const { amount, currency } = p.amount;
-  return `${currency} ${amount.toLocaleString("en-SG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatMoney(p.amount);
 }
 
 function compare(w: SectionWriter, clause: ClauseAsOf, record: string, expected: string, outcome: ComparisonOutcome, evidenceIds: string[]): void {
@@ -181,7 +182,7 @@ function timeLine(w: SectionWriter, input: SectionInput, row: PaymentRow, clause
   const days = calendarDaysBetween(row.onDate, request.date);
   const asked = request.source === "card_dispute_requested" ? "asked the institution to dispute it" : "reported it to the institution";
   const record =
-    `The payment is dated ${formatDate(row.onDate)}; the complainant ${asked} on ${formatDate(request.date)}, ${days} calendar days later. ` +
+    `The payment is dated ${formatDate(row.onDate)}; the complainant ${asked} on ${formatDate(request.date)}, ${formatCalendarDays(days)} later. ` +
     "The records do not show the date the payment was processed by the scheme; the count runs from the payment date.";
   const within = days >= 0 && days <= SCHEME_DISPUTE_DAYS;
   compare(w, clause, record, expected, within ? "matches" : "differs", evidence);
@@ -202,16 +203,17 @@ function recordRow(w: SectionWriter, row: PaymentRow): void {
   const e = row.event;
   w.lines.push({
     kind: "record",
+    // Field names are the contract's: Transaction (date, amount, last4) and CardAuthEvent (the rest).
     fields: {
-      payment_date: row.payment.date ? formatDate(row.payment.date) : null,
+      date: row.payment.date ? formatDate(row.payment.date) : null,
       amount: money(row.payment),
       merchant: e?.merchant ?? row.payment.payee,
-      card_last4: row.payment.last4,
-      scheme: e ? (e.cardScheme === "visa" ? "Visa" : e.cardScheme === "mastercard" ? "Mastercard" : null) : null,
-      entry_mode: e ? ENTRY_LABEL[e.entryMode] : null,
+      last4: row.payment.last4,
+      cardScheme: e ? (e.cardScheme === "visa" ? "Visa" : e.cardScheme === "mastercard" ? "Mastercard" : null) : null,
+      entryMode: e ? ENTRY_LABEL[e.entryMode] : null,
       authentication: e ? AUTH_LABEL[e.authentication] : null,
-      authentication_result: e ? e.authenticationResult : null,
-      device: e?.deviceLabel ?? null,
+      authenticationResult: e ? e.authenticationResult : null,
+      deviceLabel: e?.deviceLabel ?? null,
     },
     evidenceIds: w.evidence("card_auth_events", "transactions"),
   });
@@ -270,7 +272,7 @@ async function visaPayment(w: SectionWriter, input: SectionInput, row: PaymentRo
 
   let shown = true;
   if (cardAbsent) shown = invalidListLine(w, row, clause, statements) && shown;
-  shown = timeLine(w, input, row, clause, `Under ${sectionRef(clause)}, the time limit for ${condition} is ${SCHEME_DISPUTE_DAYS} calendar days from the date the payment was processed.`) && shown;
+  shown = timeLine(w, input, row, clause, `Under ${sectionRef(clause)}, the time limit for ${condition} is ${formatCalendarDays(SCHEME_DISPUTE_DAYS)} from the date the payment was processed.`) && shown;
   reportedLine(w, clause, "visa");
   return { conditionsShown: shown };
 }
@@ -369,7 +371,7 @@ async function mastercardPayment(w: SectionWriter, input: SectionInput, row: Pay
     compare(w, ineligible, `The record shows the payment was ${ENTRY_LABEL[e.entryMode]}, with ${shownAs}.`, expected, "matches", evidence);
   }
 
-  shown = timeLine(w, input, row, chargeback, `Under ${sectionRef(chargeback)}, the time frame for ${condition} is ${SCHEME_DISPUTE_DAYS} calendar days from the date the payment was processed.`) && shown;
+  shown = timeLine(w, input, row, chargeback, `Under ${sectionRef(chargeback)}, the time frame for ${condition} is ${formatCalendarDays(SCHEME_DISPUTE_DAYS)} from the date the payment was processed.`) && shown;
   reportedLine(w, chargeback, "mastercard");
   return { conditionsShown: shown };
 }

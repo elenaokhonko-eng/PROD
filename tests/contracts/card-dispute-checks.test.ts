@@ -24,7 +24,7 @@ import {
   WALLET_PROVISIONING_PURPOSE,
 } from '../../supabase/functions/_shared/facts/update/contract.ts'
 import { readManifest } from '../../scripts/standards/manifest.ts'
-import { GENDERED_PRONOUNS, SCHEME_STANDING_SENTENCE } from '../../supabase/functions/_shared/facts/update/section-writer.ts'
+import { formatCalendarDays, formatDate, formatMoney, GENDERED_PRONOUNS, SCHEME_STANDING_SENTENCE } from '../../supabase/functions/_shared/facts/update/section-writer.ts'
 import { accountSrfCase, cardOnlyCase, type CaseSectionData, mixedCase, noTechnicalRecordsCase } from '../fixtures/fidrec-update/index.ts'
 
 // Lane 5, brief v5 Phase 7: card_dispute_comparison against the contract and the fake provider. The corpus below is
@@ -537,4 +537,31 @@ test('Lane 5 manifests: every version records how its effective_from was set', (
     if (v.effective_from_basis === 'announcement') assert.match(v.effective_from_source ?? '', /^https:\/\//, `${file}: the announcement is linked`)
     if (v.effective_from_basis !== 'first_capture' && v.effective_from_basis !== 'undated') assert.equal(v.held_from_at_least, undefined, file)
   }
+})
+
+// One format across the pack (Lane 6, section-writer.ts): money, dates and day counts as the shared writer prints
+// them, and record rows under the contract's field names.
+test('the section prints money, dates and day counts in the shared format, and record rows under the contract names', async () => {
+  const r = await run(cardOnlyCase.data)
+  const payments = cardOnlyCase.data.payments.filter((p) => p.instrument === 'sg_card')
+  const records = r.lines.flatMap((l) => (l.kind === 'record' ? [l.fields] : []))
+  assert.equal(records.length, payments.length)
+  for (const [i, fields] of records.entries()) {
+    assert.deepEqual(Object.keys(fields), ['date', 'amount', 'merchant', 'last4', 'cardScheme', 'entryMode', 'authentication', 'authenticationResult', 'deviceLabel'])
+    assert.equal(fields.amount, formatMoney(payments[i].amount))
+    assert.equal(fields.date, formatDate(payments[i].date as string))
+  }
+  const denial = comparisons(r)[0]
+  assert.ok(denial.record.includes(`the payment of ${formatMoney(payments[0].amount)} on ${formatDate(payments[0].date as string)}`), denial.record)
+  for (const line of r.lines) {
+    for (const t of lineText(line)) {
+      assert.doesNotMatch(t, /\bSGD \d/, `money in the shared format: ${t}`)
+      assert.doesNotMatch(t, /\b\d{4}-\d{2}-\d{2}\b/, `dates in the shared format: ${t}`)
+    }
+  }
+  const time = comparisons(r).find((l) => /later\./.test(l.record))
+  assert.ok(time)
+  const days = /, (\d+) calendar days? later\./.exec(time.record)
+  assert.ok(days, time.record)
+  assert.ok(time.record.includes(`${formatCalendarDays(Number(days[1]))} later.`))
 })
