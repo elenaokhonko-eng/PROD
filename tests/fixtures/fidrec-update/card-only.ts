@@ -15,6 +15,7 @@ const transactions = [
 
 const card = {
   cardScheme: 'visa' as const,
+  amount: null,
   merchantCountry: 'Exampleland',
   entryMode: 'ecommerce' as const,
   authentication: 'three_ds_digital_token' as const,
@@ -65,9 +66,9 @@ export const cardOnlyCase = {
           walletProvisioningSentTo: null,
           walletTokenRemovedAt: '2025-09-13T09:00:00+08:00',
         },
-        { ...card, timestamp: '2025-09-12T20:48:00+08:00', transactionIndex: 0, merchant: 'Example Electronics Store' },
-        { ...card, timestamp: '2025-09-12T21:02:00+08:00', transactionIndex: 1, merchant: 'Example Travel Agency' },
-        { ...card, timestamp: '2025-09-13T00:15:00+08:00', transactionIndex: 2, merchant: 'Example Luxury Goods' },
+        { ...card, timestamp: '2025-09-12T20:48:00+08:00', transactionIndex: 0, amount: transactions[0].amount, merchant: 'Example Electronics Store' },
+        { ...card, timestamp: '2025-09-12T21:02:00+08:00', transactionIndex: 1, amount: transactions[1].amount, merchant: 'Example Travel Agency' },
+        { ...card, timestamp: '2025-09-13T00:15:00+08:00', transactionIndex: 2, amount: transactions[2].amount, merchant: 'Example Luxury Goods' },
       ]),
       device_recognition: confirmed([
         { deviceRef: 'dev-ex-0102', deviceLabel: 'Phone model EX-300', firstSeenAt: '2025-09-12T20:10:00+08:00', answer: 'not_mine' as const },

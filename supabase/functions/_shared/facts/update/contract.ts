@@ -102,6 +102,11 @@ export interface CardAuthEvent {
   timestamp: IsoDateTime | null;
   /** Index into the `transactions` fact. */
   transactionIndex: number | null;
+  /**
+   * The amount as the card record states it (review of 24 Nov 2026, fix list). Null when the line states none (for
+   * example a wallet provisioning line). Printed beside the `transactions` amount, never in place of it.
+   */
+  amount: Money | null;
   cardScheme: CardScheme;
   merchant: string | null;
   merchantCountry: string | null;
@@ -144,28 +149,34 @@ export function sameDevice(a: DeviceNamed, b: DeviceNamed): boolean {
 }
 
 /**
- * The one rule for "not sure" (review of 24 Nov 2026, Lane 4 issue 6; consistent with Decision 1).
+ * The device rule (review of 24 Nov 2026, Lane 4 issue 6; corrected by the second review). Three states:
+ * - `mine`: only a clear answer `mine`, on a `device_recognition` fact labelled `confirmed` or `claimant_only`.
+ *   Required for any line that rests on the device being the complainant's.
+ * - `not_mine`: only a clear answer `not_mine`, on a fact with those labels. Required for any line that rests on the
+ *   device not being the complainant's (for example the MAS notice row, which the brief limits to devices the
+ *   complainant states are not theirs).
+ * - `not_shown`: everything else: answer `not_sure`, no answer for the device, no device named by the record, or a
+ *   fact labelled `not_sure` or `not_known`. A line that needs `mine` or `not_mine` prints "The records do not show …"
+ *   instead (`SectionWriter.comparisonOnDevice`), never a comparison.
  *
- * Wherever a line depends on the complainant recognising something (a device, a login, a payment approval), only a
- * clear "yes, it is mine" counts as recognised:
- * - `device_recognition` answer `mine`, on a fact labelled `confirmed` or `claimant_only` → recognised;
- * - answer `not_mine` → not recognised;
- * - answer `not_sure` → treated exactly like `not_mine`;
- * - a `device_recognition` fact labelled `not_sure` (or `not_known`) → treated like `not_mine`, whatever the answer;
- * - no answer for the device, or the record names no device → treated like `not_mine`.
+ * Decision 1 in these terms: for card payments approved on a device, anything other than `mine` gives "The records do
+ * not show who approved these payments." (`RECORDS_DO_NOT_SHOW_WHO_APPROVED`) and no "refers to" line.
  *
- * "Treated like" governs only which lines a section chooses (for example Decision 1: "The records do not show who
- * approved these payments." and no "refers to" line). What the complainant said is still printed as said: a `not_sure`
- * answer prints as "they are not sure", never as "not theirs" (see `deviceRecognitionSentence` in section-writer.ts).
+ * The state governs only which lines a section chooses. What the complainant said is still printed as said: a
+ * `not_sure` answer prints as "they are not sure" (`deviceRecognitionSentence` in section-writer.ts).
  */
-export function complainantRecognisesDevice(
+export const DEVICE_OWNERSHIP_STATES = ["mine", "not_mine", "not_shown"] as const;
+export type DeviceOwnership = (typeof DEVICE_OWNERSHIP_STATES)[number];
+
+export function deviceOwnership(
   recognition: ContractFact<DeviceRecognition[]> | undefined,
   device: DeviceNamed | null,
-): boolean {
-  if (!device || (!device.deviceRef && !device.deviceLabel)) return false;
-  if (!recognition || recognition.value === null) return false;
-  if (recognition.label !== "confirmed" && recognition.label !== "claimant_only") return false;
-  return recognitionAnswerFor(recognition.value, device) === "mine";
+): DeviceOwnership {
+  if (!device || (!device.deviceRef && !device.deviceLabel)) return "not_shown";
+  if (!recognition || recognition.value === null) return "not_shown";
+  if (recognition.label !== "confirmed" && recognition.label !== "claimant_only") return "not_shown";
+  const answer = recognitionAnswerFor(recognition.value, device);
+  return answer === "mine" || answer === "not_mine" ? answer : "not_shown";
 }
 
 /** The complainant's answer for a device, as given (for printing), or null when they gave none. */
@@ -504,6 +515,41 @@ export interface TwelveHourBlock {
   walletCheckPointer: boolean;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// A quoted document (Decision 5, Part B): a document's own words printed word for word, with its date, clause
+// reference and link, and no outcome. For MAS written replies and other `any_date` documents.
+// ---------------------------------------------------------------------------------------------------------------
+
+export interface QuotedPassage {
+  clauseKey: string;
+  clauseRef: string | null;
+  /** The clause text exactly as the provider returns it; never wording written in code. */
+  text: string;
+}
+
+export interface QuotationLine {
+  documentKey: string;
+  /** The document's own date (its version's effective_from), always printed. */
+  documentDate: IsoDate;
+  /** The date the clauses were read for (the generation date for an `any_date` document). */
+  readOn: IsoDate;
+  /** The reviewed statement that introduces the quotation (e.g. `mas.reply.20260113.wallet`), or null. */
+  intro: StatementLine | null;
+  /** The passages held, in the order asked. A quotation with no passage held is not printed (the run is flagged). */
+  passages: QuotedPassage[];
+  sourceUrl: string | null;
+  /** Decision 6: set when the document is dated after the events in the case (the after-the-events line follows). */
+  documentDatedAfterEvents: IsoDate | null;
+  evidenceIds: string[];
+}
+
+/**
+ * Line kinds that carry no comparison outcome (review fix list, items 1, 4, 5): the conduct section's lines, the
+ * 12-hour block and quoted documents. None of them may pass through the comparison endings.
+ */
+export const NO_OUTCOME_LINE_KINDS = ["conduct", "twelve_hours", "quotation"] as const;
+export type NoOutcomeLineKind = (typeof NO_OUTCOME_LINE_KINDS)[number];
+
 export type SectionLine =
   | { kind: "comparison"; comparison: ComparisonLine }
   | { kind: "statement"; statement: StatementLine }
@@ -511,6 +557,8 @@ export type SectionLine =
   | { kind: "conduct"; conduct: ConductLine; evidenceIds: string[] }
   /** Decision 4: one block per activation. */
   | { kind: "twelve_hours"; block: TwelveHourBlock }
+  /** Decision 5, Part B: a document quoted word for word, with no outcome. */
+  | { kind: "quotation"; quotation: QuotationLine }
   /** A fixed line chosen by code, or a numbered step of the sequence (4f). */
   | { kind: "text"; text: string; step: number | null; evidenceIds: string[]; clauseKeys: string[] }
   /** A table row: access records, card authentication records, IP locations. */
@@ -581,6 +629,10 @@ export const AS_OF_FUNCTIONS = {
 export const CORPUS_INSTRUMENTS = ["account_transfer", "sg_card", "ewallet"] as const;
 export type CorpusInstrument = (typeof CORPUS_INSTRUMENTS)[number];
 
+/**
+ * `published_page` (review of 24 Nov 2026, Decision 7; Lane 1, #68): an institution's published web page, such as its
+ * page on adding cards to mobile wallets. Never printed as a contract. The database CHECK gains it in Lane 1's migration.
+ */
 export const BINDING_LEVELS = [
   "guideline",
   "notice",
@@ -590,6 +642,7 @@ export const BINDING_LEVELS = [
   "contract",
   "scheme_rule",
   "forum_rules",
+  "published_page",
 ] as const;
 export type BindingLevel = (typeof BINDING_LEVELS)[number];
 
