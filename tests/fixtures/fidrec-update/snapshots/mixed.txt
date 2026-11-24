@@ -87,12 +87,12 @@ Record: The complainant reported to the institution on 22 May 2025 (branch). The
 Expected: The text of paragraph 4.14 of the E-Payments User Protection Guidelines in force on 20 May 2025 is not held in a verified version.
 Side by side: The complainant reported to the institution on 22 May 2025 (branch). The record shows access blocked at 09:15 on 22 May 2025. The record shows no disputed payment after the report or the block. The record shows this, as the document expects.
 ## disputed_amount_charges: Charges and credit records while a transaction is disputed
-Record: The complainant reported to the institution on 22 May 2025.
+Record: The complainant reported the disputed transactions to the institution on 22 May 2025.
 Expected: The text of paragraph 8.1 of the E-Payments User Protection Guidelines in force on 16 June 2025 is not held in a verified version.
-Side by side: The document's condition for this duty is in paragraph 8.1 of the E-Payments User Protection Guidelines. The complainant reported to the institution on 22 May 2025.
-Record: The complainant reported to the institution on 22 May 2025.
+Side by side: The document's condition for this duty is in paragraph 8.1 of the E-Payments User Protection Guidelines. The complainant reported the disputed transactions to the institution on 22 May 2025.
+Record: The complainant reported the disputed transactions to the institution on 22 May 2025.
 Expected: The text of paragraph 8.2 of the E-Payments User Protection Guidelines in force on 16 June 2025 is not held in a verified version.
-Side by side: The document's condition for this duty is in paragraph 8.2 of the E-Payments User Protection Guidelines. The complainant reported to the institution on 22 May 2025.
+Side by side: The document's condition for this duty is in paragraph 8.2 of the E-Payments User Protection Guidelines. The complainant reported the disputed transactions to the institution on 22 May 2025.
 ## mas_notice_comparison: MAS notices
 MAS notices set requirements that MAS imposes on the institution. This section sets the institution's records beside those requirements. It does not say whether a requirement was met.
 A reviewed summary of this point is not yet available.

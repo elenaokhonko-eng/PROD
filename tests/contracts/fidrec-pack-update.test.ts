@@ -360,3 +360,49 @@ test('record rows: every field a section prints has a label (card dispute rows i
     assert.doesNotMatch(t, /\b(?:cardScheme|entryMode|authenticationResult|deviceLabel|last4)\b/, t)
   }
 })
+
+// Review follow-up (#81, #82): a credit bureau report showing the card account only overdue. creditBureauReportRead is
+// left unwired (false) until the "account overdue" fact exists, so 8.3 and 8.4(a) never print "matches" here.
+test('end to end: a bureau report showing the account overdue never makes 8.3 or 8.4(a) "matches" in the assembled pack', async () => {
+  const { createHash } = await import('node:crypto')
+  const { parseFactExtraction } = await import('../../lib/facts')
+  const { CLAUSE_KEYS, createFakeClauseProvider } = await import('../../supabase/functions/_shared/facts/update/contract.ts')
+  const { SECTION_8_CLAUSES, SECTION_8_FROM } = await import('../../supabase/functions/_shared/facts/rules/dispute-charges-checks.ts')
+  const { buildFidrecUpdate } = await import('../../supabase/functions/_shared/facts/update/assemble.ts')
+  const { corpus } = await import('./fidrec-pack-update-cases.ts')
+  const overdue = await import('../fixtures/evidence/credit-bureau-overdue.ts')
+  const sha = (s: string) => createHash('sha256').update(s).digest('hex')
+  // Section 8 held from 16 June 2025, so the rows compare against held text (synthetic placeholders).
+  const held = structuredClone(corpus)
+  for (const v of held.versions.filter((x) => x.document_key === 'mas.eupg' && x.status === 'verified')) {
+    for (const key of CLAUSE_KEYS.disputed_amount_charges) {
+      const text = key === SECTION_8_CLAUSES.p8_4
+        ? 'Synthetic 8.4: during the following periods: (a) from the investigation up to 30 calendar days after the outcome is given; and (b) after FIDReC completes or closes the case.'
+        : `Placeholder text of ${key}.`
+      v.clauses.push({ clause_id: `e2e-${v.version_id}-${key}`, clause_key: key, clause_ref: key.split('/')[1], text_content: text, text_sha256: sha(text), ...(v.effective_from! < SECTION_8_FROM ? { effective_from_override: SECTION_8_FROM } : {}) })
+    }
+  }
+  const card = FIDREC_UPDATE_CASES.find((c) => c.id === 'card-only')!
+  const docRef = { sourceType: 'document' as const, sourceRef: { sourceKey: 'document:cb-1', documentId: 'cb-1' } }
+  for (const output of [overdue.MODEL_OUTPUT_AS_PROMPTED, overdue.MODEL_OUTPUT_OVER_READ]) {
+    const reports = parseFactExtraction(output, overdue.CREDIT_BUREAU_OVERDUE_TEXT, docRef).filter((c) => c.factKey === 'credit_bureau_reports').flatMap((c) => c.value as unknown[])
+    const facts = { ...snapshotFacts(card), credit_bureau_reports: { value: reports, label: 'confirmed' } } as unknown as Parameters<typeof buildFidrecUpdate>[0]['facts']
+    const u = await buildFidrecUpdate({
+      facts,
+      evidenceIndex: [...evidenceIndex(card), { id: 'E7', facts: ['credit_bureau_reports'] }],
+      institutionCode: card.data.institution?.code ?? null,
+      ipLocations: card.data.ipLocations,
+      provider: createFakeClauseProvider(held),
+      generatedOn: GENERATED_ON,
+      firstClauseNumber: 1,
+    })
+    const section8 = u.results.find((r) => r.sectionId === 'disputed_amount_charges')!
+    const rows = section8.lines.flatMap((l) => (l.kind === 'comparison' ? [l.comparison] : []))
+    for (const key of [SECTION_8_CLAUSES.p8_3, SECTION_8_CLAUSES.p8_4]) {
+      assert.ok(rows.some((c) => c.clauseKey === key), `${key} prints a row`)
+      for (const c of rows.filter((x) => x.clauseKey === key)) assert.notEqual(c.outcome, 'matches', `${key}: ${c.record}`)
+    }
+    const printed = u.rendered.sections.find((s) => s.id === 'disputed_amount_charges')!.lines.map((l) => l.text)
+    assert.ok(!printed.some((t) => /as the documents? expects?/.test(t)), printed.join('\n'))
+  }
+})

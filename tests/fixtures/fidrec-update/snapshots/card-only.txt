@@ -54,13 +54,13 @@ Record: The complainant reported to the institution on 13 September 2025 (hotlin
 Expected: The text of paragraph 4.14 of the E-Payments User Protection Guidelines in force on 12 September 2025 is not held in a verified version.
 Side by side: The complainant reported to the institution on 13 September 2025 (hotline). The record shows access blocked at 08:45 on 13 September 2025. The record shows no disputed payment after the report or the block. The record shows this, as the document expects.
 ## disputed_amount_charges: Charges and credit records while a transaction is disputed
-Record: The complainant reported to the institution on 13 September 2025. The institution's final reply is dated 20 October 2025. The records provided do not show requests to pay the disputed amount or charges on it. (E2)
+Record: The complainant reported the disputed transactions to the institution on 13 September 2025. The institution's final reply is dated 20 October 2025. The records provided do not show requests to pay the disputed amount or charges on it. (E2)
 Expected: The text of paragraph 8.1 of the E-Payments User Protection Guidelines in force on 13 September 2025 is not held in a verified version.
 Side by side: The records provided do not show whether what paragraph 8.1 of the E-Payments User Protection Guidelines sets out took place.
-Record: The institution's final reply is dated 20 October 2025. The reply states an outcome (rejected). The period after the reply runs from 20 October 2025 to 19 November 2025. The records provided do not show dispute resolution with FIDReC starting. The records provided do not show requests to pay the disputed amount or charges on it. (E2)
+Record: The institution's final reply is dated 20 October 2025. The reply rejects the claim. Counted from the date of the final reply, the 30 calendar days run from 20 October 2025 to 19 November 2025. The records provided do not show dispute resolution with FIDReC starting. The records provided do not show requests to pay the disputed amount or charges on it. (E2)
 Expected: The text of paragraph 8.2 of the E-Payments User Protection Guidelines in force on 13 September 2025 is not held in a verified version.
 Side by side: The records provided do not show whether what paragraph 8.2 of the E-Payments User Protection Guidelines sets out took place.
-Record: The complainant reported to the institution on 13 September 2025. The institution's final reply is dated 20 October 2025. The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau. (E2)
+Record: The complainant reported the disputed transactions to the institution on 13 September 2025. The institution's final reply is dated 20 October 2025. The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau. (E2)
 Expected: The text of paragraph 8.3 of the E-Payments User Protection Guidelines in force on 13 September 2025 is not held in a verified version.
 Side by side: The records provided do not show whether what paragraph 8.3 of the E-Payments User Protection Guidelines sets out took place.
 The records provided do not show dispute resolution with FIDReC starting. The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau.
