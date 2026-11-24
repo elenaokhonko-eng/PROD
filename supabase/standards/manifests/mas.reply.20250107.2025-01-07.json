@@ -9,7 +9,8 @@
     "instrument_scope": ["sg_card"],
     "institution": null,
     "card_scheme": null,
-    "canonical_url": "https://www.mas.gov.sg/news/parliamentary-replies/2025/written-reply-to-pq-on-credit-card-fraud"
+    "canonical_url": "https://www.mas.gov.sg/news/parliamentary-replies/2025/written-reply-to-pq-on-credit-card-fraud",
+    "as_of_rule": "any_date"
   },
   "version": {
     "version_label": "7 January 2025",
