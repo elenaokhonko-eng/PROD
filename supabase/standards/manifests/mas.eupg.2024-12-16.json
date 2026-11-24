@@ -1,0 +1,2288 @@
+{
+  "$comment": "MAS E-Payments User Protection Guidelines, the version in force from 16 December 2024 (amended 24 October 2024; paragraphs 4.21, 6.4, 6.5 and Section 8 from 16 June 2025, para 1.5). Clause text is cut from the private source file; only keys, hashes and markers are held here. Scope: brief Phase 0b, EUPG 4.1 and 5.1.",
+  "document": {
+    "document_key": "mas.eupg",
+    "title": "E-Payments User Protection Guidelines",
+    "publisher": "Monetary Authority of Singapore",
+    "binding_level": "guideline",
+    "applies_to": ["bank", "payment_service_provider"],
+    "instrument_scope": ["account_transfer", "sg_card", "ewallet"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/regulation/guidelines/e-payments-user-protection-guidelines"
+  },
+  "version": {
+    "version_label": "16 December 2024",
+    "effective_from": "2024-12-16",
+    "issued_on": "2024-10-24",
+    "retrieved_at": "2026-11-24T04:20:00Z",
+    "source_url": "https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/pso/e-payments-user-protection-guidelines-with-effect-from-16-dec-2024/e-payments-user-protection-guidelines-with-effect-from-16-december-2024.pdf",
+    "snapshot_path": "mas.eupg/2024-12-16/e-payments-user-protection-guidelines-with-effect-from-16-december-2024.pdf",
+    "content_sha256": "384e962f206cae51b4e7899a621f2f151f004a0c6e4be7e5bf10ca3853fa0fd7",
+    "provenance": "publisher_site",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["\\[(Amended|Deleted) on [^\\]]*\\]", "^[ \\t]*(\\d+[ \\t]+)?Internal([ \\t]+\\d+)?[ \\t]*$", "^[ \\t]*\\d+[ \\t]*$", "(?<=provided that the) 17[ \\t]*$"]
+  },
+  "markers": [
+    {
+      "at": "(?:^|(?<=\\s))1\\.1 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/1.1",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))1\\.2 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/1.2",
+      "skip": true
+    },
+    {
+      "at": "^2 (?=[A-Z])",
+      "clause": "mas.eupg/fn2",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)3 (?=[A-Z])",
+      "clause": "mas.eupg/fn3",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))1\\.3 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/1.3",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))1\\.4 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/1.4",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))1\\.5 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/1.5",
+      "skip": true
+    },
+    {
+      "at": "^Definitions$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))2\\.1 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/2.1",
+      "skip": true
+    },
+    {
+      "at": "^\\s*“access code”",
+      "clause": "mas.eupg/2.1(access-code)"
+    },
+    {
+      "at": "^\\s*“account agreement”",
+      "clause": "mas.eupg/2.1(account-agreement)"
+    },
+    {
+      "at": "^\\s*“account contact”",
+      "clause": "mas.eupg/2.1(account-contact)"
+    },
+    {
+      "at": "^\\s*“account user”",
+      "clause": "mas.eupg/2.1(account-user)"
+    },
+    {
+      "at": "^\\s*“authentication device”",
+      "clause": "mas.eupg/2.1(authentication-device)"
+    },
+    {
+      "at": "^\\s*“account holder”",
+      "clause": "mas.eupg/2.1(account-holder)"
+    },
+    {
+      "at": "^\\s*“bank”",
+      "clause": "mas.eupg/2.1(bank)"
+    },
+    {
+      "at": "^\\s*“currency”",
+      "clause": "mas.eupg/2.1(currency)"
+    },
+    {
+      "at": "^\\s*“digital payment token”",
+      "clause": "mas.eupg/2.1(digital-payment-token)"
+    },
+    {
+      "at": "^\\s*“e-money”",
+      "clause": "mas.eupg/2.1(e-money)"
+    },
+    {
+      "at": "^\\s*“finance company”",
+      "clause": "mas.eupg/2.1(finance-company)"
+    },
+    {
+      "at": "^\\s*“high-risk activities”",
+      "clause": "mas.eupg/2.1(high-risk-activities)"
+    },
+    {
+      "at": "^\\s*“money”",
+      "clause": "mas.eupg/2.1(money)"
+    },
+    {
+      "at": "^\\s*“non-bank credit card issuer”",
+      "clause": "mas.eupg/2.1(non-bank-credit-card-issuer)"
+    },
+    {
+      "at": "^\\s*“payment account”",
+      "clause": "mas.eupg/2.1(payment-account)"
+    },
+    {
+      "at": "^\\s*“payment transaction”",
+      "clause": "mas.eupg/2.1(payment-transaction)"
+    },
+    {
+      "at": "^\\s*“protected account”",
+      "clause": "mas.eupg/2.1(protected-account)"
+    },
+    {
+      "at": "^\\s*“relevant exempt payment service provider”",
+      "clause": "mas.eupg/2.1(relevant-exempt-payment-service-provider)"
+    },
+    {
+      "at": "^\\s*“relevant payment service provider”",
+      "clause": "mas.eupg/2.1(relevant-payment-service-provider)"
+    },
+    {
+      "at": "^\\s*“responsible FI”",
+      "clause": "mas.eupg/2.1(responsible-fi)"
+    },
+    {
+      "at": "^\\s*“sole proprietor”",
+      "clause": "mas.eupg/2.1(sole-proprietor)"
+    },
+    {
+      "at": "^\\s*“specified e-money”",
+      "clause": "mas.eupg/2.1(specified-e-money)"
+    },
+    {
+      "at": "^\\s*“transaction notification threshold”",
+      "clause": "mas.eupg/2.1(transaction-notification-threshold)"
+    },
+    {
+      "at": "^\\s*“unique identifier”",
+      "clause": "mas.eupg/2.1(unique-identifier)"
+    },
+    {
+      "at": "^\\s*“unauthorised transaction”",
+      "clause": "mas.eupg/2.1(unauthorised-transaction)"
+    },
+    {
+      "at": "^4 (?=[A-Z])",
+      "clause": "mas.eupg/fn4",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))2\\.2 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/2.2",
+      "skip": true
+    },
+    {
+      "at": "^Duties of account holders and account users$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.1 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.1",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.2 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.2",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.3 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.3",
+      "skip": true
+    },
+    {
+      "at": "^Account user to protect access codes",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.4 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.4",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.5 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.5",
+      "skip": true
+    },
+    {
+      "at": "^Account user to secure access to protected account",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.6 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.6",
+      "skip": true
+    },
+    {
+      "at": "^5 (?=[A-Z])",
+      "clause": "mas.eupg/fn5",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)6 (?=[A-Z])",
+      "clause": "mas.eupg/fn6",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)7 (?=[A-Z])",
+      "clause": "mas.eupg/fn7",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)8 (?=[A-Z])",
+      "clause": "mas.eupg/fn8",
+      "skip": true
+    },
+    {
+      "at_page": 11,
+      "clause": "mas.eupg/3.6"
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.7 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.7",
+      "skip": true
+    },
+    {
+      "at": "^Account user to read content sent with access codes",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.8 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.8",
+      "skip": true
+    },
+    {
+      "at": "^Account user to refer to official sources",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.9 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.9",
+      "skip": true
+    },
+    {
+      "at": "^9 (?=[A-Z])",
+      "clause": "mas.eupg/fn9",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)10 (?=[A-Z])",
+      "clause": "mas.eupg/fn10",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.10 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.10",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.11 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.11",
+      "skip": true
+    },
+    {
+      "at": "^Account user to understand the risks",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.12 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.12",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.13 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.13",
+      "skip": true
+    },
+    {
+      "at": "^Account holder to report unauthorised activities",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.14 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.14",
+      "skip": true
+    },
+    {
+      "at": "^11 (?=[A-Z])",
+      "clause": "mas.eupg/fn11",
+      "skip": true
+    },
+    {
+      "at_page": 13,
+      "clause": "mas.eupg/3.14"
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.15 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.15",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.16 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.16",
+      "skip": true
+    },
+    {
+      "at": "^Account holder to activate self-service feature",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.17 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.17",
+      "skip": true
+    },
+    {
+      "at": "^Account holder to provide information on unauthorised transaction",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.18 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.18",
+      "skip": true
+    },
+    {
+      "at": "^Account holder to make police report",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.19 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.19",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))3\\.20 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/3.20",
+      "skip": true
+    },
+    {
+      "at": "^12 (?=[A-Z])",
+      "clause": "mas.eupg/fn12",
+      "skip": true
+    },
+    {
+      "at": "^Duties of the responsible FI$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.1 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.1",
+      "skip": true
+    },
+    {
+      "at": "^Responsible FI to clearly inform account holder",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.2 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.2",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.3 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.3",
+      "skip": true
+    },
+    {
+      "at": "^Responsible FI to not send clickable links",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.4 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.4",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.5 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.5",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.6 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.6",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)Responsible FI to impose a cooling off period",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.7 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.7",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)Responsible FI to inform account user of the risks",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.8 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.8",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)Responsible FI to provide notification alerts on a real time basis",
+      "clause": null
+    },
+    {
+      "at": "^13 (?=[A-Z])",
+      "clause": "mas.eupg/fn13",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.9 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.9",
+      "skip": true
+    },
+    {
+      "at": "^Responsible FI to provide outgoing transaction notification alerts",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.10 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.10",
+      "skip": true
+    },
+    {
+      "at": "^Compliance with account holder",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.11 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.11",
+      "skip": true
+    },
+    {
+      "at": "^14 (?=[A-Z])",
+      "clause": "mas.eupg/fn14",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.12 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.12",
+      "skip": true
+    },
+    {
+      "at": "^Incoming transaction notification alerts",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.13 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.13",
+      "skip": true
+    },
+    {
+      "at": "^Responsible FI to provide a self-service feature",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.14 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.14",
+      "skip": true
+    },
+    {
+      "at": "^15 (?=[A-Z])",
+      "clause": "mas.eupg/fn15",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)16 (?=[A-Z])",
+      "clause": "mas.eupg/fn16",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.15 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.15",
+      "skip": true
+    },
+    {
+      "at": "^Responsible FI to provide information to allow identification",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.16 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.16",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)Responsible FI to provide recipient credential information",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.17 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.17",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.18 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.18",
+      "skip": true
+    },
+    {
+      "at": "^17 (?=[A-Z])",
+      "clause": "mas.eupg/fn17",
+      "skip": true
+    },
+    {
+      "at_page": 22,
+      "clause": "mas.eupg/4.18"
+    },
+    {
+      "at": "^Responsible FI to provide reporting channel",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.19 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.19",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.20 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.20",
+      "skip": true
+    },
+    {
+      "at": "^18 (?=[A-Z])",
+      "clause": "mas.eupg/fn18",
+      "skip": true
+    },
+    {
+      "at": "^Responsible FI to implement real-time detection",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.21 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.21",
+      "skip": true
+    },
+    {
+      "at": "^Responsible FI to assess claims",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.22 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.22",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.23 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.23",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.24 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.24",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.25 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.25",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.26 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.26",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.27 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.27",
+      "skip": true
+    },
+    {
+      "at": "^Responsible FI to credit protected account",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.28 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.28",
+      "skip": true
+    },
+    {
+      "at": "^19 (?=[A-Z])",
+      "clause": "mas.eupg/fn19",
+      "skip": true
+    },
+    {
+      "at": "^Scheduled system downtime",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))4\\.29 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/4.29",
+      "skip": true
+    },
+    {
+      "at": "^Liability for losses arising from unauthorised transactions$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.1 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/5.1",
+      "skip": true
+    },
+    {
+      "at": "^Account holder is liable for actual loss",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.2 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/5.2",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.3 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/5.3",
+      "skip": true
+    },
+    {
+      "at": "^20 (?=[A-Z])",
+      "clause": "mas.eupg/fn20",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)21 (?=[A-Z])",
+      "clause": "mas.eupg/fn21",
+      "skip": true
+    },
+    {
+      "at_page": 27,
+      "clause": "mas.eupg/5.3"
+    },
+    {
+      "at": "^Account holder is not liable for any loss",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.4 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/5.4",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.5 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/5.5",
+      "skip": true
+    },
+    {
+      "at": "^Loss resulting from any action or omission of any independent third party",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.6 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/5.6",
+      "skip": true
+    },
+    {
+      "at": "^Agreement to reduce account holder",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.7 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/5.7",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.8 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/5.8",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)Application of this section to joint accounts",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))5\\.9 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/5.9",
+      "skip": true
+    },
+    {
+      "at": "^Specific duties in relation to erroneous transactions$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.1 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/6.1",
+      "skip": true
+    },
+    {
+      "at": "^FIs to make reasonable efforts to recover sums",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.2 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/6.2",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.3 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/6.3",
+      "skip": true
+    },
+    {
+      "at": "^Where the wrong recipient has noticed an erroneous transaction",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.4 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/6.4",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.5 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/6.5",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.6 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/6.6",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)Account holder or recipient to provide information",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.7 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/6.7",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))6\\.8 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/6.8",
+      "skip": true
+    },
+    {
+      "at": "^Dispute resolution process for handling any disputed investigation$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.1 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/7.1",
+      "skip": true
+    },
+    {
+      "at": "^Responsible FI to have in place a dispute resolution process",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.2 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/7.2",
+      "skip": true
+    },
+    {
+      "at": "^Responsible FI to provide channels for account holders",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.3 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/7.3",
+      "skip": true
+    },
+    {
+      "at": "^Reasonable request for evidence",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.4 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/7.4",
+      "skip": true
+    },
+    {
+      "at": "^22 (?=[A-Z])",
+      "clause": "mas.eupg/fn22",
+      "skip": true
+    },
+    {
+      "at": "^Responsible FI to promptly assess and investigate",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.5 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/7.5",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.6 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/7.6",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.7 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/7.7",
+      "skip": true
+    },
+    {
+      "at": "^23 (?=[A-Z])",
+      "clause": "mas.eupg/fn23",
+      "skip": true
+    },
+    {
+      "at_page": 35,
+      "clause": "mas.eupg/7.7"
+    },
+    {
+      "at": "(?:^|(?<=\\s))7\\.8 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/7.8",
+      "skip": true
+    },
+    {
+      "at": "^24 (?=[A-Z])",
+      "clause": "mas.eupg/fn24",
+      "skip": true
+    },
+    {
+      "at": "^Charges relating to transactions under dispute$",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))8\\.1 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/8.1",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))8\\.2 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/8.2",
+      "skip": true
+    },
+    {
+      "at": "^25 (?=[A-Z])",
+      "clause": "mas.eupg/fn25",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)26 (?=[A-Z])",
+      "clause": "mas.eupg/fn26",
+      "skip": true
+    },
+    {
+      "at": "^Responsible FI to withhold the reporting",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))8\\.3 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/8.3",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))8\\.4 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/8.4",
+      "skip": true
+    },
+    {
+      "at": "^27 (?=[A-Z])",
+      "clause": "mas.eupg/fn27",
+      "skip": true
+    },
+    {
+      "at": "(?:^|(?<=\\s))8\\.5 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/8.5",
+      "skip": true
+    },
+    {
+      "at": "(?<=\\s)Responsible FI to disclose charges",
+      "clause": null
+    },
+    {
+      "at": "(?:^|(?<=\\s))8\\.6 (?=[A-Z“\"(])",
+      "clause": "mas.eupg/8.6",
+      "skip": true
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.eupg/1.1",
+      "clause_ref": "1.1",
+      "heading_path": ["1 Overview and Application of the guidelines"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "6c027ad7562f4b8415e5aa74f6b3656a06d50f139785d02b71536f757ee54b6e"
+    },
+    {
+      "clause_key": "mas.eupg/1.2",
+      "clause_ref": "1.2",
+      "heading_path": ["1 Overview and Application of the guidelines"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "75e27a9a60a6a89f20180c6eefdfcd2b4f46f6c55174af461b112e77b67ae299"
+    },
+    {
+      "clause_key": "mas.eupg/fn2",
+      "clause_ref": "footnote 2",
+      "heading_path": ["1 Overview and Application of the guidelines"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "4532066c58d48e460d3c1b5348c6ec09ae1643e717acb85e8bb602f6c927fdc8"
+    },
+    {
+      "clause_key": "mas.eupg/fn3",
+      "clause_ref": "footnote 3",
+      "heading_path": ["1 Overview and Application of the guidelines"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "302e5d499443db774b1550dab500e73eec2246ffb3d5e6a2c93752b025deb461",
+      "note": "States that the liability apportionment does not apply to card transactions."
+    },
+    {
+      "clause_key": "mas.eupg/1.3",
+      "clause_ref": "1.3",
+      "heading_path": ["1 Overview and Application of the guidelines"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "ab6759fccb4adf776ae6e8d0a110520d83fe3261af91dc3ce081314c4aa325c4"
+    },
+    {
+      "clause_key": "mas.eupg/1.4",
+      "clause_ref": "1.4",
+      "heading_path": ["1 Overview and Application of the guidelines"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "441639954812ce35b7474acef047f4f5bf3a652401a913a1309c427a30b7efac"
+    },
+    {
+      "clause_key": "mas.eupg/1.5",
+      "clause_ref": "1.5",
+      "heading_path": ["1 Overview and Application of the guidelines"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "606b618a58c0eaaa6f9e481ce3162a31805d5b26482792bc22873a74004eb693"
+    },
+    {
+      "clause_key": "mas.eupg/2.1",
+      "clause_ref": "2.1",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "f14ab69af42338ba5066ca8532a2848d1292b571b7178350a1ede1bb72169580"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(access-code)",
+      "clause_ref": "2.1 \"access code\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "917209f9a2da5f8414ad1b9e9568767060c582b8b5f730e44734f2d5cb34c024"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(account-agreement)",
+      "clause_ref": "2.1 \"account agreement\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "1c1b201dead7a3c288e93a8e809d2a116f7e83dedf85119bc6fe6d01f5de1bcf"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(account-contact)",
+      "clause_ref": "2.1 \"account contact\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "71546d80c1158e2cf779497e9e31836af2e3d944f2aa9af39ae5b5bc233d6116"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(account-user)",
+      "clause_ref": "2.1 \"account user\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "50e73236931d0e241a41b56a57dfc74771674a3012e8dea57c33843783ea2c0e"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(authentication-device)",
+      "clause_ref": "2.1 \"authentication device\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [4],
+      "text_sha256": "5e9c3505acc63c1fc7800d68f6f44d730a4950aecd00eff6f5be051eb4707be0"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(account-holder)",
+      "clause_ref": "2.1 \"account holder\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "67fe9f15dd4d33ccda557ee16e0fc9aa6cef845526b00bd3f76505d8ec4c80cc"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(bank)",
+      "clause_ref": "2.1 \"bank\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "c8fb59ffc58e285c7fb925b268a7a222aa84f90706b6a20daaa7d667e0a91634"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(currency)",
+      "clause_ref": "2.1 \"currency\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "51cfa3e20f3071c802a4a8ee39397ba852537471d401ad17bec4c7d7b4894a96"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(digital-payment-token)",
+      "clause_ref": "2.1 \"digital payment token\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "309bd1274193394d4248b7f144436e867eea3342f954240ccceffae7c767c9f8"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(e-money)",
+      "clause_ref": "2.1 \"e-money\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "0794ade6658cbf5de7f2bbd88b2a2432aeac86556b854f3d9db9d43e523dee91"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(finance-company)",
+      "clause_ref": "2.1 \"finance company\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "58430e7cdc611099bcea546deb84484fc6cb0baedfa60b404823bfb485e6a0fc"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(high-risk-activities)",
+      "clause_ref": "2.1 \"high-risk activities\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "b8e50d8445a250ce01e8765c4d2c528c4fc4cc726080f935ba0a4ba1341910dc",
+      "note": "The EUPG list is introduced as non-exhaustive (\"include, but are not limited to\"); the SRF definition is closed (brief 4a, open item 8)."
+    },
+    {
+      "clause_key": "mas.eupg/2.1(money)",
+      "clause_ref": "2.1 \"money\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "f732f091cbb56bc3eeee996d598b72a56d1a5a821f6f0f3879dcc81237d88636"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(non-bank-credit-card-issuer)",
+      "clause_ref": "2.1 \"non-bank credit card issuer\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [5],
+      "text_sha256": "62df30d017d1bf1c393d28a57a3dac8dd9bf7de454b5a769f77e026b051adeff"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(payment-account)",
+      "clause_ref": "2.1 \"payment account\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "f8c1ef54939a46a0c00c7f0c85b59f806e45282497222c90b3e15409bb7e57ca"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(payment-transaction)",
+      "clause_ref": "2.1 \"payment transaction\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "be5490fc239b45ba32a42bdb86f49687f23e8a209afb58de6a02b74cf456aa5a"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(protected-account)",
+      "clause_ref": "2.1 \"protected account\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "9e10b25c75979bd736628a41bc8f71d5f1b2086e53fcf6a68cd54e972119c9ae"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(relevant-exempt-payment-service-provider)",
+      "clause_ref": "2.1 \"relevant exempt payment service provider\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "5972d5430a3ba3bfa36a763c8ae3eee3b0476a3556008ffe3e012600af54a019"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(relevant-payment-service-provider)",
+      "clause_ref": "2.1 \"relevant payment service provider\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "2276077a9314049cc3f560105d0c5012154966b448683c8b440951efc1a6719b"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(responsible-fi)",
+      "clause_ref": "2.1 \"responsible FI\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "69f4ac0bea2b6d02a0d0b08e7d00d885f1be55447aa07a15e9e1ffb9079282e7"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(sole-proprietor)",
+      "clause_ref": "2.1 \"sole proprietor\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "fef6223b228c3a2060869450952a76c8c6c454682973f026bcd09e79c427cfe1"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(specified-e-money)",
+      "clause_ref": "2.1 \"specified e-money\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "c7c13f2f1b242dc0cb456feabeec32eb1af6ddc81f8d7637764c3ce6eb1ff69e"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(transaction-notification-threshold)",
+      "clause_ref": "2.1 \"transaction notification threshold\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "80428658134d90ac209631363620c0ec55d018abe7e4e9f56a1fb23e1bb1c42c"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(unique-identifier)",
+      "clause_ref": "2.1 \"unique identifier\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "783bcd0ccfa47357835589803d6e768396a7ab2b80415b73377101a41ed457d1"
+    },
+    {
+      "clause_key": "mas.eupg/2.1(unauthorised-transaction)",
+      "clause_ref": "2.1 \"unauthorised transaction\"",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "f3086184052b92b785bad280eebaa4857431a63880061e80aa08d04b5caf7182"
+    },
+    {
+      "clause_key": "mas.eupg/fn4",
+      "clause_ref": "footnote 4",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "b34d32caef719c64fcf6aa0dbebd9921357486a4ef464956de928a34c75908dc"
+    },
+    {
+      "clause_key": "mas.eupg/2.2",
+      "clause_ref": "2.2",
+      "heading_path": ["2 Definitions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [8],
+      "text_sha256": "97b574a238f75b7f0640eccddc646b4ae8302c67b3434bbbaf1700186c9c2eef"
+    },
+    {
+      "clause_key": "mas.eupg/3.1",
+      "clause_ref": "3.1",
+      "heading_path": ["3 Duties of account holders and account users", "Account holder to provide contact information, opt to receive all outgoing transaction notifications and monitor notifications"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "bfb50657512782859284275124d3abe41ea565557594406525c4b377df815e9b"
+    },
+    {
+      "clause_key": "mas.eupg/3.2",
+      "clause_ref": "3.2",
+      "heading_path": ["3 Duties of account holders and account users", "Account holder to provide contact information, opt to receive all outgoing transaction notifications and monitor notifications"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "284e94d04e2163c8e64e06c49b7972c165a73f6f3cc95c7abaa9e6858ede1911"
+    },
+    {
+      "clause_key": "mas.eupg/3.3",
+      "clause_ref": "3.3",
+      "heading_path": ["3 Duties of account holders and account users", "Account holder to provide contact information, opt to receive all outgoing transaction notifications and monitor notifications"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "fa34e3abe4d668541e109cc9df6a5f15f40670cc52b4c6688f7bb4bd3fa0b80c"
+    },
+    {
+      "clause_key": "mas.eupg/3.4",
+      "clause_ref": "3.4",
+      "heading_path": ["3 Duties of account holders and account users", "Account user to protect access codes"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "7843d0dbe72397e91753fd926a73760eae66d82d64eee1f00436bf8093b41f61"
+    },
+    {
+      "clause_key": "mas.eupg/3.5",
+      "clause_ref": "3.5",
+      "heading_path": ["3 Duties of account holders and account users", "Account user to protect access codes"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "ff3675d3838017ddbdbf84793c84e2cec8e2b507fdc7cf894df28ba8b5cd7cf4"
+    },
+    {
+      "clause_key": "mas.eupg/3.6",
+      "clause_ref": "3.6",
+      "heading_path": ["3 Duties of account holders and account users", "Account user to secure access to protected account"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [10, 11],
+      "text_sha256": "6725dc3d75bba595ce44b9d514147d47099745b37a246a95a3773dfcedba7585"
+    },
+    {
+      "clause_key": "mas.eupg/fn5",
+      "clause_ref": "footnote 5",
+      "heading_path": ["3 Duties of account holders and account users"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "d8c5ed6408e8894c0119966069a0c4917c0b520c3d0afa8866261c91d7f96762"
+    },
+    {
+      "clause_key": "mas.eupg/fn6",
+      "clause_ref": "footnote 6",
+      "heading_path": ["3 Duties of account holders and account users"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "47bc34d80c2e58a0287871ba97cdc156152831a6256438ef841c32318ac19bc7"
+    },
+    {
+      "clause_key": "mas.eupg/fn7",
+      "clause_ref": "footnote 7",
+      "heading_path": ["3 Duties of account holders and account users"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "25ba237f2dc11fd2e0818245811dfb42568efbd67d4090243265bb537682e66d"
+    },
+    {
+      "clause_key": "mas.eupg/fn8",
+      "clause_ref": "footnote 8",
+      "heading_path": ["3 Duties of account holders and account users"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [10],
+      "text_sha256": "e27aa0890025f3e487ea4964772e5e4fc59fb718fcf9d7ab359980df37538539"
+    },
+    {
+      "clause_key": "mas.eupg/3.7",
+      "clause_ref": "3.7",
+      "heading_path": ["3 Duties of account holders and account users", "Account user to secure access to protected account"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "9ab6d8b76e189de255da11dbdc742657157aeddb471e6741d7a8f415d6c2c155"
+    },
+    {
+      "clause_key": "mas.eupg/3.8",
+      "clause_ref": "3.8",
+      "heading_path": ["3 Duties of account holders and account users", "Account user to read content sent with access codes before completing payment transactions or high-risk activities"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "88c9cba512721b5e6d66a0216d3f8fc0a4f0b7004b4741e1bf79ea4fca97735d"
+    },
+    {
+      "clause_key": "mas.eupg/3.9",
+      "clause_ref": "3.9",
+      "heading_path": ["3 Duties of account holders and account users", "Account user to refer to official sources to obtain website addresses and phone numbers"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "a4183bbeb0c202fa06a5a259aa6a7e262584bf624088b49f7dff1877b1c6c85b"
+    },
+    {
+      "clause_key": "mas.eupg/fn9",
+      "clause_ref": "footnote 9",
+      "heading_path": ["3 Duties of account holders and account users"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "220da91d21a378ae6d175e1f038206435adb23f689c0ca1c2e415b0babc44cf1"
+    },
+    {
+      "clause_key": "mas.eupg/fn10",
+      "clause_ref": "footnote 10",
+      "heading_path": ["3 Duties of account holders and account users"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [11],
+      "text_sha256": "d59ea6cd695bb3782e4377c12f506fe733950c38bccb9d479d26cab93066e7e4"
+    },
+    {
+      "clause_key": "mas.eupg/3.10",
+      "clause_ref": "3.10",
+      "heading_path": ["3 Duties of account holders and account users", "Account user to refer to official sources to obtain website addresses and phone numbers"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "fa802347b3f4202beb66c96e80c32032a5b33334ced5e9cc0ecb0311aed83827"
+    },
+    {
+      "clause_key": "mas.eupg/3.11",
+      "clause_ref": "3.11",
+      "heading_path": ["3 Duties of account holders and account users", "Account user to refer to official sources to obtain website addresses and phone numbers"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "36e00a1d61ee883b7b84c7e03859938d04386b2a933778aff16d64747fa1b444"
+    },
+    {
+      "clause_key": "mas.eupg/3.12",
+      "clause_ref": "3.12",
+      "heading_path": ["3 Duties of account holders and account users", "Account user to understand the risks and implications of performing high-risk activities"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "4c0c6e084c2d0c245b2198407ba134b7d1f19ccb5ac4c8d482d11f6aa3c51d50"
+    },
+    {
+      "clause_key": "mas.eupg/3.13",
+      "clause_ref": "3.13",
+      "heading_path": ["3 Duties of account holders and account users", "Account user to understand the risks and implications of performing high-risk activities"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "3952167c71cc07732e26fb696c2774e876ff5f123da01793df0567f939a0f6d7"
+    },
+    {
+      "clause_key": "mas.eupg/3.14",
+      "clause_ref": "3.14",
+      "heading_path": ["3 Duties of account holders and account users", "Account holder to report unauthorised activities on his protected account"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [12, 13],
+      "text_sha256": "53d07abe60bf93e07387a387de3e671cfb3d0b35847cc66951b9da35a125f817"
+    },
+    {
+      "clause_key": "mas.eupg/fn11",
+      "clause_ref": "footnote 11",
+      "heading_path": ["3 Duties of account holders and account users"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "83c900812226e2ec4331c31ca8de93fda4613acd26785d0c7b24979f0e4e2054"
+    },
+    {
+      "clause_key": "mas.eupg/3.15",
+      "clause_ref": "3.15",
+      "heading_path": ["3 Duties of account holders and account users", "Account holder to report unauthorised activities on his protected account"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [13],
+      "text_sha256": "c1825827d83f17afe803d8f333090184d043daf36f8369bd501d937453a72d00"
+    },
+    {
+      "clause_key": "mas.eupg/3.16",
+      "clause_ref": "3.16",
+      "heading_path": ["3 Duties of account holders and account users", "Account holder to report unauthorised activities on his protected account"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [13],
+      "text_sha256": "63dcc9e7d845d8549bb2e703b0ed0a3f852eb8a99ccc0875002ea5540d233a25"
+    },
+    {
+      "clause_key": "mas.eupg/3.17",
+      "clause_ref": "3.17",
+      "heading_path": ["3 Duties of account holders and account users", "Account holder to activate self-service feature (\"kill switch\") provided by the responsible FI promptly to block further mobile and online access to the protected account"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [13],
+      "text_sha256": "dd34f545e29c5d59ec7fe060de697a605056357869f61e7e1bebaff58b9c5750"
+    },
+    {
+      "clause_key": "mas.eupg/3.18",
+      "clause_ref": "3.18",
+      "heading_path": ["3 Duties of account holders and account users", "Account holder to provide information on unauthorised transaction"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [13, 14],
+      "text_sha256": "66f609d03805b7f1faaee6f34f3a4e5b39de76e308084c5fa4c7d9d0072b5362"
+    },
+    {
+      "clause_key": "mas.eupg/3.19",
+      "clause_ref": "3.19",
+      "heading_path": ["3 Duties of account holders and account users", "Account holder to make police report"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [14],
+      "text_sha256": "ef1d06c2aa93a683ab6b2ec55c838ef80e4843202b8afc9b1db507987aa35b3a"
+    },
+    {
+      "clause_key": "mas.eupg/3.20",
+      "clause_ref": "3.20",
+      "heading_path": ["3 Duties of account holders and account users", "Account holder to make police report"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [15],
+      "text_sha256": "d5defcaf3e12f0d5b17f185823913f84a1611f4b08c306376fa0ce6d21acf8bd"
+    },
+    {
+      "clause_key": "mas.eupg/fn12",
+      "clause_ref": "footnote 12",
+      "heading_path": ["3 Duties of account holders and account users"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [15],
+      "text_sha256": "b9668b64d83b98f867af5a11dcfc044ed66828daa4b9e67364a0befc6110e1e0"
+    },
+    {
+      "clause_key": "mas.eupg/4.1",
+      "clause_ref": "4.1",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [16],
+      "text_sha256": "19017c80ccf26e70cfa7b8d4eecea7e09e1b688c1af8110b51289b13a6311828"
+    },
+    {
+      "clause_key": "mas.eupg/4.2",
+      "clause_ref": "4.2",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to clearly inform account holder of user protection duties"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [16],
+      "text_sha256": "61b3956fa63d4e3f1c54460dd58cf34fed14b375f28a3be24ccebe70a7dea2bd"
+    },
+    {
+      "clause_key": "mas.eupg/4.3",
+      "clause_ref": "4.3",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to clearly inform account holder of user protection duties"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [16],
+      "text_sha256": "c8a8a38956f684f604880c310d18a23106189b77a64cca139e46f707bda459e5"
+    },
+    {
+      "clause_key": "mas.eupg/4.4",
+      "clause_ref": "4.4",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to not send clickable links or QR codes via email or SMS, or phone numbers via SMS to account user"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [16],
+      "text_sha256": "7946b44b5e0d3d3c91cebf56656c02cb61f8e1f968f2767a4f8089490861986b"
+    },
+    {
+      "clause_key": "mas.eupg/4.5",
+      "clause_ref": "4.5",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to not send clickable links or QR codes via email or SMS, or phone numbers via SMS to account user"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [17],
+      "text_sha256": "1db08a985f5fa7b07b3191c775dacb6e3b4cb9d7e24762540c658a829360d995"
+    },
+    {
+      "clause_key": "mas.eupg/4.6",
+      "clause_ref": "4.6",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to not send clickable links or QR codes via email or SMS, or phone numbers via SMS to account user"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [17],
+      "text_sha256": "e5e6218c67a0be30ef6ede9318028f25dd4a66c7cd642232ebc90b91fcf28c92"
+    },
+    {
+      "clause_key": "mas.eupg/4.7",
+      "clause_ref": "4.7",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to impose a cooling off period when performing high-risk activities"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [17],
+      "text_sha256": "abca734c2103fb44044656870003087b9b570b683e18d9a0926cacec3afc7c70"
+    },
+    {
+      "clause_key": "mas.eupg/4.8",
+      "clause_ref": "4.8",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to inform account user of the risks and implications of performing high-risk activities"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [17],
+      "text_sha256": "747ae3b159c072ff41ed257cee39ef19981447fbb0f801ed634f66eccdde0d73"
+    },
+    {
+      "clause_key": "mas.eupg/fn13",
+      "clause_ref": "footnote 13",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [17],
+      "text_sha256": "8eb04bb994a12c618795fa46f92495c265616cb2540b518b6ea628165c7e9c2e"
+    },
+    {
+      "clause_key": "mas.eupg/4.9",
+      "clause_ref": "4.9",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to provide notification alerts on a real time basis, for activation of digital security token and conduct of high-risk activities"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [18],
+      "text_sha256": "784b24cd9cc9bd43d4421425ce28ba7dd2be606bb8756e903553891f6aa4ac85"
+    },
+    {
+      "clause_key": "mas.eupg/4.10",
+      "clause_ref": "4.10",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to provide outgoing transaction notification alerts on a real-time basis"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [18, 19],
+      "text_sha256": "8b7bb68aea7fadb64e9dbde5325705de2b48bb849ddda58dc4c3b189d51d5d78"
+    },
+    {
+      "clause_key": "mas.eupg/4.11",
+      "clause_ref": "4.11",
+      "heading_path": ["4 Duties of the responsible FI", "Compliance with account holder’s preference"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [19],
+      "text_sha256": "7596bc71160e4513f1bbae7949d750582dcf0094254e0b0fcbd5abc721091429"
+    },
+    {
+      "clause_key": "mas.eupg/fn14",
+      "clause_ref": "footnote 14",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [19],
+      "text_sha256": "8e4ab2ba14b826b99cc87dd49a88a9d6998d93fd913af34fc28d7d83c00e5afe"
+    },
+    {
+      "clause_key": "mas.eupg/4.12",
+      "clause_ref": "4.12",
+      "heading_path": ["4 Duties of the responsible FI", "Compliance with account holder’s preference"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [20],
+      "text_sha256": "1e66bc65672f55def681bd044a5e738de25d766f9289143432e85a805b345a14"
+    },
+    {
+      "clause_key": "mas.eupg/4.13",
+      "clause_ref": "4.13",
+      "heading_path": ["4 Duties of the responsible FI", "Incoming transaction notification alerts"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [20],
+      "text_sha256": "1857256510969229dd56c14e35ab27fd9a1dd802c941ab86f0a24c051f686b66"
+    },
+    {
+      "clause_key": "mas.eupg/4.14",
+      "clause_ref": "4.14",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to provide a self-service feature (\"kill switch\") for account holder to promptly block further access to protected account"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [20],
+      "text_sha256": "022b16ecea533461b808878a959db14d2cc84bf4425354c42e231876446f96c1"
+    },
+    {
+      "clause_key": "mas.eupg/fn15",
+      "clause_ref": "footnote 15",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [20],
+      "text_sha256": "42f1d14e725f24d2fc805be17724c027482d38a27dc8de15e927e8385bfe444a"
+    },
+    {
+      "clause_key": "mas.eupg/fn16",
+      "clause_ref": "footnote 16",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [20],
+      "text_sha256": "d5665f90fe316b746151e224ae0e391823911b8a6ba9d45c90e587689c378f52"
+    },
+    {
+      "clause_key": "mas.eupg/4.15",
+      "clause_ref": "4.15",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to provide a self-service feature (\"kill switch\") for account holder to promptly block further access to protected account"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [21],
+      "text_sha256": "c6dca9f94fd6bb7dbeeb6d4e99eca964ac1ca094347d2e37423e231260613393"
+    },
+    {
+      "clause_key": "mas.eupg/4.16",
+      "clause_ref": "4.16",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to provide information to allow identification of payment recipient"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [21],
+      "text_sha256": "52f27e169c7c888acf09bd8707bd3ff59bb1c2302532aceb598ec4f54f715d9f"
+    },
+    {
+      "clause_key": "mas.eupg/4.17",
+      "clause_ref": "4.17",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to provide recipient credential information"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [21],
+      "text_sha256": "d4be7735406ba251f348331926360ad4d8a8cfeebe0450378426260907ace08f"
+    },
+    {
+      "clause_key": "mas.eupg/4.18",
+      "clause_ref": "4.18",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to provide recipient credential information"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [21, 22],
+      "text_sha256": "4da1a1afd5871ce98f8607cad4979a07a0fbc4ca120d0199f027e46f3da150fb"
+    },
+    {
+      "clause_key": "mas.eupg/fn17",
+      "clause_ref": "footnote 17",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [21],
+      "text_sha256": "32903ab44b6ed422c1b6a8803cc768d9df287c620c4a379c5be27a982aca062f"
+    },
+    {
+      "clause_key": "mas.eupg/4.19",
+      "clause_ref": "4.19",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to provide reporting channel"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [22],
+      "text_sha256": "265f8079a6ad0ece18ef69003e7fbb6746dd95ca9fad2a4726ff17328a9278ea"
+    },
+    {
+      "clause_key": "mas.eupg/4.20",
+      "clause_ref": "4.20",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to provide reporting channel"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [22],
+      "text_sha256": "7b712992a85811a056a5003ba2caa5ad6833851a8629a5aa5ed172785a9baf0b"
+    },
+    {
+      "clause_key": "mas.eupg/fn18",
+      "clause_ref": "footnote 18",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [22],
+      "text_sha256": "d55d48b4abf9542adce6139374426ecbc89c0e21373bbe90ba808c8ae31e5a54"
+    },
+    {
+      "clause_key": "mas.eupg/4.21",
+      "clause_ref": "4.21",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to implement real-time detection and blocking of suspected unauthorised transactions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": "2025-06-16",
+      "pages": [23],
+      "text_sha256": "8c19ae86494dcb42941ec85f61126ec33fcc9570850dfb5e0036d614128482b1"
+    },
+    {
+      "clause_key": "mas.eupg/4.22",
+      "clause_ref": "4.22",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to assess claims and complete claims investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [23],
+      "text_sha256": "2f9639037baa829ca9227fe5f64d8734812ce6469472d6a16301fafc1aafb1a7"
+    },
+    {
+      "clause_key": "mas.eupg/4.23",
+      "clause_ref": "4.23",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to assess claims and complete claims investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [23],
+      "text_sha256": "030817b7fc916cfeaea6f23803b4cb8c6557dbc9be8785d448c7cc960428d796"
+    },
+    {
+      "clause_key": "mas.eupg/4.24",
+      "clause_ref": "4.24",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to assess claims and complete claims investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [23],
+      "text_sha256": "5353fc236bcf776612771936d665bee06a4e066cb46a5e60bb5371dd4aef03d9"
+    },
+    {
+      "clause_key": "mas.eupg/4.25",
+      "clause_ref": "4.25",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to assess claims and complete claims investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [23, 24],
+      "text_sha256": "83c178b89271eb0e8c663ee1c9048c30a13d7762afd6ec5ab8ffd32b23f59246"
+    },
+    {
+      "clause_key": "mas.eupg/4.26",
+      "clause_ref": "4.26",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to assess claims and complete claims investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [24],
+      "text_sha256": "46da6fd51c249242e8594be9258e7fe06495ad4d4b9ab0e4526efbd4d02180a7"
+    },
+    {
+      "clause_key": "mas.eupg/4.27",
+      "clause_ref": "4.27",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to assess claims and complete claims investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [24],
+      "text_sha256": "53cc0d2fc631c7dbe40ed8f8849979d776c158ffccb933e849e0cb8bc2dbe1c4"
+    },
+    {
+      "clause_key": "mas.eupg/4.28",
+      "clause_ref": "4.28",
+      "heading_path": ["4 Duties of the responsible FI", "Responsible FI to credit protected account"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [24],
+      "text_sha256": "12cfc7cbf7b7a038c76bfb5888bd7d255f0f0374b71ab1d2f76bbc6690a8a238"
+    },
+    {
+      "clause_key": "mas.eupg/fn19",
+      "clause_ref": "footnote 19",
+      "heading_path": ["4 Duties of the responsible FI"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [24],
+      "text_sha256": "3c1991c007cb7d89a37d148ad229028996a739b20514a4ae27a4f28ddd5e7c59"
+    },
+    {
+      "clause_key": "mas.eupg/4.29",
+      "clause_ref": "4.29",
+      "heading_path": ["4 Duties of the responsible FI", "Scheduled system downtime"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [25],
+      "text_sha256": "dc76ae3c67bbb948d2fc94851d345277b13b24fc522118129082cfa07831dc0c"
+    },
+    {
+      "clause_key": "mas.eupg/5.1",
+      "clause_ref": "5.1",
+      "heading_path": ["5 Liability for losses arising from unauthorised transactions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [26],
+      "text_sha256": "efdae33855ac4ab5d1067c29eb0565d54ab4a90fee1d71e270089fac143fbe4f",
+      "note": "States that Section 5 does not apply to card transactions."
+    },
+    {
+      "clause_key": "mas.eupg/5.2",
+      "clause_ref": "5.2",
+      "heading_path": ["5 Liability for losses arising from unauthorised transactions", "Account holder is liable for actual loss"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [26],
+      "text_sha256": "c300934e8ef82c9903ee906a6070c08eeb4552173aa96f212cf501bc815f9e1e"
+    },
+    {
+      "clause_key": "mas.eupg/5.3",
+      "clause_ref": "5.3",
+      "heading_path": ["5 Liability for losses arising from unauthorised transactions", "Account holder is liable for actual loss"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [26, 27],
+      "text_sha256": "4e9d81a3c03d0d1997069ecb37ff043cae617ae559a5868024eb0e01afe2ba21"
+    },
+    {
+      "clause_key": "mas.eupg/fn20",
+      "clause_ref": "footnote 20",
+      "heading_path": ["5 Liability for losses arising from unauthorised transactions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [26],
+      "text_sha256": "91bc1e7a698ef43d4e30ca6d16a616d37f2fd6f6dc5517f6f47f1be06b8ba75f"
+    },
+    {
+      "clause_key": "mas.eupg/fn21",
+      "clause_ref": "footnote 21",
+      "heading_path": ["5 Liability for losses arising from unauthorised transactions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [26],
+      "text_sha256": "b0f2658221ce2e850fe3784fabdd2ab05417f91939527f0a81b8cc577e7101a3"
+    },
+    {
+      "clause_key": "mas.eupg/5.4",
+      "clause_ref": "5.4",
+      "heading_path": ["5 Liability for losses arising from unauthorised transactions", "Account holder is not liable for any loss: loss resulting from any action or omission by the responsible FI"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [27],
+      "text_sha256": "5e4b2cdd211c96dad1dc59a0a3b18347c77a650ad82e3f6f5437c4b63da1536b"
+    },
+    {
+      "clause_key": "mas.eupg/5.5",
+      "clause_ref": "5.5",
+      "heading_path": ["5 Liability for losses arising from unauthorised transactions", "Account holder is not liable for any loss: loss resulting from any action or omission by the responsible FI"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [27],
+      "text_sha256": "dedf0f2c933f10a79bd9a423294a539c408e40e79df4b613eb28548723ff4c3f"
+    },
+    {
+      "clause_key": "mas.eupg/5.6",
+      "clause_ref": "5.6",
+      "heading_path": ["5 Liability for losses arising from unauthorised transactions", "Account holder is not liable for any loss: loss resulting from any action or omission of any independent third party"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [27],
+      "text_sha256": "172ab0a68cab5fddc92eeac18677d77d58feffd9e34c4cc872b1f1c1eef87f5d"
+    },
+    {
+      "clause_key": "mas.eupg/5.7",
+      "clause_ref": "5.7",
+      "heading_path": ["5 Liability for losses arising from unauthorised transactions", "Agreement to reduce account holder’s liability"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [27],
+      "text_sha256": "3db87a633cb91a584b0cfee400adf4f4816fd07f21d332c1314c2224a353440c"
+    },
+    {
+      "clause_key": "mas.eupg/5.8",
+      "clause_ref": "5.8",
+      "heading_path": ["5 Liability for losses arising from unauthorised transactions", "Agreement to reduce account holder’s liability"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [28],
+      "text_sha256": "23ca7928b1acd4556c2546d585fc6880de29b55eaaa74e4d284015c360caa6f0"
+    },
+    {
+      "clause_key": "mas.eupg/5.9",
+      "clause_ref": "5.9",
+      "heading_path": ["5 Liability for losses arising from unauthorised transactions", "Application of this section to joint accounts"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [28],
+      "text_sha256": "c232f9b7fc391558108702f6f97cb56ecc4cc15bfeb61bb974230127486afcf5"
+    },
+    {
+      "clause_key": "mas.eupg/6.1",
+      "clause_ref": "6.1",
+      "heading_path": ["6 Specific duties in relation to erroneous transactions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [29],
+      "text_sha256": "f094e064af9e7142fc1d3f652392fef088bbb52c45e010eb2d70623087cf71be"
+    },
+    {
+      "clause_key": "mas.eupg/6.2",
+      "clause_ref": "6.2",
+      "heading_path": ["6 Specific duties in relation to erroneous transactions", "FIs to make reasonable efforts to recover sums sent in error by the account user: where the account holder or account user has initiated an erroneous transaction and requests to recover the funds"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [29],
+      "text_sha256": "f62df94dbf702098ea9631d6cc9ddd93b9fb5b9e88edd7114617ddbe385b2b8f"
+    },
+    {
+      "clause_key": "mas.eupg/6.3",
+      "clause_ref": "6.3",
+      "heading_path": ["6 Specific duties in relation to erroneous transactions", "FIs to make reasonable efforts to recover sums sent in error by the account user: where the account holder or account user has initiated an erroneous transaction and requests to recover the funds"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [29, 30],
+      "text_sha256": "0ec8bde792ce79c4a252568ddfac8ec3b2d8ebed4ff5246362a85cca72fccb9b"
+    },
+    {
+      "clause_key": "mas.eupg/6.4",
+      "clause_ref": "6.4",
+      "heading_path": ["6 Specific duties in relation to erroneous transactions", "Where the wrong recipient has noticed an erroneous transaction and requests to return the sum sent in error"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": "2025-06-16",
+      "pages": [30],
+      "text_sha256": "d36923d6b872618b5a1a1e28675efd812399c6c8aa8d5a8e5ac6703f747ab795"
+    },
+    {
+      "clause_key": "mas.eupg/6.5",
+      "clause_ref": "6.5",
+      "heading_path": ["6 Specific duties in relation to erroneous transactions", "Where the wrong recipient has noticed an erroneous transaction and requests to return the sum sent in error"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": "2025-06-16",
+      "pages": [30, 31],
+      "text_sha256": "cf845083cb8cb28484b667fb47ac399c951cfb40c8fa920c358c7d64522f0f7b"
+    },
+    {
+      "clause_key": "mas.eupg/6.6",
+      "clause_ref": "6.6",
+      "heading_path": ["6 Specific duties in relation to erroneous transactions", "Where the wrong recipient has noticed an erroneous transaction and requests to return the sum sent in error"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [31, 32],
+      "text_sha256": "9590d5a38a05867d70cbc4faf5b4902de76b6cf92c56095e6ce5250b5155b8cb"
+    },
+    {
+      "clause_key": "mas.eupg/6.7",
+      "clause_ref": "6.7",
+      "heading_path": ["6 Specific duties in relation to erroneous transactions", "Account holder or recipient to provide information on erroneous transaction"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [32],
+      "text_sha256": "1bf8ce3d2f936790603e398e5c4e3c6a13285c0bbe11ad64e733d33429cb4d51"
+    },
+    {
+      "clause_key": "mas.eupg/6.8",
+      "clause_ref": "6.8",
+      "heading_path": ["6 Specific duties in relation to erroneous transactions", "Account holder or recipient to provide information on erroneous transaction"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [32],
+      "text_sha256": "337028914de05ade898a75e009e52eadc852fdeb3063d1b8349b2fcf817d50cd"
+    },
+    {
+      "clause_key": "mas.eupg/7.1",
+      "clause_ref": "7.1",
+      "heading_path": ["7 Dispute resolution process for handling any disputed investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [33],
+      "text_sha256": "cecf56ef7c9675c99d9fd1006cab9fb125e12bdb92b4e2d3f09639ea7c4281e0"
+    },
+    {
+      "clause_key": "mas.eupg/7.2",
+      "clause_ref": "7.2",
+      "heading_path": ["7 Dispute resolution process for handling any disputed investigation", "Responsible FI to have in place a dispute resolution process"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [33],
+      "text_sha256": "f4a07a6d4d34f34d655429beca9dd1bcd71143748181d7d5e18b275c88c8eb8d"
+    },
+    {
+      "clause_key": "mas.eupg/7.3",
+      "clause_ref": "7.3",
+      "heading_path": ["7 Dispute resolution process for handling any disputed investigation", "Responsible FI to provide channels for account holders to notify the responsible FI"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [33],
+      "text_sha256": "0ac4457cfc3d85cf7b94f4f7336310debb94553bbe0dff09372f608c0463993e"
+    },
+    {
+      "clause_key": "mas.eupg/7.4",
+      "clause_ref": "7.4",
+      "heading_path": ["7 Dispute resolution process for handling any disputed investigation", "Reasonable request for evidence by the responsible FI to facilitate investigations"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [33],
+      "text_sha256": "df5b805b433ba30d2fe0213fcc8c4a8a386adaefc11aa306119645b68c0d2f89"
+    },
+    {
+      "clause_key": "mas.eupg/fn22",
+      "clause_ref": "footnote 22",
+      "heading_path": ["7 Dispute resolution process for handling any disputed investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [33],
+      "text_sha256": "7e6a310df8393a69e17f27df5a401444079f1194f883c91a7e5631d2fd065f5e"
+    },
+    {
+      "clause_key": "mas.eupg/7.5",
+      "clause_ref": "7.5",
+      "heading_path": ["7 Dispute resolution process for handling any disputed investigation", "Responsible FI to promptly assess and investigate the disputed investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [34],
+      "text_sha256": "76bd89db01b0540c1efed30bed9441763f51a5df64edd6be28037b46e75e01e5"
+    },
+    {
+      "clause_key": "mas.eupg/7.6",
+      "clause_ref": "7.6",
+      "heading_path": ["7 Dispute resolution process for handling any disputed investigation", "Responsible FI to promptly assess and investigate the disputed investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [34],
+      "text_sha256": "21d1cf44fdaf4650813207d65909f503412a533433a6c5a1a8b9b06fcfbb25ba"
+    },
+    {
+      "clause_key": "mas.eupg/7.7",
+      "clause_ref": "7.7",
+      "heading_path": ["7 Dispute resolution process for handling any disputed investigation", "Responsible FI to promptly assess and investigate the disputed investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [34, 35],
+      "text_sha256": "cf9017c05f72e1fa811e65aae7679d2ddde88ffa515d3f5770e53e7d8648818c"
+    },
+    {
+      "clause_key": "mas.eupg/fn23",
+      "clause_ref": "footnote 23",
+      "heading_path": ["7 Dispute resolution process for handling any disputed investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [34],
+      "text_sha256": "0eeb2ecbbe3241e867e6c1a6b78a5421c0ebbe19ef7bcde87a442702e3b6f01c"
+    },
+    {
+      "clause_key": "mas.eupg/7.8",
+      "clause_ref": "7.8",
+      "heading_path": ["7 Dispute resolution process for handling any disputed investigation", "Responsible FI to promptly assess and investigate the disputed investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [35],
+      "text_sha256": "115a36570c69685ea90584c73a246eb6f9f182ac5f5e7bd0885af7b866307fc8"
+    },
+    {
+      "clause_key": "mas.eupg/fn24",
+      "clause_ref": "footnote 24",
+      "heading_path": ["7 Dispute resolution process for handling any disputed investigation"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": null,
+      "pages": [35],
+      "text_sha256": "d742f34f93f7c0732bc9b78a365d5aa57e1570a6f45902eecdc90a06bc448d89"
+    },
+    {
+      "clause_key": "mas.eupg/8.1",
+      "clause_ref": "8.1",
+      "heading_path": ["8 Charges relating to transactions under dispute", "Responsible FI to withhold and/or waive charges relating to transactions under dispute"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": "2025-06-16",
+      "pages": [36],
+      "text_sha256": "8c74fb3d36e37006b5cbcb37189bcb01d5d57c1f3b1aec1ed8e3f3f2c4138968"
+    },
+    {
+      "clause_key": "mas.eupg/8.2",
+      "clause_ref": "8.2",
+      "heading_path": ["8 Charges relating to transactions under dispute", "Responsible FI to withhold and/or waive charges relating to transactions under dispute"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": "2025-06-16",
+      "pages": [36],
+      "text_sha256": "ab5c6c4723122497ac26ed77130b5c12b59e0446e7ba51d026c65f10f906c1df"
+    },
+    {
+      "clause_key": "mas.eupg/fn25",
+      "clause_ref": "footnote 25",
+      "heading_path": ["8 Charges relating to transactions under dispute"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": "2025-06-16",
+      "pages": [36],
+      "text_sha256": "7554ebb77f39d6e51481463b819016ce7ba9ddd45f5980bbe2e5f73dc578e0ae"
+    },
+    {
+      "clause_key": "mas.eupg/fn26",
+      "clause_ref": "footnote 26",
+      "heading_path": ["8 Charges relating to transactions under dispute"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": "2025-06-16",
+      "pages": [36],
+      "text_sha256": "87a7f17e94bc1ef63e4cdc653d3b9df9d5125b594a2ccff55d81a4aa32aa53d5"
+    },
+    {
+      "clause_key": "mas.eupg/8.3",
+      "clause_ref": "8.3",
+      "heading_path": ["8 Charges relating to transactions under dispute", "Responsible FI to withhold the reporting of the non-payment of disputed transactions to licensed credit bureaus"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": "2025-06-16",
+      "pages": [37],
+      "text_sha256": "75348e65d9de1efd1f3ba98ffb01cac1e3387a1e9fa8d971c042bcf3da545693",
+      "note": "Names credit cards; scope set to accounts and e-wallets per brief Phase 0b (card payments: 4.2-4.6, 4.10-4.12, 4.14-4.16 only). Elena to confirm."
+    },
+    {
+      "clause_key": "mas.eupg/8.4",
+      "clause_ref": "8.4",
+      "heading_path": ["8 Charges relating to transactions under dispute", "Responsible FI to withhold the reporting of the non-payment of disputed transactions to licensed credit bureaus"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": "2025-06-16",
+      "pages": [37],
+      "text_sha256": "9e6c19013a591e3cdd14e07e73b8ed3fe4a303e703097eab9415611b9f1ab2a5",
+      "note": "Names credit cards; scope set to accounts and e-wallets per brief Phase 0b. Elena to confirm."
+    },
+    {
+      "clause_key": "mas.eupg/fn27",
+      "clause_ref": "footnote 27",
+      "heading_path": ["8 Charges relating to transactions under dispute"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": "2025-06-16",
+      "pages": [37],
+      "text_sha256": "09cdc4a1f5e74b1a20db7827954e5f521ae28e4eca4ea462f9825d97d65fe936"
+    },
+    {
+      "clause_key": "mas.eupg/8.5",
+      "clause_ref": "8.5",
+      "heading_path": ["8 Charges relating to transactions under dispute", "Responsible FI to withhold the reporting of the non-payment of disputed transactions to licensed credit bureaus"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": "2025-06-16",
+      "pages": [38],
+      "text_sha256": "35fd17b2c421fe4b39883916e24bf314ff25650b15dc23844b1d84ca5ca7a2c5"
+    },
+    {
+      "clause_key": "mas.eupg/8.6",
+      "clause_ref": "8.6",
+      "heading_path": ["8 Charges relating to transactions under dispute", "Responsible FI to disclose charges relating to recovery of unauthorised transactions"],
+      "tags": [],
+      "instrument_scope": ["account_transfer", "ewallet"],
+      "effective_from_override": "2025-06-16",
+      "pages": [38],
+      "text_sha256": "1378d85599817c97b4fb283b8328cdd53429a7bcf53cea01733b4d90465e8576"
+    }
+  ]
+}
