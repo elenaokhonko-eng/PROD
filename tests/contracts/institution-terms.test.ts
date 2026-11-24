@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import { SectionCollector } from '../../supabase/functions/_shared/facts/rules/account-access-sequence.ts'
 import {
   createStaticTermRequestSource,
   parseTermRequestRows,
@@ -11,8 +10,10 @@ import {
   TERM_OUTCOMES,
   TERM_PRODUCTS,
   TERM_PURPOSES,
+  TERM_PURPOSES_AWAITING_MIGRATION,
   TERM_QUOTE_MODES,
 } from '../../supabase/functions/_shared/facts/rules/institution-terms.ts'
+import { SectionWriter } from '../../supabase/functions/_shared/facts/update/section-writer.ts'
 import { createFakeClauseProvider, type DisputedPayment } from '../../supabase/functions/_shared/facts/update/contract.ts'
 import { cardOnlyCase, syntheticCorpus } from '../fixtures/fidrec-update/index.ts'
 
@@ -39,9 +40,16 @@ const base = {
 test('the row shape follows institution_term_requests: products, purposes, quote modes and outcomes', () => {
   const sql = readFileSync(MIGRATION, 'utf8').replace(/\r\n/g, '\n')
   const table = sql.slice(sql.indexOf('CREATE TABLE public.institution_term_requests'), sql.indexOf('CREATE INDEX institution_term_requests'))
-  for (const list of [TERM_PRODUCTS, TERM_PURPOSES, TERM_QUOTE_MODES, TERM_OUTCOMES]) {
+  for (const list of [TERM_PRODUCTS, TERM_QUOTE_MODES, TERM_OUTCOMES]) {
     for (const v of list) assert.ok(table.includes(`'${v}'`), v)
   }
+  // Every purpose is in the CHECK, except those waiting for Lane 1's migration (Elena's OK first). Once the migration
+  // adds one, this fails until it is taken off the waiting list.
+  for (const v of TERM_PURPOSES) {
+    if ((TERM_PURPOSES_AWAITING_MIGRATION as readonly string[]).includes(v)) assert.ok(!table.includes(`'${v}'`), `${v} is in the CHECK now`)
+    else assert.ok(table.includes(`'${v}'`), v)
+  }
+  assert.deepEqual([...TERM_PURPOSES_AWAITING_MIGRATION], ['wallet_provisioning'])
   for (const col of ['institution', 'product', 'purpose', 'document_key', 'selector', 'quote_mode', 'term_outcome', 'term', 'confirmed_by', 'confirmed_at']) {
     assert.match(table, new RegExp(`\\n  ${col} `), col)
   }
@@ -134,7 +142,7 @@ test('products a payment was made on', () => {
 
 test('print: quoted clause with attribution, or reference and link; the fixed line from the person-set outcome', async () => {
   const lines = async (row: object, onDate = '2025-09-12') => {
-    const out = new SectionCollector({ ...cardOnlyCase.data, provider })
+    const out = new SectionWriter('customer_fault_definitions', { ...cardOnlyCase.data, provider })
     const resolved = await resolveTermRequest(createStaticTermRequestSource(parseTermRequestRows([row])), provider, {
       institution: 'example_bank_a',
       product: 'credit_card',

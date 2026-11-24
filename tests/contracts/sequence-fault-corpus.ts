@@ -23,6 +23,15 @@ export const H = {
   reply: sha('4'),
   visa: sha('5'),
   mastercard: sha('6'),
+  srf31: sha('7'),
+}
+
+const srf31: FakeCorpusClause = {
+  clause_id: 'cl-srf-3.1',
+  clause_key: 'mas.srf/3.1',
+  clause_ref: '3.1',
+  text_content: 'Placeholder text of SRF 3.1.',
+  text_sha256: H.srf31,
 }
 
 const fn20: FakeCorpusClause = {
@@ -59,11 +68,13 @@ export const extraVersions: FakeCorpusVersion[] = [
   }),
   version({
     version_id: 'ver-reply',
-    document_key: 'mas.reply_20250107',
+    document_key: 'mas.reply.20250107',
     title: 'Synthetic written reply',
     binding_level: 'announcement',
     effective_from: '2025-01-07',
-    clauses: [{ clause_id: 'cl-reply', clause_key: 'mas.reply_20250107/3ds', clause_ref: '3ds', text_content: 'Placeholder text of the reply.', text_sha256: H.reply }],
+    // Decision 6: a MAS reply is read whatever the event date.
+    as_of_rule: 'any_date',
+    clauses: [{ clause_id: 'cl-reply', clause_key: 'mas.reply.20250107/3(a).3ds', clause_ref: '3(a)', text_content: 'Placeholder text of the reply.', text_sha256: H.reply }],
   }),
   version({
     version_id: 'ver-visa',
@@ -86,9 +97,9 @@ export const extraVersions: FakeCorpusVersion[] = [
     effective_from: '2025-03-01',
     coverage: 'selected_sections',
     clauses: [{
-      clause_id: 'cl-mc-nca',
-      clause_key: 'mastercard.chargeback_guide/no_cardholder_authorization',
-      clause_ref: 'No Cardholder Authorization',
+      clause_id: 'cl-mc-4837',
+      clause_key: 'mastercard.chargeback_guide/dms.4837.issuer-chargeback',
+      clause_ref: '4837',
       text_content: 'Placeholder section.',
       text_sha256: H.mastercard,
     }],
@@ -121,12 +132,16 @@ export function statement(
 }
 
 /**
- * The Step 0 corpus plus: EUPG footnote 20 in both EUPG versions, the card code, the MAS reply, both schemes' anchor
+ * The Step 0 corpus plus: EUPG footnote 20 in both EUPG versions, SRF 3.1, the card code, the MAS reply, both schemes' anchor
  * sections, and the given statements. The Step 0 statements stay as they are.
  */
 export function lane4Corpus(statements: FakeStatement[] = [], opts: { versions?: FakeCorpusVersion[] } = {}): FakeCorpus {
   const base = syntheticCorpus.versions.map((v) =>
-    v.document_key === 'mas.eupg' && v.status === 'verified' ? { ...v, clauses: [...v.clauses, fn20] } : v
+    v.document_key === 'mas.eupg' && v.status === 'verified'
+      ? { ...v, clauses: [...v.clauses, fn20] }
+      : v.document_key === 'mas.srf' && v.status === 'verified'
+      ? { ...v, clauses: [...v.clauses, srf31] }
+      : v
   )
   return {
     versions: [...base, ...(opts.versions ?? extraVersions)],
