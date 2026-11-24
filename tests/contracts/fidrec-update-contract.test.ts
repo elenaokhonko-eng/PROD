@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import test from 'node:test'
 import { assessSrf, normaliseInstitution, srfFactsFromSnapshot } from '../../lib/facts'
 import {
@@ -11,7 +11,9 @@ import {
   CARD_AUTHENTICATIONS,
   CARD_DISPUTE_STATUSES,
   CARD_SCHEMES,
+  AS_OF_RULE_OUTCOMES,
   AS_OF_RULES,
+  type AsOfRuleCase,
   CLAUSE_KEYS,
   COMPARISON_OUTCOMES,
   complainantRecognisesDevice,
@@ -28,12 +30,14 @@ import {
   IP_NETWORK_FLAGS,
   NAMED_CLAUSE_KEYS,
   readDateFor,
+  readUnderAsOfRule,
   recognitionAnswerFor,
   RULE_CLAUSE_KEYS,
   SECTION_IDS,
   type SectionBuilder,
   type SectionInput,
   TECHNICAL_RECORD_DOCUMENT_TYPES,
+  TERM_REQUEST_PURPOSES,
   TOKEN_ACTIVATION_METHODS,
   TWELVE_HOUR_BLOCK_HEADINGS,
   TWELVE_HOUR_EXCLUDED_KINDS,
@@ -57,6 +61,7 @@ import {
 const BRIEF = 'docs/agent-briefs/2026-11-20-agent-brief-fidrec-technical-records-and-standards-corpus.md'
 const CORPUS_MIGRATION = 'supabase/migrations/20261201120000_standards_corpus.sql'
 const REVIEW_LINKS_MIGRATION = 'supabase/migrations/20261202120000_standards_review_links.sql'
+const AS_OF_RULE_CASES_FILE = 'tests/fixtures/fidrec-update/as-of-rule-cases.json'
 
 const read = (path: string) => readFileSync(path, 'utf8').replace(/\r\n/g, '\n')
 const has = (list: readonly string[], value: unknown) => typeof value === 'string' && list.includes(value)
@@ -452,6 +457,72 @@ test('as-of rule: a document marked any_date reports it; others default to event
   assert.equal(await reply.getAsOfRule('mas.reply.20260113'), 'any_date')
   assert.equal(await reply.getAsOfRule('mas.eupg'), 'event_date')
   assert.equal(await provider.getAsOfRule('mas.eupg'), 'event_date')
+})
+
+test('as-of rule: the fake provider gives the expected result for every row of the shared table', async () => {
+  const table = JSON.parse(read(AS_OF_RULE_CASES_FILE)) as { cases: AsOfRuleCase[] }
+  assert.ok(table.cases.length >= 8)
+  const ids = new Set<string>()
+  for (const c of table.cases) {
+    assert.ok(!ids.has(c.id), `duplicate ${c.id}`)
+    ids.add(c.id)
+    assert.ok(has(AS_OF_RULES, c.asOfRule) && has(AS_OF_RULE_OUTCOMES, c.expected), c.id)
+    assert.match(c.documentKey, /^test\./, `${c.id}: synthetic keys only`)
+    const p = createFakeClauseProvider({
+      versions: [{
+        version_id: `ver-${c.id}`,
+        document_key: c.documentKey,
+        title: 'Synthetic document',
+        publisher: 'Synthetic publisher',
+        binding_level: c.asOfRule === 'any_date' ? 'announcement' : 'guideline',
+        institution: null,
+        card_scheme: null,
+        document_instrument_scope: ['account_transfer', 'sg_card', 'ewallet'],
+        version_label: c.documentDate,
+        effective_from: c.documentDate,
+        effective_to: null,
+        status: 'verified',
+        source_url: null,
+        coverage: 'full',
+        as_of_rule: c.asOfRule,
+        clauses: [{ clause_id: `cl-${c.id}`, clause_key: c.clauseKey, text_content: 'Placeholder.', text_sha256: 'e'.repeat(64), effective_from_override: c.clauseStart }],
+      }],
+      statements: [],
+    })
+    const got = await readUnderAsOfRule(p, c.documentKey, c.clauseKey, c.eventDate, c.generatedOn)
+    assert.equal(got.outcome, c.expected, `${c.id}: ${c.standsFor}`)
+  }
+  // The two cases the review names.
+  const byId = new Map(table.cases.map((c) => [c.id, c]))
+  assert.equal(byId.get('eupg-4.21-before-start')?.expected, 'not_held')
+  assert.equal(byId.get('eupg-4.21-before-start')?.clauseStart, '2025-06-16')
+  assert.equal(byId.get('reply-2026-for-2025-event')?.expected, 'held_after_the_events')
+  assert.equal(byId.get('reply-2026-for-2025-event')?.documentDate, '2026-01-13')
+})
+
+test('term-request purposes are named once: the database check and Lane 4\'s list match the contract', async () => {
+  assert.ok((TERM_REQUEST_PURPOSES as readonly string[]).includes('wallet_provisioning'))
+  assert.equal(new Set(TERM_REQUEST_PURPOSES).size, TERM_REQUEST_PURPOSES.length)
+  // The latest migration that sets the purpose CHECK: every purpose it allows is in the contract; the contract may be
+  // ahead only by wallet_provisioning until Lane 1's migration (Elena's OK) adds it, then the two are equal.
+  const migrations = readdirSync('supabase/migrations').filter((f) => f.endsWith('.sql')).sort()
+  let dbPurposes: string[] | null = null
+  for (const f of migrations) {
+    const sql = read(`supabase/migrations/${f}`)
+    for (const m of sql.matchAll(/CHECK\s*\(\s*purpose\s+IN\s*\(([^)]*)\)/gi)) {
+      dbPurposes = [...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1])
+    }
+  }
+  assert.ok(dbPurposes, 'institution_term_requests.purpose CHECK')
+  for (const p of dbPurposes) assert.ok((TERM_REQUEST_PURPOSES as readonly string[]).includes(p), p)
+  const ahead = TERM_REQUEST_PURPOSES.filter((p) => !dbPurposes!.includes(p))
+  assert.ok(ahead.every((p) => p === 'wallet_provisioning'), `contract ahead of the database by ${ahead.join(', ')}`)
+  // Lane 4's list, once its rule file is on this branch.
+  const lane4 = 'supabase/functions/_shared/facts/rules/institution-terms.ts'
+  if (existsSync(lane4)) {
+    const mod = await import(`../../${lane4}`) as { TERM_PURPOSES?: readonly string[] }
+    if (mod.TERM_PURPOSES) assert.deepEqual([...mod.TERM_PURPOSES], [...TERM_REQUEST_PURPOSES])
+  }
 })
 
 test('the provider refuses a value that is not a date', async () => {
