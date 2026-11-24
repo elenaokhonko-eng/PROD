@@ -74,19 +74,17 @@ const CONFIRM_BUTTON = {
   fidrec: 'Confirm and continue to your FIDReC escalation pack',
 } as const
 
-// A document added just before confirming makes the facts be read again; a click made while that is under way does
-// not confirm, and new questions can appear (24 Nov 2026 gate run: the S$18 purchase confirmed nothing and waited five
-// minutes for a pack never started). So confirm as a person would: answer what is open, press confirm, and if the
-// button is still there a minute later, answer again and press again.
+// One press, as a person would. A document added just before shows "still being read" and the facts reload with any new
+// question (use-upload-evidence.ts, use-case-documents-realtime.ts); resolveOpenFindings waits for that. A press that
+// does not confirm is a failure, not something to retry (24 Nov 2026 gate run and review).
 export async function confirmFactsInDashboard(page: Page, caseId: string, stage: keyof typeof CONFIRM_BUTTON = 'free') {
   const confirm = page.getByRole('button', { name: CONFIRM_BUTTON[stage] })
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    await resolveOpenFindings(page, caseId, { stage })
-    await confirm.click()
-    const gone = await confirm.waitFor({ state: 'hidden', timeout: 60_000 }).then(() => true, () => false)
-    if (gone) return
-  }
-  throw new Error(`The ${stage} facts were not confirmed after 3 attempts: the confirm button is still shown`)
+  await resolveOpenFindings(page, caseId, { stage })
+  await confirm.click()
+  const gone = await confirm.waitFor({ state: 'hidden', timeout: 60_000 }).then(() => true, () => false)
+  if (gone) return
+  const shown = await page.locator('[role="alert"]').allInnerTexts().catch(() => [])
+  throw new Error(`The ${stage} facts were not confirmed by one press. The screen shows: ${shown.join(' | ') || 'no message'}`)
 }
 
 // Synthetic journey: told the bank by phone, no written complaint yet, no reply, police report made, no FIDReC.
