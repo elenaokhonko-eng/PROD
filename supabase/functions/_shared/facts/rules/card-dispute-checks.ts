@@ -15,19 +15,20 @@ import type {
   CardAuthEvent,
   CardScheme,
   ClauseAsOf,
-  ClauseCitation,
-  ComparisonLine,
   ComparisonOutcome,
-  ContractFactKey,
   DisputedPayment,
   IsoDate,
   SectionBuilder,
-  SectionFlag,
   SectionInput,
-  SectionLine,
-  SectionResult,
   StatementKey,
 } from "../update/contract.ts";
+import {
+  deviceRecognitionSentence,
+  formatDate,
+  formatMoney,
+  SCHEME_STANDING_SENTENCE,
+  SectionWriter,
+} from "../update/section-writer.ts";
 
 /** The scheme sections this file cites, by role. Visa keys match CLAUSE_KEYS.card_dispute_comparison. */
 export const CARD_DISPUTE_CLAUSE_KEYS = {
@@ -50,10 +51,6 @@ export const CARD_DISPUTE_RULE_CLAUSE_KEYS: readonly string[] = [
 
 /** Calendar days the scheme sections allow for a fraud dispute (Visa 11.8.4/11.8.5; Mastercard 4837). */
 export const SCHEME_DISPUTE_DAYS = 120;
-
-/** Layer-5 standing sentence (brief section 4). */
-export const SCHEME_STANDING_SENTENCE =
-  "Card scheme rules are an agreement between the card scheme and the card issuer. The cardholder is not a party to them. They are shown here as the process available to the issuer.";
 
 type Scheme = "visa" | "mastercard";
 
@@ -115,84 +112,17 @@ function money(p: DisputedPayment): string {
   return `${currency} ${amount.toLocaleString("en-SG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function compare(w: SectionWriter, clause: ClauseAsOf, record: string, expected: string, outcome: ComparisonOutcome, evidenceIds: string[]): void {
+  w.comparison({ clauseKey: clause.clause_key, record, expected, outcome, evidenceIds });
+}
+
+function say(w: SectionWriter, text: string, evidenceIds: string[] = [], clauseKeys: string[] = []): void {
+  w.text(text, { evidenceIds, clauseKeys });
+}
+
 function sectionRef(clause: ClauseAsOf): string {
   const ref = clause.clause_ref ?? clause.clause_key.split("/")[1];
   return `${clause.title}, section ${ref}, edition ${clause.version_label}`;
-}
-
-/** Collects lines, citations and flags, citing each clause and printing each statement once. */
-class SectionWriter {
-  readonly lines: SectionLine[] = [];
-  private readonly citations = new Map<string, ClauseCitation>();
-  private readonly flags = new Map<string, SectionFlag>();
-  private readonly printedStatements = new Set<string>();
-
-  constructor(private readonly input: SectionInput) {}
-
-  ev(...keys: ContractFactKey[]): string[] {
-    return [...new Set(keys.flatMap((k) => this.input.evidenceIds[k] ?? []))];
-  }
-
-  async clause(clauseKey: string, onDate: IsoDate): Promise<ClauseAsOf | null> {
-    const row = await this.input.provider.getClauseAsOf(clauseKey, onDate);
-    if (row === null) {
-      this.flag("clause_not_held", clauseKey, onDate);
-      return null;
-    }
-    const id = `${row.clause_id}@${onDate}`;
-    if (!this.citations.has(id)) {
-      this.citations.set(id, {
-        clauseKey: row.clause_key,
-        onDate,
-        clauseId: row.clause_id,
-        textSha256: row.text_sha256,
-        versionId: row.version_id,
-        versionLabel: row.version_label,
-      });
-    }
-    return row;
-  }
-
-  flag(code: SectionFlag["code"], key: string, onDate: IsoDate): void {
-    this.flags.set(`${code}|${key}|${onDate}`, { code, key, onDate });
-  }
-
-  text(text: string, evidenceIds: string[] = [], clauseKeys: string[] = []): void {
-    this.lines.push({ kind: "text", text, step: null, evidenceIds, clauseKeys });
-  }
-
-  compare(clause: ClauseAsOf, record: string, expected: string, outcome: ComparisonOutcome, evidenceIds: string[]): void {
-    const comparison: ComparisonLine = { clauseKey: clause.clause_key, record, expected, outcome, evidenceIds };
-    this.lines.push({ kind: "comparison", comparison });
-  }
-
-  async statement(statementKey: StatementKey, onDate: IsoDate, evidenceIds: string[]): Promise<void> {
-    if (this.printedStatements.has(statementKey)) return;
-    this.printedStatements.add(statementKey);
-    const row = await this.input.provider.getStatementAsOf(statementKey, onDate);
-    if (row === null) this.flag("statement_under_review", statementKey, onDate);
-    this.lines.push({
-      kind: "statement",
-      statement: {
-        statementKey,
-        onDate,
-        statementId: row?.statement_id ?? null,
-        revision: row?.revision ?? null,
-        text: row?.text ?? null,
-        clauseKeys: row?.clause_keys ?? [],
-        evidenceIds,
-      },
-    });
-  }
-
-  result(): SectionResult {
-    return {
-      sectionId: "card_dispute_comparison",
-      lines: this.lines,
-      citations: [...this.citations.values()],
-      flags: [...this.flags.values()],
-    };
-  }
 }
 
 interface PaymentRow {
@@ -214,10 +144,7 @@ function deviceStatement(input: SectionInput, event: CardAuthEvent | null): stri
     (event.deviceRef === null && event.deviceLabel !== null && a.deviceLabel === event.deviceLabel)
   );
   if (!match) return null;
-  const label = event.deviceLabel ? `labelled '${event.deviceLabel}'` : "the record shows";
-  if (match.answer === "not_mine") return `The complainant states that the device ${label} is not hers.`;
-  if (match.answer === "mine") return `The complainant states that the device ${label} is hers.`;
-  return `The complainant states that she is not sure whether the device ${label} is hers.`;
+  return deviceRecognitionSentence(match.answer, event.deviceLabel);
 }
 
 /** The request to dispute, else the report to the institution: the date the time limit is measured to. */
@@ -232,42 +159,42 @@ function requestDate(input: SectionInput): { date: IsoDate; source: "card_disput
 function denialLine(w: SectionWriter, input: SectionInput, row: PaymentRow, clause: ClauseAsOf, condition: string): void {
   const device = deviceStatement(input, row.event);
   const record = [
-    `The complainant disputes the payment of ${money(row.payment)} on ${row.payment.date} as not made or authorised by her.`,
+    `The complainant disputes the payment of ${money(row.payment)} on ${formatDate(row.payment.date)} as not made or authorised by them.`,
     device,
   ].filter(Boolean).join(" ");
-  w.compare(
+  compare(w, 
     clause,
     record,
     `Under ${sectionRef(clause)}, ${condition} applies where the cardholder denies authorising or taking part in the payment.`,
     "matches",
-    w.ev("transactions", "device_recognition"),
+    w.evidence("transactions", "device_recognition"),
   );
 }
 
 function timeLine(w: SectionWriter, input: SectionInput, row: PaymentRow, clause: ClauseAsOf, expected: string): boolean {
   const request = requestDate(input);
-  const evidence = w.ev("transactions", request?.source ?? "card_dispute_requested");
+  const evidence = w.evidence("transactions", request?.source ?? "card_dispute_requested");
   if (!request || !row.onDate) {
-    w.compare(clause, "The records provided do not show when the complainant reported the payment or asked for a dispute.", expected, "not_shown", evidence);
+    compare(w, clause, "The records provided do not show when the complainant reported the payment or asked for a dispute.", expected, "not_shown", evidence);
     return false;
   }
   const days = calendarDaysBetween(row.onDate, request.date);
   const asked = request.source === "card_dispute_requested" ? "asked the institution to dispute it" : "reported it to the institution";
   const record =
-    `The payment is dated ${row.onDate}; the complainant ${asked} on ${request.date}, ${days} calendar days later. ` +
+    `The payment is dated ${formatDate(row.onDate)}; the complainant ${asked} on ${formatDate(request.date)}, ${days} calendar days later. ` +
     "The records do not show the date the payment was processed by the scheme; the count runs from the payment date.";
   const within = days >= 0 && days <= SCHEME_DISPUTE_DAYS;
-  w.compare(clause, record, expected, within ? "matches" : "differs", evidence);
+  compare(w, clause, record, expected, within ? "matches" : "differs", evidence);
   return within;
 }
 
 function reportedLine(w: SectionWriter, clause: ClauseAsOf, scheme: Scheme): void {
-  w.compare(
+  compare(w, 
     clause,
     `The records provided do not show whether the institution reported this payment to ${SCHEME_NAME[scheme]} as fraud.`,
     `Under ${sectionRef(clause)}, the issuer is to report the payment to ${SCHEME_NAME[scheme]} as fraud before raising the dispute.`,
     "not_shown",
-    w.ev("card_dispute_response", "bank_reply"),
+    w.evidence("card_dispute_response", "bank_reply"),
   );
 }
 
@@ -276,7 +203,7 @@ function recordRow(w: SectionWriter, row: PaymentRow): void {
   w.lines.push({
     kind: "record",
     fields: {
-      payment_date: row.payment.date,
+      payment_date: row.payment.date ? formatDate(row.payment.date) : null,
       amount: money(row.payment),
       merchant: e?.merchant ?? row.payment.payee,
       card_last4: row.payment.last4,
@@ -286,14 +213,14 @@ function recordRow(w: SectionWriter, row: PaymentRow): void {
       authentication_result: e ? e.authenticationResult : null,
       device: e?.deviceLabel ?? null,
     },
-    evidenceIds: w.ev("card_auth_events", "transactions"),
+    evidenceIds: w.evidence("card_auth_events", "transactions"),
   });
 }
 
 async function visaPayment(w: SectionWriter, input: SectionInput, row: PaymentRow, statements: Map<StatementKey, IsoDate>): Promise<PaymentOutcome> {
   const onDate = row.onDate!;
   const env = environmentOf(row.event);
-  const authEvidence = w.ev("card_auth_events");
+  const authEvidence = w.evidence("card_auth_events");
   const k = CARD_DISPUTE_CLAUSE_KEYS.visa;
 
   if (env === "not_shown") {
@@ -302,7 +229,7 @@ async function visaPayment(w: SectionWriter, input: SectionInput, row: PaymentRo
     const record = row.event
       ? `The record shows the payment was ${ENTRY_LABEL[row.event.entryMode]}. It does not show whether the card was present.`
       : "The records provided do not show how this payment was made.";
-    w.compare(
+    compare(w, 
       clause,
       record,
       `Under ${sectionRef(clause)}, Dispute Condition 10.4 covers payments in a card-absent environment; Dispute Condition 10.3 covers key-entered payments in a card-present environment.`,
@@ -315,7 +242,7 @@ async function visaPayment(w: SectionWriter, input: SectionInput, row: PaymentRo
   if (env === "card_present_read") {
     const clause = await w.clause(k.cardPresentKeyEntered, onDate);
     if (!clause) return { conditionsShown: false };
-    w.compare(
+    compare(w, 
       clause,
       `The record shows the card was ${ENTRY_LABEL[row.event!.entryMode]}, authenticated by ${AUTH_LABEL[row.event!.authentication]}.`,
       `Under ${sectionRef(clause)}, Dispute Condition 10.3 covers key-entered payments in a card-present environment; Dispute Condition 10.4 covers payments in a card-absent environment.`,
@@ -331,7 +258,7 @@ async function visaPayment(w: SectionWriter, input: SectionInput, row: PaymentRo
   if (!clause) return { conditionsShown: false };
 
   denialLine(w, input, row, clause, condition);
-  w.compare(
+  compare(w, 
     clause,
     `The record shows the payment was ${ENTRY_LABEL[row.event!.entryMode]}.`,
     cardAbsent
@@ -354,18 +281,18 @@ function invalidListLine(w: SectionWriter, row: PaymentRow, clause: ClauseAsOf, 
   const expected =
     `Under ${sectionRef(clause)}, the invalid disputes for Dispute Condition 10.4 include payments authenticated through Visa Secure, ` +
     "payments where Visa Secure authentication was attempted, and payments with an authenticated token where cardholder verification was approved.";
-  const evidence = w.ev("card_auth_events");
+  const evidence = w.evidence("card_auth_events");
   const caveat = "The record does not show the electronic commerce indicator or the authentication values sent with the authorisation.";
   const threeDs = e.authentication.startsWith("three_ds_");
   const token = e.authentication === "wallet_device";
 
   if (e.authentication === "not_known" || (e.authenticationResult === "not_known" && (threeDs || token))) {
-    w.compare(clause, "The records provided do not show how this payment was authenticated.", expected, "not_shown", evidence);
+    compare(w, clause, "The records provided do not show how this payment was authenticated.", expected, "not_shown", evidence);
     return false;
   }
   if ((threeDs || token) && (e.authenticationResult === "authenticated" || e.authenticationResult === "attempted")) {
     const how = `${AUTH_LABEL[e.authentication]}, result '${e.authenticationResult}'`;
-    w.compare(clause, `The record shows the payment authenticated by ${how}. ${caveat}`, expected, "differs", evidence);
+    compare(w, clause, `The record shows the payment authenticated by ${how}. ${caveat}`, expected, "differs", evidence);
     const key: StatementKey = token
       ? "visa.token.authenticated"
       : e.authenticationResult === "attempted" ? "visa.3ds.attempted" : "visa.3ds.authenticated";
@@ -375,7 +302,7 @@ function invalidListLine(w: SectionWriter, row: PaymentRow, clause: ClauseAsOf, 
   const shownAs = e.authentication === "none_recorded" || e.authentication === "pin"
     ? AUTH_LABEL[e.authentication]
     : `${AUTH_LABEL[e.authentication]}, result '${e.authenticationResult}'`;
-  w.compare(clause, `The record shows ${shownAs}.`, expected, "matches", evidence);
+  compare(w, clause, `The record shows ${shownAs}.`, expected, "matches", evidence);
   if (!statements.has("visa.no3ds")) statements.set("visa.no3ds", row.onDate!);
   return true;
 }
@@ -389,17 +316,17 @@ async function mastercardPayment(w: SectionWriter, input: SectionInput, row: Pay
   const condition = "the 'No Cardholder Authorization' chargeback (message reason code 4837)";
 
   const asked = requestDate(input);
-  w.compare(
+  compare(w, 
     chargeback,
     [
       asked
-        ? `The complainant disputes the payment of ${money(row.payment)} on ${row.payment.date} and contacted the institution about it on ${asked.date}.`
-        : `The complainant disputes the payment of ${money(row.payment)} on ${row.payment.date}. The records provided do not show when she contacted the institution about it.`,
+        ? `The complainant disputes the payment of ${money(row.payment)} on ${formatDate(row.payment.date)} and contacted the institution about it on ${formatDate(asked.date)}.`
+        : `The complainant disputes the payment of ${money(row.payment)} on ${formatDate(row.payment.date)}. The records provided do not show when they contacted the institution about it.`,
       deviceStatement(input, row.event),
     ].filter(Boolean).join(" "),
     `Under ${sectionRef(chargeback)}, ${condition} is available where the cardholder contacted the issuer saying the payment was not authorised.`,
     asked ? "matches" : "not_shown",
-    w.ev("transactions", "card_dispute_requested", "reported_to_bank", "device_recognition"),
+    w.evidence("transactions", "card_dispute_requested", "reported_to_bank", "device_recognition"),
   );
 
   let shown = asked !== null;
@@ -408,17 +335,17 @@ async function mastercardPayment(w: SectionWriter, input: SectionInput, row: Pay
     `Under ${sectionRef(ineligible)}, the payments listed as ineligible for ${condition} include properly authenticated payments ` +
     "(for example through Identity Check or Digital Secure Remote Payment), payments with a PIN or cardholder verification on the device, " +
     "and card-read payments at an attended terminal.";
-  const evidence = w.ev("card_auth_events");
+  const evidence = w.evidence("card_auth_events");
   const walletVerified = e?.authentication === "wallet_device" && e.authenticationResult === "authenticated";
   if (!e || e.authentication === "not_known" || (e.entryMode === "not_known" && e.authentication !== "none_recorded")) {
-    w.compare(ineligible, "The records provided do not show how this payment was made or authenticated.", expected, "not_shown", evidence);
+    compare(w, ineligible, "The records provided do not show how this payment was made or authenticated.", expected, "not_shown", evidence);
     shown = false;
   } else if (e.authentication === "pin" || (walletVerified && e.entryMode !== "ecommerce")) {
-    w.compare(ineligible, `The record shows the payment was ${ENTRY_LABEL[e.entryMode]}, authenticated by ${AUTH_LABEL[e.authentication]}.`, expected, "differs", evidence);
+    compare(w, ineligible, `The record shows the payment was ${ENTRY_LABEL[e.entryMode]}, authenticated by ${AUTH_LABEL[e.authentication]}.`, expected, "differs", evidence);
     if (!statements.has("mc.pin")) statements.set("mc.pin", onDate);
     shown = false;
   } else if (e.entryMode === "chip" || e.entryMode === "contactless") {
-    w.compare(
+    compare(w, 
       ineligible,
       `The record shows the card was ${ENTRY_LABEL[e.entryMode]}, with ${AUTH_LABEL[e.authentication]}. The records do not show whether the terminal was attended.`,
       expected,
@@ -428,7 +355,7 @@ async function mastercardPayment(w: SectionWriter, input: SectionInput, row: Pay
     if (!statements.has("mc.pin")) statements.set("mc.pin", onDate);
     shown = false;
   } else if ((e.authentication.startsWith("three_ds_") && e.authenticationResult === "authenticated") || (walletVerified && e.entryMode === "ecommerce")) {
-    w.compare(
+    compare(w, 
       ineligible,
       `The record shows the payment authenticated by ${AUTH_LABEL[e.authentication]}, result 'authenticated'. The record does not show the security level indicator sent with the authorisation.`,
       expected,
@@ -439,7 +366,7 @@ async function mastercardPayment(w: SectionWriter, input: SectionInput, row: Pay
     shown = false;
   } else {
     const shownAs = e.authentication === "none_recorded" ? AUTH_LABEL[e.authentication] : `${AUTH_LABEL[e.authentication]}, result '${e.authenticationResult}'`;
-    w.compare(ineligible, `The record shows the payment was ${ENTRY_LABEL[e.entryMode]}, with ${shownAs}.`, expected, "matches", evidence);
+    compare(w, ineligible, `The record shows the payment was ${ENTRY_LABEL[e.entryMode]}, with ${shownAs}.`, expected, "matches", evidence);
   }
 
   shown = timeLine(w, input, row, chargeback, `Under ${sectionRef(chargeback)}, the time frame for ${condition} is ${SCHEME_DISPUTE_DAYS} calendar days from the date the payment was processed.`) && shown;
@@ -451,31 +378,31 @@ function requestAndResponseLines(w: SectionWriter, input: SectionInput): void {
   const asked = input.facts.card_dispute_requested?.value;
   const askedDate = asked?.value === "yes" ? dateOf(asked.date) : null;
   if (askedDate) {
-    w.text(`The complainant asked the institution to dispute these payments on ${askedDate}.`, w.ev("card_dispute_requested"));
+    say(w, `The complainant asked the institution to dispute these payments on ${formatDate(askedDate)}.`, w.evidence("card_dispute_requested"));
   } else {
-    w.text("The records do not show that the complainant asked the institution to dispute these payments.");
+    say(w, "The records do not show that the complainant asked the institution to dispute these payments.");
   }
 
   const response = input.facts.card_dispute_response?.value;
-  const evidence = w.ev("card_dispute_response");
+  const evidence = w.evidence("card_dispute_response");
   if (response?.status === "raised") {
     const when = dateOf(response.date);
-    w.text(`The institution's letter states that it raised a dispute${when ? ` on ${when}` : ""}.`, evidence);
+    say(w, `The institution's letter states that it raised a dispute${when ? ` on ${formatDate(when)}` : ""}.`, evidence);
   } else if (response?.status === "declined") {
-    w.text(
+    say(w, 
       response.reasonStated
         ? `The institution's letter states that it did not raise a dispute because '${response.reasonStated}'.`
         : "The institution's letter states that it did not raise a dispute.",
       evidence,
     );
   } else {
-    w.text("The institution's letters do not say whether it raised a dispute.", response ? evidence : []);
+    say(w, "The institution's letters do not say whether it raised a dispute.", response ? evidence : []);
   }
 }
 
 /** The card_dispute_comparison section (brief 4i). */
 export const buildCardDisputeComparison: SectionBuilder = async (input) => {
-  const w = new SectionWriter(input);
+  const w = new SectionWriter("card_dispute_comparison", input);
   const cardPayments = input.payments.filter((p) => p.instrument === "sg_card");
   if (cardPayments.length === 0) return w.result();
 
@@ -497,11 +424,11 @@ export const buildCardDisputeComparison: SectionBuilder = async (input) => {
     const group = byScheme.get(scheme);
     if (!group) continue;
     if (scheme !== "visa" && scheme !== "mastercard") {
-      w.text(
+      say(w, 
         scheme === "other"
           ? `The record shows ${group.length} card payment(s) on a scheme other than Visa or Mastercard. This pack holds no rules for that scheme.`
           : `The records provided do not show the card scheme for ${group.length} card payment(s), so no scheme's rules are set beside them.`,
-        w.ev("card_auth_events", "transactions"),
+        w.evidence("card_auth_events", "transactions"),
       );
       continue;
     }
@@ -514,15 +441,15 @@ export const buildCardDisputeComparison: SectionBuilder = async (input) => {
     for (const row of group) {
       if (!row.onDate) {
         recordRow(w, row);
-        w.text(`The records provided do not show the date of this payment, so ${SCHEME_NAME[scheme]}'s rules in force on that date cannot be read.`, w.ev("transactions"));
+        say(w, `The records provided do not show the date of this payment, so no edition of ${SCHEME_NAME[scheme]}'s rules is set beside it.`, w.evidence("transactions"));
         continue;
       }
       const probeKey = scheme === "visa" ? CARD_DISPUTE_CLAUSE_KEYS.visa.cardAbsent : CARD_DISPUTE_CLAUSE_KEYS.mastercard.chargeback;
       const probe = await w.clause(probeKey, row.onDate);
       if (!headerPrinted && probe) {
-        w.text(SCHEME_STANDING_SENTENCE);
+        say(w, SCHEME_STANDING_SENTENCE);
         if (probe.coverage === "selected_sections") {
-          w.text(
+          say(w, 
             `This pack holds selected sections of ${SCHEME_NAME[scheme]}'s rules (${probe.title}), edition dated ${probe.version_label}, on how unauthorised payments are handled. It does not hold the full rules.`,
             [],
             [probe.clause_key],
@@ -533,7 +460,7 @@ export const buildCardDisputeComparison: SectionBuilder = async (input) => {
       recordRow(w, row);
       if (!probe) {
         if (!notHeld.has(row.onDate)) {
-          w.text(`This pack does not hold ${SCHEME_NAME[scheme]}'s rules in force on ${row.onDate}.`);
+          say(w, `This pack does not hold ${SCHEME_NAME[scheme]}'s rules in force on ${formatDate(row.onDate)}.`);
           notHeld.add(row.onDate);
         }
         continue;
@@ -546,7 +473,7 @@ export const buildCardDisputeComparison: SectionBuilder = async (input) => {
         if (earliest === null || row.onDate < earliest) earliest = row.onDate;
       }
     }
-    for (const [key, onDate] of statements) await w.statement(key, onDate, w.ev("card_auth_events"));
+    for (const [key, onDate] of statements) await w.statement(key, onDate, w.evidence("card_auth_events"));
     const resolve = scheme === "visa" && earliest ? await w.clause(CARD_DISPUTE_CLAUSE_KEYS.visa.resolve, earliest) : null;
     if (scheme === "visa" && earliest) await w.clause(CARD_DISPUTE_CLAUSE_KEYS.visa.permitted, earliest);
     if (shown > 0) shownBySchemes.push({ scheme, count: shown, resolve });
@@ -566,7 +493,7 @@ function summaryLines(w: SectionWriter, input: SectionInput, shown: Array<{ sche
   for (const { scheme, count, resolve } of shown) {
     const parts = [
       `On the records provided, the conditions ${SCHEME_NAME[scheme]}'s rules set for a fraud dispute are shown for ${count} payment(s).`,
-      `The complainant asked the institution to dispute them on ${askedDate}.`,
+      `The complainant asked the institution to dispute them on ${formatDate(askedDate)}.`,
       `The institution ${did}.`,
     ];
     const clauseKeys: string[] = [];
@@ -574,6 +501,6 @@ function summaryLines(w: SectionWriter, input: SectionInput, shown: Array<{ sche
       parts.push("The scheme's rules allow, and do not require, an issuer to raise a dispute; they require the issuer to resolve cardholder disputes.");
       clauseKeys.push(CARD_DISPUTE_CLAUSE_KEYS.visa.permitted, CARD_DISPUTE_CLAUSE_KEYS.visa.resolve);
     }
-    w.text(parts.join(" "), w.ev("card_dispute_requested", "card_dispute_response"), clauseKeys);
+    say(w, parts.join(" "), w.evidence("card_dispute_requested", "card_dispute_response"), clauseKeys);
   }
 }

@@ -1,5 +1,5 @@
 {
-  "$comment": "Draft for Elena. Wording rule (decision 19): the scheme's own short terms in quotation marks, with the section number; \"list\", \"say\", \"require\"; no \"cannot\" or \"bears\".",
+  "$comment": "Draft for Elena. Wording rule (decision 19): the scheme's own short terms in quotation marks, with the section number; \"list\", \"say\", \"require\"; no \"cannot\" or \"bears\". Per edition (brief 3.2 rule 8; review Decision 12): each draft was written against the 24 October 2026 edition only. It does not carry to another edition held (12 April 2025 edition, V1.1; 18 October 2025 edition; 18 October 2025 edition, V1.1; 18 April 2026 edition) until it is reviewed against that edition's text; reviewed_for_editions is empty until Elena reviews. Kept in this sub-folder because Lane 1's seed reader reads one folder of Lane 1's keys; Lane 1 decides how scheme statements are seeded.",
   "statements": [
     {
       "statement_key": "visa.parties",
@@ -13,11 +13,20 @@
         "visa.core_rules/1.1.1.5",
         "visa.core_rules/glossary.member"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
       "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ],
       "check_notes": "Located in this edition at 1.1.1.5 \"Use of the Visa Rules\" (1.1.1.6 in the 2024 edition). The gloss on Members is ours, from the glossary entry."
     },
     {
@@ -31,11 +40,20 @@
       "clause_keys": [
         "visa.core_rules/11.2.2"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
-      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)"
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ]
     },
     {
       "statement_key": "visa.dispute.permitted",
@@ -49,11 +67,20 @@
         "visa.core_rules/11.3.2",
         "visa.core_rules/11.8.5"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
-      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)"
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ]
     },
     {
       "statement_key": "visa.report",
@@ -67,11 +94,20 @@
         "visa.core_rules/11.8.5",
         "visa.core_rules/1.9.4.3"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
       "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ],
       "check_notes": "Second sentence is new against the brief: the all-region reporting time limit is in 1.9.4.3 (Core Rules). Elena may prefer it as a separate statement key; that needs a contract change by Lane 6."
     },
     {
@@ -87,11 +123,20 @@
         "visa.core_rules/glossary.secure-electronic-commerce-transaction",
         "visa.core_rules/glossary.authentication-confirmation"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
       "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ],
       "check_notes": "Table 11-29 (ID 0030254). The pack prints this where the record shows 3-D Secure authentication; the record rarely shows the ECI or CAVV, and the comparison line says so."
     },
     {
@@ -107,11 +152,20 @@
         "visa.core_rules/glossary.attempt-response",
         "visa.core_rules/glossary.non-authenticated-security-transaction"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
-      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)"
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ]
     },
     {
       "statement_key": "visa.token.authenticated",
@@ -125,11 +179,20 @@
         "visa.core_rules/11.8.5",
         "visa.core_rules/glossary.authenticated-payment-credential"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
       "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ],
       "check_notes": "This listed case is an e-commerce payment (ECI 5). A wallet token used in a shop is a card-present payment: Dispute Condition 10.4 does not cover it, and 10.3 covers key-entered card-present payments only."
     },
     {
@@ -144,11 +207,20 @@
         "visa.core_rules/11.8.5",
         "visa.core_rules/11.3.2"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
       "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ],
       "check_notes": "Reworded from the brief to keep the other requirements of 11.8.5 in view; the list also holds items no record shows (for example more than 35 disputes on a credential)."
     },
     {
@@ -163,11 +235,20 @@
         "visa.core_rules/glossary.dispute",
         "visa.core_rules/1.1.1.5"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
-      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)"
+      "drafted_from": "visa.core_rules, 24 October 2026 edition (sections as extracted on 24 November 2026)",
+      "drafted_for_edition": "24 October 2026 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "12 April 2025 edition, V1.1",
+        "18 October 2025 edition",
+        "18 October 2025 edition, V1.1",
+        "18 April 2026 edition"
+      ]
     }
   ]
 }

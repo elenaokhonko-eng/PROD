@@ -1,5 +1,5 @@
 {
-  "$comment": "Draft for Elena. Wording rule (decision 19): the scheme's own short terms in quotation marks, with the section number; \"list\", \"say\", \"require\"; no \"cannot\" or \"bears\".",
+  "$comment": "Draft for Elena. Wording rule (decision 19): the scheme's own short terms in quotation marks, with the section number; \"list\", \"say\", \"require\"; no \"cannot\" or \"bears\". Per edition (brief 3.2 rule 8; review Decision 12): each draft was written against the 13 May 2025 edition only. It does not carry to another edition held (27 January 2026 edition; 19 May 2026 edition) until it is reviewed against that edition's text; reviewed_for_editions is empty until Elena reviews. Kept in this sub-folder because Lane 1's seed reader reads one folder of Lane 1's keys; Lane 1 decides how scheme statements are seeded.",
   "statements": [
     {
       "statement_key": "mc.dispute.permitted",
@@ -13,11 +13,18 @@
         "mastercard.chargeback_guide/dms.4837.issuer-chargeback",
         "mastercard.chargeback_guide/dms.4837.ineligible"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
       "drafted_from": "mastercard.chargeback_guide, 13 May 2025 edition. Not approvable until checked against the 19 May 2026 edition (blocked: see the manifest).",
+      "drafted_for_edition": "13 May 2025 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "27 January 2026 edition",
+        "19 May 2026 edition"
+      ],
       "check_notes": "The brief's draft quoted 'may use this chargeback'. In the 2025 text that phrase introduces special cases (instalments, European Maestro); the general permission reads 'may chargeback the transaction' under Issuer Chargeback."
     },
     {
@@ -31,11 +38,18 @@
       "clause_keys": [
         "mastercard.chargeback_guide/dms.4837.issuer-chargeback"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
-      "drafted_from": "mastercard.chargeback_guide, 13 May 2025 edition. Not approvable until checked against the 19 May 2026 edition (blocked: see the manifest)."
+      "drafted_from": "mastercard.chargeback_guide, 13 May 2025 edition. Not approvable until checked against the 19 May 2026 edition (blocked: see the manifest).",
+      "drafted_for_edition": "13 May 2025 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "27 January 2026 edition",
+        "19 May 2026 edition"
+      ]
     },
     {
       "statement_key": "mc.authenticated",
@@ -48,11 +62,18 @@
       "clause_keys": [
         "mastercard.chargeback_guide/dms.4837.ineligible"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
-      "drafted_from": "mastercard.chargeback_guide, 13 May 2025 edition. Not approvable until checked against the 19 May 2026 edition (blocked: see the manifest)."
+      "drafted_from": "mastercard.chargeback_guide, 13 May 2025 edition. Not approvable until checked against the 19 May 2026 edition (blocked: see the manifest).",
+      "drafted_for_edition": "13 May 2025 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "27 January 2026 edition",
+        "19 May 2026 edition"
+      ]
     },
     {
       "statement_key": "mc.pin",
@@ -65,11 +86,18 @@
       "clause_keys": [
         "mastercard.chargeback_guide/dms.4837.ineligible"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
       "drafted_from": "mastercard.chargeback_guide, 13 May 2025 edition. Not approvable until checked against the 19 May 2026 edition (blocked: see the manifest).",
+      "drafted_for_edition": "13 May 2025 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "27 January 2026 edition",
+        "19 May 2026 edition"
+      ],
       "check_notes": "The gloss on CDCVM is ours."
     },
     {
@@ -83,11 +111,18 @@
       "clause_keys": [
         "mastercard.chargeback_guide/1.chargeback"
       ],
+      "exclusion_clause_keys": [],
       "status": "draft",
       "approved_by": null,
       "approved_at": null,
       "clauses_as_of": null,
       "drafted_from": "mastercard.chargeback_guide, 13 May 2025 edition. Not approvable until checked against the 19 May 2026 edition (blocked: see the manifest).",
+      "drafted_for_edition": "13 May 2025 edition",
+      "reviewed_for_editions": [],
+      "not_reviewed_for_editions": [
+        "27 January 2026 edition",
+        "19 May 2026 edition"
+      ],
       "check_notes": "Mastercard Rules (who the Standards bind) is blocked; this statement rests on the guide only."
     }
   ]

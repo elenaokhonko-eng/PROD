@@ -1,269 +1,306 @@
-{
-  "$comment": "institution_term_requests rows (brief 4e). Drafts: selectors are tags until a person confirms clause keys; term_outcome and term are set by that person. candidate_clauses are pointers for that review (clause references in the version named), not decisions.",
-  "institution_code_note": "Institution codes must match standard_institutions.code seeded by Lane 1 from institutions.ts.",
-  "rows": [
-    {
-      "institution": "ocbc",
-      "product": "account",
-      "purpose": "fault_definition",
-      "document_key": "ocbc.deposit_accounts",
-      "selector": {
-        "tags": [
-          "definition_gross_negligence",
-          "definition_negligence",
-          "definition_recklessness"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+[
+  {
+    "institution": "ocbc",
+    "product": "account",
+    "purpose": "fault_definition",
+    "document_key": "ocbc.deposit_accounts",
+    "selector": {
+      "tags": [
+        "definition_gross_negligence",
+        "definition_negligence",
+        "definition_recklessness"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "account",
-      "purpose": "customer_security_duty",
-      "document_key": "ocbc.deposit_accounts",
-      "selector": {
-        "tags": [
-          "customer_security_duty"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "account",
+    "purpose": "customer_security_duty",
+    "document_key": "ocbc.deposit_accounts",
+    "selector": {
+      "tags": [
+        "customer_security_duty"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "account",
-      "purpose": "liability_unauthorised",
-      "document_key": "ocbc.deposit_accounts",
-      "selector": {
-        "tags": [
-          "liability_unauthorised"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "account",
+    "purpose": "liability_unauthorised",
+    "document_key": "ocbc.deposit_accounts",
+    "selector": {
+      "tags": [
+        "liability_unauthorised"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "account",
-      "purpose": "notification_deadline",
-      "document_key": "ocbc.deposit_accounts",
-      "selector": {
-        "tags": [
-          "notification_deadline"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "account",
+    "purpose": "notification_deadline",
+    "document_key": "ocbc.deposit_accounts",
+    "selector": {
+      "tags": [
+        "notification_deadline"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "account",
-      "purpose": "conclusive_evidence",
-      "document_key": "ocbc.deposit_accounts",
-      "selector": {
-        "tags": [
-          "conclusive_evidence"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "account",
+    "purpose": "conclusive_evidence",
+    "document_key": "ocbc.deposit_accounts",
+    "selector": {
+      "tags": [
+        "conclusive_evidence"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "digital_banking",
-      "purpose": "fault_definition",
-      "document_key": "ocbc.electronic_banking",
-      "selector": {
-        "tags": [
-          "definition_gross_negligence",
-          "definition_negligence",
-          "definition_recklessness"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "digital_banking",
+    "purpose": "fault_definition",
+    "document_key": "ocbc.electronic_banking",
+    "selector": {
+      "tags": [
+        "definition_gross_negligence",
+        "definition_negligence",
+        "definition_recklessness"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "digital_banking",
-      "purpose": "customer_security_duty",
-      "document_key": "ocbc.electronic_banking",
-      "selector": {
-        "tags": [
-          "customer_security_duty"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "digital_banking",
+    "purpose": "customer_security_duty",
+    "document_key": "ocbc.electronic_banking",
+    "selector": {
+      "tags": [
+        "customer_security_duty"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "digital_banking",
-      "purpose": "liability_unauthorised",
-      "document_key": "ocbc.electronic_banking",
-      "selector": {
-        "tags": [
-          "liability_unauthorised"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "digital_banking",
+    "purpose": "liability_unauthorised",
+    "document_key": "ocbc.electronic_banking",
+    "selector": {
+      "tags": [
+        "liability_unauthorised"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "digital_banking",
-      "purpose": "notification_deadline",
-      "document_key": "ocbc.electronic_banking",
-      "selector": {
-        "tags": [
-          "notification_deadline"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "digital_banking",
+    "purpose": "notification_deadline",
+    "document_key": "ocbc.electronic_banking",
+    "selector": {
+      "tags": [
+        "notification_deadline"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "digital_banking",
-      "purpose": "conclusive_evidence",
-      "document_key": "ocbc.electronic_banking",
-      "selector": {
-        "tags": [
-          "conclusive_evidence"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "digital_banking",
+    "purpose": "conclusive_evidence",
+    "document_key": "ocbc.electronic_banking",
+    "selector": {
+      "tags": [
+        "conclusive_evidence"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "credit_card",
-      "purpose": "fault_definition",
-      "document_key": "ocbc.cardmembers_agreement",
-      "selector": {
-        "tags": [
-          "definition_gross_negligence",
-          "definition_negligence",
-          "definition_recklessness"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "credit_card",
+    "purpose": "fault_definition",
+    "document_key": "ocbc.cardmembers_agreement",
+    "selector": {
+      "tags": [
+        "definition_gross_negligence",
+        "definition_negligence",
+        "definition_recklessness"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "credit_card",
-      "purpose": "customer_security_duty",
-      "document_key": "ocbc.cardmembers_agreement",
-      "selector": {
-        "tags": [
-          "customer_security_duty"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "credit_card",
+    "purpose": "customer_security_duty",
+    "document_key": "ocbc.cardmembers_agreement",
+    "selector": {
+      "tags": [
+        "customer_security_duty"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "credit_card",
-      "purpose": "liability_unauthorised",
-      "document_key": "ocbc.cardmembers_agreement",
-      "selector": {
-        "tags": [
-          "liability_unauthorised"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "credit_card",
+    "purpose": "liability_unauthorised",
+    "document_key": "ocbc.cardmembers_agreement",
+    "selector": {
+      "tags": [
+        "liability_unauthorised"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "credit_card",
-      "purpose": "notification_deadline",
-      "document_key": "ocbc.cardmembers_agreement",
-      "selector": {
-        "tags": [
-          "notification_deadline"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "credit_card",
+    "purpose": "notification_deadline",
+    "document_key": "ocbc.cardmembers_agreement",
+    "selector": {
+      "tags": [
+        "notification_deadline"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "credit_card",
-      "purpose": "dispute_chargeback",
-      "document_key": "ocbc.cardmembers_agreement",
-      "selector": {
-        "tags": [
-          "dispute_chargeback"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "credit_card",
+    "purpose": "dispute_chargeback",
+    "document_key": "ocbc.cardmembers_agreement",
+    "selector": {
+      "tags": [
+        "dispute_chargeback"
+      ]
     },
-    {
-      "institution": "ocbc",
-      "product": "credit_card",
-      "purpose": "conclusive_evidence",
-      "document_key": "ocbc.cardmembers_agreement",
-      "selector": {
-        "tags": [
-          "conclusive_evidence"
-        ]
-      },
-      "quote_mode": "quote",
-      "term_outcome": null,
-      "term": null,
-      "confirmed_by": null,
-      "confirmed_at": null
-    }
-  ],
-  "candidate_clauses": []
-}
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "credit_card",
+    "purpose": "conclusive_evidence",
+    "document_key": "ocbc.cardmembers_agreement",
+    "selector": {
+      "tags": [
+        "conclusive_evidence"
+      ]
+    },
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "credit_card",
+    "purpose": "wallet_provisioning",
+    "document_key": "ocbc.wallet_provisioning",
+    "selector": {
+      "clause_keys": [
+        "ocbc.wallet_provisioning/faq.what-does-it-mean-to-add-a-card",
+        "ocbc.wallet_provisioning/faq.which-cards-can-i-add-to-my-mobile"
+      ]
+    },
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "wallet_waiting_period_stated": null,
+    "wallet_waiting_period_hours": null,
+    "wallet_authentication_required": null,
+    "wallet_applies_from": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  },
+  {
+    "institution": "ocbc",
+    "product": "debit_card",
+    "purpose": "wallet_provisioning",
+    "document_key": "ocbc.wallet_provisioning",
+    "selector": {
+      "clause_keys": [
+        "ocbc.wallet_provisioning/faq.what-does-it-mean-to-add-a-card",
+        "ocbc.wallet_provisioning/faq.which-cards-can-i-add-to-my-mobile"
+      ]
+    },
+    "quote_mode": "quote",
+    "term_outcome": null,
+    "term": null,
+    "wallet_waiting_period_stated": null,
+    "wallet_waiting_period_hours": null,
+    "wallet_authentication_required": null,
+    "wallet_applies_from": null,
+    "confirmed_by": null,
+    "confirmed_at": null
+  }
+]
