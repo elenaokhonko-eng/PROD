@@ -289,7 +289,10 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
     "  card authentication. card_dispute_requested: whether the claimant asked the institution to dispute the card",
     "  payments (a chargeback), when, and how.",
     "- credit_bureau_reports: each time the source says non-payment of the disputed amount was reported to a credit",
-    "  bureau, with the date and the bureau's name when given. fidrec_dispute_dates: only dates the source gives for",
+    "  bureau, with the date and the bureau's name when given. The quote must itself name the disputed transaction, its",
+    "  amount, the dispute, or the reporting of the amount (in a credit bureau report: the dispute or the disputed",
+    "  transaction itself; a balance alone is not enough). A line that only gives an account's status (overdue, in",
+    "  arrears, default, days past due) is not such a report: leave it out. fidrec_dispute_dates: only dates the source gives for",
     "  when dispute resolution with FIDReC started, when the institution was told of it, and when FIDReC completed or",
     "  closed the case.",
     ...documentRules,
@@ -659,6 +662,33 @@ export function creditBureauReportSource(sourceType: SourceType, documentType: D
   return "complainant_statement";
 }
 
+// A credit bureau report entry stands only on words that say the disputed amount was reported (review of 24 Nov 2026,
+// follow-ups on #81). What counts depends on who states it:
+// - a credit bureau report: the quoted words must name the dispute or the disputed transaction. An amount alone is not
+//   enough (a bureau's balance or overdue line can equal the disputed amount without being about it), and a status
+//   line ("30 days overdue", "default", "in arrears") says how an account stands, not that the disputed amount was
+//   reported;
+// - the institution's letter: the dispute or the transaction, or an amount (or unpaid balance) that the same quoted
+//   words say was reported to a credit bureau;
+// - the complainant's own statement: the dispute or the transaction, or the reporting of an unpaid amount or to a
+//   bureau.
+const NAMES_DISPUTE = /\b(?:disput\w*|chargebacks?|unauthori[sz]ed|fraud\w*|scam\w*)\b/i;
+const NAMES_TRANSACTION = /\b(?:transactions?|purchases?)\b/i;
+// A verb ("reported", "reporting"): the noun alone ("credit report") is the document's title, not a report of an amount.
+const NAMES_REPORTING = /\breport(?:ed|ing)\b/i;
+// An amount written as money ("7,550.00", "S$7,550").
+const NAMES_AMOUNT = /(?:S\$|SGD)\s?\d|\b\d[\d,]*\.\d{2}\b/i;
+const NAMES_UNPAID = /\b(?:non-?payment|unpaid|outstanding|amount|balance)\b/i;
+const NAMES_BUREAU = /\bbureaus?\b/i;
+
+export function namesDisputedAmountReport(quote: string, source: CreditBureauReportSource): boolean {
+  if (NAMES_DISPUTE.test(quote) || NAMES_TRANSACTION.test(quote)) return true;
+  if (source === "credit_bureau_report") return false;
+  const amount = NAMES_UNPAID.test(quote) || NAMES_AMOUNT.test(quote);
+  if (source === "institution_letter") return NAMES_REPORTING.test(quote) && NAMES_BUREAU.test(quote) && amount;
+  return NAMES_REPORTING.test(quote) && (amount || NAMES_BUREAU.test(quote));
+}
+
 function parseSection8Facts(
   out: Record<string, unknown>,
   sourceText: string,
@@ -686,7 +716,7 @@ function parseSection8Facts(
     date: normaliseDate(e.date),
     bureau: shortText(e.bureau, 120),
     source: reportSource,
-  }));
+  })).filter((r) => namesDisputedAmountReport(r.quote, reportSource));
   if (reports.length) add("credit_bureau_reports", reports.map((r) => r.value), reports.map((r) => r.quote), reports.map((r) => r.raw));
 
   const fidrec = (out.fidrec_dispute_dates && typeof out.fidrec_dispute_dates === "object" ? out.fidrec_dispute_dates : null) as
