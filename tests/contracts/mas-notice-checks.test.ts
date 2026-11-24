@@ -171,24 +171,46 @@ test('access by a device the complainant states is not theirs, with how it was a
   assert.ok(r.citations.some((c) => c.clauseKey === TEST_N05_KEY && c.versionId === 't-mas.fsm-n05'))
 })
 
-// PR #56 (00b8944): the device rule has three states. Only `not_mine` compares; `not_sure` or no answer is
-// `not_shown` and prints the "The records do not show …" line, never `differs`.
-test('a device the complainant is not sure about, or has not answered about, gets the "do not show" line, never differs', async () => {
+// PR #56 (00b8944) and the review of #70: the device rule has three states. Only `not_mine` compares. `not_sure` or no
+// answer is `not_shown` and prints the record line with what the complainant said: no comparison and no outcome.
+const textsOf = (r: SectionResult) => r.lines.flatMap((l) => (l.kind === 'text' ? [l.text] : []))
+const assertNoOutcomeWords = (lines: string[]) => {
+  for (const t of lines) assert.doesNotMatch(t, /differs|matches|records do not show whether/, t)
+}
+
+test('a device the complainant is not sure about: the record line, then "they are not sure"; no comparison', async () => {
   const r = await run(accountSrfCase.data, withBankKey)
   assert.ok(!comparisons(r).some((c) => /EX-T1/.test(c.record)))
-  const texts = r.lines.flatMap((l) => (l.kind === 'text' ? [l.text] : []))
-  assert.ok(texts.includes("The records do not show whether the device labelled 'Tablet model EX-T1', used for a login at 07:05 on 4 July 2025 from a device labelled 'Tablet model EX-T1', is the complainant's."))
+  const texts = textsOf(r)
+  assert.ok(texts.includes("The record shows a login at 07:05 on 4 July 2025 from a device labelled 'Tablet model EX-T1'. The complainant states that they are not sure whether this device is theirs."))
+  assertNoOutcomeWords(texts)
 
-  const unanswered = clone(accountSrfCase.data)
-  unanswered.facts.device_recognition = { label: 'confirmed', value: unanswered.facts.device_recognition!.value!.filter((x) => x.deviceRef !== 'dev-ex-0003') }
-  const u = await run(unanswered, withBankKey)
-  assert.ok(!comparisons(u).some((c) => /EX-PC/.test(c.record)))
-  assert.ok(u.lines.some((l) => l.kind === 'text' && /^The records do not show whether the device labelled 'Browser on desktop EX-PC'/.test(l.text)))
-
-  // A device_recognition fact labelled not_sure: every device is not_shown, so nothing compares as differs.
+  // A device_recognition fact labelled not_sure: every device is not_shown; each line says "they are not sure".
   const unsure = clone(accountSrfCase.data)
   unsure.facts.device_recognition = { ...unsure.facts.device_recognition!, label: 'not_sure' }
-  assert.equal(comparisons(await run(unsure, withBankKey)).filter((c) => c.outcome === 'differs').length, 0)
+  const u = await run(unsure, withBankKey)
+  assert.equal(comparisons(u).filter((c) => c.outcome === 'differs').length, 0)
+  assert.ok(textsOf(u).includes("The record shows a login at 21:10 on 3 July 2025 from a device labelled 'Phone model EX-200'. The complainant states that they are not sure whether this device is theirs."))
+  // A session change from such a device uses the change's own record wording.
+  assert.ok(textsOf(u).includes("The record shows a payee added at 21:20 on 3 July 2025 from a device labelled 'Phone model EX-200'. The complainant states that they are not sure whether this device is theirs."))
+  assertNoOutcomeWords(textsOf(u))
+})
+
+test('a device the complainant has not answered about: the record line, then "has not said"; no comparison', async () => {
+  const unanswered = clone(accountSrfCase.data)
+  unanswered.facts.device_recognition = { label: 'confirmed', value: unanswered.facts.device_recognition!.value!.filter((x) => x.deviceRef !== 'dev-ex-0003') }
+  const r = await run(unanswered, withBankKey)
+  assert.ok(!comparisons(r).some((c) => /EX-PC/.test(c.record)))
+  assert.ok(textsOf(r).includes("The record shows a login at 21:35 on 3 July 2025 from a device labelled 'Browser on desktop EX-PC'. The complainant has not said whether this device is theirs."))
+  assertNoOutcomeWords(textsOf(r))
+
+  // No device recognition given at all.
+  const none = clone(accountSrfCase.data)
+  delete none.facts.device_recognition
+  const n = await run(none, withBankKey)
+  assert.equal(comparisons(n).filter((c) => c.outcome === 'differs').length, 0)
+  assert.ok(textsOf(n).includes("The record shows a payee added at 21:20 on 3 July 2025 from a device labelled 'Phone model EX-200'. The complainant has not said whether this device is theirs."))
+  assertNoOutcomeWords(textsOf(n))
 })
 
 test('changes made in the session from such a device, and the alert the record shows', async () => {

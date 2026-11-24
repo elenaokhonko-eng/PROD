@@ -12,7 +12,7 @@
 
 import type { InstitutionType } from "../keys.ts";
 import { CLAUSE_KEYS, deviceOwnership, NAMED_CLAUSE_KEYS, recognitionAnswerFor } from "../update/contract.ts";
-import type { AccessEvent, AccessEventKind, CaseInstitution, DeviceRecognition, DisputedPayment, SectionBuilder, SectionInput, SectionResult } from "../update/contract.ts";
+import type { AccessEvent, AccessEventKind, CaseInstitution, ContractFact, DeviceRecognition, DisputedPayment, SectionBuilder, SectionInput, SectionResult } from "../update/contract.ts";
 import { deviceRecognitionSentence, formatDateTime as formatTime } from "../update/section-writer.ts";
 import { alertFor, eventWords } from "./duty-time-checks.ts";
 import {
@@ -111,8 +111,8 @@ export function createMasNoticeChecks(options: MasNoticeCheckOptions = {}): Sect
 
     // The device rule (contract `deviceOwnership`, PR #56): these rows rest on the device not being the complainant's,
     // so they compare only for `not_mine`. A device the complainant is not sure about, or has not answered about, is
-    // `not_shown`: the "The records do not show …" line prints instead, never `differs`. A `mine` device prints
-    // nothing. A line is about a device the record names; what the complainant said is printed as said.
+    // `not_shown`: a line of what the record shows and what the complainant said prints instead (`deviceNotShownLine`),
+    // with no outcome, never `differs`. A `mine` device prints nothing. A line is about a device the record names.
     const named = (e: AccessEvent) => Boolean(e.deviceRef || e.deviceLabel);
     const ownership = (e: AccessEvent) => deviceOwnership(input.facts.device_recognition, e);
     const sorted = access.filter((e) => ms(e.timestamp) !== null).sort((a, b) => ms(a.timestamp)! - ms(b.timestamp)!);
@@ -135,7 +135,7 @@ export function createMasNoticeChecks(options: MasNoticeCheckOptions = {}): Sect
         ].join(" "),
         outcome: "differs",
         evidenceIds: ev,
-        notShownLine: deviceNotShownLine(login),
+        notShownLine: deviceNotShownLine(login, input.facts.device_recognition),
       });
     }
 
@@ -148,7 +148,7 @@ export function createMasNoticeChecks(options: MasNoticeCheckOptions = {}): Sect
         record: sessionChangeRecord(change, access, recognition),
         outcome: "differs",
         evidenceIds: ev,
-        notShownLine: deviceNotShownLine(change),
+        notShownLine: deviceNotShownLine(change, input.facts.device_recognition),
       });
     }
     return w.result();
@@ -156,10 +156,16 @@ export function createMasNoticeChecks(options: MasNoticeCheckOptions = {}): Sect
 }
 
 // wording awaiting Elena's approval
-/** The section's "The records do not show …" line for a device whose state is `not_shown`. */
-export function deviceNotShownLine(event: AccessEvent): string {
-  const device = event.deviceLabel ? `the device labelled '${event.deviceLabel}'` : "the device";
-  return `The records do not show whether ${device}, used for ${eventWords(event)}, is the complainant's.`;
+/**
+ * The line for a device whose state is `not_shown` (no comparison, no outcome): what the record shows, then what the
+ * complainant said. A `not_sure` answer, or a recognition fact labelled `not_sure`, prints "they are not sure"; no
+ * answer prints "has not said". The second sentence is `deviceRecognitionSentence`'s.
+ */
+export function deviceNotShownLine(event: AccessEvent, recognition: ContractFact<DeviceRecognition[]> | undefined): string {
+  const unsure = recognition?.label === "not_sure" ||
+    (recognition?.value != null && (recognition.label === "confirmed" || recognition.label === "claimant_only") &&
+      recognitionAnswerFor(recognition.value, event) === "not_sure");
+  return `The record shows ${eventWords(event)}. ${deviceRecognitionSentence(unsure ? "not_sure" : null, null)}`;
 }
 
 function sessionChangeRecord(change: AccessEvent, access: readonly AccessEvent[], recognition: readonly DeviceRecognition[]): string {
