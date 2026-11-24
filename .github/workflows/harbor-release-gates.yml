@@ -188,7 +188,10 @@ jobs:
       - name: Production public UI
         env:
           HARBOR_E2E_WEB_SERVER_COMMAND: pnpm start
-        run: pnpm exec playwright test --config=playwright.config.ts
+        # One worker: with Playwright's default of two, the Windows runner ran out of socket buffers
+        # (net::ERR_NO_BUFFER_SPACE), failing a page load and skipping the paid journeys (24 Nov 2026, three runs).
+        # No retries: a real failure still fails the job.
+        run: pnpm exec playwright test --config=playwright.config.ts --workers=1
       - name: Upload public browser evidence
         if: always()
         uses: actions/upload-artifact@v4
