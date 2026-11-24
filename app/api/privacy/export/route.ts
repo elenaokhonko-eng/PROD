@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth"
 import { createUserClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { safeErrorText } from "@/lib/server/safe-error"
+import { technicalRecordsExport, type FindingRow } from "./technical-records"
 
 type IdRow = { id: string }
 
@@ -114,6 +115,8 @@ export async function POST() {
       case_outcomes: outcomes,
       ...Object.fromEntries(FACT_TABLES.map((table, i) => [table, factResults[i].data ?? []])),
       model_usage: usageResult.data,
+      // The FIDReC update's facts (logins, devices, card authentication, device answers), current value per case.
+      technical_records: technicalRecordsExport((factResults[FACT_TABLES.indexOf("case_fact_findings")].data ?? []) as FindingRow[]),
     }
 
     return NextResponse.json(exportPayload)

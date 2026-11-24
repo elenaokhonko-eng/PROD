@@ -30,6 +30,11 @@ const PROOF: Partial<Record<FactKey, string>> = {
   scam_type: "screenshots of the scam message, email, website or advert",
   phishing_channel: "a screenshot of the first message, or your call log",
   credentials_or_otp_shared: "screenshots of the fake website or app, or of the message you replied to",
+  // Brief v5, 3d.
+  access_events:
+    "the institution's own record of logins, devices and alerts for the dates of the payments; you can ask the institution for it in writing",
+  card_auth_events:
+    "the institution's record of how each card payment was authenticated, including the device or token that approved it; you can ask the institution for it in writing",
 };
 
 // The value boxes the user's answer used, so their documents can be named.
@@ -49,6 +54,9 @@ export const DOCUMENT_LABELS: Record<string, string> = {
   card_statement: "your card statement (uploaded)",
   bank_correspondence: "a letter or email from your bank (uploaded)",
   scam_message: "the scam message (uploaded)",
+  // Brief v5, 3a.
+  bank_access_record: "the institution's record of logins, devices and alerts (uploaded)",
+  card_authentication_record: "the institution's record of how card payments were authenticated (uploaded)",
 };
 
 function documentNames(values: FindingValue[]): string[] {
@@ -60,7 +68,10 @@ function documentNames(values: FindingValue[]): string[] {
 
 // "No" (not told, no complaint) or "no reply yet" needs no document.
 function claimsSomething(key: FactKey, value: unknown): boolean {
-  if (key === "reported_to_bank" || key === "reported_to_police" || key === "written_complaint_sent") {
+  if (
+    key === "reported_to_bank" || key === "reported_to_police" || key === "written_complaint_sent" ||
+    key === "access_record_requested" || key === "card_dispute_requested"
+  ) {
     return (value as ReportedEvent | null)?.value === "yes";
   }
   if (key === "bank_reply") return (value as { status?: string } | null)?.status !== "none";

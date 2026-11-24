@@ -19,6 +19,7 @@ import {
 import { generateJson, getOpenAiModel } from "@/lib/server/ai/generate-json"
 import { ModelBudgetExceeded, OUTPUT_CAPS } from "@/lib/server/model-usage"
 import { logger } from "@/lib/logger"
+import { safeErrorText } from "@/lib/server/safe-error"
 
 const log = logger.withContext({ module: "facts-reconcile" })
 
@@ -371,7 +372,8 @@ export async function ensureReconciled(
     await service.from("case_fact_reconcile_runs").update({ status: "completed", completed_at: now }).eq("id", runId)
     return { runId, findings: (inserted as StoredFindingRow[]).map(toCurrent), documentsProcessing }
   } catch (error) {
-    log.error("Fact reconciliation failed", { caseId, runId, error: error instanceof Error ? error.message : String(error) })
+    // Scrubbed: a document's values (record lines with device references and IP addresses) never reach the logs.
+    log.error("Fact reconciliation failed", { caseId, runId, error: safeErrorText(error) })
     await service
       .from("case_fact_reconcile_runs")
       .update({ status: "failed", error_code: "reconcile_failed", completed_at: new Date().toISOString() })

@@ -10,6 +10,7 @@ import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { FactsRequestError } from '@/hooks/state-machine/facts/use-case-facts'
 import { useGenerateFreeEvaluation } from '@/hooks/state-machine/facts/use-generate-free-evaluation'
 import type { Stage } from '@/lib/facts'
+import { DeviceConfirmation } from './device-confirmation'
 
 export default function FactsClient({ caseId, stage }: { caseId: string; stage: Stage }) {
   const router = useRouter()
@@ -69,5 +70,12 @@ export default function FactsClient({ caseId, stage }: { caseId: string; stage: 
     )
   }
 
-  return <ConfirmFactsPanel caseId={caseId} stage={stage} onConfirmed={setSnapshotId} />
+  // The paid stages ask about the devices in the institution's records first; the panel counts that answer as one of
+  // the facts left to check.
+  return (
+    <div className="space-y-6">
+      {stage !== 'free' && <DeviceConfirmation caseId={caseId} stage={stage} />}
+      <ConfirmFactsPanel caseId={caseId} stage={stage} onConfirmed={setSnapshotId} />
+    </div>
+  )
 }

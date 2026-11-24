@@ -34,6 +34,8 @@ const EVIDENCE_TYPES = [
   "BANK_SRF_INVESTIGATION_REPORT_OR_OFFICIAL_RESPONSE",
   "BANK_EMAILS_OR_COMMUNICATIONS_ADDITIONAL",
   "RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA",
+  // FIDReC update (brief v5, 3a): the facts extraction types it card_authentication_record.
+  "CARD_AUTHENTICATION_RECORD",
   "TIMELINE_NOTES",
   "CYBER_EXPERT_REPORT",
   "OTHER"
@@ -69,6 +71,9 @@ function normalizeEvidenceType(t) {
     "USER_LOGS": "RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA",
     "LOGIN_LOGS": "RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA",
     "IP_LOGS": "RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA",
+    "BANK_ACCESS_RECORD": "RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA",
+    "CARD_AUTHENTICATION_RECORD": "CARD_AUTHENTICATION_RECORD",
+    "CARD_AUTH_RECORD": "CARD_AUTHENTICATION_RECORD",
     // very ambiguous legacy bucket; keep conservative
     "FRAUD_SCREENSHOTS": "PHISHING_EMAIL_COPY_OR_DESCRIPTION"
   };
@@ -78,7 +83,7 @@ function mapToDutyCategory(type) {
   if (type === "SMS_LOG_ALL_TRANSACTION_NOTIFICATIONS" || type === "SMS_LOG_TOKEN_BINDING_NOTIFICATIONS" || type === "SMS_LOG_BANK_ACCOUNT_LIMIT_NOTIFICATIONS" || type === "SMS_LOG_CREDIT_CARD_BLOCKING_NOTIFICATIONS") return "FI_NOTIFICATION_DUTY";
   if (type === "BANK_SCAM_FRAUD_HOTLINE_CALL_LOG" || type === "BANK_SCAM_FRAUD_HOTLINE_CALL_RECORDING") return "FI_RESPONSE_DUTY";
   if (type === "BANK_SRF_INVESTIGATION_REPORT_OR_OFFICIAL_RESPONSE" || type === "BANK_DISPUTED_TRANSACTIONS_OFFICIAL_RESPONSE_COPY") return "FI_INVESTIGATION_DUTY";
-  if (type === "RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA") return "FI_MONITORING_DUTY";
+  if (type === "RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA" || type === "CARD_AUTHENTICATION_RECORD") return "FI_MONITORING_DUTY";
   if (type === "PHISHING_EMAIL_COPY_OR_DESCRIPTION") return "SCAM_ORIGIN_EVIDENCE";
   if (type === "POLICE_REPORT_OF_FRAUD_SCAM") return "LAW_ENFORCEMENT_EVIDENCE";
   if (type === "TIMELINE_NOTES") return "USER_ASSERTION_EVIDENCE";
@@ -91,6 +96,7 @@ function computeTierFlags(type) {
     "CREDIT_CARD_STATEMENT_SHOWING_TRANSACTIONS",
     "POLICE_REPORT_OF_FRAUD_SCAM",
     "RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA",
+    "CARD_AUTHENTICATION_RECORD",
     "TRANSACTIONS_DISPUTE_REPORT_RAISED_WITH_BANK"
   ].includes(type);
   const escalation_grade = [
@@ -256,7 +262,8 @@ function evidenceDefinitionsBlock() {
 - BANK_DISPUTED_TRANSACTIONS_OFFICIAL_RESPONSE_COPY: bank’s official dispute outcome response.
 - BANK_SRF_INVESTIGATION_REPORT_OR_OFFICIAL_RESPONSE: bank SRF investigation report or official SRF response.
 - BANK_EMAILS_OR_COMMUNICATIONS_ADDITIONAL: other bank emails/comms not covered above.
-- RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA: raw login logs, IP logs, session/device information.
+- RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA: the institution's own record of logins and sessions, devices registered, digital-token activation, IP addresses, payee/limit/contact-detail changes, alerts or SMS sent, or the account block. A record listing these, even inside a letter; a letter that only describes them in prose is BANK_EMAILS_OR_COMMUNICATIONS_ADDITIONAL.
+- CARD_AUTHENTICATION_RECORD: the institution's own record of how card payments were authenticated: per payment the time, merchant, entry mode, authentication method and result (3-D Secure, OTP, in-app approval, digital token, wallet device), where a code was sent, the device or token that approved it, or a card added to a mobile wallet. Not a card statement.
 - TIMELINE_NOTES: user timeline notes/narrative.
 - CYBER_EXPERT_REPORT: report by cyber/security expert.
 `.trim();
