@@ -214,11 +214,17 @@ export async function payWithTestCard(page: Page, email: string) {
   // GitHub's runners are in the US, where Stripe asks for a country and a ZIP code (it shows neither in Singapore). The
   // release tests pay as a Singapore customer; the postcode always fits the country Stripe ends up with, since a
   // 6-digit postcode under "United States" leaves the form invalid and Pay does nothing (23 Nov 2026 gate run).
-  const country = await visibleIn(page, '#billingCountry')
+  // 24 Nov 2026 run: no country picker was found by id, the ZIP stayed empty, and Stripe also asked for a phone number
+  // (Link's "save my information", ticked by default in the US). Fields are found by id or by their label.
+  const country = await visibleIn(page, '#billingCountry', /^Country or region$/i)
   if (country) await country.selectOption('SG').catch(() => undefined)
   const selected = country ? await country.inputValue().catch(() => null) : null
-  const postal = await visibleIn(page, '#billingPostalCode')
+  const postal = await visibleIn(page, '#billingPostalCode', /^(ZIP|Postal code)$/i)
   if (postal) await postal.fill(selected === 'SG' ? '123456' : '10001')
+  const saveInfo = await visibleIn(page, '#enableStripePass', /Save my information/i)
+  if (saveInfo && (await saveInfo.isChecked().catch(() => false))) await saveInfo.uncheck().catch(() => undefined)
+  const phone = await visibleIn(page, '#phoneNumber', /^Phone( number)?$/i)
+  if (phone && (await phone.inputValue().catch(() => '')) === '') await phone.fill('2015550123')
   // The Pay button can sit inside Stripe's frame too.
   let submitted = false
   for (const scope of [page, ...page.frames().slice(1)]) {
@@ -234,17 +240,32 @@ export async function payWithTestCard(page: Page, email: string) {
   const left = await page.waitForURL((url) => url.hostname !== 'checkout.stripe.com', { timeout: 60_000 }).then(() => true, () => false)
   if (!left) {
     const messages: string[] = []
+    const fields: string[] = []
     for (const scope of [page, ...page.frames().slice(1)]) {
       messages.push(...(await scope.locator('[role="alert"], .FieldError').allInnerTexts().catch(() => [])))
+      // The visible form fields by their attributes only (never their values), so the next failure names the field.
+      fields.push(
+        ...(await scope
+          .locator('input, select')
+          .evaluateAll((elements) =>
+            elements
+              .filter((e) => (e as HTMLElement).offsetParent !== null)
+              .map((e) => ['id', 'name', 'autocomplete', 'placeholder', 'aria-label'].map((a) => e.getAttribute(a) ?? '').join('/')),
+          )
+          .catch(() => [])),
+      )
     }
-    throw new Error(`Stripe Checkout did not accept the payment (country ${selected ?? 'not asked'}): ${messages.filter(Boolean).join(' | ') || 'no message shown'}`)
+    throw new Error(
+      `Stripe Checkout did not accept the payment (country ${selected ?? 'not asked'}): ${messages.filter(Boolean).join(' | ') || 'no message shown'}. Fields shown: ${fields.join('; ')}`,
+    )
   }
 }
 
-async function visibleIn(page: Page, selector: string): Promise<Locator | null> {
+async function visibleIn(page: Page, selector: string, label?: RegExp): Promise<Locator | null> {
   for (const scope of [page, ...page.frames().slice(1)]) {
-    const candidate = scope.locator(selector).first()
-    if (await candidate.isVisible().catch(() => false)) return candidate
+    for (const candidate of [scope.locator(selector).first(), ...(label ? [scope.getByLabel(label).first()] : [])]) {
+      if (await candidate.isVisible().catch(() => false)) return candidate
+    }
   }
   return null
 }
@@ -305,6 +326,66 @@ export function clerkApi(path: string, init: RequestInit) {
     ...init,
     headers: { Authorization: `Bearer ${clerkSecretKey}`, 'Content-Type': 'application/json' },
   })
+}
+
+// Evidence minimums (#35): a paid pack is generated only once its documents are in. The release tests add synthetic
+// documents through the checklist, as a customer would; one the pipeline does not read as that item is marked by hand
+// ("This is my police report"), which exercises the self-confirm path too.
+const PACK_EVIDENCE = {
+  bank: [
+    { item: 'payment_proof', name: 'synthetic-bank-statement.pdf' },
+    { item: 'police_report', name: 'synthetic-police-report.pdf' },
+  ],
+  fidrec: [
+    { item: 'payment_proof', name: 'synthetic-bank-statement.pdf' },
+    { item: 'police_report', name: 'synthetic-police-report.pdf' },
+    { item: 'bank_reply_or_complaint', name: 'synthetic-bank-final-reply.pdf' },
+  ],
+} as const
+
+function syntheticEvidencePdf(item: string): Buffer {
+  if (item === 'police_report') {
+    return syntheticPdf([
+      'Police report (synthetic test document)',
+      'Report number: TEST-0000-2026',
+      'Reported on 04 Oct 2026: scam call impersonating Synthetic Bank; transfer of S$2,400.00 on 03 Oct 2026',
+    ])
+  }
+  if (item === 'bank_reply_or_complaint') {
+    return syntheticPdf([
+      'Synthetic Bank - Final reply to your complaint (synthetic test document)',
+      'Our reference: TEST-REF-0000',
+      'We have reviewed your dispute of the transfer of S$2,400.00 on 03 Oct 2026 and will not refund it.',
+    ])
+  }
+  return syntheticStatementPdf()
+}
+
+export async function addPackEvidence(page: Page, product: keyof typeof PACK_EVIDENCE) {
+  const checklist = page.locator(`[data-pack-evidence="${product}"]`)
+  await expect(checklist, 'the evidence checklist after payment').toBeVisible({ timeout: 120_000 })
+  for (const document of PACK_EVIDENCE[product]) {
+    const row = checklist.locator(`[data-evidence-item="${document.item}"]`)
+    if ((await row.getAttribute('data-added')) === 'true') continue
+    await row.locator('input[type="file"]').setInputFiles({
+      name: document.name,
+      mimeType: 'application/pdf',
+      buffer: syntheticEvidencePdf(document.item),
+    })
+    // Read by the pipeline as this item, or ready and offered to be marked by hand.
+    const option = row.locator('select option', { hasText: document.name })
+    await expect
+      .poll(async () => (await row.getAttribute('data-added')) === 'true' || (await option.count()) > 0, {
+        timeout: 5 * 60_000,
+        message: `${document.item}: the uploaded document is read`,
+      })
+      .toBe(true)
+    if ((await row.getAttribute('data-added')) !== 'true') {
+      await row.locator('select').selectOption({ label: document.name })
+      await row.getByRole('button', { name: /^This is / }).click()
+    }
+    await expect(row).toHaveAttribute('data-added', 'true', { timeout: 60_000 })
+  }
 }
 
 // A one-page synthetic statement, built here so no document file is committed.
