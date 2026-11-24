@@ -798,10 +798,10 @@ export const CLAUSE_KEYS = {
     "mas.eupg/fn27",
   ],
   mas_notice_comparison: [
-    // Technology-risk notice for banks, customer-information clause.
-    NAMED_CLAUSE_KEYS.fsmN05CustomerInformation,
     // Technology-risk notice for non-bank card licensees, customer-information clause (FSM-N07 not loaded yet).
     "mas.fsm-n07/9",
+    // Technology-risk notice for banks, customer-information clause. Appended, so existing indexes stay as they were.
+    NAMED_CLAUSE_KEYS.fsmN05CustomerInformation,
   ],
   industry_practice_comparison: [
     NAMED_CLAUSE_KEYS.absProvisioningVerification,
