@@ -136,7 +136,9 @@ test('(b) coverage: "matches" only for a read report dated on or after the perio
   assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [ours({ reportDate: null })], dispute: DISPUTE }), { kind: 'not_read', reason: 'report_before_period_end' }, 'no report date')
   assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [], dispute: DISPUTE }), { kind: 'not_read', reason: 'report_before_period_end' }, 'nothing read from the report')
   // The report's date counts whatever account the status is about (it is the report's own date).
-  assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [theirs({ statusText: 'paid as agreed' })], dispute: DISPUTE }), { kind: 'matches' })
+  assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [ours({ reportDate: null }), theirs({ statusText: 'paid as agreed' })], dispute: DISPUTE }), { kind: 'matches' })
+  // Gap c: the disputed account must be listed in the report for "matches".
+  assert.deepEqual(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [theirs({ statusText: 'paid as agreed' })], dispute: DISPUTE }), { kind: 'not_read', reason: 'account_not_listed' })
   // A letter's date never makes "matches".
   assert.equal(creditRecordsReading({ ...ended, bureauReportRead: true, statuses: [ours({ source: 'institution_letter', bureau: null })], dispute: DISPUTE }).kind, 'not_read')
   // A period still running: until null, or after today.
