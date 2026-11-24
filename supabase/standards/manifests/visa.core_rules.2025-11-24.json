@@ -20,7 +20,8 @@
     "snapshot_path": "visa/archive/visa-rules-public_2025-10-18_v1.1_wb20251124113415.pdf",
     "content_sha256": "346469a884e26fdc18168ae3fc7f55d80959aa7dd85795f872cf81eba422daae",
     "provenance": "web_archive",
-    "coverage": "selected_sections"
+    "coverage": "selected_sections",
+    "archived_at": "2025-11-24"
   },
   "extraction": {
     "format": "pdf",

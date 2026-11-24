@@ -20,7 +20,8 @@
     "snapshot_path": "dbs/archive/credit-card-agreement_wb20250709152842.pdf",
     "content_sha256": "09c9073c65c5cf5ea1f1e5a97746573274a191b9510fd9e198f2a44c3f225e67",
     "provenance": "web_archive",
-    "coverage": "full"
+    "coverage": "full",
+    "archived_at": "2025-07-09"
   },
   "extraction": {
     "format": "pdf",

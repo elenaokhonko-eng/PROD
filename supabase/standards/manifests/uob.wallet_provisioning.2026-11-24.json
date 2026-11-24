@@ -1,0 +1,544 @@
+{
+  "$comment": "UOB's published page on adding its cards to mobile wallets with Digital Token authentication (Decisions 5 and 7). A published page, not contract terms. One clause per overview paragraph, per part, and per FAQ question with its answer; the page's navigation, its second copy of the setup part, the FAQ group headings and the cookie notice are left out. Each capture whose text differs is a version; effective_from is the capture date (the page shows no date of its own). The page's own start date ('From 1 July 2025') goes on the wallet_provisioning request row, not here. Captured from uob.com.sg on 24 November 2026.",
+  "document": {
+    "document_key": "uob.wallet_provisioning",
+    "title": "Add your cards securely to mobile wallet with Digital Token",
+    "publisher": "United Overseas Bank Limited",
+    "binding_level": "published_page",
+    "applies_to": ["bank", "card_issuer"],
+    "instrument_scope": ["sg_card"],
+    "institution": "uob",
+    "card_scheme": null,
+    "canonical_url": "https://www.uob.com.sg/personal/cards/services/mobile-wallet-digital-token-authentication.page"
+  },
+  "version": {
+    "version_label": "as captured on 24 November 2026",
+    "effective_from": "2026-11-24",
+    "issued_on": null,
+    "retrieved_at": "2026-11-24T10:55:00Z",
+    "source_url": "https://www.uob.com.sg/personal/cards/services/mobile-wallet-digital-token-authentication.page",
+    "snapshot_path": "uob.wallet_provisioning/2026-11-24_publisher-site.html",
+    "content_sha256": "094c6e7c06fa94bca95bc5728fedf6a014683f1947fa95631018fa0cf58877b2",
+    "provenance": "publisher_site",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "html",
+    "extractor": "scripts/standards/extract.ts htmlText",
+    "html_start": "<h1 class=\"uob-h1[^\"]*\">",
+    "html_end": "<footer id=\"home-footer\"",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "^\\s*From 1 July 2025, authentication through SMS One-Time-Password \\(OTP\\) when you add your UOB Mastercard or Visa Card\\(s\\) to your mobile wallets \\(for payments using Apple Pay, Google Pay and Samsung Pay\\) will be progressively changed to Digital Token Authentication via the UOB TMRW app to protect you against potential scams\\.\\s*$",
+      "clause": "uob.wallet_provisioning/overview.from-1-july-2025-authentication-through"
+    },
+    {
+      "at": "^\\s*The adding of UOB American Express and UnionPay Card\\(s\\) to mobile wallets is currently not supported\\.\\s*$",
+      "clause": "uob.wallet_provisioning/overview.the-adding-of-uob-american-express"
+    },
+    {
+      "at": "^\\s*Please note that SMS OTP authentication will no longer be available\\. Customers without digital access or digital token will be notified to set up their digital access and digital token before proceeding with mobile wallet provisioning\\.\\s*$",
+      "clause": "uob.wallet_provisioning/overview.please-note-that-sms-otp-authentication"
+    },
+    {
+      "at": "^\\s*Setting up your Digital Token\\s*$",
+      "clause": "uob.wallet_provisioning/setup"
+    },
+    {
+      "at": "^\\s*Setting up your Digital Token\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^\\s*How to authenticate your mobile wallet provisioning request via Digital Token\\?\\s*$",
+      "clause": "uob.wallet_provisioning/authenticate"
+    },
+    {
+      "at": "^\\s*Frequently Asked Questions \\(FAQs\\)\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^\\s*Adding my UOB Card\\(s\\) to my new Apple device\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^\\s*Do I need to enter all my card details again for Device Transfer\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.apple-device.do-i-need-to-enter-all-my-card"
+    },
+    {
+      "at": "^\\s*How do I approve the transfer\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.apple-device.how-do-i-approve-the-transfer"
+    },
+    {
+      "at": "^\\s*Is the transfer secure\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.apple-device.is-the-transfer-secure"
+    },
+    {
+      "at": "^\\s*What should I do if I fail to transfer my card to my new iPhone via Device Transfer\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.apple-device.what-should-i-do-if-i-fail-to"
+    },
+    {
+      "at": "^\\s*I've followed the steps above and activated my TMRW Digital Token, but I am still unable to activate my card in my mobile wallet\\. What should I do\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.apple-device.ive-followed-the-steps-above-and-activated-my"
+    },
+    {
+      "at": "^\\s*Why do I need to remove my card from the mobile wallet before adding it again\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.apple-device.why-do-i-need-to-remove-my-card"
+    },
+    {
+      "at": "^\\s*Adding my UOB Card\\(s\\) to my new Android device\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^\\s*How do I add my UOB Card\\(s\\) to my device\\(s\\)\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.android-device.how-do-i-add-my-uob-card-s"
+    },
+    {
+      "at": "^\\s*I've followed the steps above and activated my TMRW Digital Token, but I am still unable to activate my card in my mobile wallet\\. What should I do\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.android-device.ive-followed-the-steps-above-and-activated-my"
+    },
+    {
+      "at": "^\\s*Why do I need to remove my card from the mobile wallet before adding it again\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.android-device.why-do-i-need-to-remove-my-card"
+    },
+    {
+      "at": "^\\s*Authenticate your mobile wallet provisioning request with Digital Token\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^\\s*How do I add my UOB Cards into my mobile wallet \\(Apple Pay, Google Pay & Samsung Pay\\) via digital token authentication\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.authenticate.how-do-i-add-my-uob-cards-into"
+    },
+    {
+      "at": "^\\s*What UOB cards can I add to my mobile wallet\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.authenticate.what-uob-cards-can-i-add-to-my"
+    },
+    {
+      "at": "^\\s*Can I opt out of Digital Token authentication & continue to validate via SMS One-Time Password \\(OTP\\) authentication when I add my UOB Card to a mobile wallet\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.authenticate.can-i-opt-out-of-digital-token-authentication"
+    },
+    {
+      "at": "^\\s*What happens if I do not have mobile banking access & digital token set up\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.authenticate.what-happens-if-i-do-not-have-mobile"
+    },
+    {
+      "at": "^\\s*Can I add my UOB Cards into my mobile wallet if I have UOB TMRW app installed but digital token is NOT set up\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.authenticate.can-i-add-my-uob-cards-into-my"
+    },
+    {
+      "at": "^\\s*Can I add the same UOB Card to mobile wallets on multiple devices \\(such as tablet or other mobile phones\\) which do not have UOB TMRW app & digital token set up\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.authenticate.can-i-add-the-same-uob-card-to"
+    },
+    {
+      "at": "^\\s*I am a supplementary cardholder\\. Can I add my UOB Supplementary Card into my mobile wallet\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.authenticate.i-am-a-supplementary-cardholder-can-i-add"
+    },
+    {
+      "at": "^\\s*Why can’t I add my card to my mobile wallet\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.authenticate.why-cant-i-add-my-card-to-my"
+    },
+    {
+      "at": "^\\s*Why am I not receiving any push notification to verify my request\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.authenticate.why-am-i-not-receiving-any-push-notification"
+    },
+    {
+      "at": "^\\s*How do I turn on notifications on my mobile device\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.authenticate.how-do-i-turn-on-notifications-on-my"
+    },
+    {
+      "at": "^\\s*Why did I receive an email alert or TMRW notification that my UOB Card\\(s\\) have been removed from my Google Wallet when I didn’t remove the card\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.authenticate.why-did-i-receive-an-email-alert-or"
+    },
+    {
+      "at": "^\\s*Can I add my UOB Cards to mobile wallets on devices that I do not personally own and control\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.authenticate.can-i-add-my-uob-cards-to-mobile"
+    },
+    {
+      "at": "^\\s*Digital Token\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^\\s*What is a Digital Token\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.digital-token.what-is-a-digital-token"
+    },
+    {
+      "at": "^\\s*Who can sign up for Digital Token\\? How do I set it up\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.digital-token.who-can-sign-up-for-digital-token-how"
+    },
+    {
+      "at": "^\\s*I forgot my Digital Token code\\. What should I do\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.digital-token.i-forgot-my-digital-token-code-what-should"
+    },
+    {
+      "at": "^\\s*I’ve changed my mobile device\\. Do I need to set up my digital token again\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.digital-token.ive-changed-my-mobile-device-do-i-need"
+    },
+    {
+      "at": "^\\s*My mobile device is lost or stolen\\. What should I do\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.digital-token.my-mobile-device-is-lost-or-stolen-what"
+    },
+    {
+      "at": "^\\s*Card Deletion from Google Pay due to device inactivity\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^\\s*My UOB Card\\(s\\) has been removed from my Google Pay wallet and it was not initiated by me\\. Why is that so\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.google-inactivity.my-uob-card-s-has-been-removed-from"
+    },
+    {
+      "at": "^\\s*What constitutes as device inactivity\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.google-inactivity.what-constitutes-as-device-inactivity"
+    },
+    {
+      "at": "^\\s*How do I add my UOB Card back to my Google Pay\\?\\s*$",
+      "clause": "uob.wallet_provisioning/faq.google-inactivity.how-do-i-add-my-uob-card-back"
+    },
+    {
+      "at": "^\\s*We use cookies to improve and customise your browsing experience\\. You are deemed to have consented to our cookies policy if you continue browsing our site\\.\\s*$",
+      "clause": null
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "uob.wallet_provisioning/overview.from-1-july-2025-authentication-through",
+      "clause_ref": "Overview: 'From 1 July 2025, authentication through SMS One-Time-Passwo…'",
+      "heading_path": ["Overview: 'From 1 July 2025, authentication through SMS One-Time-Passwo…'"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "4b64bd369199c01562403faf09f0f733bb0826d298a77fabb55981fee57d1ba6"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/overview.the-adding-of-uob-american-express",
+      "clause_ref": "Overview: 'The adding of UOB American Express and UnionPay Card(s) to m…'",
+      "heading_path": ["Overview: 'The adding of UOB American Express and UnionPay Card(s) to m…'"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "dfa3ec2d052f95bdd058236c7dd5a0f18471888244656f3092a71b37bc130286"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/overview.please-note-that-sms-otp-authentication",
+      "clause_ref": "Overview: 'Please note that SMS OTP authentication will no longer be av…'",
+      "heading_path": ["Overview: 'Please note that SMS OTP authentication will no longer be av…'"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "5545598d712eef5a8ad5017ea694a697d3919a7d4a41fc204c47411cd063203c"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/setup",
+      "clause_ref": "Setting up your Digital Token",
+      "heading_path": ["Setting up your Digital Token"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "770336f18ae4eee0bb132461e25740852fa85f1a88d389f5fe272dbcb62933a4"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/authenticate",
+      "clause_ref": "How to authenticate your mobile wallet provisioning request via Digital Token",
+      "heading_path": ["How to authenticate your mobile wallet provisioning request via Digital Token"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "0638f9edd031f72e0dfc8e7acf1f1318435a8eb7500000e2f9175c05aada4747"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.apple-device.do-i-need-to-enter-all-my-card",
+      "clause_ref": "FAQ (apple-device): Do I need to enter all my card details again for Device Transfer?",
+      "heading_path": ["FAQ (apple-device): Do I need to enter all my card details again for Device Transfer?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "5842bf18d48e2980600db5aa2526879e65283883e10a58d9f51caa7a4cb0d7ad"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.apple-device.how-do-i-approve-the-transfer",
+      "clause_ref": "FAQ (apple-device): How do I approve the transfer?",
+      "heading_path": ["FAQ (apple-device): How do I approve the transfer?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "5c6c70ec1b3dac914cde3a78595b8e6b58e03cfa30d8b979957791263ba42623"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.apple-device.is-the-transfer-secure",
+      "clause_ref": "FAQ (apple-device): Is the transfer secure?",
+      "heading_path": ["FAQ (apple-device): Is the transfer secure?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "2d1be14af08c89aeafe8c6fc8912abc53ca077583e6c7b5be9681bcdb418bed2"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.apple-device.what-should-i-do-if-i-fail-to",
+      "clause_ref": "FAQ (apple-device): What should I do if I fail to transfer my card to my new iPhone via Device Transfer?",
+      "heading_path": ["FAQ (apple-device): What should I do if I fail to transfer my card to my new iPhone via Device Transfer?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "d8a8cdfcebc51c27b46cdcec4977b77135db1972bb2643f9910bb0fae64cdaf2"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.apple-device.ive-followed-the-steps-above-and-activated-my",
+      "clause_ref": "FAQ (apple-device): I've followed the steps above and activated my TMRW Digital Token, but I am still unable to activate my card in my mobile wallet. What should I do?",
+      "heading_path": ["FAQ (apple-device): I've followed the steps above and activated my TMRW Digital Token, but I am still unable to activate my card in my mobile wallet. What should I do?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "e393fb7226ce4fbcc9d8e86e7f869d660a02d573bf8cadef4d5f27eb13b9f2f1"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.apple-device.why-do-i-need-to-remove-my-card",
+      "clause_ref": "FAQ (apple-device): Why do I need to remove my card from the mobile wallet before adding it again?",
+      "heading_path": ["FAQ (apple-device): Why do I need to remove my card from the mobile wallet before adding it again?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "bbbba1d6cf5cbb45b6f7ea26ee4cffcebfdd809b49a5c7110b5a18a6bc67d85c"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.android-device.how-do-i-add-my-uob-card-s",
+      "clause_ref": "FAQ (android-device): How do I add my UOB Card(s) to my device(s)?",
+      "heading_path": ["FAQ (android-device): How do I add my UOB Card(s) to my device(s)?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "28d57a50a4311a9bd4816cc0564c64ae88f833033f65461b4888cd44698feac0"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.android-device.ive-followed-the-steps-above-and-activated-my",
+      "clause_ref": "FAQ (android-device): I've followed the steps above and activated my TMRW Digital Token, but I am still unable to activate my card in my mobile wallet. What should I do?",
+      "heading_path": ["FAQ (android-device): I've followed the steps above and activated my TMRW Digital Token, but I am still unable to activate my card in my mobile wallet. What should I do?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "5ff1669a3b44e72c70b3e749f935814a8bad09089f5887aefad437a7b63c7c34"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.android-device.why-do-i-need-to-remove-my-card",
+      "clause_ref": "FAQ (android-device): Why do I need to remove my card from the mobile wallet before adding it again?",
+      "heading_path": ["FAQ (android-device): Why do I need to remove my card from the mobile wallet before adding it again?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "bbbba1d6cf5cbb45b6f7ea26ee4cffcebfdd809b49a5c7110b5a18a6bc67d85c"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.authenticate.how-do-i-add-my-uob-cards-into",
+      "clause_ref": "FAQ (authenticate): How do I add my UOB Cards into my mobile wallet (Apple Pay, Google Pay & Samsung Pay) via digital token authentication?",
+      "heading_path": ["FAQ (authenticate): How do I add my UOB Cards into my mobile wallet (Apple Pay, Google Pay & Samsung Pay) via digital token authentication?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "ac54d554a2d12309acdb69652fade4b51bd38317963c7c18d21038092e4aea3a"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.authenticate.what-uob-cards-can-i-add-to-my",
+      "clause_ref": "FAQ (authenticate): What UOB cards can I add to my mobile wallet?",
+      "heading_path": ["FAQ (authenticate): What UOB cards can I add to my mobile wallet?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "5a5e82275f62ac0023aab330563bbe72ca4ee3f87d0364e8273bce6fcb3574ab"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.authenticate.can-i-opt-out-of-digital-token-authentication",
+      "clause_ref": "FAQ (authenticate): Can I opt out of Digital Token authentication & continue to validate via SMS One-Time Password (OTP) authentication when I add my UOB Card to a mobile wallet?",
+      "heading_path": ["FAQ (authenticate): Can I opt out of Digital Token authentication & continue to validate via SMS One-Time Password (OTP) authentication when I add my UOB Card to a mobile wallet?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "f8da673bc444fbb30a44a076adcf85575149874bc91acfc9b27c8c74684d9119"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.authenticate.what-happens-if-i-do-not-have-mobile",
+      "clause_ref": "FAQ (authenticate): What happens if I do not have mobile banking access & digital token set up?",
+      "heading_path": ["FAQ (authenticate): What happens if I do not have mobile banking access & digital token set up?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "6cc014b80d6eca185f414485f50ceef78f5f149faab7eb08d29542a176904bea"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.authenticate.can-i-add-my-uob-cards-into-my",
+      "clause_ref": "FAQ (authenticate): Can I add my UOB Cards into my mobile wallet if I have UOB TMRW app installed but digital token is NOT set up?",
+      "heading_path": ["FAQ (authenticate): Can I add my UOB Cards into my mobile wallet if I have UOB TMRW app installed but digital token is NOT set up?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "2580b1c53aca69090c585162af2b0e50dff2773be4926d48475be32bdc9a9ecc"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.authenticate.can-i-add-the-same-uob-card-to",
+      "clause_ref": "FAQ (authenticate): Can I add the same UOB Card to mobile wallets on multiple devices (such as tablet or other mobile phones) which do not have UOB TMRW app & digital token set up?",
+      "heading_path": ["FAQ (authenticate): Can I add the same UOB Card to mobile wallets on multiple devices (such as tablet or other mobile phones) which do not have UOB TMRW app & digital token set up?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "7337e90cc94d35d1c82165d358b74a6bf463cb592a012debe6a8bef034614eea"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.authenticate.i-am-a-supplementary-cardholder-can-i-add",
+      "clause_ref": "FAQ (authenticate): I am a supplementary cardholder. Can I add my UOB Supplementary Card into my mobile wallet?",
+      "heading_path": ["FAQ (authenticate): I am a supplementary cardholder. Can I add my UOB Supplementary Card into my mobile wallet?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "af34a3f782d4dbe00e9b591b63f1d155b593cf7d8d613218f17747dc194174ae"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.authenticate.why-cant-i-add-my-card-to-my",
+      "clause_ref": "FAQ (authenticate): Why can’t I add my card to my mobile wallet?",
+      "heading_path": ["FAQ (authenticate): Why can’t I add my card to my mobile wallet?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "f792e0a78e26a4f1cb273961559d8f37fba9377d6e554218afaa82c1584d474c"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.authenticate.why-am-i-not-receiving-any-push-notification",
+      "clause_ref": "FAQ (authenticate): Why am I not receiving any push notification to verify my request?",
+      "heading_path": ["FAQ (authenticate): Why am I not receiving any push notification to verify my request?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "cc676fa092335dc79d6b0ea718981b2e4db922eea2ed246a8f9d6569403a53c1"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.authenticate.how-do-i-turn-on-notifications-on-my",
+      "clause_ref": "FAQ (authenticate): How do I turn on notifications on my mobile device?",
+      "heading_path": ["FAQ (authenticate): How do I turn on notifications on my mobile device?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "7dd2242b0555485ee806daf1c72626cb231601b04410c2b9dd260b009e82001c"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.authenticate.why-did-i-receive-an-email-alert-or",
+      "clause_ref": "FAQ (authenticate): Why did I receive an email alert or TMRW notification that my UOB Card(s) have been removed from my Google Wallet when I didn’t remove the card?",
+      "heading_path": ["FAQ (authenticate): Why did I receive an email alert or TMRW notification that my UOB Card(s) have been removed from my Google Wallet when I didn’t remove the card?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "172a4e38ffc40186eb77a20409c14950d520010cb7b325a85be939bb4f5f4762"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.authenticate.can-i-add-my-uob-cards-to-mobile",
+      "clause_ref": "FAQ (authenticate): Can I add my UOB Cards to mobile wallets on devices that I do not personally own and control?",
+      "heading_path": ["FAQ (authenticate): Can I add my UOB Cards to mobile wallets on devices that I do not personally own and control?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "0eef277b3ca987e52b74f64e1a425debdf3528e109624922862466ca8fc1c29c"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.digital-token.what-is-a-digital-token",
+      "clause_ref": "FAQ (digital-token): What is a Digital Token?",
+      "heading_path": ["FAQ (digital-token): What is a Digital Token?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "20172df566a5e930a2c5db2822174d06ad008aac2ab8b5bdd7cf065a6b812958"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.digital-token.who-can-sign-up-for-digital-token-how",
+      "clause_ref": "FAQ (digital-token): Who can sign up for Digital Token? How do I set it up?",
+      "heading_path": ["FAQ (digital-token): Who can sign up for Digital Token? How do I set it up?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "f293c1d2144acaec8c7391012610c0ee62a1783367bb6b5a44511043c922f271"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.digital-token.i-forgot-my-digital-token-code-what-should",
+      "clause_ref": "FAQ (digital-token): I forgot my Digital Token code. What should I do?",
+      "heading_path": ["FAQ (digital-token): I forgot my Digital Token code. What should I do?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "017d3f49d284df7b9903ad9d25be8e40892fb248f1755f8bc09d179f06c8fb48"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.digital-token.ive-changed-my-mobile-device-do-i-need",
+      "clause_ref": "FAQ (digital-token): I’ve changed my mobile device. Do I need to set up my digital token again?",
+      "heading_path": ["FAQ (digital-token): I’ve changed my mobile device. Do I need to set up my digital token again?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "8fabf7cd57242fc3d61ab01d544f6ef636659aaa5a4df848ceecdc36fc2c68f2"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.digital-token.my-mobile-device-is-lost-or-stolen-what",
+      "clause_ref": "FAQ (digital-token): My mobile device is lost or stolen. What should I do?",
+      "heading_path": ["FAQ (digital-token): My mobile device is lost or stolen. What should I do?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "b56045c619b6b03ddada6bb9523823bb0b7d04a089627fe6bcc2cc08700e77a2"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.google-inactivity.my-uob-card-s-has-been-removed-from",
+      "clause_ref": "FAQ (google-inactivity): My UOB Card(s) has been removed from my Google Pay wallet and it was not initiated by me. Why is that so?",
+      "heading_path": ["FAQ (google-inactivity): My UOB Card(s) has been removed from my Google Pay wallet and it was not initiated by me. Why is that so?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "fbe1722b8b923ce48353ee1bb13127b4c9be32a029f1251608a23ffe47665b24"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.google-inactivity.what-constitutes-as-device-inactivity",
+      "clause_ref": "FAQ (google-inactivity): What constitutes as device inactivity?",
+      "heading_path": ["FAQ (google-inactivity): What constitutes as device inactivity?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "509468d7f9d03f178a3090ab08617bec692634c82bd0db6c37ae7a3b95055d8e"
+    },
+    {
+      "clause_key": "uob.wallet_provisioning/faq.google-inactivity.how-do-i-add-my-uob-card-back",
+      "clause_ref": "FAQ (google-inactivity): How do I add my UOB Card back to my Google Pay?",
+      "heading_path": ["FAQ (google-inactivity): How do I add my UOB Card back to my Google Pay?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "40166ccd50a2a159f7bafc7232cc9021986b72935ba1b6816c010592c74f8748"
+    }
+  ]
+}

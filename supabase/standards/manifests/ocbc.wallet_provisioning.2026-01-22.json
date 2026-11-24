@@ -1,0 +1,199 @@
+{
+  "$comment": "OCBC's published help page 'Adding card to mobile wallet' (Decisions 5 and 7). A published page, not contract terms. One clause per question with its answer; the help menu before the article and the trademark notices after it are left out. ocbc.com refuses automated requests, so every version here is an Internet Archive capture; today's page waits for a browser capture by a person (blocked-sources.md). effective_from is the capture date (the page shows no date of its own); the page's own dates ('from 31 July 2025') go on the wallet_provisioning request row. From the Internet Archive's Wayback Machine (capture 2026-01-22; fetched 24 November 2026). The captures of 3 and 10 February 2026 have the same text.",
+  "document": {
+    "document_key": "ocbc.wallet_provisioning",
+    "title": "Adding card to mobile wallet",
+    "publisher": "Oversea-Chinese Banking Corporation Limited",
+    "binding_level": "published_page",
+    "applies_to": ["bank", "card_issuer"],
+    "instrument_scope": ["sg_card"],
+    "institution": "ocbc",
+    "card_scheme": null,
+    "canonical_url": "https://www.ocbc.com/personal-banking/help-and-support/cards/adding-card-to-mobile-wallet"
+  },
+  "version": {
+    "version_label": "as captured on 22 January 2026",
+    "effective_from": "2026-01-22",
+    "issued_on": null,
+    "retrieved_at": "2026-01-22T02:27:54Z",
+    "source_url": "https://web.archive.org/web/20260122022754/https://www.ocbc.com/personal-banking/help-and-support/cards/adding-card-to-mobile-wallet",
+    "snapshot_path": "ocbc.wallet_provisioning/2026-01-22_wb20260122022754.html",
+    "content_sha256": "1a34228b1d478dd9c5a00a1b8aad45b63dd5c1d31c7b4703c13dd54b8b967a9b",
+    "provenance": "web_archive",
+    "coverage": "full",
+    "archived_at": "2026-01-22"
+  },
+  "extraction": {
+    "format": "html",
+    "extractor": "scripts/standards/extract.ts htmlText",
+    "html_start": "<strong>Help And Support</strong></h3>",
+    "html_end": "<footer class=\"\" id=\"footer\">",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "^\\s*Adding Cards to Mobile Wallets\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^\\s*Which OCBC cards do these FAQs apply to\\?\\s*$",
+      "clause": "ocbc.wallet_provisioning/faq.which-ocbc-cards-do-these-faqs-apply-to"
+    },
+    {
+      "at": "^\\s*What does it mean to add a card to a mobile wallet\\? How do I do this\\?\\s*$",
+      "clause": "ocbc.wallet_provisioning/faq.what-does-it-mean-to-add-a-card"
+    },
+    {
+      "at": "^\\s*Which cards can I add to my mobile wallet\\? What is required\\?\\s*$",
+      "clause": "ocbc.wallet_provisioning/faq.which-cards-can-i-add-to-my-mobile"
+    },
+    {
+      "at": "^\\s*Can I still make contactless payments using OCBC cards that were added to my mobile wallet before 31 July 2025\\?\\s*$",
+      "clause": "ocbc.wallet_provisioning/faq.can-i-still-make-contactless-payments-using-ocbc"
+    },
+    {
+      "at": "^\\s*How do I add a card to my mobile wallet\\?\\s*$",
+      "clause": "ocbc.wallet_provisioning/faq.how-do-i-add-a-card-to-my"
+    },
+    {
+      "at": "^\\s*Can my OCBC card be added to a mobile wallet on a secondary device\\?\\s*$",
+      "clause": "ocbc.wallet_provisioning/faq.can-my-ocbc-card-be-added-to-a"
+    },
+    {
+      "at": "^\\s*I did not receive the push notification that would allow me to authorise my request to add a card to Apple Wallet, Samsung Wallet or Google Wallet\\. What should I do\\?\\s*$",
+      "clause": "ocbc.wallet_provisioning/faq.i-did-not-receive-the-push-notification-that"
+    },
+    {
+      "at": "^\\s*What if I missed or did not receive the OCBC app notification\\?\\s*$",
+      "clause": "ocbc.wallet_provisioning/faq.what-if-i-missed-or-did-not-receive"
+    },
+    {
+      "at": "^\\s*What if I do not have OCBC OneToken or Online Banking access\\?\\s*$",
+      "clause": "ocbc.wallet_provisioning/faq.what-if-i-do-not-have-ocbc-onetoken"
+    },
+    {
+      "at": "^\\s*What notifications will I receive after my OCBC card has been added to a mobile wallet\\?\\s*$",
+      "clause": "ocbc.wallet_provisioning/faq.what-notifications-will-i-receive-after-my-ocbc"
+    },
+    {
+      "at": "^\\s*What are the Terms and Conditions that apply\\?\\s*$",
+      "clause": "ocbc.wallet_provisioning/faq.what-are-the-terms-and-conditions-that-apply"
+    },
+    {
+      "at": "^\\s*Apple Wallet is a registered trademark of Apple Inc\\.\\s*$",
+      "clause": null
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "ocbc.wallet_provisioning/faq.which-ocbc-cards-do-these-faqs-apply-to",
+      "clause_ref": "FAQ: Which OCBC cards do these FAQs apply to?",
+      "heading_path": ["FAQ: Which OCBC cards do these FAQs apply to?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "84ad2ad0634a21d3c55dd21e119407118d70a646d289f21e89e23feeaa38b269"
+    },
+    {
+      "clause_key": "ocbc.wallet_provisioning/faq.what-does-it-mean-to-add-a-card",
+      "clause_ref": "FAQ: What does it mean to add a card to a mobile wallet? How do I do this?",
+      "heading_path": ["FAQ: What does it mean to add a card to a mobile wallet? How do I do this?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "9be8853c56f0d8b8cf28f883cc99084d76a5ce2782b0e48e145de9c66cb7b29b"
+    },
+    {
+      "clause_key": "ocbc.wallet_provisioning/faq.which-cards-can-i-add-to-my-mobile",
+      "clause_ref": "FAQ: Which cards can I add to my mobile wallet? What is required?",
+      "heading_path": ["FAQ: Which cards can I add to my mobile wallet? What is required?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "2a7b7ef109434a610a476326e93eab97c056d79c049830cd3660e317ed4f75d0"
+    },
+    {
+      "clause_key": "ocbc.wallet_provisioning/faq.can-i-still-make-contactless-payments-using-ocbc",
+      "clause_ref": "FAQ: Can I still make contactless payments using OCBC cards that were added to my mobile wallet before 31 July 2025?",
+      "heading_path": ["FAQ: Can I still make contactless payments using OCBC cards that were added to my mobile wallet before 31 July 2025?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "da23cf00e54d7c16f27e40f95ee78199d8c0b05d7dd5134472d3909cd62563ae"
+    },
+    {
+      "clause_key": "ocbc.wallet_provisioning/faq.how-do-i-add-a-card-to-my",
+      "clause_ref": "FAQ: How do I add a card to my mobile wallet?",
+      "heading_path": ["FAQ: How do I add a card to my mobile wallet?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "ef859d393a81dcb578f1d765eddd932b2233976fa836c03f150f637d299fcb1c"
+    },
+    {
+      "clause_key": "ocbc.wallet_provisioning/faq.can-my-ocbc-card-be-added-to-a",
+      "clause_ref": "FAQ: Can my OCBC card be added to a mobile wallet on a secondary device?",
+      "heading_path": ["FAQ: Can my OCBC card be added to a mobile wallet on a secondary device?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "8c622877c1dc73f9c8fbdeead426eb2aabe5a401325f3202886342c434a22c38"
+    },
+    {
+      "clause_key": "ocbc.wallet_provisioning/faq.i-did-not-receive-the-push-notification-that",
+      "clause_ref": "FAQ: I did not receive the push notification that would allow me to authorise my request to add a card to Apple Wallet, Samsung Wallet or Google Wallet. What should I do?",
+      "heading_path": ["FAQ: I did not receive the push notification that would allow me to authorise my request to add a card to Apple Wallet, Samsung Wallet or Google Wallet. What should I do?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "1c8cea611729f53b82b280663a4009d72f7c55b68a241ad2b83944b326923b31"
+    },
+    {
+      "clause_key": "ocbc.wallet_provisioning/faq.what-if-i-missed-or-did-not-receive",
+      "clause_ref": "FAQ: What if I missed or did not receive the OCBC app notification?",
+      "heading_path": ["FAQ: What if I missed or did not receive the OCBC app notification?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "34d32a379736098b5c3ba1f6a3c5b342011f30acd6be28132a1bfcaabd7982ee"
+    },
+    {
+      "clause_key": "ocbc.wallet_provisioning/faq.what-if-i-do-not-have-ocbc-onetoken",
+      "clause_ref": "FAQ: What if I do not have OCBC OneToken or Online Banking access?",
+      "heading_path": ["FAQ: What if I do not have OCBC OneToken or Online Banking access?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "9a55e207bbc1f0bed08755183cfa4c70b3d0280c7427010eb93079f34b535b70"
+    },
+    {
+      "clause_key": "ocbc.wallet_provisioning/faq.what-notifications-will-i-receive-after-my-ocbc",
+      "clause_ref": "FAQ: What notifications will I receive after my OCBC card has been added to a mobile wallet?",
+      "heading_path": ["FAQ: What notifications will I receive after my OCBC card has been added to a mobile wallet?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "652cc1f0dde395accf2fc7d61929a3f837fd7abf51fd6e4239d5dc7f7d293f38"
+    },
+    {
+      "clause_key": "ocbc.wallet_provisioning/faq.what-are-the-terms-and-conditions-that-apply",
+      "clause_ref": "FAQ: What are the Terms and Conditions that apply?",
+      "heading_path": ["FAQ: What are the Terms and Conditions that apply?"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "50f435f097a89c56eb8b81c1b3cef36dae0b02ccdd5204db681bc92464d535a9"
+    }
+  ]
+}

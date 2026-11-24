@@ -20,7 +20,8 @@
     "snapshot_path": "uob/archive/cma/cma_wb20250907024249.html",
     "content_sha256": "db8fdb7b57a96fceee6e83f24339efc8fca45ad0135bb7763d5e8c367b16b5f6",
     "provenance": "web_archive",
-    "coverage": "full"
+    "coverage": "full",
+    "archived_at": "2025-09-07"
   },
   "extraction": {
     "format": "html",

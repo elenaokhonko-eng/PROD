@@ -20,7 +20,8 @@
     "snapshot_path": "uob/archive/accounts-tnc-cts_wb20250602075440.pdf",
     "content_sha256": "d2e3f96786a9598fd071a89b908b2d956032adae05411a5cd3c8e7be9b4afeb4",
     "provenance": "web_archive",
-    "coverage": "full"
+    "coverage": "full",
+    "archived_at": "2025-06-02"
   },
   "extraction": {
     "format": "pdf",

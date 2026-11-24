@@ -20,7 +20,8 @@
     "snapshot_path": "dbs/archive/es/es_wb20251115024328.html",
     "content_sha256": "1bc4b23e3e514c3647a5026950ec6e51074b3ccb3bad63ae210ec926c4b26a57",
     "provenance": "web_archive",
-    "coverage": "full"
+    "coverage": "full",
+    "archived_at": "2025-11-15"
   },
   "extraction": {
     "format": "html",

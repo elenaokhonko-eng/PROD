@@ -1,0 +1,128 @@
+{
+  "$comment": "DBS's published page 'Add Card to Mobile Wallet' (Decision 7): the bank's own description of adding its cards to Apple Pay, Google Pay and Samsung Pay, including the 'Mobile Wallets' control in Payment Controls that must be switched on first. A published page, not contract terms. One clause per part of the page. Each capture whose text differs is a version; effective_from is the first capture of that text (the page shows no date of its own). The page's own start dates, if any, go on the wallet_provisioning request row, not here. Captured from dbs.com.sg on 24 November 2026. Its text differs from the 2025 capture (the Apple Pay in-app route; the note on the 10-minute limit). When the change was made between 30 July 2025 and 24 November 2026 is not shown by any capture. The page source holds a commented-out copy of the Samsung Pay steps; extract.ts keeps the text inside HTML comments, so that block is cut out of the samsung-pay clause by a marker.",
+  "document": {
+    "document_key": "dbs.wallet_provisioning",
+    "title": "Add Card to Mobile Wallet",
+    "publisher": "DBS Bank Ltd",
+    "binding_level": "published_page",
+    "applies_to": ["bank", "card_issuer"],
+    "instrument_scope": ["sg_card"],
+    "institution": "dbs",
+    "card_scheme": null,
+    "canonical_url": "https://www.dbs.com.sg/personal/support/card-payment-mobile-wallet-application.html"
+  },
+  "version": {
+    "version_label": "as captured on 24 November 2026",
+    "effective_from": "2026-11-24",
+    "issued_on": null,
+    "retrieved_at": "2026-11-24T10:45:00Z",
+    "source_url": "https://www.dbs.com.sg/personal/support/card-payment-mobile-wallet-application.html",
+    "snapshot_path": "dbs.wallet_provisioning/2026-11-24_publisher-site.html",
+    "content_sha256": "69b880646ce869ad6a7b7b18c5b0fdc7976fa2622dcfacd7e53f6308b4d8a2ac",
+    "provenance": "publisher_site",
+    "coverage": "full"
+  },
+  "extraction": {
+    "format": "html",
+    "extractor": "scripts/standards/extract.ts htmlText",
+    "html_start": "<h2>Add Card to Mobile Wallet</h2>",
+    "html_end": "Was this information useful",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "^\\s*Learn how to add your",
+      "clause": "dbs.wallet_provisioning/intro"
+    },
+    {
+      "at": "^\\s*Important information\\s*$",
+      "clause": "dbs.wallet_provisioning/important"
+    },
+    {
+      "at": "^\\s*How to enable mobile wallets on payment controls\\s*$",
+      "clause": "dbs.wallet_provisioning/enable-control"
+    },
+    {
+      "at": "^\\s*How to add card to mobile wallet\\s*$",
+      "clause": "dbs.wallet_provisioning/apple-pay"
+    },
+    {
+      "at": "^\\s*Google Pay\\s*$",
+      "clause": "dbs.wallet_provisioning/google-pay"
+    },
+    {
+      "at": "^\\s*Samsung Pay\\s*$",
+      "clause": "dbs.wallet_provisioning/samsung-pay"
+    },
+    {
+      "at": "^\\s*1\\s*\\n\\s*Step 1\\s*\\n\\s*Launch your Samsung Wallet",
+      "clause": null
+    },
+    {
+      "at": "^\\s*Step 1: Launch your Samsung Wallet",
+      "clause": "dbs.wallet_provisioning/samsung-pay"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "dbs.wallet_provisioning/intro",
+      "clause_ref": "Introduction",
+      "heading_path": ["Introduction"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "1c6ba60d8e4657c39608c3d668d8cd5d63fd7a18f0782b2504b972bf0708c785"
+    },
+    {
+      "clause_key": "dbs.wallet_provisioning/important",
+      "clause_ref": "Important information",
+      "heading_path": ["Important information"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "49d605f7ead640e40ce33d409ed5034c10a3f55ecffdb50016c6b8293d2804f3"
+    },
+    {
+      "clause_key": "dbs.wallet_provisioning/enable-control",
+      "clause_ref": "How to enable mobile wallets on payment controls",
+      "heading_path": ["How to enable mobile wallets on payment controls"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "59bc4e719e3eb0095545c24d4e658be19b44dbbb5cf3d2a8b06234217f594d85"
+    },
+    {
+      "clause_key": "dbs.wallet_provisioning/apple-pay",
+      "clause_ref": "How to add card to mobile wallet: Apple Pay",
+      "heading_path": ["How to add card to mobile wallet: Apple Pay"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "1f8a0e0951f1b479e62df0c5de8445e6d38513d0188b2090d8fcc54f2e441b82"
+    },
+    {
+      "clause_key": "dbs.wallet_provisioning/google-pay",
+      "clause_ref": "How to add card to mobile wallet: Google Pay",
+      "heading_path": ["How to add card to mobile wallet: Google Pay"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "1af56c120678c04a3081a1a6961aea5b7cea51cb48fd80aeaf664ddfd5f6793a"
+    },
+    {
+      "clause_key": "dbs.wallet_provisioning/samsung-pay",
+      "clause_ref": "How to add card to mobile wallet: Samsung Pay",
+      "heading_path": ["How to add card to mobile wallet: Samsung Pay"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "e24c9c0a958068934dd152d69ff058d3b13fd4c988c004504a81d5f405dbd863"
+    }
+  ]
+}

@@ -20,7 +20,8 @@
     "snapshot_path": "dbs/archive/debit-card-declaration_wb20250709152843.pdf",
     "content_sha256": "3aadac68c0800fa0af95ad509a3891c0b07657e7477b4a4f228033660a59c999",
     "provenance": "web_archive",
-    "coverage": "full"
+    "coverage": "full",
+    "archived_at": "2025-07-09"
   },
   "extraction": {
     "format": "pdf",

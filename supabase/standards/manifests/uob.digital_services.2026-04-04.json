@@ -20,7 +20,8 @@
     "snapshot_path": "uob/archive/digital-PIB_MBK_TC_wb20260404080133.pdf",
     "content_sha256": "820a4c109e4fb69576ec73d2a16efa3e4a88123146c65242f5c832dda05c1619",
     "provenance": "web_archive",
-    "coverage": "full"
+    "coverage": "full",
+    "archived_at": "2026-04-04"
   },
   "extraction": {
     "format": "pdf",

@@ -20,7 +20,8 @@
     "snapshot_path": "mastercard/archive/chargeback-guide_2026-01-27_wb20260303125049.pdf",
     "content_sha256": "0ee8df05c7145122ba5b31ff3a5ca99f791f573cd2854bc053609ad3971459df",
     "provenance": "web_archive",
-    "coverage": "selected_sections"
+    "coverage": "selected_sections",
+    "archived_at": "2026-03-03"
   },
   "extraction": {
     "format": "pdf",

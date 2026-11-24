@@ -20,7 +20,8 @@
     "snapshot_path": "dbs/archive/accounts-termsupdate_wb20260829200118.pdf",
     "content_sha256": "e5daff8047ce63f8ef74058d3be994c581fef3b77ed85eeedd8974d7a3b09f3a",
     "provenance": "web_archive",
-    "coverage": "full"
+    "coverage": "full",
+    "archived_at": "2026-08-29"
   },
   "extraction": {
     "format": "pdf",

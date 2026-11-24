@@ -20,7 +20,8 @@
     "snapshot_path": "uob/archive/debit-cardmember-agreement_wb20250629094148.pdf",
     "content_sha256": "5f1b453d613f7d81ace68e0e1faecbb76748c53bfdebb8f4ebad9fd1c9aea9a9",
     "provenance": "web_archive",
-    "coverage": "full"
+    "coverage": "full",
+    "archived_at": "2025-06-29"
   },
   "extraction": {
     "format": "pdf",
