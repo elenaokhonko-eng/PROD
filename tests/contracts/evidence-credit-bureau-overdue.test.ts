@@ -4,6 +4,7 @@ import test from 'node:test'
 import { buildFactExtractionPrompt, type FactCandidate, namesDisputedAmountReport, parseFactExtraction, reconcile } from '../../lib/facts'
 import {
   buildDisputeChargesChecks,
+  createDisputeChargesChecks,
   SECTION_8_CLAUSES,
   SECTION_8_FROM,
 } from '../../supabase/functions/_shared/facts/rules/dispute-charges-checks.ts'
@@ -76,7 +77,7 @@ test('with no fact: 8.3 and 8.4(a) print not_shown, never matches', async () => 
   const [p84] = row(r, SECTION_8_CLAUSES.p8_4)
   assert.equal(p84.outcome, 'not_shown')
   // 8.4(a)'s period: the final reply of 20 Oct 2025 plus 30 calendar days.
-  assert.match(p84.record ?? '', /The period after the reply runs from 20 October 2025 to 19 November 2025\./)
+  assert.match(p84.record ?? '', /Counted from the date of the final reply, the 30 calendar days run from 20 October 2025 to 19 November 2025\./)
   assert.match(p84.record ?? '', NOT_SHOWN)
 })
 
@@ -110,12 +111,13 @@ test('the same document with a line that names the dispute keeps that entry; 8.3
   const [reports] = byKey(candidates, 'credit_bureau_reports')
   assert.deepEqual(reports.value, [{ date: '2025-10-16', bureau: 'Example Credit Information Bureau', source: 'credit_bureau_report' }])
   assert.deepEqual(reports.sourceRef.quotes, [DISPUTED_AMOUNT_REPORTED_LINE])
-  const r = await buildDisputeChargesChecks({ ...caseWith(reports.value as unknown[]), provider })
+  // A credit bureau report document was read here, which is what lets "no report" print (#82).
+  const r = await createDisputeChargesChecks({ creditBureauReportRead: () => true })({ ...caseWith(reports.value as unknown[]), provider })
   // 16 Oct 2025 is inside the investigation (13 Sep to 20 Oct 2025), before 8.4(a)'s period (20 Oct to 19 Nov 2025).
   assert.equal(row(r, SECTION_8_CLAUSES.p8_3)[0].outcome, 'differs')
   const [p84] = row(r, SECTION_8_CLAUSES.p8_4)
   assert.equal(p84.outcome, 'matches')
-  assert.match(p84.record ?? '', /The records show no report of non-payment of the disputed amount to a credit bureau in that period\./)
+  assert.match(p84.record ?? '', /The records show no report of non-payment of the disputed amount to a credit bureau between those dates\./)
 })
 
 test('which quoted words can stand for a report of the disputed amount, by who states it', () => {
