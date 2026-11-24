@@ -6,6 +6,12 @@ import type { ReportJson } from "@/lib/types/report"
 // date and the paid packs' notice (stage2-plan decision 8). Unicode fonts as for the free evaluation, so accented and
 // non-Latin names print as written.
 
+// wording awaiting Elena's approval: the headings of the update's lines in the bank pack.
+export const BANK_UPDATE_HEADINGS = {
+  requests: "Records I ask the bank to provide",
+  section8: "What the E-Payments User Protection Guidelines say while a transaction is disputed",
+} as const
+
 export async function buildBankPackPdf(report: ReportJson, createdAt: string | null): Promise<Uint8Array> {
   const builder = new PdfBuilder()
   await builder.init()
@@ -38,6 +44,17 @@ export async function buildBankPackPdf(report: ReportJson, createdAt: string | n
   if (report.requested_resolution) {
     await builder.addSubHeading("Requested resolution")
     await builder.addParagraph(report.requested_resolution)
+  }
+  // The FIDReC update's lines (FIDREC_UPDATE_SECTIONS_ENABLED): absent from a report made with the switch off.
+  const requests = Array.isArray(report.update_record_requests) ? (report.update_record_requests as string[]) : []
+  if (requests.length) {
+    await builder.addSubHeading(BANK_UPDATE_HEADINGS.requests)
+    for (const request of requests) await builder.addBullet(request)
+  }
+  const section8 = Array.isArray(report.update_section8) ? (report.update_section8 as Array<{ text: string; references: string }>) : []
+  if (section8.length) {
+    await builder.addSubHeading(BANK_UPDATE_HEADINGS.section8)
+    for (const line of section8) await builder.addParagraph(line.references ? `${line.text} (${line.references})` : line.text)
   }
   if (Array.isArray(report.evidence_checklist) && report.evidence_checklist.length) {
     await builder.addSubHeading("Evidence checklist")
