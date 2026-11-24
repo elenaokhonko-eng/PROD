@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import test from 'node:test'
 import {
   buildDisputeChargesChecks,
+  createDisputeChargesChecks,
   creditCardPayments,
   replySaysAuthorised,
   SECTION_8_CLAUSES,
@@ -64,6 +65,9 @@ function testCorpus(): FakeCorpus {
 
 const provider = createFakeClauseProvider(testCorpus())
 const run = (data: CaseSectionData) => buildDisputeChargesChecks({ ...data, provider })
+/** A builder for a case where a credit bureau report document is in the records and was read. */
+const bureauRead = createDisputeChargesChecks({ creditBureauReportRead: () => true })
+const runRead = (data: CaseSectionData) => bureauRead({ ...data, provider })
 const clone = (data: CaseSectionData): CaseSectionData => structuredClone(data)
 const comparisons = (r: SectionResult): ComparisonLine[] => r.lines.flatMap((l) => (l.kind === 'comparison' ? [l.comparison] : []))
 const withKey = (r: SectionResult, key: string) => comparisons(r).filter((c) => c.clauseKey === key)
@@ -89,6 +93,7 @@ function periodCorpus(): FakeCorpus {
 }
 const periodProvider = createFakeClauseProvider(periodCorpus())
 const runWithPeriods = (data: CaseSectionData) => buildDisputeChargesChecks({ ...data, provider: periodProvider })
+const runWithPeriodsRead = (data: CaseSectionData) => bureauRead({ ...data, provider: periodProvider })
 const sgd = (amount: number) => ({ amount, currency: 'SGD', amountSgd: amount })
 
 /** The card-only case (a credit card; reported 13 Sep 2025; final reply 20 Oct 2025) with the four Section 8 facts. */
@@ -137,7 +142,8 @@ test('an event before 16 June 2025 is not_applicable, printing the date', async 
   assert.deepEqual(comparisons(r).map((c) => c.clauseKey), [SECTION_8_CLAUSES.p8_1, SECTION_8_CLAUSES.p8_2, SECTION_8_CLAUSES.p8_3, SECTION_8_CLAUSES.p8_4, SECTION_8_CLAUSES.p8_5])
   assert.ok(comparisons(r).every((c) => c.outcome === 'not_applicable'))
   assert.equal(quotations(r).length, 0)
-  assert.equal(comparisons(r)[0].record, 'The complainant reported to the institution on 15 June 2025.')
+  // Wording changed by Elena (24 Nov 2026, S8-1).
+  assert.equal(comparisons(r)[0].record, 'The complainant reported the disputed transactions to the institution on 15 June 2025.')
   assert.equal(comparisons(r)[0].expected, 'Placeholder text of mas.eupg/8.1.')
   d.facts.reported_to_bank!.value!.date = '2025-06-16'
   assert.notEqual(comparisons(await run(d))[0].outcome, 'not_applicable')
@@ -146,11 +152,12 @@ test('an event before 16 June 2025 is not_applicable, printing the date', async 
 test('8.1: a charge or request during the investigation differs; none matches; no statements read is not_shown', async () => {
   const charged = withKey(await run(creditCase({ charges: ['2025-10-01'] })), SECTION_8_CLAUSES.p8_1)[0]
   assert.equal(charged.outcome, 'differs')
-  assert.match(charged.record, /reported to the institution on 13 September 2025\. The institution's final reply is dated 20 October 2025\. The records show 1 charge on the disputed amount in that period: 1 October 2025 'Late payment charge' S\$80\./)
+  // Wording changed by Elena (24 Nov 2026, S8-1, S8-7: "between those dates" for 8.1).
+  assert.match(charged.record, /^The complainant reported the disputed transactions to the institution on 13 September 2025\. The institution's final reply is dated 20 October 2025\. The records show 1 charge on the disputed amount between those dates: 1 October 2025 'Late payment charge' S\$80\.$/)
   assert.deepEqual(charged.evidenceIds, ['E2', 'E7'])
   const asked = withKey(await run(creditCase({ requests: ['2025-09-25'] })), SECTION_8_CLAUSES.p8_1)[0]
   assert.equal(asked.outcome, 'differs')
-  assert.match(asked.record, /1 request to pay the disputed amount in that period: 25 September 2025 \(S\$7,550\)/)
+  assert.match(asked.record, /1 request to pay the disputed amount between those dates: 25 September 2025 \(S\$7,550\)/)
   // On the day of the final reply the investigation is complete: the charge falls in 8.2's period instead.
   assert.equal(withKey(await run(creditCase({ charges: ['2025-10-20'] })), SECTION_8_CLAUSES.p8_1)[0].outcome, 'matches')
   assert.equal(withKey(await run(creditCase()), SECTION_8_CLAUSES.p8_1)[0].outcome, 'matches')
@@ -165,20 +172,37 @@ test('8.2: the 30 calendar days after the outcome, and the FIDReC period from wh
   const fidrec = await p82({ charges: ['2026-01-10'], fidrec: { told: '2025-12-01', closed: null } })
   assert.equal(fidrec.outcome, 'differs')
   assert.match(fidrec.record, /told on 1 December 2025 that dispute resolution with FIDReC had started\./)
+  // Wording changed by Elena (24 Nov 2026, S8-5, S8-12, S8-7: "in those periods" for 8.2).
+  assert.match(fidrec.record, /^The institution's final reply is dated 20 October 2025\. The reply rejects the claim\. Counted from the date of the final reply, the 30 calendar days run from 20 October 2025 to 19 November 2025\. /)
+  assert.match(fidrec.record, /The records show 1 charge on the disputed amount in those periods: 10 January 2026 'Late payment charge' S\$80\.$/)
   assert.equal((await p82({ charges: ['2026-01-10'], fidrec: { told: '2025-12-01', closed: '2026-01-05' } })).outcome, 'matches')
   // A full offer: 8.2 does not apply.
   const d = creditCase()
   d.facts.bank_reply!.value!.outcome = 'full_offer'
-  assert.equal(withKey(await run(d), SECTION_8_CLAUSES.p8_2)[0].outcome, 'not_applicable')
+  const full = withKey(await run(d), SECTION_8_CLAUSES.p8_2)[0]
+  assert.equal(full.outcome, 'not_applicable')
+  assert.equal(full.record, 'The institution\'s final reply is dated 20 October 2025. The reply makes a full offer.')
+  // One sentence per outcome (S8-5).
+  for (const [outcome, sentence] of [['partial_offer', 'The reply makes a partial offer.'], ['other', 'The reply states another outcome.']] as const) {
+    const o = creditCase()
+    o.facts.bank_reply!.value!.outcome = outcome
+    assert.ok(withKey(await run(o), SECTION_8_CLAUSES.p8_2)[0].record.includes(sentence), outcome)
+  }
 })
 
 test('8.3: a report of non-payment to a credit bureau during the investigation differs, with its source', async () => {
   const reported = withKey(await run(creditCase({ reports: ['2025-10-05'] })), SECTION_8_CLAUSES.p8_3)[0]
   assert.equal(reported.outcome, 'differs')
-  assert.match(reported.record, /1 report of non-payment of the disputed amount to a credit bureau in that period: 5 October 2025 to Example Credit Bureau \(the credit bureau report\)\./)
+  // Wording changed by Elena (24 Nov 2026, S8-16).
+  assert.match(reported.record, /1 report of non-payment of the disputed amount to a credit bureau between those dates: on 5 October 2025, to Example Credit Bureau \(source: the credit bureau report\)\./)
   assert.deepEqual(reported.evidenceIds, ['E2', 'E8'])
-  assert.equal(withKey(await run(creditCase()), SECTION_8_CLAUSES.p8_3)[0].outcome, 'matches')
+  // Changed by Elena's logic fix (24 Nov 2026): "no report" (matches) only where a credit bureau report was read.
+  assert.equal(withKey(await runRead(creditCase()), SECTION_8_CLAUSES.p8_3)[0].outcome, 'matches')
   assert.equal(withKey(await run(cardOnlyCase.data), SECTION_8_CLAUSES.p8_3)[0].outcome, 'not_shown')
+  // Sources (S8-16): the institution's letter and the complainant's statement.
+  const letter = creditCase()
+  letter.facts.credit_bureau_reports = { label: 'confirmed', value: [{ date: '2025-10-05', bureau: null, source: 'institution_letter' }, { date: '2025-10-06', bureau: 'Example Credit Bureau', source: 'complainant_statement' }] }
+  assert.match(withKey(await run(letter), SECTION_8_CLAUSES.p8_3)[0].record, /: on 5 October 2025 \(source: the institution's letter\); on 6 October 2025, to Example Credit Bureau \(source: the complainant's statement\)\.$/)
 })
 
 test('footnotes 26 and 27 print as a statement where the institution\'s reply says authorised; no link statement', async () => {
@@ -212,12 +236,13 @@ test('8.5 is measured from the earliest request before the report, not the lates
   const r = await runWithPeriods(creditCase({ requests: ['2025-12-05', '2025-11-21'], reports: ['2025-12-07'], fidrec: { told: '2025-12-10', closed: null } }))
   const [row] = withKey(r, SECTION_8_CLAUSES.p8_5)
   assert.equal(row.outcome, 'not_shown', 'one request is 7 days or more before the report: not differs')
-  assert.match(row.record, /^The records show a request to pay the disputed amount dated 21 November 2025 and a report of non-payment of the disputed amount to a credit bureau on 7 December 2025 \(the credit bureau report\), 16 calendar days later\./)
+  assert.match(row.record, /^The earliest request to pay the disputed amount in the records is dated 21 November 2025\. The records show a report of non-payment of the disputed amount to a credit bureau on 7 December 2025 \(source: the credit bureau report\), 16 calendar days later\./)
   // Both requests less than 7 days before the report: differs, measured from the earlier of them.
   const both = await runWithPeriods(creditCase({ requests: ['2025-12-05', '2025-12-03'], reports: ['2025-12-07'], fidrec: { told: '2025-12-10', closed: null } }))
   const [near] = withKey(both, SECTION_8_CLAUSES.p8_5)
   assert.equal(near.outcome, 'differs')
-  assert.match(near.record, /dated 3 December 2025 .* 4 calendar days later\./)
+  // Wording changed by Elena (24 Nov 2026, S8-25).
+  assert.match(near.record, /dated 3 December 2025\. .* 4 calendar days later\./)
 })
 
 test('the periods are read from text with any whitespace between the words (line breaks, non-breaking spaces)', () => {
@@ -241,29 +266,39 @@ test('8.4(a): a credit bureau report in the 30 calendar days after the reply dif
   const p84 = async (reports: string[]) => withKey(await runWithPeriods(creditCase({ reports })), SECTION_8_CLAUSES.p8_4)
   const [inside] = await p84(['2025-11-19'])
   assert.equal(inside.outcome, 'differs')
-  assert.match(inside.record, /^The institution's final reply is dated 20 October 2025\. The reply states an outcome \(rejected\)\. The period after the reply runs from 20 October 2025 to 19 November 2025\. The records show 1 report of non-payment of the disputed amount to a credit bureau in that period: 19 November 2025 to Example Credit Bureau \(the credit bureau report\)\.$/)
+  // Wording changed by Elena (24 Nov 2026, S8-5, S8-12, S8-16).
+  assert.match(inside.record, /^The institution's final reply is dated 20 October 2025\. The reply rejects the claim\. Counted from the date of the final reply, the 30 calendar days run from 20 October 2025 to 19 November 2025\. The records show 1 report of non-payment of the disputed amount to a credit bureau between those dates: on 19 November 2025, to Example Credit Bureau \(source: the credit bureau report\)\.$/)
   assert.equal(inside.expected, TEXT_8_4)
   assert.deepEqual(inside.evidenceIds, ['E2', 'E8'])
-  assert.equal((await p84(['2025-11-20']))[0].outcome, 'matches')
+  assert.equal((await p84(['2025-11-20']))[0].outcome, 'not_shown', 'no credit bureau report document read')
+  assert.equal(withKey(await runWithPeriodsRead(creditCase({ reports: ['2025-11-20'] })), SECTION_8_CLAUSES.p8_4)[0].outcome, 'matches')
   // Without a credit bureau fact the row is not_shown.
   const none = creditCase()
   delete none.facts.credit_bureau_reports
   assert.equal(withKey(await runWithPeriods(none), SECTION_8_CLAUSES.p8_4)[0].outcome, 'not_shown')
 })
 
-test('8.4(b): the paragraph is quoted beside the record of FIDReC dates and credit bureau reports, with no period and no outcome', async () => {
+// Changed by Elena (24 Nov 2026): where the 8.4(a) row prints, paragraph 8.4 shows once (as that row's Expected) and the
+// 8.4(b) record line sits under it; the paragraph is quoted only where there is no 8.4(a) row. S8-19 wording changed.
+test('8.4(b): its record line sits under the 8.4(a) row, and paragraph 8.4 prints once; with no (a) row it is quoted', async () => {
   const r = await runWithPeriods(creditCase({ reports: ['2025-12-15'], fidrec: { told: '2025-12-01', closed: null } }))
   const line = texts(r).find((t) => t.startsWith('The records show the institution was told'))
-  assert.equal(line, 'The records show the institution was told on 1 December 2025 that dispute resolution with FIDReC had started. The records show 1 report of non-payment of the disputed amount to a credit bureau: 15 December 2025 to Example Credit Bureau (the credit bureau report).')
-  const [q84] = quotations(r).filter((q) => q.passages[0].clauseKey === SECTION_8_CLAUSES.p8_4)
-  assert.deepEqual(q84.passages.map((x) => x.text), [TEXT_8_4])
+  assert.equal(line, 'The records show the institution was told on 1 December 2025 that dispute resolution with FIDReC had started. The records show 1 report of non-payment of the disputed amount to a credit bureau: on 15 December 2025, to Example Credit Bureau (source: the credit bureau report).')
+  const at = r.lines.findIndex((l) => l.kind === 'text' && l.text === line)
+  const before = r.lines[at - 1]
+  assert.ok(before.kind === 'comparison' && before.comparison.clauseKey === SECTION_8_CLAUSES.p8_4, 'directly under the 8.4(a) row')
+  assert.ok(!quotations(r).some((q) => q.passages[0].clauseKey === SECTION_8_CLAUSES.p8_4), 'paragraph 8.4 is not quoted again')
+  assert.equal(withKey(r, SECTION_8_CLAUSES.p8_4).length, 1)
+
+  // A loaded 8.4 that states no (a) period: no (a) row, so the record line is followed by the paragraph quoted.
+  const q = await run(creditCase({ reports: ['2025-12-15'], fidrec: { told: '2025-12-01', closed: null } }))
+  const qLine = texts(q).find((t) => t.startsWith('The records show the institution was told'))
+  const qAt = q.lines.findIndex((l) => l.kind === 'text' && l.text === qLine)
+  assert.equal(q.lines[qAt + 1].kind, 'quotation')
+  const [q84] = quotations(q).filter((x) => x.passages[0].clauseKey === SECTION_8_CLAUSES.p8_4)
   assert.equal(q84.documentDatedAfterEvents, null)
   assert.equal(q84.intro, null)
-  // The quotation comes straight after its record line.
-  const at = r.lines.findIndex((l) => l.kind === 'text' && l.text === line)
-  assert.equal(r.lines[at + 1].kind, 'quotation')
-  // Only 8.4(a) compares; nothing about 8.4(b) carries an outcome.
-  assert.equal(withKey(r, SECTION_8_CLAUSES.p8_4).length, 1)
+  assert.equal(withKey(q, SECTION_8_CLAUSES.p8_4).length, 0)
 })
 
 test('8.4 where the reply made a full offer is not_applicable; with no final reply it is not_shown and 8.4(b) is still quoted', async () => {
@@ -278,6 +313,8 @@ test('8.4 where the reply made a full offer is not_applicable; with no final rep
   const o = await runWithPeriods(open)
   assert.equal(withKey(o, SECTION_8_CLAUSES.p8_4)[0].outcome, 'not_shown')
   assert.ok(quotations(o).some((q) => q.passages[0].clauseKey === SECTION_8_CLAUSES.p8_4))
+  // The full-offer record (S8-5).
+  assert.equal(withKey(f, SECTION_8_CLAUSES.p8_4)[0].record, 'The institution\'s final reply is dated 20 October 2025. The reply makes a full offer.')
 })
 
 test('8.5: a row where the records show a request and a later report outside the periods and before FIDReC; otherwise quoted', async () => {
@@ -285,7 +322,9 @@ test('8.5: a row where the records show a request and a later report outside the
   const early = await runWithPeriods(creditCase({ requests: ['2025-11-25'], reports: ['2025-11-28'], fidrec: { told: '2025-12-10', closed: null } }))
   const [row] = withKey(early, SECTION_8_CLAUSES.p8_5)
   assert.equal(row.outcome, 'differs')
-  assert.equal(row.record, `The records show a request to pay the disputed amount dated 25 November 2025 and a report of non-payment of the disputed amount to a credit bureau on 28 November 2025 (the credit bureau report), 3 calendar days later. ${REPAYMENT_NOT_SHOWN}`)
+  // Wording changed by Elena (24 Nov 2026, S8-25).
+  assert.equal(row.record, 'The earliest request to pay the disputed amount in the records is dated 25 November 2025. The records show a report of non-payment of the disputed amount to a credit bureau on 28 November 2025 (source: the credit bureau report), 3 calendar days later. The records provided do not show whether the amount was repaid.')
+  assert.equal(REPAYMENT_NOT_SHOWN, 'The records provided do not show whether the amount was repaid.')
   assert.equal(row.expected, TEXT_8_5)
   assert.ok(!quotations(early).some((q) => q.passages[0].clauseKey === SECTION_8_CLAUSES.p8_5))
   // 10 calendar days: the records do not show whether the amount was repaid, so not_shown.
@@ -313,4 +352,39 @@ test('8.4 and 8.5 print nothing for an account case, and no Section 8 line carri
     assert.doesNotMatch(t, /\b(?:differs|matches|breach|liable|should have)\b/i, t)
     assert.doesNotMatch(t, GENDERED_PRONOUNS, t)
   }
+})
+
+// ---------------------------------------------------------------------------------------------------------------
+// Elena's logic fix (24 Nov 2026): "no report" needs a credit bureau report document that was read
+// ---------------------------------------------------------------------------------------------------------------
+
+test('no credit bureau report document read: 8.3 and 8.4(a) are not_shown, even with an empty list or letters only', async () => {
+  // An empty list (for example from the institution's letters or the complainant alone).
+  const empty = await runWithPeriods(creditCase())
+  for (const key of [SECTION_8_CLAUSES.p8_3, SECTION_8_CLAUSES.p8_4]) {
+    const [row] = withKey(empty, key)
+    assert.equal(row.outcome, 'not_shown', key)
+    assert.match(row.record, /The records provided do not show whether non-payment of the disputed amount was reported to a credit bureau\.$/, key)
+  }
+  // A report from a letter outside both windows: still not "no report".
+  const letter = creditCase()
+  letter.facts.credit_bureau_reports = { label: 'confirmed', value: [{ date: '2026-02-01', bureau: null, source: 'institution_letter' }] }
+  const l = await runWithPeriods(letter)
+  assert.equal(withKey(l, SECTION_8_CLAUSES.p8_3)[0].outcome, 'not_shown')
+  assert.equal(withKey(l, SECTION_8_CLAUSES.p8_4)[0].outcome, 'not_shown')
+  // The 8.4(b) record line does not say "no report" either.
+  assert.ok(!texts(empty).some((t) => t.includes('The records show no report of non-payment')))
+})
+
+test('a credit bureau report document read with no matching report: 8.3 and 8.4(a) match', async () => {
+  // The document was read and no report of the disputed amount was extracted, so the fact is absent.
+  const d = creditCase()
+  delete d.facts.credit_bureau_reports
+  const r = await runWithPeriodsRead(d)
+  for (const key of [SECTION_8_CLAUSES.p8_3, SECTION_8_CLAUSES.p8_4]) {
+    const [row] = withKey(r, key)
+    assert.equal(row.outcome, 'matches', key)
+    assert.match(row.record, /The records show no report of non-payment of the disputed amount to a credit bureau between those dates\.$/, key)
+  }
+  assert.ok(texts(r).some((t) => t.endsWith('The records show no report of non-payment of the disputed amount to a credit bureau.')))
 })

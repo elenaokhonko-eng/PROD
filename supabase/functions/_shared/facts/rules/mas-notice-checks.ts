@@ -155,7 +155,7 @@ export function createMasNoticeChecks(options: MasNoticeCheckOptions = {}): Sect
   };
 }
 
-// wording awaiting Elena's approval
+// M-1 and M-2, approved by Elena on 24 Nov 2026
 /**
  * The line for a device whose state is `not_shown` (no comparison, no outcome): what the record shows, then what the
  * complainant said. A `not_sure` answer, or a recognition fact labelled `not_sure`, prints "they are not sure"; no
