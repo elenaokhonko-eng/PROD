@@ -21,6 +21,7 @@ import type {
   ContractFactKey,
   ContractFacts,
   ContractFactValues,
+  DeviceOwnership,
   DisputedPayment,
   IsoDate,
   IsoDateTime,
@@ -106,7 +107,7 @@ export function clauseAppliesToGroup(clauseKey: string, payments: readonly Dispu
 /**
  * A fact's value when it is confirmed or the complainant's own (as srfFactsFromSnapshot reads them); otherwise null.
  * A fact labelled `not_sure` is not read for a record line; whether it should be is open (PR #56, "Not decided here").
- * Recognition of a device follows the contract's not-sure rule (`complainantRecognisesDevice`).
+ * Whether a device is the complainant's follows the contract's three-state rule (`deviceOwnership`).
  */
 export function factValue<K extends ContractFactKey>(facts: ContractFacts, key: K): ContractFactValues[K] | null {
   const fact = facts[key];
@@ -233,6 +234,30 @@ export class ComparisonWriter extends SectionWriter {
     const [link] = linkStatementsFor([{ clauseKey: args.clauseKey, outcome: args.outcome, group: args.group }]);
     if (link) await this.statementOn(link, args.onDate, args.evidenceIds);
     return true;
+  }
+
+  /**
+   * A comparison that rests on whether the device is the complainant's (contract `deviceOwnership`; the shared
+   * `comparisonOnDevice`): it prints only when the state is the one required. On `not_shown` the section's "The
+   * records do not show …" line prints instead; on the opposite state nothing prints. Same guard and link statements as
+   * `compare`. Returns whether the comparison printed.
+   */
+  async compareOnDevice(args: CompareArgs & { ownership: DeviceOwnership; requires: "mine" | "not_mine"; notShownLine: string }): Promise<boolean> {
+    if (!args.payments.length) return false;
+    if (!args.skipInstrumentGuard && !clauseAppliesToGroup(args.clauseKey, args.payments)) return false;
+    if (args.ownership !== args.requires && args.ownership !== "not_shown") return false;
+    const text = args.ownership === args.requires ? await this.clauseText(args.clauseKey, args.onDate) : null;
+    const printed = this.comparisonOnDevice({
+      ownership: args.ownership,
+      requires: args.requires,
+      comparison: { clauseKey: args.clauseKey, record: args.record, expected: text ?? "", outcome: args.outcome, evidenceIds: args.evidenceIds },
+      notShownLine: args.notShownLine,
+    });
+    if (printed) {
+      const [link] = linkStatementsFor([{ clauseKey: args.clauseKey, outcome: args.outcome, group: args.group }]);
+      if (link) await this.statementOn(link, args.onDate, args.evidenceIds);
+    }
+    return printed;
   }
 
   /** A reviewed statement once per section, read for the date. With no date it prints as under review. */

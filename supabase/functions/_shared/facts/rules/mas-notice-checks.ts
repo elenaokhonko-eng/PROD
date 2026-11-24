@@ -11,7 +11,7 @@
 // channel, block or alerts were unavailable. No line says whether a requirement was met.
 
 import type { InstitutionType } from "../keys.ts";
-import { CLAUSE_KEYS, complainantRecognisesDevice, NAMED_CLAUSE_KEYS, recognitionAnswerFor } from "../update/contract.ts";
+import { CLAUSE_KEYS, deviceOwnership, NAMED_CLAUSE_KEYS, recognitionAnswerFor } from "../update/contract.ts";
 import type { AccessEvent, AccessEventKind, CaseInstitution, DeviceRecognition, DisputedPayment, SectionBuilder, SectionInput, SectionResult } from "../update/contract.ts";
 import { deviceRecognitionSentence, formatDateTime as formatTime } from "../update/section-writer.ts";
 import { alertFor, eventWords } from "./duty-time-checks.ts";
@@ -109,20 +109,25 @@ export function createMasNoticeChecks(options: MasNoticeCheckOptions = {}): Sect
       return w.result();
     }
 
-    // The not-sure rule (contract `complainantRecognisesDevice`): only a clear "mine" counts as recognised. A line is
-    // about a device the record names; what the complainant said is printed as said.
-    const unrecognised = (e: AccessEvent) => Boolean(e.deviceRef || e.deviceLabel) && !complainantRecognisesDevice(input.facts.device_recognition, e);
+    // The device rule (contract `deviceOwnership`, PR #56): these rows rest on the device not being the complainant's,
+    // so they compare only for `not_mine`. A device the complainant is not sure about, or has not answered about, is
+    // `not_shown`: the "The records do not show …" line prints instead, never `differs`. A `mine` device prints
+    // nothing. A line is about a device the record names; what the complainant said is printed as said.
+    const named = (e: AccessEvent) => Boolean(e.deviceRef || e.deviceLabel);
+    const ownership = (e: AccessEvent) => deviceOwnership(input.facts.device_recognition, e);
     const sorted = access.filter((e) => ms(e.timestamp) !== null).sort((a, b) => ms(a.timestamp)! - ms(b.timestamp)!);
-    const logins = sorted.filter((e) => LOGIN_KINDS.includes(e.kind) && unrecognised(e));
+    const logins = sorted.filter((e) => LOGIN_KINDS.includes(e.kind) && named(e) && ownership(e) !== "mine");
     if (!logins.length) {
       await w.compare({ ...base, record: "The record shows no login from a device the complainant states is not theirs.", outcome: "not_applicable", evidenceIds: ev });
       return w.result();
     }
 
-    // Access by an unrecognised device.
+    // Access by a device the complainant states is not theirs.
     for (const login of logins) {
-      await w.compare({
+      await w.compareOnDevice({
         ...base,
+        ownership: ownership(login),
+        requires: "not_mine",
         record: [
           `The institution's record shows ${eventWords(login)}.`,
           deviceRecognitionSentence(recognitionAnswerFor(recognition, login), null),
@@ -130,15 +135,31 @@ export function createMasNoticeChecks(options: MasNoticeCheckOptions = {}): Sect
         ].join(" "),
         outcome: "differs",
         evidenceIds: ev,
+        notShownLine: deviceNotShownLine(login),
       });
     }
 
     // Changes made in the session from such a device, and whether an alert went to a contact.
-    for (const change of sorted.filter((e) => (SESSION_CHANGE_KINDS as readonly string[]).includes(e.kind) && unrecognised(e))) {
-      await w.compare({ ...base, record: sessionChangeRecord(change, access, recognition), outcome: "differs", evidenceIds: ev });
+    for (const change of sorted.filter((e) => (SESSION_CHANGE_KINDS as readonly string[]).includes(e.kind) && named(e) && ownership(e) !== "mine")) {
+      await w.compareOnDevice({
+        ...base,
+        ownership: ownership(change),
+        requires: "not_mine",
+        record: sessionChangeRecord(change, access, recognition),
+        outcome: "differs",
+        evidenceIds: ev,
+        notShownLine: deviceNotShownLine(change),
+      });
     }
     return w.result();
   };
+}
+
+// wording awaiting Elena's approval
+/** The section's "The records do not show …" line for a device whose state is `not_shown`. */
+export function deviceNotShownLine(event: AccessEvent): string {
+  const device = event.deviceLabel ? `the device labelled '${event.deviceLabel}'` : "the device";
+  return `The records do not show whether ${device}, used for ${eventWords(event)}, is the complainant's.`;
 }
 
 function sessionChangeRecord(change: AccessEvent, access: readonly AccessEvent[], recognition: readonly DeviceRecognition[]): string {

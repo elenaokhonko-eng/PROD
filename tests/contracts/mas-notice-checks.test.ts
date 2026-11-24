@@ -166,12 +166,29 @@ test('access by a device the complainant states is not theirs, with how it was a
   assert.equal(lines[0].record, "The institution's record shows a login at 21:10 on 3 July 2025 from a device labelled 'Phone model EX-200'. The complainant states that this device is not theirs. The record shows the login was authorised by digital token.")
   assert.equal(lines[0].expected, `Placeholder text of ${TEST_N05_KEY}.`)
   assert.deepEqual(lines[0].evidenceIds, ['E4'])
-  // Changed with PR #56 (the not-sure rule): a device the complainant is not sure about counts as not recognised. The
-  // line still prints what they said.
-  const tablet = lines.find((c) => /EX-T1/.test(c.record))
-  assert.ok(tablet)
-  assert.match(tablet.record, /The complainant states that they are not sure whether this device is theirs./)
+  // The tablet the complainant is not sure about is not listed.
+  assert.ok(!lines.some((c) => /EX-T1/.test(c.record)))
   assert.ok(r.citations.some((c) => c.clauseKey === TEST_N05_KEY && c.versionId === 't-mas.fsm-n05'))
+})
+
+// PR #56 (00b8944): the device rule has three states. Only `not_mine` compares; `not_sure` or no answer is
+// `not_shown` and prints the "The records do not show …" line, never `differs`.
+test('a device the complainant is not sure about, or has not answered about, gets the "do not show" line, never differs', async () => {
+  const r = await run(accountSrfCase.data, withBankKey)
+  assert.ok(!comparisons(r).some((c) => /EX-T1/.test(c.record)))
+  const texts = r.lines.flatMap((l) => (l.kind === 'text' ? [l.text] : []))
+  assert.ok(texts.includes("The records do not show whether the device labelled 'Tablet model EX-T1', used for a login at 07:05 on 4 July 2025 from a device labelled 'Tablet model EX-T1', is the complainant's."))
+
+  const unanswered = clone(accountSrfCase.data)
+  unanswered.facts.device_recognition = { label: 'confirmed', value: unanswered.facts.device_recognition!.value!.filter((x) => x.deviceRef !== 'dev-ex-0003') }
+  const u = await run(unanswered, withBankKey)
+  assert.ok(!comparisons(u).some((c) => /EX-PC/.test(c.record)))
+  assert.ok(u.lines.some((l) => l.kind === 'text' && /^The records do not show whether the device labelled 'Browser on desktop EX-PC'/.test(l.text)))
+
+  // A device_recognition fact labelled not_sure: every device is not_shown, so nothing compares as differs.
+  const unsure = clone(accountSrfCase.data)
+  unsure.facts.device_recognition = { ...unsure.facts.device_recognition!, label: 'not_sure' }
+  assert.equal(comparisons(await run(unsure, withBankKey)).filter((c) => c.outcome === 'differs').length, 0)
 })
 
 test('changes made in the session from such a device, and the alert the record shows', async () => {
