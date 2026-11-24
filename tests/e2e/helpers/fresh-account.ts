@@ -216,12 +216,14 @@ export async function payWithTestCard(page: Page, email: string) {
   // 6-digit postcode under "United States" leaves the form invalid and Pay does nothing (23 Nov 2026 gate run).
   // 24 Nov 2026 run: no country picker was found by id, the ZIP stayed empty, and Stripe also asked for a phone number
   // (Link's "save my information", ticked by default in the US). Fields are found by id or by their label.
-  const country = await visibleIn(page, '#billingCountry', /^Country or region$/i)
+  // 24 Nov 2026 second run: Stripe showed its newer card form, where the fields are named country, postalCode and
+  // linkOptIn, labelled "Country" and "ZIP code".
+  const country = await visibleIn(page, '#billingCountry, select[name="country"]', /^Country( or region)?$/i)
   if (country) await country.selectOption('SG').catch(() => undefined)
   const selected = country ? await country.inputValue().catch(() => null) : null
-  const postal = await visibleIn(page, '#billingPostalCode', /^(ZIP|Postal code)$/i)
+  const postal = await visibleIn(page, '#billingPostalCode, input[name="postalCode"]', /^(ZIP|Postal)( code)?$/i)
   if (postal) await postal.fill(selected === 'SG' ? '123456' : '10001')
-  const saveInfo = await visibleIn(page, '#enableStripePass', /Save my information/i)
+  const saveInfo = await visibleIn(page, '#enableStripePass, input[name="linkOptIn"]', /Save my information/i)
   if (saveInfo && (await saveInfo.isChecked().catch(() => false))) await saveInfo.uncheck().catch(() => undefined)
   const phone = await visibleIn(page, '#phoneNumber', /^Phone( number)?$/i)
   if (phone && (await phone.inputValue().catch(() => '')) === '') await phone.fill('2015550123')

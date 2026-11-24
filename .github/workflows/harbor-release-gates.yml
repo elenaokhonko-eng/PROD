@@ -335,7 +335,8 @@ jobs:
   playwright-authenticated:
     name: Playwright authenticated and provider-delivered
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 60, not 45: on 24 Nov 2026 installing the browsers took 31 minutes and the job ran out of time mid-tests.
+    timeout-minutes: 60
     environment: harbor-preview
     needs: [playwright-preview]
     # Live staging jobs hold the harbor-preview secrets, so they run only for release/* pull requests from this
