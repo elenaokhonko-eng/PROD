@@ -106,7 +106,6 @@ disputed_amount_charges clause_not_held mas.eupg/8.1 2025-08-03
 disputed_amount_charges clause_not_held mas.eupg/8.2 2025-08-03
 mas_notice_comparison statement_under_review bridge.mas_requirement 2025-08-02
 mas_notice_comparison clause_not_held mas.circular.mpi_anti_scam 2025-08-02
-industry_practice_comparison clause_not_held industry_practice.tokenActivationAlert 2025-08-02
 customer_fault_definitions statement_under_review eupg.fault.examples 2025-08-02
 customer_fault_definitions statement_under_review eupg.fault.level1 2025-08-02
 customer_fault_definitions statement_under_review eupg.fault.level2 2025-08-02

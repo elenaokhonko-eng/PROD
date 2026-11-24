@@ -153,8 +153,20 @@ export const TWELVE_HOUR_WORDING = {
 // wording awaiting Elena's approval: a quotation whose introducing statement is not yet approved.
 export const QUOTATION_FALLBACK_INTRO = (title: string, date: IsoDate) => `${title}, dated ${formatDate(date)}:`;
 
-// wording awaiting Elena's approval: the field labels of the record tables.
+// wording awaiting Elena's approval: the field labels of the record tables, except "Date" and "Card ending", which
+// Elena approved (24 Nov 2026). The camelCase keys are the contract's field names (Transaction, CardAuthEvent), as the
+// card dispute section prints its rows (Lane 5, #80); they reuse the labels above them. Every key a section prints
+// must be here: the renderer never prints a raw field key.
 export const RECORD_FIELD_LABELS: Record<string, string> = {
+  // Approved by Elena, 24 Nov 2026.
+  date: "Date",
+  last4: "Card ending",
+  // The contract's names, mapped to the existing labels.
+  amount: "Payment",
+  cardScheme: "Card scheme",
+  entryMode: "Entry mode",
+  authenticationResult: "Result",
+  deviceLabel: "Device",
   time: "Time",
   entry: "Entry",
   device: "Device",

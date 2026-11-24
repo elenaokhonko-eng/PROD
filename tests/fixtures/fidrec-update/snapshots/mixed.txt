@@ -113,9 +113,9 @@ A reviewed summary of this point is not yet available.
 ## card_dispute_comparison: Card scheme rules on disputing the card payments
 Card scheme rules are an agreement between the card scheme and the card issuer. The cardholder is not a party to them. They are shown here as the process available to the issuer.
 This pack holds selected sections of Mastercard's rules (Synthetic scheme rules M), edition dated Synthetic edition, on how unauthorised payments are handled. It does not hold the full rules. (R1)
-- payment date: 20 May 2025; amount: SGD 860.00; Merchant: Example Online Marketplace; card last4: 0002; scheme: Mastercard; Entry mode: an online (card-absent) payment; Authentication: 3-D Secure with a one-time code; authentication result: authenticated (E1, E6)
-- payment date: 21 May 2025; amount: SGD 415.50; Merchant: Example Game Credits; card last4: 0002; scheme: Mastercard; Entry mode: an online (card-absent) payment; Authentication: no authentication recorded; authentication result: not_known (E1, E6)
-- payment date: 21 May 2025; amount: SGD 1,240.00; Merchant: Example Department Store; card last4: 0002; scheme: Mastercard; Entry mode: made with a mobile wallet token; Authentication: the mobile wallet on the device; authentication result: authenticated; Device: Phone model EX-400 (E1, E6)
+- Date: 20 May 2025; Payment: S$860; Merchant: Example Online Marketplace; Card ending: 0002; Card scheme: Mastercard; Entry mode: an online (card-absent) payment; Authentication: 3-D Secure with a one-time code; Result: authenticated (E1, E6)
+- Date: 21 May 2025; Payment: S$415.50; Merchant: Example Game Credits; Card ending: 0002; Card scheme: Mastercard; Entry mode: an online (card-absent) payment; Authentication: no authentication recorded; Result: not_known (E1, E6)
+- Date: 21 May 2025; Payment: S$1,240; Merchant: Example Department Store; Card ending: 0002; Card scheme: Mastercard; Entry mode: made with a mobile wallet token; Authentication: the mobile wallet on the device; Result: authenticated; Device: Phone model EX-400 (E1, E6)
 The complainant asked the institution to dispute these payments on 22 May 2025. (E5)
 The institution's letters do not say whether it raised a dispute.
 ## customer_fault_definitions: What each framework says about customer fault
