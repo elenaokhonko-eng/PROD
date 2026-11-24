@@ -9,6 +9,7 @@ import {
   looksLikeRecord,
   normaliseDateTime,
   normaliseIpText,
+  parseCardAuthEvent,
   parseFactExtraction,
 } from '../../lib/facts'
 import type { AccessEvent, CardAuthEvent } from '../../supabase/functions/_shared/facts/update/contract.ts'
@@ -52,7 +53,7 @@ const accessModelOutput = {
 // ---- A synthetic card authentication record (Example Bank A, card ending 0001).
 const cardEvents = cardOnlyCase.data.facts.card_auth_events!.value as CardAuthEvent[]
 const cardLine = (e: CardAuthEvent) =>
-  [local(e.timestamp), cell(e.merchant), e.entryMode, e.authentication, e.authenticationResult, cell(e.deviceLabel), cell(e.deviceRef), cell(e.tokenRef),
+  [local(e.timestamp), cell(e.merchant), e.amount ? `SGD ${e.amount.amount.toLocaleString('en-SG', { minimumFractionDigits: 2 })}` : '-', e.entryMode, e.authentication, e.authenticationResult, cell(e.deviceLabel), cell(e.deviceRef), cell(e.tokenRef),
     e.walletProvisionedAt ? `wallet ${local(e.walletProvisionedAt)} on ${e.walletDeviceLabel}` : '-'].join(' | ')
 const cardRecord = ['EXAMPLE BANK A - CARD AUTHENTICATION RECORD (SYNTHETIC), CARD ENDING 0001', ...cardEvents.map(cardLine)].join('\n')
 const cardModelOutput = {
@@ -62,6 +63,8 @@ const cardModelOutput = {
     card_scheme: e.cardScheme,
     merchant: e.merchant,
     merchant_country: e.merchantCountry,
+    amount: e.amount?.amount ?? null,
+    currency: e.amount?.currency ?? null,
     entry_mode: e.entryMode,
     authentication: e.authentication,
     authentication_result: e.authenticationResult,
@@ -240,4 +243,24 @@ test('IP addresses: v4 and v6 accepted as written, anything else refused', () =>
   assert.equal(normaliseIpText('192.0.2.256'), null)
   assert.equal(normaliseIpText('2001:db8::1::2'), null)
   assert.equal(normaliseIpText('dev-ex-0002'), null)
+})
+
+test("a card line's amount is kept only when the line states it; a wallet line has none", () => {
+  const text = [
+    '2025-09-12 20:48 | Example Electronics Store | SGD 1,980.00 | ecommerce | otp | approved',
+    '2025-09-12 21:02 | Example Travel Agency | ecommerce | otp | approved',
+    '2025-09-12 20:30 | wallet added on Phone model EX-400 | 0.00',
+  ].join('\n')
+  const item = (quote: string, extra: Record<string, unknown>) => ({ timestamp: '2025-09-12 20:48', quote, ...extra })
+  const lines = text.split('\n')
+  // Written with a separator in the line, given as a number by the model.
+  assert.deepEqual(parseCardAuthEvent(item(lines[0], { merchant: 'Example Electronics Store', amount: 1980, currency: 'SGD' }), text)?.amount,
+    { amount: 1980, currency: 'SGD', amountSgd: 1980 })
+  // An amount the line does not state is dropped, never guessed.
+  assert.equal(parseCardAuthEvent(item(lines[0], { merchant: 'Example Electronics Store', amount: 2450, currency: 'SGD' }), text)?.amount, null)
+  assert.equal(parseCardAuthEvent(item(lines[1], { merchant: 'Example Travel Agency', amount: 2450, currency: 'SGD' }), text)?.amount, null)
+  assert.equal(parseCardAuthEvent(item(lines[1], { merchant: 'Example Travel Agency', amount: null }), text)?.amount, null)
+  // A wallet provisioning line carries no amount.
+  assert.equal(parseCardAuthEvent(item(lines[2], { wallet_provisioned_at: '2025-09-12 20:30', wallet_device_label: 'Phone model EX-400', amount: 0.01 }), text)?.amount, null)
+  assert.match(buildFactExtractionPrompt('document', 'x'), /"amount":"number\|null"/)
 })

@@ -11,6 +11,7 @@ import {
   type FactKey,
   type ImpersonatedEntityType,
   type Instrument,
+  type Money,
   PHISHING_CHANNEL_OPTIONS,
   type PhishingChannel,
   SCAM_TYPE_OPTIONS,
@@ -197,6 +198,8 @@ const DOCUMENT_TEMPLATE = {
     card_scheme: CARD_SCHEMES.join("|"),
     merchant: "string|null",
     merchant_country: "string|null",
+    amount: "number|null",
+    currency: "string|null",
     entry_mode: ENTRY_MODES.join("|"),
     authentication: CARD_AUTHENTICATIONS.join("|"),
     authentication_result: CARD_AUTHENTICATION_RESULTS.join("|"),
@@ -250,6 +253,7 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
       "  that only describes such events in prose is bank_correspondence.",
       "- access_events and card_auth_events: one entry per line of such a record, in the record's order. quote is that",
       "  line word for word. Copy device_ref, token_ref and ip exactly as written; null when the line has none.",
+      "  amount: the card payment's amount as the line states it; null when the line states none.",
       "  Timestamps with the offset the record gives; when it gives none, write the time as shown without an offset.",
       "- institution_fault_label: only the institution's own word or phrase for the claimant's conduct (for example",
       "  \"negligent\"), and the conduct it cites, from the institution's letter.",
@@ -530,16 +534,31 @@ export function parseAccessEvent(item: unknown, sourceText: string): AccessEvent
   };
 }
 
+/**
+ * The amount a card line states, kept only when the number is in the line's own words (written with or without
+ * thousands separators). A wallet provisioning line (no merchant) carries no amount.
+ */
+export function cardLineAmount(e: Record<string, unknown>, line: string, walletLine: boolean): Money | null {
+  if (walletLine || e.amount === null || e.amount === undefined || e.amount === "") return null;
+  const currency = typeof e.currency === "string" && e.currency.trim() ? e.currency.trim().toUpperCase() : "SGD";
+  const money = normaliseMoney(typeof e.amount === "number" ? e.amount : String(e.amount), currency);
+  if (!money || !(money.amount > 0)) return null;
+  const numbers = (line.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map((n) => Number(n.replace(/,/g, "")));
+  return numbers.some((n) => Math.abs(n - money.amount) < 0.005) ? money : null;
+}
+
 export function parseCardAuthEvent(item: unknown, sourceText: string): CardAuthEvent | null {
   const e = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
   const line = quoted(sourceText, e);
   if (!line) return null;
   const walletProvisionedAt = normaliseDateTime(e.wallet_provisioned_at);
+  const merchant = shortText(e.merchant);
   return {
     timestamp: normaliseDateTime(e.timestamp),
     transactionIndex: null,
+    amount: cardLineAmount(e, line, Boolean(walletProvisionedAt) && !merchant),
     cardScheme: oneOf(CARD_SCHEMES, e.card_scheme) ?? "not_known",
-    merchant: shortText(e.merchant),
+    merchant,
     merchantCountry: shortText(e.merchant_country, 60),
     entryMode: oneOf(ENTRY_MODES, e.entry_mode) ?? "not_known",
     authentication: oneOf(CARD_AUTHENTICATIONS, e.authentication) ?? "not_known",
