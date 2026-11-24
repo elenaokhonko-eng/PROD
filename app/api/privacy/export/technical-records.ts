@@ -1,5 +1,8 @@
 // The FIDReC update's facts in a data export (brief v5, 3e): the institution's records of logins, devices and card
-// authentication, the complainant's answers about each device, and the other new facts. They are already in the raw
+// authentication, the complainant's answers about each device, and the other new facts, including the EUPG Section 8
+// facts (decision 8 of the 24 November review): requests to pay the disputed amount, charges on it, reports to a credit
+// bureau (with who states each) and the FIDReC dispute dates. An uploaded credit bureau report is a case document and is
+// exported and deleted with the other documents. They are already in the raw
 // fact tables of the export; this section gives the current value of each, per case, so a person can read them.
 // Values are copied as stored; nothing here is logged.
 

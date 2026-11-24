@@ -5,6 +5,7 @@
 import type { AccessEvent, IpLocation } from "../facts/update/contract.ts";
 import { isNotPublic, parseIp } from "./ip.ts";
 import type { IpLocationDatabase } from "./range-database.ts";
+import { ipLocationAttribution } from "./providers.ts";
 
 /** The distinct IP addresses in the institution's access record, in the order first seen. */
 export function ipsInAccessEvents(events: readonly AccessEvent[]): string[] {
@@ -85,4 +86,17 @@ export function ipLocationLines(location: IpLocation): string[] {
     lines.push(`The institution's record gives the location as ${location.institutionStatedLocation}.`);
   }
   return lines;
+}
+
+/**
+ * What follows the lookups (decision 10): the note with each database date used, then the attribution the database's
+ * licence requires. One of each per database and edition, in the order first used.
+ */
+export function ipLocationFooterLines(locations: readonly IpLocation[]): string[] {
+  const editions = [...new Set(locations.map((l) => l.databaseEdition))];
+  const databases = [...new Set(locations.map((l) => l.database))];
+  return [
+    ...editions.map(ipLocationNote),
+    ...databases.map(ipLocationAttribution).filter((line): line is string => line !== null),
+  ];
 }

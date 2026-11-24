@@ -36,6 +36,8 @@ const EVIDENCE_TYPES = [
   "RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA",
   // FIDReC update (brief v5, 3a): the facts extraction types it card_authentication_record.
   "CARD_AUTHENTICATION_RECORD",
+  // Decision 8 (24 Nov): optional; the facts extraction types it credit_bureau_report. Not critical, never required.
+  "CREDIT_BUREAU_REPORT",
   "TIMELINE_NOTES",
   "CYBER_EXPERT_REPORT",
   "OTHER"
@@ -74,6 +76,8 @@ function normalizeEvidenceType(t) {
     "BANK_ACCESS_RECORD": "RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA",
     "CARD_AUTHENTICATION_RECORD": "CARD_AUTHENTICATION_RECORD",
     "CARD_AUTH_RECORD": "CARD_AUTHENTICATION_RECORD",
+    "CREDIT_BUREAU_REPORT": "CREDIT_BUREAU_REPORT",
+    "CREDIT_REPORT": "CREDIT_BUREAU_REPORT",
     // very ambiguous legacy bucket; keep conservative
     "FRAUD_SCREENSHOTS": "PHISHING_EMAIL_COPY_OR_DESCRIPTION"
   };
@@ -264,6 +268,7 @@ function evidenceDefinitionsBlock() {
 - BANK_EMAILS_OR_COMMUNICATIONS_ADDITIONAL: other bank emails/comms not covered above.
 - RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA: the institution's own record of logins and sessions, devices registered, digital-token activation, IP addresses, payee/limit/contact-detail changes, alerts or SMS sent, or the account block. A record listing these, even inside a letter; a letter that only describes them in prose is BANK_EMAILS_OR_COMMUNICATIONS_ADDITIONAL.
 - CARD_AUTHENTICATION_RECORD: the institution's own record of how card payments were authenticated: per payment the time, merchant, entry mode, authentication method and result (3-D Secure, OTP, in-app approval, digital token, wallet device), where a code was sent, the device or token that approved it, or a card added to a mobile wallet. Not a card statement.
+- CREDIT_BUREAU_REPORT: a report from a licensed credit bureau about the account holder's credit record. Not a bank or card statement.
 - TIMELINE_NOTES: user timeline notes/narrative.
 - CYBER_EXPERT_REPORT: report by cyber/security expert.
 `.trim();

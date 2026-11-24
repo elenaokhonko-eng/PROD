@@ -29,7 +29,15 @@ import {
   CARD_DISPUTE_STATUSES,
   CARD_SCHEMES,
   type CardAuthEvent,
+  type ChargeOnDisputedAmount,
+  type CreditBureauReport,
+  type CreditBureauReportSource,
+  DISPUTED_AMOUNT_CHARGE_KINDS,
+  DISPUTED_AMOUNT_REQUEST_SOURCES,
+  type DisputedAmountPaymentRequest,
   ENTRY_MODES,
+  type FidrecDisputeDates,
+  OPTIONAL_UPDATE_DOCUMENT_TYPES,
   type IsoDateTime,
   TECHNICAL_RECORD_DOCUMENT_TYPES,
   type TechnicalRecordDocumentType,
@@ -56,6 +64,8 @@ export const DOCUMENT_TYPES = [
   "police_report",
   "scam_message",
   ...TECHNICAL_RECORD_DOCUMENT_TYPES,
+  // credit_bureau_report (decision 8): optional, never required, not part of the evidence check.
+  ...OPTIONAL_UPDATE_DOCUMENT_TYPES,
   "other",
 ] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];
@@ -70,10 +80,12 @@ const TECHNICAL_RECORD_FACTS: FactKey[] = [
   "token_activation_method",
   "transaction_alert_threshold",
 ];
+const SECTION8_STATEMENT_FACTS: FactKey[] = ["disputed_amount_payment_requests", "charges_on_disputed_amount"];
 const DOCUMENT_FACTS: Record<DocumentType, ReadonlySet<FactKey>> = {
   // The balance before the first disputed payment is read from a bank statement only (brief 3b, 4a).
-  bank_statement: new Set([...MONEY_FACTS, "balance_before_first_disputed_payment"]),
-  card_statement: new Set(MONEY_FACTS),
+  // A statement also shows requests to pay the disputed amount and charges on it (EUPG Section 8, decision 8).
+  bank_statement: new Set([...MONEY_FACTS, "balance_before_first_disputed_payment", ...SECTION8_STATEMENT_FACTS]),
+  card_statement: new Set([...MONEY_FACTS, ...SECTION8_STATEMENT_FACTS]),
   bank_correspondence: new Set([
     ...MONEY_FACTS,
     "reported_to_bank",
@@ -86,12 +98,18 @@ const DOCUMENT_FACTS: Record<DocumentType, ReadonlySet<FactKey>> = {
     "institution_fault_label",
     "transaction_alert_threshold",
     "token_activation_method",
+    // EUPG Section 8 (decision 8): reminders and letters; a letter can mention a report to a credit bureau or the
+    // dispute with FIDReC.
+    "disputed_amount_payment_requests",
+    "credit_bureau_reports",
+    "fidrec_dispute_dates",
   ]),
   // A police report is first of all evidence of the police report: its number and date (walkthrough, 8 Nov).
   police_report: new Set(["reported_to_police", "police_report_number", ...SCAM_FACTS, "transactions", "total_loss", "account_types", "reported_to_bank"]),
   scam_message: new Set(["scam_type", "phishing_channel", "impersonated_entity_type"]),
   bank_access_record: new Set(TECHNICAL_RECORD_FACTS),
   card_authentication_record: new Set([...TECHNICAL_RECORD_FACTS, "transactions", "account_types"]),
+  credit_bureau_report: new Set(["credit_bureau_reports"]),
   other: new Set(),
 };
 
@@ -153,6 +171,9 @@ const TEMPLATE = {
   impersonated_entity_type: { value: IMPERSONATED.join("|"), quote: "string" },
   access_record_requested: { value: "yes|no", date: "YYYY-MM-DD|null", quote: "string" },
   card_dispute_requested: { value: "yes|no", date: "YYYY-MM-DD|null", channel: "string|null", quote: "string" },
+  // EUPG Section 8 (decision 8): a credit bureau report, the institution's letter or the complainant's own account.
+  credit_bureau_reports: [{ date: "YYYY-MM-DD|null", bureau: "string|null", quote: "string" }],
+  fidrec_dispute_dates: { started: "YYYY-MM-DD|null", institution_informed: "YYYY-MM-DD|null", completed_or_closed: "YYYY-MM-DD|null", quote: "string" },
 };
 
 const DATE_TIME = "YYYY-MM-DDTHH:MM:SS+HH:MM|null";
@@ -165,6 +186,7 @@ const DOCUMENT_TEMPLATE = {
     device_label: "string|null",
     device_ref: "string|null",
     ip: "string|null",
+    token_ref: "string|null",
     channel: "string|null",
     authorised_by: "string|null",
     sent_to: "string|null",
@@ -194,6 +216,9 @@ const DOCUMENT_TEMPLATE = {
   balance_before_first_disputed_payment: { amount: "number", currency: "string", quote: "string" },
   transaction_alert_threshold: { amount: "number", currency: "string", set_by: "default|account_holder|not_known", quote: "string" },
   token_activation_method: { value: TOKEN_ACTIVATION_METHODS.join("|"), quote: "string" },
+  // EUPG Section 8 (decision 8): statements, reminders and letters only.
+  disputed_amount_payment_requests: [{ date: "YYYY-MM-DD|null", source: DISPUTED_AMOUNT_REQUEST_SOURCES.join("|"), amount: "number|null", currency: "string|null", quote: "string" }],
+  charges_on_disputed_amount: [{ date: "YYYY-MM-DD|null", kind: DISPUTED_AMOUNT_CHARGE_KINDS.join("|"), amount: "number", currency: "string", description: "string|null", quote: "string" }],
 };
 
 const SOURCE_DESCRIPTIONS: Record<SourceType, string> = {
@@ -231,6 +256,11 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
       "- card_dispute_response: only what the institution's letter says it did about disputing the card payments.",
       "- balance_before_first_disputed_payment: only from a bank statement that shows a running balance: the balance",
       "  on the line immediately before the first of the transactions you listed.",
+      "- credit_bureau_report: a report from a licensed credit bureau about the account holder's credit record.",
+      "- disputed_amount_payment_requests: each request by the institution to pay the disputed amount (a statement",
+      "  asking for payment of it, a reminder, a letter), with its date. charges_on_disputed_amount: each late fee,",
+      "  interest or other charge the document shows as relating to the disputed transaction, with date and amount.",
+      "  One entry per request or charge; quote is the line that shows it.",
     ]
     : [];
   return [
@@ -254,6 +284,10 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
     "- access_record_requested: whether the claimant asked the institution for its records of logins, devices or",
     "  card authentication. card_dispute_requested: whether the claimant asked the institution to dispute the card",
     "  payments (a chargeback), when, and how.",
+    "- credit_bureau_reports: each time the source says non-payment of the disputed amount was reported to a credit",
+    "  bureau, with the date and the bureau's name when given. fidrec_dispute_dates: only dates the source gives for",
+    "  when dispute resolution with FIDReC started, when the institution was told of it, and when FIDReC completed or",
+    "  closed the case.",
     ...documentRules,
     "",
     `TEMPLATE: ${JSON.stringify(template)}`,
@@ -428,6 +462,7 @@ export function parseFactExtraction(
   if (discoveredDate && discoveredQuote) add("date_discovered", discoveredDate, [discoveredQuote], [discovered]);
 
   parseUpdateFacts(out, sourceText, source.sourceType, add);
+  parseSection8Facts(out, sourceText, source.sourceType, documentType, add);
 
   return candidates;
 }
@@ -487,6 +522,7 @@ export function parseAccessEvent(item: unknown, sourceText: string): AccessEvent
     deviceLabel: shortText(e.device_label),
     deviceRef: verbatim(line, shortText(e.device_ref, 80)),
     ip: verbatim(line, normaliseIpText(e.ip)),
+    tokenRef: verbatim(line, shortText(e.token_ref, 80)),
     channel: shortText(e.channel, 60),
     authorisedBy: shortText(e.authorised_by),
     sentTo: shortText(e.sent_to),
@@ -590,4 +626,85 @@ function parseUpdateFacts(out: Record<string, unknown>, sourceText: string, sour
   const methodValue = oneOf(TOKEN_ACTIVATION_METHODS, method?.value);
   const methodQuote = quoted(sourceText, method);
   if (methodValue && methodValue !== "not_known" && methodQuote) add("token_activation_method", methodValue, [methodQuote], [method]);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// EUPG Section 8 facts (review of 24 November, decision 8). Each entry needs its own quoted words from the source,
+// like every other fact. A report to a credit bureau is labelled with who states it: a credit bureau report, the
+// institution's letter, or the complainant's own account (labelled as such).
+// ---------------------------------------------------------------------------------------------------------------
+
+export function creditBureauReportSource(sourceType: SourceType, documentType: DocumentType | null): CreditBureauReportSource {
+  if (sourceType === "document" && documentType === "credit_bureau_report") return "credit_bureau_report";
+  if (sourceType === "document" && documentType === "bank_correspondence") return "institution_letter";
+  return "complainant_statement";
+}
+
+function parseSection8Facts(
+  out: Record<string, unknown>,
+  sourceText: string,
+  sourceType: SourceType,
+  documentType: DocumentType | null,
+  add: Add,
+): void {
+  const moneyOf = (m: Record<string, unknown>) => {
+    if (m.amount === null || m.amount === undefined || m.amount === "") return null;
+    const currency = typeof m.currency === "string" && m.currency.trim() ? m.currency.toUpperCase() : "SGD";
+    return normaliseMoney(typeof m.amount === "number" ? m.amount : String(m.amount), currency);
+  };
+  const entries = <T>(field: string, parse: (e: Record<string, unknown>) => T | null) =>
+    list(out[field])
+      .map((raw) => {
+        const e = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+        const quote = quoted(sourceText, e);
+        const value = quote ? parse(e) : null;
+        return value && quote ? { value, quote, raw } : null;
+      })
+      .filter((e): e is { value: T; quote: string; raw: unknown } => e !== null);
+
+  const reportSource = creditBureauReportSource(sourceType, documentType);
+  const reports = entries<CreditBureauReport>("credit_bureau_reports", (e) => ({
+    date: normaliseDate(e.date),
+    bureau: shortText(e.bureau, 120),
+    source: reportSource,
+  }));
+  if (reports.length) add("credit_bureau_reports", reports.map((r) => r.value), reports.map((r) => r.quote), reports.map((r) => r.raw));
+
+  const fidrec = (out.fidrec_dispute_dates && typeof out.fidrec_dispute_dates === "object" ? out.fidrec_dispute_dates : null) as
+    | Record<string, unknown>
+    | null;
+  const fidrecQuote = quoted(sourceText, fidrec);
+  if (fidrec && fidrecQuote) {
+    const dates: FidrecDisputeDates = {
+      startedOn: normaliseDate(fidrec.started),
+      institutionToldOn: normaliseDate(fidrec.institution_informed),
+      completedOrClosedOn: normaliseDate(fidrec.completed_or_closed),
+    };
+    if (dates.startedOn || dates.institutionToldOn || dates.completedOrClosedOn) add("fidrec_dispute_dates", dates, [fidrecQuote], [fidrec]);
+  }
+
+  // Requests and charges are read from statements, reminders and letters only.
+  if (sourceType !== "document") return;
+
+  const requests = entries<DisputedAmountPaymentRequest>("disputed_amount_payment_requests", (e) => ({
+    date: normaliseDate(e.date),
+    amount: moneyOf(e),
+    source: oneOf(DISPUTED_AMOUNT_REQUEST_SOURCES, e.source) ?? "not_known",
+  }));
+  if (requests.length) {
+    add("disputed_amount_payment_requests", requests.map((r) => r.value), requests.map((r) => r.quote), requests.map((r) => r.raw));
+  }
+
+  const charges = entries<ChargeOnDisputedAmount>("charges_on_disputed_amount", (e) => {
+    const amount = moneyOf(e);
+    if (!amount || !(amount.amount > 0)) return null;
+    return {
+      date: normaliseDate(e.date),
+      amount,
+      kind: oneOf(DISPUTED_AMOUNT_CHARGE_KINDS, e.kind) ?? "not_known",
+      description: shortText(e.description, 120),
+      relatedTransactionIndex: null,
+    };
+  });
+  if (charges.length) add("charges_on_disputed_amount", charges.map((c) => c.value), charges.map((c) => c.quote), charges.map((c) => c.raw));
 }

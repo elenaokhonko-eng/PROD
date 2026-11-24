@@ -58,6 +58,29 @@ export function formatIpv4(value: bigint): string {
   return [BigInt(24), BigInt(16), BigInt(8), BigInt(0)].map((shift) => String((value >> shift) & BigInt(0xff))).join(".");
 }
 
+/** An IPv6 address in the RFC 5952 form: lower case, no leading zeros, the longest run of zero groups as "::". */
+export function formatIpv6(value: bigint): string {
+  const groups = Array.from({ length: 8 }, (_, i) => Number((value >> BigInt(112 - 16 * i)) & BigInt(0xffff)));
+  let best = { at: -1, len: 0 };
+  for (let i = 0; i < 8;) {
+    if (groups[i] !== 0) {
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j < 8 && groups[j] === 0) j++;
+    if (j - i > best.len && j - i > 1) best = { at: i, len: j - i };
+    i = j;
+  }
+  const hex = groups.map((g) => g.toString(16));
+  if (best.at < 0) return hex.join(":");
+  return `${hex.slice(0, best.at).join(":")}::${hex.slice(best.at + best.len).join(":")}`;
+}
+
+export function formatIp(version: 4 | 6, value: bigint): string {
+  return version === 4 ? formatIpv4(value) : formatIpv6(value);
+}
+
 interface Block {
   version: 4 | 6;
   start: bigint;

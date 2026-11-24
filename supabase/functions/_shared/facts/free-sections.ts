@@ -35,6 +35,8 @@ const PROOF: Partial<Record<FactKey, string>> = {
     "the institution's own record of logins, devices and alerts for the dates of the payments; you can ask the institution for it in writing",
   card_auth_events:
     "the institution's record of how each card payment was authenticated, including the device or token that approved it; you can ask the institution for it in writing",
+  // EUPG Section 8 (decision 8): DRAFT wording for Elena.
+  credit_bureau_reports: "a credit bureau report covering the months after the disputed payments",
 };
 
 // The value boxes the user's answer used, so their documents can be named.
@@ -57,7 +59,18 @@ export const DOCUMENT_LABELS: Record<string, string> = {
   // Brief v5, 3a.
   bank_access_record: "the institution's record of logins, devices and alerts (uploaded)",
   card_authentication_record: "the institution's record of how card payments were authenticated (uploaded)",
+  // Decision 8: DRAFT wording for Elena.
+  credit_bureau_report: "your credit bureau report (uploaded)",
 };
+
+// Decision 8: a credit bureau report is optional. It is never required to buy or generate a pack and is not part of
+// the evidence check; the checklist only suggests it in credit card cases. DRAFT wording for Elena.
+export const CREDIT_BUREAU_REPORT_SUGGESTION =
+  "If your bank reported the disputed amount to a credit bureau, a copy of your credit bureau report can show it. This is optional.";
+
+export function suggestsCreditBureauReport(accountTypes: readonly string[] | null | undefined): boolean {
+  return Boolean(accountTypes?.includes("credit_card"));
+}
 
 function documentNames(values: FindingValue[]): string[] {
   const names = values.flatMap((v) => v.sources)

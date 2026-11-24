@@ -157,7 +157,8 @@ export interface BankReply {
 
 export type ImpersonatedEntityType = "bank_or_fi" | "government" | "other_business" | "private_person" | "unsure";
 
-// The FIDReC update's facts (brief v5, 3b) are typed by the frozen contract and stored like every other fact.
+// The FIDReC update's facts (brief v5, 3b; the EUPG Section 8 facts of decision 8) are typed by the contract and stored
+// like every other fact.
 export interface FactValues extends UpdateFactValues {
   institution_names: Institution[];
   account_types: AccountType[];
@@ -221,17 +222,33 @@ export const UPDATE_RECONCILED_FACT_KEYS = [
   "balance_before_first_disputed_payment",
   "transaction_alert_threshold",
   "token_activation_method",
+  // EUPG Section 8 (decision 8).
+  "disputed_amount_payment_requests",
+  "charges_on_disputed_amount",
+  "credit_bureau_reports",
+  "fidrec_dispute_dates",
 ] as const satisfies readonly FactKey[];
 
 export const PAID_STAGE_ONLY_FACT_KEYS: ReadonlySet<FactKey> = new Set<FactKey>([...UPDATE_RECONCILED_FACT_KEYS, "device_recognition"]);
 
 // Facts only a document can state (brief 3b): the institution's own records, its letters, a bank statement.
+// The Section 8 requests and charges are read from statements, reminders and letters only (decision 8).
 export const DOCUMENT_ONLY_FACT_KEYS: ReadonlySet<FactKey> = new Set<FactKey>([
   "access_events",
   "card_auth_events",
   "card_dispute_response",
   "institution_fault_label",
   "balance_before_first_disputed_payment",
+  "disputed_amount_payment_requests",
+  "charges_on_disputed_amount",
+]);
+
+// List facts whose entries from different sources are combined, never set against each other: two statements show
+// different charges, and a letter and the complainant can each mention a report to a credit bureau.
+export const COMBINED_LIST_FACT_KEYS: ReadonlySet<FactKey> = new Set<FactKey>([
+  "disputed_amount_payment_requests",
+  "charges_on_disputed_amount",
+  "credit_bureau_reports",
 ]);
 
 // The record lists themselves: device identifiers and IP addresses, personal data that may be a third party's
@@ -267,6 +284,11 @@ export const FACT_LABELS: Record<FactKey, string> = {
   balance_before_first_disputed_payment: "Your balance before the first payment you dispute",
   transaction_alert_threshold: "The amount above which your bank sends a payment alert",
   token_activation_method: "How the digital token was activated",
+  // EUPG Section 8 (decision 8): DRAFT wording for Elena.
+  disputed_amount_payment_requests: "Your bank's requests to pay the disputed amount",
+  charges_on_disputed_amount: "Fees or interest charged on the disputed amount",
+  credit_bureau_reports: "Reports of the disputed amount to a credit bureau",
+  fidrec_dispute_dates: "Dates of your dispute with FIDReC",
 };
 
 // Facts each stage needs before it can be generated (spec section 7, adapted to the launch set).

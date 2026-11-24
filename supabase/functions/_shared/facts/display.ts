@@ -26,9 +26,16 @@ import { DATE_PATTERN } from "./validate-output.ts";
 import { deviceKey, type RecordedDevice } from "./reconcile.ts";
 import {
   type CardDisputeResponse,
+  type ChargeOnDisputedAmount,
+  type CreditBureauReport,
+  type CreditBureauReportSource,
   DEVICE_RECOGNITION_ANSWERS,
   type DeviceRecognition,
   type DeviceRecognitionAnswer,
+  type DisputedAmountChargeKind,
+  type DisputedAmountPaymentRequest,
+  type DisputedAmountRequestSource,
+  type FidrecDisputeDates,
   type InstitutionFaultLabel,
   TOKEN_ACTIVATION_METHODS,
   type TokenActivationMethod,
@@ -118,6 +125,29 @@ const DISPUTE_STATUS_TEXT: Record<CardDisputeResponse["status"], string> = {
 };
 
 export const UNNAMED_DEVICE_TEXT = "A device the records do not name";
+
+// EUPG Section 8 (decision 8): DRAFT wording for Elena. These are the user's own screens ("you"); the pack's lines
+// are written by the Section 8 rule file (Lane 3) in the complainant form.
+const PAYMENT_REQUEST_TEXT: Record<DisputedAmountRequestSource, string> = {
+  statement: "on a statement",
+  reminder: "in a reminder",
+  letter: "in a letter",
+  other: "request",
+  not_known: "request",
+};
+
+const CHARGE_TEXT: Record<DisputedAmountChargeKind, string> = {
+  late_fee: "late fee",
+  interest: "interest",
+  other: "charge",
+  not_known: "charge",
+};
+
+export const CREDIT_BUREAU_SOURCE_TEXT: Record<CreditBureauReportSource, string> = {
+  credit_bureau_report: "shown by a credit bureau report",
+  institution_letter: "stated in the bank's letter",
+  complainant_statement: "your own statement",
+};
 
 /** A record's time as the record gives it, for example "12 Sep 2025, 20:10" (the record's own zone). */
 export function formatDateTime(iso: string | null): string | null {
@@ -264,6 +294,27 @@ export function formatFactValue(key: FactKey, value: unknown): string {
     }
     case "token_activation_method":
       return TOKEN_ACTIVATION_TEXT[value as TokenActivationMethod] ?? String(value);
+    // EUPG Section 8 (decision 8): DRAFT wording for Elena.
+    case "disputed_amount_payment_requests":
+      return (value as DisputedAmountPaymentRequest[])
+        .map((r) => [formatDate(r.date) ?? "Date not given", PAYMENT_REQUEST_TEXT[r.source], r.amount ? formatMoney(r.amount) : null].filter(Boolean).join(", "))
+        .join("; ");
+    case "charges_on_disputed_amount":
+      return (value as ChargeOnDisputedAmount[])
+        .map((c) => [c.amount ? `${formatMoney(c.amount)} ${CHARGE_TEXT[c.kind]}` : CHARGE_TEXT[c.kind], formatDate(c.date)].filter(Boolean).join(", "))
+        .join("; ");
+    case "credit_bureau_reports":
+      return (value as CreditBureauReport[])
+        .map((r) => `${[formatDate(r.date) ?? "Date not given", r.bureau].filter(Boolean).join(", ")} (${CREDIT_BUREAU_SOURCE_TEXT[r.source]})`)
+        .join("; ");
+    case "fidrec_dispute_dates": {
+      const d = value as FidrecDisputeDates;
+      return [
+        d.startedOn ? `Started ${formatDate(d.startedOn)}` : null,
+        d.institutionToldOn ? `bank told ${formatDate(d.institutionToldOn)}` : null,
+        d.completedOrClosedOn ? `completed or closed ${formatDate(d.completedOrClosedOn)}` : null,
+      ].filter(Boolean).join("; ") || "Not known";
+    }
     default: {
       const option = FACT_ENUM_OPTIONS[key]?.find((o) => o.value === value);
       return option?.label ?? String(value).replace(/_/g, " ");

@@ -71,3 +71,16 @@ test('Lane 2 code writes no fact value to the logs', () => {
   // A scrubbed error keeps no IPv4 address.
   assert.doesNotMatch(scrubErrorText('insert failed for 203.0.113.24'), /203\.0\.113\.24/)
 })
+
+test('the export carries the Section 8 facts, the credit bureau reports with who states each', () => {
+  const reports = [{ date: '2025-09-10', bureau: 'Example Credit Bureau', source: 'complainant_statement' }]
+  const rows = technicalRecordsExport([
+    { case_id: 'case-c', fact_key: 'credit_bureau_reports', status: 'resolved', values: [{ value: reports, sources: [{ sourceRef: { documentName: 'synthetic-report.pdf' } }] }], resolution: { kind: 'agreed' }, invalidated_at: null },
+    { case_id: 'case-c', fact_key: 'charges_on_disputed_amount', status: 'resolved', values: [{ value: [] }], resolution: null, invalidated_at: null },
+    { case_id: 'case-c', fact_key: 'disputed_amount_payment_requests', status: 'resolved', values: [{ value: [] }], resolution: null, invalidated_at: null },
+    { case_id: 'case-c', fact_key: 'fidrec_dispute_dates', status: 'resolved', values: [{ value: {} }], resolution: null, invalidated_at: null },
+  ])
+  assert.deepEqual(rows.map((r) => r.fact_key), ['charges_on_disputed_amount', 'credit_bureau_reports', 'disputed_amount_payment_requests', 'fidrec_dispute_dates'])
+  assert.deepEqual(rows[1].values, [reports])
+  assert.doesNotMatch(JSON.stringify(rows), /synthetic-report\.pdf/)
+})

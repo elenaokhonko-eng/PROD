@@ -5,19 +5,30 @@ import { join } from 'node:path'
 import test from 'node:test'
 import {
   createRangeDatabase,
+  CURRENT_EDITION_SQL,
+  DBIP_LITE,
+  formatIp,
+  formatIpv6,
   IP_LOCATION_FLAGGED_TEXT,
+  IP_RANGE_LOOKUP_SQL,
+  ipLocationAttribution,
+  ipLocationFooterLines,
   ipLocationLine,
   ipLocationLines,
   ipLocationNote,
   ipsInAccessEvents,
   isNotPublic,
   lookupIpLocations,
+  openCurrentSqlIpDatabase,
   parseIp,
   parseNeutralCsv,
+  rangeRecordFromRow,
   toNeutralCsv,
 } from '../../supabase/functions/_shared/ip-location/index.ts'
 import type { AccessEvent, IpLocation } from '../../supabase/functions/_shared/facts/update/contract.ts'
-import { buildIpDb, isInside, main } from '../../scripts/ip-db/build-ip-db.ts'
+import { buildDbip, buildIpDb, isInside, main, run } from '../../scripts/ip-db/build-ip-db.ts'
+import { dbipEditionFromFileName, dbipToNeutral, linesOfText } from '../../scripts/ip-db/dbip.ts'
+import { assertLocalDatabaseUrl, editionIdOf, load } from '../../scripts/ip-db/load-ip-db.ts'
 import { SYNTHETIC_IP_DATABASE, SYNTHETIC_IP_RANGES } from '../../scripts/ip-db/synthetic.ts'
 import { FIDREC_UPDATE_CASES } from '../fixtures/fidrec-update/index.ts'
 
@@ -142,4 +153,157 @@ test('no IP database file is committed', () => {
     readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]))
   const files = [...walk('scripts/ip-db'), ...walk('supabase/functions/_shared/ip-location')]
   for (const f of files) assert.match(f, /\.ts$/, `${f}: only code lives here`)
+})
+
+// ---- DB-IP Lite (review of 24 November, decision 10). Synthetic files in DB-IP's CSV layout: documentation ranges,
+// documentation ASNs, "Example" names. No DB-IP data is committed.
+
+const DBIP_CITY = [
+  '192.0.2.0,192.0.2.127,AS,SG,"Example Region","Example City",1.3,103.8',
+  '198.51.100.0,198.51.100.255,AS,ZZ,,,0,0',
+  '2001:db8::,2001:db8::ffff,AS,SG,,"Example Town",1.3,103.8',
+].join('\n')
+const DBIP_ASN = [
+  '192.0.2.64,192.0.2.255,64500,"Example Network, Ltd"',
+  '2001:db8::8000,2001:db8::1:0,64501,Example IPv6 Network',
+].join('\n')
+
+test('IPv6 addresses are written in the short form', () => {
+  for (const text of ['2001:db8::1', '::', '::1', '2001:db8::', '2001:db8:0:1:1:1:1:1', 'fe80::1:0:0:1', '2001:db8::1:0:0:1']) {
+    assert.equal(formatIpv6(parseIp(text)!.value), text, text)
+  }
+  assert.equal(formatIp(4, parseIp('192.0.2.1')!.value), '192.0.2.1')
+})
+
+test('the DB-IP adapter combines the city and network files into ranges that do not overlap', async () => {
+  const lines: string[] = []
+  for await (const line of dbipToNeutral(linesOfText(DBIP_CITY), linesOfText(DBIP_ASN))) lines.push(line)
+  const ranges = parseNeutralCsv(`${lines.join('\n')}\n`)
+  assert.deepEqual(ranges.map((r) => [r.start, r.end, r.country, r.region, r.city, r.asn, r.organisation]), [
+    ['192.0.2.0', '192.0.2.63', 'Singapore', 'Example Region', 'Example City', null, null],
+    ['192.0.2.64', '192.0.2.127', 'Singapore', 'Example Region', 'Example City', 64500, 'Example Network, Ltd'],
+    ['192.0.2.128', '192.0.2.255', null, null, null, 64500, 'Example Network, Ltd'],
+    ['198.51.100.0', '198.51.100.255', null, null, null, null, null],
+    ['2001:db8::', '2001:db8::7fff', 'Singapore', null, 'Example Town', null, null],
+    ['2001:db8::8000', '2001:db8::ffff', 'Singapore', null, 'Example Town', 64501, 'Example IPv6 Network'],
+    ['2001:db8::1:0', '2001:db8::1:0', null, null, null, 64501, 'Example IPv6 Network'],
+  ])
+  // No accuracy radius and no hosting or VPN flags in DB-IP Lite; latitude and longitude are dropped.
+  assert.ok(ranges.every((r) => r.accuracyRadiusKm === null && r.flags.length === 0))
+  assert.doesNotMatch(lines.join('\n'), /103\.8|1\.3,/)
+  // The result loads as a database and answers lookups.
+  const database = createRangeDatabase({ name: DBIP_LITE.databaseName, edition: '2026-11-01' }, ranges)
+  const [found] = await lookupIpLocations(['192.0.2.70'], database)
+  assert.equal(
+    ipLocationLine(found),
+    'IP address 192.0.2.70 — according to DB-IP Lite, 2026-11-01: registered to Example Network, Ltd (AS64500), location Example City, Example Region, Singapore.',
+  )
+})
+
+test('the DB-IP adapter refuses files that are out of order or overlap', async () => {
+  const drain = async (city: string, asn: string) => {
+    for await (const _line of dbipToNeutral(linesOfText(city), linesOfText(asn))) {
+      // read through
+    }
+  }
+  await assert.rejects(drain('198.51.100.0,198.51.100.9,AS,SG,,,0,0\n192.0.2.0,192.0.2.9,AS,SG,,,0,0', ''), /not sorted or overlap/)
+  await assert.rejects(drain('192.0.2.0,192.0.2.9,AS,SG,,,0,0\n192.0.2.5,192.0.2.20,AS,SG,,,0,0', ''), /not sorted or overlap/)
+  await assert.rejects(drain('', '192.0.2.0,192.0.2.9,AS64500,Example'), /not a whole number/)
+  assert.equal(dbipEditionFromFileName('dbip-city-lite-2026-11.csv.gz'), '2026-11-01')
+  assert.equal(dbipEditionFromFileName('cities.csv'), null)
+})
+
+test('a DB-IP build writes our copy outside the repository, with the licence and the attribution', async () => {
+  const repo = process.cwd()
+  const dir = mkdtempSync(join(tmpdir(), 'gb-dbip-'))
+  try {
+    const city = join(dir, 'dbip-city-lite-2026-11.csv')
+    const asn = join(dir, 'dbip-asn-lite-2026-11.csv')
+    writeFileSync(city, `${DBIP_CITY}\n`)
+    writeFileSync(asn, `${DBIP_ASN}\n`)
+    await assert.rejects(buildDbip(['--city', city, '--asn', asn, '--out', join(repo, 'tmp-ip-db')], repo), /outside the repository/)
+    const out = join(dir, 'build')
+    const meta = await run(['--format', 'dbip', '--city', city, '--asn', asn, '--out', out], repo)
+    assert.equal(meta.name, 'DB-IP Lite')
+    assert.equal(meta.edition, '2026-11-01')
+    assert.equal(meta.ranges, 7)
+    assert.equal(meta.licence, 'CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)')
+    assert.match(meta.attribution!, /^IP Geolocation by DB-IP \(https:\/\/db-ip\.com\)/)
+    assert.deepEqual(meta.sources!.map((s) => s.file), ['dbip-city-lite-2026-11.csv', 'dbip-asn-lite-2026-11.csv'])
+    assert.equal(parseNeutralCsv(readFileSync(join(out, 'ip-db.csv'), 'utf8')).length, 7)
+    assert.throws(() => main(['--format', 'dbip', '--city', city, '--asn', asn, '--out', out], repo), /run\(\)/)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('the attribution the licence asks for prints after the lookups, with each database date', async () => {
+  const database = createRangeDatabase({ name: DBIP_LITE.databaseName, edition: '2026-11-01' }, SYNTHETIC_IP_RANGES)
+  const locations = await lookupIpLocations(['203.0.113.24', '198.51.100.7'], database)
+  // Each lookup keeps the database name and date it was made with.
+  assert.ok(locations.every((l) => l.database === 'DB-IP Lite' && l.databaseEdition === '2026-11-01'))
+  const footer = ipLocationFooterLines(locations)
+  assert.equal(footer.length, 2)
+  assert.equal(footer[0], ipLocationNote('2026-11-01'))
+  assert.equal(footer[1], ipLocationAttribution('DB-IP Lite'))
+  assert.match(footer[1], /IP Geolocation by DB-IP \(https:\/\/db-ip\.com\), licensed under CC BY 4\.0/)
+  // The synthetic database has no provider, so no attribution line.
+  assert.deepEqual(ipLocationFooterLines(await lookupIpLocations(['203.0.113.24'], db())), [ipLocationNote(SYNTHETIC_IP_DATABASE.edition)])
+})
+
+test('the Postgres lookup asks for the range that holds the address in the current edition', async () => {
+  const calls: Array<{ sql: string; params: readonly unknown[] }> = []
+  const query = async (sql: string, params: readonly unknown[]) => {
+    calls.push({ sql, params })
+    if (sql === CURRENT_EDITION_SQL) return [{ edition_id: 'dbip-lite:2026-11-01', database_name: 'DB-IP Lite', edition: '2026-11-01' }]
+    return params[1] === '192.0.2.70'
+      ? [{ country: 'Singapore', region: null, city: 'Example City', accuracy_radius_km: null, asn: '64500', organisation: 'Example Network', flags: '{}' }]
+      : []
+  }
+  const database = await openCurrentSqlIpDatabase(query)
+  assert.ok(database)
+  const [found, missing] = await lookupIpLocations(['192.0.2.70', '198.51.100.7'], database!)
+  assert.deepEqual([found.city, found.asn, found.flags, found.databaseEdition], ['Example City', 64500, [], '2026-11-01'])
+  assert.equal(missing.city, null)
+  assert.deepEqual(calls.slice(1).map((c) => c.params), [['dbip-lite:2026-11-01', '192.0.2.70'], ['dbip-lite:2026-11-01', '198.51.100.7']])
+  assert.match(IP_RANGE_LOOKUP_SQL, /family\(range_start\) = family\(\$2::inet\)/)
+  assert.equal(await openCurrentSqlIpDatabase(async () => []), null)
+  assert.deepEqual(rangeRecordFromRow({ flags: ['vpn', 'tor'] }).flags, ['vpn'])
+})
+
+test('the loader refuses any database but a local one, and the shared port 54322', () => {
+  assert.throws(() => assertLocalDatabaseUrl(undefined), /not set/)
+  assert.throws(() => assertLocalDatabaseUrl('postgres://u:p@db.example.com:5432/postgres'), /local databases only/)
+  assert.throws(() => assertLocalDatabaseUrl('postgres://u:p@127.0.0.1:54322/postgres'), /54322/)
+  assert.throws(() => assertLocalDatabaseUrl('postgres://u:p@127.0.0.1/postgres'), /port/)
+  assert.throws(() => assertLocalDatabaseUrl('https://127.0.0.1:55820/'), /postgres URL/)
+  assert.equal(assertLocalDatabaseUrl('postgres://u:p@127.0.0.1:55820/postgres').port, '55820')
+  assert.equal(
+    editionIdOf({ name: 'DB-IP Lite', edition: '2026-11-01', format: 'dbip', provider: 'dbip-lite', ranges: 1, sha256: 'x' }),
+    'dbip-lite:2026-11-01',
+  )
+})
+
+// Runs only against a lane's own throwaway local database (it replaces the IP tables' contents there):
+// IP_DB_TEST_DATABASE_URL=postgres://…@127.0.0.1:<558xx>/<database>. Skipped otherwise.
+test('load and look up against a local Postgres', { skip: !process.env.IP_DB_TEST_DATABASE_URL }, async () => {
+  const url = assertLocalDatabaseUrl(process.env.IP_DB_TEST_DATABASE_URL)
+  const { default: pg } = await import('pg')
+  const client = new pg.Client({ connectionString: url.toString() })
+  await client.connect()
+  const dir = mkdtempSync(join(tmpdir(), 'gb-ip-load-'))
+  try {
+    main(['--synthetic', '--out', dir], process.cwd())
+    const loaded = await load(dir, client as never, { createLocalTables: true })
+    assert.equal(loaded.ranges, SYNTHETIC_IP_RANGES.length)
+    const query = async (sql: string, params: readonly unknown[]) => (await client.query(sql, params as unknown[])).rows
+    const database = (await openCurrentSqlIpDatabase(query))!
+    assert.equal(database.edition, SYNTHETIC_IP_DATABASE.edition)
+    const found = await lookupIpLocations(['203.0.113.24', '2001:db8::1', '192.0.2.100'], database)
+    assert.deepEqual(found.map((l) => l.organisation), ['Example Hosting Network', 'Example IPv6 Network', null])
+    assert.deepEqual(found[0].flags, ['hosting'])
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+    await client.end()
+  }
 })

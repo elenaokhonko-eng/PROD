@@ -4,6 +4,7 @@
 import {
   ANSWER_ONLY_FACT_KEYS,
   type BankReply,
+  COMBINED_LIST_FACT_KEYS,
   DOCUMENT_ONLY_FACT_KEYS,
   type FactKey,
   type FactValues,
@@ -23,6 +24,7 @@ import {
   type CardAuthEvent,
   type CardDisputeResponse,
   type DeviceRecognition,
+  type FidrecDisputeDates,
   type InstitutionFaultLabel,
   TECHNICAL_RECORD_DOCUMENT_TYPES,
   type TransactionAlertThreshold,
@@ -330,9 +332,32 @@ function equivalent(key: FactKey, a: unknown, b: unknown): boolean {
       const y = b as TransactionAlertThreshold;
       return sameMoney(x.amount, y.amount, 0) && (x.setBy === y.setBy || x.setBy === "not_known" || y.setBy === "not_known");
     }
+    // EUPG Section 8 (decision 8): lists from different sources are combined, never set against each other.
+    case "disputed_amount_payment_requests":
+    case "charges_on_disputed_amount":
+    case "credit_bureau_reports":
+      return true;
+    case "fidrec_dispute_dates": {
+      const x = a as FidrecDisputeDates;
+      const y = b as FidrecDisputeDates;
+      return sameDate(x.startedOn, y.startedOn) && sameDate(x.institutionToldOn, y.institutionToldOn) &&
+        sameDate(x.completedOrClosedOn, y.completedOrClosedOn);
+    }
     default:
       return JSON.stringify(a) === JSON.stringify(b);
   }
+}
+
+// Section 8 list entries (requests, charges, credit bureau reports): the union, one entry per distinct entry, by date.
+// A report stated both by a letter and by the complainant stays twice, each with its own label.
+function combineListEntries(a: readonly unknown[], b: readonly unknown[]): unknown[] {
+  const byKey = new Map<string, unknown>();
+  for (const entry of [...a, ...b]) byKey.set(stableStringify(entry), entry);
+  return [...byKey.values()].sort((x, y) => {
+    const dx = (x as { date?: string | null }).date ?? "";
+    const dy = (y as { date?: string | null }).date ?? "";
+    return dx < dy ? -1 : dx > dy ? 1 : 0;
+  });
 }
 
 // Merging equivalent values: sets take the union, events and replies keep the most complete record.
@@ -372,6 +397,16 @@ function merge(key: FactKey, a: unknown, b: unknown): unknown {
     const x = a as TransactionAlertThreshold;
     const y = b as TransactionAlertThreshold;
     return { amount: x.amount, setBy: x.setBy === "not_known" ? y.setBy : x.setBy };
+  }
+  if (COMBINED_LIST_FACT_KEYS.has(key)) return combineListEntries(a as unknown[], b as unknown[]);
+  if (key === "fidrec_dispute_dates") {
+    const x = a as FidrecDisputeDates;
+    const y = b as FidrecDisputeDates;
+    return {
+      startedOn: x.startedOn ?? y.startedOn,
+      institutionToldOn: x.institutionToldOn ?? y.institutionToldOn,
+      completedOrClosedOn: x.completedOrClosedOn ?? y.completedOrClosedOn,
+    };
   }
   if (key === "bank_reply") {
     const x = a as BankReply;

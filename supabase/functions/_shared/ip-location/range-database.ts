@@ -1,6 +1,6 @@
 // An IP location database held as address ranges, loaded from our own copy of a provider's file (brief v5, 3c).
-// The provider is not chosen yet (Elena decides from the shortlist in the Lane 2 pull request), so every provider's
-// download is first converted to the neutral format below by scripts/ip-db; this file never reads a provider format.
+// Every provider's download (DB-IP Lite, decision 10 of the 24 November review) is first converted to the neutral
+// format below by scripts/ip-db; this file never reads a provider format.
 //
 // Neutral format: CSV with a header line, one range per line, ranges not overlapping:
 //   start,end,country,region,city,accuracy_radius_km,asn,organisation,flags
@@ -27,8 +27,7 @@ export interface IpRange extends IpRangeRecord {
 }
 
 /**
- * The lookup interface the pack code uses. A database-backed implementation (ranges in a Postgres table, queried by
- * address) plugs in here once the provider is chosen; tests use the in-memory one.
+ * The lookup interface the pack code uses: ranges in Postgres (sql-database.ts) in the app; the in-memory one in tests.
  */
 export interface IpLocationDatabase {
   /** The provider's database name as it is printed, for example "Example IP Database". */
@@ -46,7 +45,7 @@ interface LoadedRange extends IpRangeRecord {
   end: bigint;
 }
 
-function splitCsvLine(line: string): string[] {
+export function splitCsvLine(line: string): string[] {
   const cells: string[] = [];
   let cell = "";
   let quoted = false;
