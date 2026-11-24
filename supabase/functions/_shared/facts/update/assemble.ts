@@ -26,12 +26,14 @@ export async function buildFidrecUpdate(args: {
   ipLocations: readonly IpLocation[];
   provider: ClauseProvider;
   termRequests?: TermRequestSource;
+  /** A ready document classified `credit_bureau_report` was read (`creditBureauReportReadFrom`). Default false. */
+  creditBureauReportRead?: boolean;
   generatedOn: IsoDate;
   /** R-numbers continue after the clauses the model's duties section was given (R1…Rn). */
   firstClauseNumber: number;
 }): Promise<FidrecUpdate> {
   const input = sectionInputFromSnapshot(args);
-  const results = await buildUpdateSections(input, { termRequests: args.termRequests });
+  const results = await buildUpdateSections(input, { termRequests: args.termRequests, creditBureauReportRead: args.creditBureauReportRead });
   const cards = (input.facts.card_auth_events?.value ?? []) as CardAuthEvent[];
   const rendered = renderUpdateSections(results, { firstClauseNumber: args.firstClauseNumber, cards });
   const prompt: FidrecPromptUpdate = {
