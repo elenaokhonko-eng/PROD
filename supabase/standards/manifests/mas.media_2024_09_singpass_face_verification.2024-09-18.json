@@ -1,0 +1,132 @@
+{
+  "$comment": "Joint MAS–ABS media release of 18 September 2024: major retail banks to implement Singpass Face Verification for digital token setup \"over the next three months\" (para 1). An announcement of measures, not an instrument. Clause text is cut from the private copy of the MAS page.",
+  "document": {
+    "document_key": "mas.media_2024_09_singpass_face_verification",
+    "title": "Major retail banks to introduce Singpass Face Verification, further strengthening resilience against phishing scams (18 September 2024)",
+    "publisher": "Monetary Authority of Singapore and The Association of Banks in Singapore",
+    "binding_level": "announcement",
+    "applies_to": ["bank"],
+    "instrument_scope": ["account_transfer", "sg_card"],
+    "institution": null,
+    "card_scheme": null,
+    "canonical_url": "https://www.mas.gov.sg/news/media-releases/2024/major-retail-banks-to-introduce-singpass-face-verification"
+  },
+  "version": {
+    "version_label": "18 September 2024",
+    "effective_from": "2024-09-18",
+    "issued_on": "2024-09-18",
+    "retrieved_at": "2026-11-24T10:00:00Z",
+    "source_url": "https://www.mas.gov.sg/news/media-releases/2024/major-retail-banks-to-introduce-singpass-face-verification",
+    "snapshot_path": "mas.media_2024_09_singpass_face_verification/2024-09-18/major-retail-banks-to-introduce-singpass-face-verification.html",
+    "provenance": "publisher_site",
+    "coverage": "full",
+    "content_sha256": "9bf67cdff90a4785d3570737868b5908954a755862cfc150cb63978567d115d0"
+  },
+  "extraction": {
+    "format": "html",
+    "extractor": "scripts/standards/extract.ts htmlText (tags stripped, entities decoded)",
+    "html_start": "<div class=\"_mas-typeset contain mas-rte-content m-b:l\">",
+    "html_end": "^\\s*</span>\\s*\\n</div>",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "^\\s*Singapore, 18 September 2024 – ",
+      "clause": "mas.media_2024_09_singpass_face_verification/1",
+      "skip": true
+    },
+    {
+      "at": "^2\\.\\s",
+      "clause": "mas.media_2024_09_singpass_face_verification/2",
+      "skip": true
+    },
+    {
+      "at": "^3\\.\\s",
+      "clause": "mas.media_2024_09_singpass_face_verification/3",
+      "skip": true
+    },
+    {
+      "at": "^4\\.\\s",
+      "clause": "mas.media_2024_09_singpass_face_verification/4",
+      "skip": true
+    },
+    {
+      "at": "^5\\.\\s",
+      "clause": "mas.media_2024_09_singpass_face_verification/5",
+      "skip": true
+    },
+    {
+      "at": "^6\\.\\s",
+      "clause": "mas.media_2024_09_singpass_face_verification/6",
+      "skip": true
+    },
+    {
+      "at": "^\\*{3,}$",
+      "clause": null
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mas.media_2024_09_singpass_face_verification/1",
+      "clause_ref": "1",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "ab339c83f43e978d67af4e60aa5a72c9acbf6cd447e4b03fcf9444bdd9e72b21",
+      "note": "The measure and its timing (\"over the next three months\")."
+    },
+    {
+      "clause_key": "mas.media_2024_09_singpass_face_verification/2",
+      "clause_ref": "2",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "60178d76b506c2aa7d7b05fa0770d0f1d6903c6b04b5e9108bf33f02fcb890f5",
+      "note": "When Singpass Face Verification is triggered (higher risk scenarios) and what it checks before a digital token can be activated."
+    },
+    {
+      "clause_key": "mas.media_2024_09_singpass_face_verification/3",
+      "clause_ref": "3",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "b3575cc210b3f3ce0ade81035e43a029cbb5ef7abb87913dd53c14990ce59a90"
+    },
+    {
+      "clause_key": "mas.media_2024_09_singpass_face_verification/4",
+      "clause_ref": "4",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "38ea511a1636278f7e3a2d920428eb041b2ad3b9e0bb2bb7cd027dab297ff003"
+    },
+    {
+      "clause_key": "mas.media_2024_09_singpass_face_verification/5",
+      "clause_ref": "5",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "eb8d27d5b0364aa9c8f51b0862336260578fa249924fb1c01e8bd6d897ce4d0d"
+    },
+    {
+      "clause_key": "mas.media_2024_09_singpass_face_verification/6",
+      "clause_ref": "6",
+      "heading_path": ["Media release"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "9156a2ab005a45007a38a847aed2fc972c9ad022c382e3cd71df9e18b5dae53d"
+    }
+  ]
+}
