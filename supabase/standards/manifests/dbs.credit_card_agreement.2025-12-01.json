@@ -1,0 +1,316 @@
+{
+  "$comment": "DBS Credit Card Agreement, footer 'Last updated: December 2025', from the Wayback Machine (capture 19 April 2026; no capture between 9 July 2025 and that date). The copy gives a month only: effective_from is the first of that month, for ordering; Elena confirms. One clause per numbered clause; the opening paragraphs and definitions before clause 1 are one clause.",
+  "document": {
+    "document_key": "dbs.credit_card_agreement",
+    "title": "DBS Credit Card Agreement",
+    "publisher": "DBS Bank Ltd",
+    "binding_level": "contract",
+    "applies_to": ["bank"],
+    "instrument_scope": ["sg_card"],
+    "institution": "dbs",
+    "card_scheme": null,
+    "canonical_url": "https://www.dbs.com.sg/iwov-resources/pdf/cards/dbs-agreement-2019.pdf"
+  },
+  "version": {
+    "version_label": "Last updated: December 2025",
+    "effective_from": "2025-12-01",
+    "effective_from_basis": "document",
+    "issued_on": null,
+    "retrieved_at": "2026-04-19T07:14:29Z",
+    "source_url": "https://web.archive.org/web/20260419071429/https://www.dbs.com.sg/iwov-resources/pdf/cards/dbs-agreement-2019.pdf",
+    "snapshot_path": "dbs/archive/credit-card-agreement_wb20260419071429.pdf",
+    "content_sha256": "dfcdf9b9f8d53511315e444f045bfbb894cc79b8ac86348b753d43d1be6b7256",
+    "provenance": "web_archive",
+    "coverage": "full",
+    "archived_at": "2026-04-19"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["^Last updated: [^\\n]*$"]
+  },
+  "markers": [
+    {
+      "at": "DBS\\s+Credit\\s+Card\\s+Agreement",
+      "clause": "dbs.credit_card_agreement/preamble"
+    },
+    {
+      "at": "1\\.\\s+USE\\s+OF\\s+CARD/PIN",
+      "clause": "dbs.credit_card_agreement/1"
+    },
+    {
+      "at": "2\\.\\s+CREDIT\\s+LIMIT",
+      "clause": "dbs.credit_card_agreement/2"
+    },
+    {
+      "at": "^3\\.",
+      "clause": "dbs.credit_card_agreement/3"
+    },
+    {
+      "at": "4\\.\\s+PAYMENT",
+      "clause": "dbs.credit_card_agreement/4"
+    },
+    {
+      "at": "^5\\.",
+      "clause": "dbs.credit_card_agreement/5"
+    },
+    {
+      "at": "6\\.\\s+LIABILITY\\s+OF\\s+CARDHOLDERS",
+      "clause": "dbs.credit_card_agreement/6"
+    },
+    {
+      "at": "7\\.\\s+EXCLUSIONS\\s+AND\\s+EXCEPTIONS",
+      "clause": "dbs.credit_card_agreement/7"
+    },
+    {
+      "at": "8\\.\\s+INSTALMENT\\s+PAYMENT\\s+PLAN",
+      "clause": "dbs.credit_card_agreement/8"
+    },
+    {
+      "at": "^9\\.",
+      "clause": "dbs.credit_card_agreement/9"
+    },
+    {
+      "at": "10\\.\\s+CONCLUSIVENESS\\s+OF\\s+DOCUMENTS",
+      "clause": "dbs.credit_card_agreement/10"
+    },
+    {
+      "at": "11\\.\\s+APPROPRIATION\\s+OF\\s+PAYMENTS",
+      "clause": "dbs.credit_card_agreement/11"
+    },
+    {
+      "at": "12\\.\\s+AMENDMENT",
+      "clause": "dbs.credit_card_agreement/12"
+    },
+    {
+      "at": "13\\.\\s+DISCLOSURE\\s+OF\\s+INFORMATION",
+      "clause": "dbs.credit_card_agreement/13"
+    },
+    {
+      "at": "14\\.\\s+SET\\s+OFF\\s+AND\\s+CONSOLIDATION",
+      "clause": "dbs.credit_card_agreement/14"
+    },
+    {
+      "at": "^15\\.",
+      "clause": "dbs.credit_card_agreement/15"
+    },
+    {
+      "at": "^16\\.",
+      "clause": "dbs.credit_card_agreement/16"
+    },
+    {
+      "at": "17\\.\\s+ALERTS\\s+SERVICE",
+      "clause": "dbs.credit_card_agreement/17"
+    },
+    {
+      "at": "^18\\.",
+      "clause": "dbs.credit_card_agreement/18"
+    },
+    {
+      "at": "19\\.\\s+MISCELLANEOUS",
+      "clause": "dbs.credit_card_agreement/19"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "dbs.credit_card_agreement/preamble",
+      "clause_ref": "Opening paragraphs and definitions",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "8056a43e8a101a5fbfa584c38f9d75ad5e6d285bb3c2d599ca84fb0149fa3a00"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/1",
+      "clause_ref": "clause 1",
+      "heading_path": ["USE OF CARD/PIN"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1, 2],
+      "text_sha256": "290534f081a22ebf9ca97e8dc204405ec565fb63bbb1309e1b73f5e4b28ac1f4"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/2",
+      "clause_ref": "clause 2",
+      "heading_path": ["CREDIT LIMIT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3],
+      "text_sha256": "905e043163836fdccd92dd9b1a5b7a940ba7a064b24bb3447438ea52c1408f59"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/3",
+      "clause_ref": "clause 3",
+      "heading_path": ["LOSS/THEFT OF CARD/DISCLOSURE OF PIN/ACCOUNT NUMBER"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [3, 4],
+      "text_sha256": "bc14d11f53fb8f7b3ae4de80eea5669e42b3792ba633733821bd0e13d9adab38"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/4",
+      "clause_ref": "clause 4",
+      "heading_path": ["PAYMENT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [4, 5, 6],
+      "text_sha256": "8977ec8cba484cc3246dd3a33380cb085cdd5062ff50e05be9c9932ed93bd1b5"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/5",
+      "clause_ref": "clause 5",
+      "heading_path": ["TERMINATION OF USE OF CARD AND CARD ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6],
+      "text_sha256": "7840fd37a796860df62dbf47fb0e6cb34bd71489b6bf92ed18151ab46d34e535"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/6",
+      "clause_ref": "clause 6",
+      "heading_path": ["LIABILITY OF CARDHOLDERS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [6, 7],
+      "text_sha256": "bcd8fc27707326dce738f3ccc687291826eac8fc16ae17a74fc3c84a89799773"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/7",
+      "clause_ref": "clause 7",
+      "heading_path": ["EXCLUSIONS AND EXCEPTIONS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "10d4b2d483833db429853cdec2ceae1d568ffa5ad676ff930147fc3bce24ebba"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/8",
+      "clause_ref": "clause 8",
+      "heading_path": ["INSTALMENT PAYMENT PLAN"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [8],
+      "text_sha256": "6dea4584c6d3fca8ca83679403be50f15747b2a481868a356ecb14ffa7beaf80"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/9",
+      "clause_ref": "clause 9",
+      "heading_path": ["TRANSACTIONS IN FOREIGN CURRENCIES AND TRANSACTIONS PROCESSED OUTSIDE SINGAPORE"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [8, 9],
+      "text_sha256": "c22ed24e330a631b02fec699a558a7bbb69bb9c9a77fcbb8ff6fbfd5c1eea60b"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/10",
+      "clause_ref": "clause 10",
+      "heading_path": ["CONCLUSIVENESS OF DOCUMENTS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "f07e8b0185364bb98e5780fc0a554c47ff387abde34634f8b4abf2f247faa9da"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/11",
+      "clause_ref": "clause 11",
+      "heading_path": ["APPROPRIATION OF PAYMENTS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "d4b41fdd46342b3bfacb55afa9eaa6c8fdc5ee8b4e08cc3421e5ae96f14443d1"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/12",
+      "clause_ref": "clause 12",
+      "heading_path": ["AMENDMENT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "9a24de5edea3e208abf9e34d50c377b55f93a1e419732b89d09153781b7e17f2"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/13",
+      "clause_ref": "clause 13",
+      "heading_path": ["DISCLOSURE OF INFORMATION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9, 10, 11, 12],
+      "text_sha256": "3294031cf5908466827867ac051d2276bc8ce9396632757095659653ccdef4ae"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/14",
+      "clause_ref": "clause 14",
+      "heading_path": ["SET OFF AND CONSOLIDATION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "3982e730aef5dfed3638a15fd8d8a79dfb5d4551646c6d8186a3aba2d731520c"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/15",
+      "clause_ref": "clause 15",
+      "heading_path": ["COMMUNICATION AND SERVICE OF DOCUMENTS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12],
+      "text_sha256": "9fe4535497bdf59fbf0f2efeeed23ce8c8e0feb49ea88162b658e6739904cb40"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/16",
+      "clause_ref": "clause 16",
+      "heading_path": ["THE EZ-LINK FACILITY (if applicable)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [12, 13, 14, 15, 16],
+      "text_sha256": "03ef2dab57359ee15ab852a7063ee0385c9fbce8243c7593b0048056b9718cbe"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/17",
+      "clause_ref": "clause 17",
+      "heading_path": ["ALERTS SERVICE"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [16, 17],
+      "text_sha256": "bb3423e0a58a2db85c8eb04d036044c9c0de57004722d10439f4eb231170cd63"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/18",
+      "clause_ref": "clause 18",
+      "heading_path": ["ELECTRONIC SIGNATURE INSTRUCTION SERVICE"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [17, 18],
+      "text_sha256": "c36ee4e7823bc6cd495b94fddefb8ffc59ff81914cb7848ce59682c851add11e"
+    },
+    {
+      "clause_key": "dbs.credit_card_agreement/19",
+      "clause_ref": "clause 19",
+      "heading_path": ["MISCELLANEOUS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [18, 19, 20],
+      "text_sha256": "5b3adf60ceee5a211d12a4bf2b344645c7d4f851575f426050f210131c297556"
+    }
+  ]
+}

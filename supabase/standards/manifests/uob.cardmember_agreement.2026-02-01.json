@@ -1,0 +1,234 @@
+{
+  "$comment": "UOB Cardmembers Agreement, a web page, from the Wayback Machine (capture 11 February 2026; same text on 10 April 2026). The page ends 'Updated 1 February 2026'; effective_from is that date. One clause per numbered clause (1 to 13); Appendix 1 is one clause.",
+  "document": {
+    "document_key": "uob.cardmember_agreement",
+    "title": "UOB Cardmembers Agreement",
+    "publisher": "United Overseas Bank Limited",
+    "binding_level": "contract",
+    "applies_to": ["bank"],
+    "instrument_scope": ["sg_card"],
+    "institution": "uob",
+    "card_scheme": null,
+    "canonical_url": "https://www.uob.com.sg/personal/cards/credit-cards/terms-and-conditions.page"
+  },
+  "version": {
+    "version_label": "Updated 1 February 2026",
+    "effective_from": "2026-02-01",
+    "effective_from_basis": "document",
+    "issued_on": null,
+    "retrieved_at": "2026-02-11T22:32:01Z",
+    "source_url": "https://web.archive.org/web/20260211223201/https://www.uob.com.sg/personal/cards/credit-cards/terms-and-conditions.page",
+    "snapshot_path": "uob/archive/cma/cma_wb20260211223201.html",
+    "content_sha256": "e052340c8700e79494d75d22dca6701bb37717d681b25d916c1e628a56f41535",
+    "provenance": "web_archive",
+    "coverage": "full",
+    "archived_at": "2026-02-11"
+  },
+  "extraction": {
+    "format": "html",
+    "extractor": "tags stripped between html_start and html_end (scripts/standards/extract.ts htmlText)",
+    "html_start": "id=\"accordion-things\"[^>]*>",
+    "html_end": "United Overseas Bank Limited Co\\. Reg\\. No\\.\\s*193500026Z",
+    "remove": []
+  },
+  "markers": [
+    {
+      "at": "1\\.\\s+INTRODUCTION",
+      "clause": "uob.cardmember_agreement/1"
+    },
+    {
+      "at": "2\\.\\s+THE\\s+CARD",
+      "clause": "uob.cardmember_agreement/2"
+    },
+    {
+      "at": "3\\.",
+      "clause": "uob.cardmember_agreement/3"
+    },
+    {
+      "at": "4\\.\\s+CREDIT\\s+LIMIT",
+      "clause": "uob.cardmember_agreement/4"
+    },
+    {
+      "at": "5\\.\\s+CASH\\s+ADVANCE",
+      "clause": "uob.cardmember_agreement/5"
+    },
+    {
+      "at": "6\\.\\s+PAYMENTS",
+      "clause": "uob.cardmember_agreement/6"
+    },
+    {
+      "at": "7\\.",
+      "clause": "uob.cardmember_agreement/7"
+    },
+    {
+      "at": "8\\.\\s+INTEREST,\\s+FEES\\s+AND\\s+CHARGES",
+      "clause": "uob.cardmember_agreement/8"
+    },
+    {
+      "at": "9\\.\\s+STATEMENTS\\s+OF\\s+ACCOUNT",
+      "clause": "uob.cardmember_agreement/9"
+    },
+    {
+      "at": "10\\.\\s+EXCLUSION\\s+OF\\s+LIABILITY",
+      "clause": "uob.cardmember_agreement/10"
+    },
+    {
+      "at": "11\\.\\s+SUPPLEMENTARY\\s+CARD",
+      "clause": "uob.cardmember_agreement/11"
+    },
+    {
+      "at": "12\\.\\s+GENERAL",
+      "clause": "uob.cardmember_agreement/12"
+    },
+    {
+      "at": "13\\.\\s+MEANING\\s+OF\\s+WORDS",
+      "clause": "uob.cardmember_agreement/13"
+    },
+    {
+      "at": "APPENDIX",
+      "clause": "uob.cardmember_agreement/appendix-1"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "uob.cardmember_agreement/1",
+      "clause_ref": "clause 1",
+      "heading_path": ["INTRODUCTION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "7d9dfb8e846678b25d3de5196536b56d5b0d00bcf643a09f15543f91e93189dc"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/2",
+      "clause_ref": "clause 2",
+      "heading_path": ["THE CARD"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "01a1772c9d3cde2b30b9110a8bcb57d9b68d6e1e85d29cf01a4fa53369c005b2"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/3",
+      "clause_ref": "clause 3",
+      "heading_path": ["YOUR LIABILITY AND RESPONSIBILITY"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "c159d7921f585c4b18800787fbc2dd38847e00b4498c9903938d8c7c47b27da1"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/4",
+      "clause_ref": "clause 4",
+      "heading_path": ["CREDIT LIMIT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "40ab293137c8ea40318f97e53c924745f8e9af013ec656c1c64f4d66b467bff7"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/5",
+      "clause_ref": "clause 5",
+      "heading_path": ["CASH ADVANCE"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "1327491107f53c9f01a13e8cbe7e514e7f3a589f81290a825418426151153955"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/6",
+      "clause_ref": "clause 6",
+      "heading_path": ["PAYMENTS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "835ef30c6bde1cfc7aee8c8212e8b4efafd33b4a78e0915bf10a4335cbfa6512"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/7",
+      "clause_ref": "clause 7",
+      "heading_path": ["SUSPENSION / CANCELLATION / TERMINATION"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "07d1ee14617d9c88a334cc82924417e4faaa2015c7eca267f8c616042e6cd69d"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/8",
+      "clause_ref": "clause 8",
+      "heading_path": ["INTEREST, FEES AND CHARGES"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "6c1e6ea2cc02a33bc669dd406259357c68cc4b38de78d810d4b296acf60bf6ed"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/9",
+      "clause_ref": "clause 9",
+      "heading_path": ["STATEMENTS OF ACCOUNT"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "ac34319ca158dfcb13154d5e81bc16ae2795c52b4c1e956ccf0a3504877e61e6"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/10",
+      "clause_ref": "clause 10",
+      "heading_path": ["EXCLUSION OF LIABILITY"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "cc7b6f647b1f4d2f7d0bb30f42859629f8da6a30377e97eb3b7b7db6e51b3a89"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/11",
+      "clause_ref": "clause 11",
+      "heading_path": ["SUPPLEMENTARY CARD"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "08ed27ee8b6065cac044dcc9915778abdd06b334aeaf4129e6e7a90cbc8ed11a"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/12",
+      "clause_ref": "clause 12",
+      "heading_path": ["GENERAL"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "2ed4eae0dbae164ea71bf1c341978dd902b58b001dcd628d9323a8f979c58ae1"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/13",
+      "clause_ref": "clause 13",
+      "heading_path": ["MEANING OF WORDS"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "905457d0a71c87f31d096ecf7af9a0074978e1b1509f36b41351d40ece408163"
+    },
+    {
+      "clause_key": "uob.cardmember_agreement/appendix-1",
+      "clause_ref": "Appendix 1 – Fees and Charges Guide",
+      "heading_path": ["Appendix 1 – Fees and Charges Guide"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [1],
+      "text_sha256": "9433e47438a2cac0a9d699c69846511130b3bede499b186ae39c8f3da5215823"
+    }
+  ]
+}

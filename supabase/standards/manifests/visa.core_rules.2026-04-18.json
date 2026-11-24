@@ -1,0 +1,671 @@
+{
+  "$comment": "Visa Core Rules and Visa Product and Service Rules, 18 April 2026 edition, from the Internet Archive's Wayback Machine (capture 2026-05-04T04:06:52Z; fetched 24 November 2026). retrieved_at is the archive's capture time. Cover '18 April 2026'. First archive capture 4 May 2026 (the capture of 18 April 2026 is still the October 2025 edition, V1.1); captured unchanged up to 27 October 2026. No V1.1 of this edition is in the archive. The same selected sections as the 24 October 2026 edition (brief Phase 7; see that manifest): 12 rules and 21 glossary entries, located by Visa's rule IDs, which are the same in every edition; the clause keys keep the 24 October 2026 section numbers and clause_ref gives this edition's own number (for example 11.7.5 here for the key 11.8.5, 1.10.1.1 for 11.1.1). Cut the same way, with the 'Edition: … | Last Updated: …' line dropped. Clause text stays in private storage and the corpus; the pack prints section numbers, the edition and reviewed statements only. A statement drafted against another edition does not carry to this one until it is reviewed for it (brief 3.2 rule 8).",
+  "document": {
+    "document_key": "visa.core_rules",
+    "title": "Visa Core Rules and Visa Product and Service Rules",
+    "publisher": "Visa",
+    "binding_level": "scheme_rule",
+    "applies_to": ["bank", "card_issuer"],
+    "instrument_scope": ["sg_card"],
+    "institution": null,
+    "card_scheme": "visa",
+    "canonical_url": "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+  },
+  "version": {
+    "version_label": "18 April 2026 edition",
+    "effective_from": "2026-04-18",
+    "effective_from_basis": "document",
+    "issued_on": "2026-04-18",
+    "retrieved_at": "2026-05-04T04:06:52Z",
+    "source_url": "https://web.archive.org/web/20260504040652/https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf",
+    "snapshot_path": "visa/archive/visa-rules-public_2026-04-18_wb20260504040652.pdf",
+    "content_sha256": "9a567b666256c932a0a1af50ba0ebde83da09817b4f8378d7aaacc5fb0f2bda3",
+    "provenance": "web_archive",
+    "coverage": "selected_sections",
+    "archived_at": "2026-05-04"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["(?<![\\s\\S])(Visa Core Rules|Visa Product and Service Rules|Glossary)\\n[^\\n]*\\nVisa Core Rules and Visa Product and Service Rules\\n", "\\n\\d{1,2} (January|February|March|April|May|June|July|August|September|October|November|December) \\d{4}(\\s+V\\d+\\.\\d+)?\\s*\\n\\s*Visa Public\\s*\\n\\s*\\d+\\s*\\n\\s*© 2014—\\d{4} Visa\\. All Rights Reserved\\.\\s*(?![\\s\\S])", "^Edition: [A-Za-z]{3} \\d{4} \\| Last Updated: [^\\n]*$"]
+  },
+  "markers": [
+    {
+      "at": "^1\\.1\\.1\\.1",
+      "clause": "visa.core_rules/1.1.1.1"
+    },
+    {
+      "at": "^1\\.1\\.1\\.2",
+      "clause": null
+    },
+    {
+      "at": "^1\\.1\\.1\\.5\\s+Use\\s+of\\s+the\\s+Visa",
+      "clause": "visa.core_rules/1.1.1.5"
+    },
+    {
+      "at": "^1\\.1\\.1\\.6",
+      "clause": null
+    },
+    {
+      "at": "^1\\.9\\.4\\.3",
+      "clause": "visa.core_rules/1.9.4.3"
+    },
+    {
+      "at": "^1\\.9\\.4\\.4",
+      "clause": null
+    },
+    {
+      "at": "^1\\.10\\.1\\.1",
+      "clause": "visa.core_rules/11.1.1"
+    },
+    {
+      "at": "^1\\.10\\.1\\.2",
+      "clause": null
+    },
+    {
+      "at": "^11\\.1\\.2",
+      "clause": "visa.core_rules/11.2.2"
+    },
+    {
+      "at": "^11\\.1\\.3",
+      "clause": null
+    },
+    {
+      "at": "^11\\.2\\.2",
+      "clause": "visa.core_rules/11.3.2"
+    },
+    {
+      "at": "^11\\.2\\.3",
+      "clause": null
+    },
+    {
+      "at": "^11\\.7\\.1",
+      "clause": "visa.core_rules/11.8.1"
+    },
+    {
+      "at": "^11\\.7\\.2",
+      "clause": "visa.core_rules/11.8.2"
+    },
+    {
+      "at": "^11\\.7\\.2\\.5",
+      "clause": null
+    },
+    {
+      "at": "^11\\.7\\.3",
+      "clause": "visa.core_rules/11.8.3"
+    },
+    {
+      "at": "^11\\.7\\.3\\.5",
+      "clause": null
+    },
+    {
+      "at": "^11\\.7\\.4",
+      "clause": "visa.core_rules/11.8.4"
+    },
+    {
+      "at": "^11\\.7\\.4\\.6",
+      "clause": null
+    },
+    {
+      "at": "^11\\.7\\.5",
+      "clause": "visa.core_rules/11.8.5"
+    },
+    {
+      "at": "^11\\.7\\.5\\.6",
+      "clause": null
+    },
+    {
+      "at": "^12\\.2\\.1\\.1",
+      "clause": "visa.core_rules/12.2.1.1"
+    },
+    {
+      "at": "^12\\.2\\.1\\.2",
+      "clause": null
+    },
+    {
+      "at": "^Acquirer\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "clause": "visa.core_rules/glossary.acquirer"
+    },
+    {
+      "at": "^Acquirer Confirmation Advice\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Attempt Response\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "clause": "visa.core_rules/glossary.attempt-response"
+    },
+    {
+      "at": "^Authenticated",
+      "clause": "visa.core_rules/glossary.authenticated-payment-credential"
+    },
+    {
+      "at": "^ID# 0030743\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Authentication Confirmation",
+      "clause": "visa.core_rules/glossary.authentication-confirmation"
+    },
+    {
+      "at": "^Authentication Data\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Cardholder\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "clause": "visa.core_rules/glossary.cardholder"
+    },
+    {
+      "at": "^ID# 0024372\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Cardholder",
+      "clause": "visa.core_rules/glossary.cavv"
+    },
+    {
+      "at": "^ID# 0024375\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Cardholder Verification",
+      "clause": "visa.core_rules/glossary.cardholder-verification"
+    },
+    {
+      "at": "^Cardholder",
+      "clause": null
+    },
+    {
+      "at": "^Cardholder",
+      "clause": "visa.core_rules/glossary.cardholder-verification-method"
+    },
+    {
+      "at": "^ID# 0024382\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Card-Absent Environment (An?|The) ",
+      "clause": "visa.core_rules/glossary.card-absent-environment"
+    },
+    {
+      "at": "^ID# 0024362\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Card-Present Environment An ",
+      "clause": "visa.core_rules/glossary.card-present-environment"
+    },
+    {
+      "at": "^Cash Disbursement\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^l",
+      "clause": "visa.core_rules/glossary.card-present-environment"
+    },
+    {
+      "at": "^ID# 0024363\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Dispute\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "clause": "visa.core_rules/glossary.dispute"
+    },
+    {
+      "at": "^Dispute Response\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Electronic",
+      "clause": "visa.core_rules/glossary.electronic-commerce-indicator"
+    },
+    {
+      "at": "^Electronic Commerce Merchant\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Issuer\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "clause": "visa.core_rules/glossary.issuer"
+    },
+    {
+      "at": "^Issuers’",
+      "clause": null
+    },
+    {
+      "at": "^Member\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "clause": "visa.core_rules/glossary.member"
+    },
+    {
+      "at": "^Merchant\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Non-Authenticated",
+      "clause": "visa.core_rules/glossary.non-authenticated-security-transaction"
+    },
+    {
+      "at": "^Non-Confidential",
+      "clause": null
+    },
+    {
+      "at": "^Payment Credential\\s*$",
+      "clause": "visa.core_rules/glossary.payment-credential"
+    },
+    {
+      "at": "^ID# 0024933\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^ID# 0024935\\s*$",
+      "clause": "visa.core_rules/glossary.payment-credential"
+    },
+    {
+      "at": "^Payment Facilitator\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^ID# 0029736\\s*$",
+      "clause": "visa.core_rules/glossary.processing-date"
+    },
+    {
+      "at": "^ID# 0025017\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Secure",
+      "clause": "visa.core_rules/glossary.secure-electronic-commerce-transaction"
+    },
+    {
+      "at": "^ID# 0025084\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Token\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "clause": "visa.core_rules/glossary.token"
+    },
+    {
+      "at": "^Token Requestor\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Transaction Date\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "clause": "visa.core_rules/glossary.transaction-date"
+    },
+    {
+      "at": "^Transaction Identifier\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Visa Secure\\s*\\n\\s*ID# \\d+\\s*\\n",
+      "clause": "visa.core_rules/glossary.visa-secure"
+    },
+    {
+      "at": "^Visa Settlement Bank\\s*$",
+      "clause": null
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "visa.core_rules/1.1.1.1",
+      "clause_ref": "1.1.1.1",
+      "heading_path": ["Applicability of Rules"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [64],
+      "text_sha256": "4ea76e9a43c8bcb630d53385c18a823c304122bf3271df8621dbbd0379c1f295",
+      "note": "Rule ID 0007750; selection test 1"
+    },
+    {
+      "clause_key": "visa.core_rules/1.1.1.5",
+      "clause_ref": "1.1.1.5",
+      "heading_path": ["Use of the Visa Rules"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [66],
+      "text_sha256": "a1ea7d9f14db05408d027326ef26bdec286714801eff46956332da3897573188",
+      "note": "Rule ID 0007428; selection test 1; Who the rules govern and third-party rights (1.1.1.6 in the 2024 edition)."
+    },
+    {
+      "clause_key": "visa.core_rules/1.9.4.3",
+      "clause_ref": "1.9.4.3",
+      "heading_path": ["Issuer Fraud Activity Reporting"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [139, 140],
+      "text_sha256": "8a0230b9efb112cc046ec62e40108f46ea613567d2daa741e41e42ceb87f1fd4",
+      "note": "Rule ID 0002389; selection test 2; The all-region fraud reporting requirement and its time limit. The brief looked for it in 10.5.1, which holds regional sub-sections only."
+    },
+    {
+      "clause_key": "visa.core_rules/11.1.1",
+      "clause_ref": "1.10.1.1",
+      "heading_path": ["Attempt to Settle"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [147, 148],
+      "text_sha256": "72760d484b264e967ff4971dae512468e7bb8f607f935e21492d48cc6ba1b6ec",
+      "note": "Rule ID 0003287; selection test 3"
+    },
+    {
+      "clause_key": "visa.core_rules/11.2.2",
+      "clause_ref": "11.1.2",
+      "heading_path": ["Issuer and Acquirer Responsibilities to Cardholders and Merchants for Dispute Resolution"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [667],
+      "text_sha256": "b3851a45bb5496189c6f8dc0c8036a295fdf2720050b488b521a52adbdf4ce72",
+      "note": "Rule ID 0030208; selection test 2"
+    },
+    {
+      "clause_key": "visa.core_rules/11.3.2",
+      "clause_ref": "11.2.2",
+      "heading_path": ["Dispute Resolution Process – Dispute Category 10 (Fraud) and 11 (Authorization)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [669, 670],
+      "text_sha256": "a18096ff4859bde51d51433da09cf0670723bded5412761ed81e99f57455e16a",
+      "note": "Rule ID 0030212; selection test 3"
+    },
+    {
+      "clause_key": "visa.core_rules/11.8.1",
+      "clause_ref": "11.7.1",
+      "heading_path": ["Dispute Category 10: Cardholder Letter or Certification Requirements"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [684],
+      "text_sha256": "4e21c36c086959e4280e19710e7527308c73b5566dd780417c596bf416fe0538",
+      "note": "Rule ID 0030223; selection test 2, 3"
+    },
+    {
+      "clause_key": "visa.core_rules/11.8.2",
+      "clause_ref": "11.7.2",
+      "heading_path": ["Dispute Condition 10.1: EMV Liability Shift Counterfeit Fraud (11.8.2.1–11.8.2.4: reasons, rights, invalid disputes, time limit)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [685, 686, 687],
+      "text_sha256": "571b424f8dafa87455c0bce636b8a79526c87c976114737d4de6039eaaac02ee",
+      "note": "Rule ID 0030233, 0030234, 0030235, 0030236; selection test 4"
+    },
+    {
+      "clause_key": "visa.core_rules/11.8.3",
+      "clause_ref": "11.7.3",
+      "heading_path": ["Dispute Condition 10.2: EMV Liability Shift Non-Counterfeit Fraud (11.8.3.1–11.8.3.4)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [689, 690, 691, 692],
+      "text_sha256": "e1cee7bfa3917a4ed19038a4ff2eb9d54e955a1055848c53c1541a6359e0589e",
+      "note": "Rule ID 0030239, 0030240, 0030241, 0030242; selection test 4"
+    },
+    {
+      "clause_key": "visa.core_rules/11.8.4",
+      "clause_ref": "11.7.4",
+      "heading_path": ["Dispute Condition 10.3: Other Fraud – Card-Present Environment (11.8.4.1–11.8.4.5)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [693, 694, 695, 696],
+      "text_sha256": "5a175c5a5c6526691555cf105ab8fcf77a744eb84a0eb5bd5caa897fca475eea",
+      "note": "Rule ID 0030245, 0030246, 0030247, 0030248, 0030249; selection test 3, 5"
+    },
+    {
+      "clause_key": "visa.core_rules/11.8.5",
+      "clause_ref": "11.7.5",
+      "heading_path": ["Dispute Condition 10.4: Other Fraud – Card-Absent Environment (11.8.5.1–11.8.5.5; Invalid Disputes Table 11-29, time limit Table 11-30)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [698, 699, 700, 701, 702, 703, 704, 705, 706],
+      "text_sha256": "d95febfb8e1a27c46d4d12481c472f1552650d9657864fe6ab108bf43e5fa500",
+      "note": "Rule ID 0030252, 0030253, 0030254, 0030255, 0030256; selection test 3, 4, 5"
+    },
+    {
+      "clause_key": "visa.core_rules/12.2.1.1",
+      "clause_ref": "12.2.1.1",
+      "heading_path": ["Issuer Fraud Activity Reporting Non-Compliance Assessments"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [801],
+      "text_sha256": "290f730dbc940ec027e1629ea3cc028c6b62571223cab4a52df037c38d96ae5a",
+      "note": "Rule ID 0028308; selection test 2; Consequence for an issuer of not reporting fraud (10.6.1.6 Asia-Pacific in the 2024 edition; no AP-specific section in this edition)."
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.acquirer",
+      "clause_ref": "glossary.acquirer",
+      "heading_path": ["Glossary: Acquirer"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [828],
+      "text_sha256": "b1c079d369db45edd19ae6177333bd32cdb2b7703d45b1e45cb763e5bf185d38",
+      "note": "Rule ID 0029700; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.attempt-response",
+      "clause_ref": "glossary.attempt-response",
+      "heading_path": ["Glossary: Attempt Response"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [834],
+      "text_sha256": "ab7280fbdfcee05e16f1ab486dfd6d6133bf2fe9d6c91d7ceb69cd49dc3bd804",
+      "note": "selection test 6; Rule ID not read reliably from the text layer; confirm on the verification sheet."
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.authenticated-payment-credential",
+      "clause_ref": "glossary.authenticated-payment-credential",
+      "heading_path": ["Glossary: Authenticated Payment Credential"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [834],
+      "text_sha256": "130b91755bf6afead00a51a57d648003b7ab0d775e29d483790da3be2a425d11",
+      "note": "selection test 6; Rule ID not read reliably from the text layer; confirm on the verification sheet."
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.authentication-confirmation",
+      "clause_ref": "glossary.authentication-confirmation",
+      "heading_path": ["Glossary: Authentication Confirmation"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [835],
+      "text_sha256": "782ed43d4046a45ee3365c377fe33d792aa7f06561e7b2088ac3dc46b2ab38d0",
+      "note": "Rule ID 0024303; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.card-absent-environment",
+      "clause_ref": "glossary.card-absent-environment",
+      "heading_path": ["Glossary: Card-Absent Environment"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [842],
+      "text_sha256": "413f24ede0a3a57af2ac11b163032b4fd72df149eef2c2a8a31fc555a324da57",
+      "note": "selection test 6; Rule ID not read reliably from the text layer; confirm on the verification sheet."
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.card-present-environment",
+      "clause_ref": "glossary.card-present-environment",
+      "heading_path": ["Glossary: Card-Present Environment"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [842, 843],
+      "text_sha256": "5b0545aa6bca871fd2f053d298c22cad07cb216566eb054451be1466db18b812",
+      "note": "selection test 6; Rule ID not read reliably from the text layer; confirm on the verification sheet."
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.cardholder",
+      "clause_ref": "glossary.cardholder",
+      "heading_path": ["Glossary: Cardholder"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [841],
+      "text_sha256": "b85b93952d50171b1a7730376d70cef293a570ab9f8b15e83b8b9a65727980b4",
+      "note": "Rule ID 0024400; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.cavv",
+      "clause_ref": "glossary.cavv",
+      "heading_path": ["Glossary: Cardholder Authentication Verification Value (CAVV)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [841],
+      "text_sha256": "84e010d193369117e5e403b4efab5be84ca891c664f71267a203cffbce2202a5",
+      "note": "selection test 6; Rule ID not read reliably from the text layer; confirm on the verification sheet."
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.cardholder-verification",
+      "clause_ref": "glossary.cardholder-verification",
+      "heading_path": ["Glossary: Cardholder Verification"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [842],
+      "text_sha256": "d721e7b2dbc0496d4df0f7dae4184ad8de3929d8ba92ccf466be03c14c281e75",
+      "note": "Rule ID 0024380; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.cardholder-verification-method",
+      "clause_ref": "glossary.cardholder-verification-method",
+      "heading_path": ["Glossary: Cardholder Verification Method"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [842],
+      "text_sha256": "9a6db1e29f62db4afbcdd4de3f2c7641176b4282562a666c03d0b1ba3a3a847b",
+      "note": "Rule ID 0029706; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.dispute",
+      "clause_ref": "glossary.dispute",
+      "heading_path": ["Glossary: Dispute"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [854],
+      "text_sha256": "f71f1614265b5a79b3748c406bab9e69800fab03537f767d850e7701423bd751",
+      "note": "Rule ID 0031040; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.electronic-commerce-indicator",
+      "clause_ref": "glossary.electronic-commerce-indicator",
+      "heading_path": ["Glossary: Electronic Commerce Indicator"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [855],
+      "text_sha256": "d068b7a3d42ba1788ddf6f07d844a4a5dae72856e17b61e5d0acc44146f62a8f",
+      "note": "Rule ID 0030946; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.issuer",
+      "clause_ref": "glossary.issuer",
+      "heading_path": ["Glossary: Issuer"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [867],
+      "text_sha256": "dfc51babce02855b17005fb812a3344a05310a5f68f6f0c167fd442c04a1b0ba",
+      "note": "Rule ID 0024735; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.member",
+      "clause_ref": "glossary.member",
+      "heading_path": ["Glossary: Member"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [872],
+      "text_sha256": "ef2e738dc7ecf42824eaa5a8185eb69b1b3773623a33d569852cca821a980245",
+      "note": "Rule ID 0027531; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.non-authenticated-security-transaction",
+      "clause_ref": "glossary.non-authenticated-security-transaction",
+      "heading_path": ["Glossary: Non-Authenticated Security Transaction"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [877],
+      "text_sha256": "936d8d1c4bb5b24ce876df3e9ce4d61f8fbc2b8ec8b139d4252bc8a4dfca0dab",
+      "note": "Rule ID 0024868; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.payment-credential",
+      "clause_ref": "glossary.payment-credential",
+      "heading_path": ["Glossary: Payment Credential"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [883],
+      "text_sha256": "25bed6211d13fe7daaf2a035a5f707ae90aabb81cadb532ab47053a8292036d4",
+      "note": "selection test 6; Rule ID not read reliably from the text layer; confirm on the verification sheet."
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.processing-date",
+      "clause_ref": "glossary.processing-date",
+      "heading_path": ["Glossary: Processing Date"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [888],
+      "text_sha256": "2010f42d7fc81dd15d8476974c5f4587dd7b0e2d846b4fbfc0815f8758a4ef4a",
+      "note": "Rule ID 0029736; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.secure-electronic-commerce-transaction",
+      "clause_ref": "glossary.secure-electronic-commerce-transaction",
+      "heading_path": ["Glossary: Secure Electronic Commerce Transaction"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [893],
+      "text_sha256": "cda534377405596de963c2e66cd88ce95192e337c138b30109bfdd7903abbd91",
+      "note": "Rule ID 0025079; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.token",
+      "clause_ref": "glossary.token",
+      "heading_path": ["Glossary: Token"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [899],
+      "text_sha256": "4446234a591fe9cbf8f93811ad9f6f83dbd64aaee5fd26f4da7b06b4a7172419",
+      "note": "Rule ID 0031198; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.transaction-date",
+      "clause_ref": "glossary.transaction-date",
+      "heading_path": ["Glossary: Transaction Date"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [900],
+      "text_sha256": "310ae456e95c5b2b618cfb8d8172c1d6944707e980648e4e54f22608cc8fe3fb",
+      "note": "Rule ID 0025180; selection test 6"
+    },
+    {
+      "clause_key": "visa.core_rules/glossary.visa-secure",
+      "clause_ref": "glossary.visa-secure",
+      "heading_path": ["Glossary: Visa Secure"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [919],
+      "text_sha256": "c9f7e03084f2e147ad63c0f3d325d6eea1bd1fda076ff7b99141a6aa5aaa1008",
+      "note": "Rule ID 0029764; selection test 6"
+    }
+  ]
+}

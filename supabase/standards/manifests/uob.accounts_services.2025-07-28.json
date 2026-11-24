@@ -1,0 +1,191 @@
+{
+  "$comment": "UOB Terms and Conditions Governing Accounts and Services (Individual Customers), form code 'BR-333 /F(R007.25)', from the Wayback Machine (capture 21 November 2025, the first capture of this file; the PDF is dated 31 July 2025). effective_from is the date UOB announced on its news and announcements page: the revision with effect from 28 July 2025 (clause 3.1(b) on dormant or zero-balance accounts; clause 46 on Electronic Deferred Payment). Both changes are in this file and not in R004.25. The numbered clauses are printed in a separate column that the text extraction cannot keep beside their text, so one clause per Part (A to K); Appendix 1 is inside Part K. Page footers are removed.",
+  "document": {
+    "document_key": "uob.accounts_services",
+    "title": "Terms and Conditions Governing Accounts and Services (Individual Customers)",
+    "publisher": "United Overseas Bank Limited",
+    "binding_level": "contract",
+    "applies_to": ["bank"],
+    "instrument_scope": ["account_transfer"],
+    "institution": "uob",
+    "card_scheme": null,
+    "canonical_url": "https://www.uob.com.sg/web-resources/personal/pdf/personal/save/tnc-cts.pdf"
+  },
+  "version": {
+    "version_label": "BR-333 /F(R007.25)",
+    "effective_from": "2025-07-28",
+    "effective_from_basis": "announcement",
+    "effective_from_source": "https://www.uob.com.sg/personal/save/news-and-announcements.page",
+    "issued_on": null,
+    "retrieved_at": "2025-11-21T05:53:59Z",
+    "source_url": "https://web.archive.org/web/20251121055359/https://www.uob.com.sg/web-resources/personal/pdf/personal/save/tnc-cts.pdf",
+    "snapshot_path": "uob/archive/accounts-tnc-cts_wb20251121055359.pdf",
+    "content_sha256": "9abcb2c1f5006603ebd324a11322eed0a2a4b1a048adbbfa76fd3cf237de7f81",
+    "provenance": "web_archive",
+    "coverage": "full",
+    "archived_at": "2025-11-21"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["^United Overseas Bank Limited Co\\. Reg\\. No\\. \\S+ BR-333 ?/F\\(R[0-9.]+\\)\\s*$", "^Page \\d+ of \\d+\\s*$"]
+  },
+  "markers": [
+    {
+      "at": "PART\\s+A\\.",
+      "clause": "uob.accounts_services/a"
+    },
+    {
+      "at": "PART\\s+B\\.",
+      "clause": "uob.accounts_services/b"
+    },
+    {
+      "at": "PART\\s+C\\.",
+      "clause": "uob.accounts_services/c"
+    },
+    {
+      "at": "PART\\s+D\\.",
+      "clause": "uob.accounts_services/d"
+    },
+    {
+      "at": "PART\\s+E\\.",
+      "clause": "uob.accounts_services/e"
+    },
+    {
+      "at": "PART\\s+F\\.",
+      "clause": "uob.accounts_services/f"
+    },
+    {
+      "at": "PART\\s+G\\.",
+      "clause": "uob.accounts_services/g"
+    },
+    {
+      "at": "PART\\s+H\\.",
+      "clause": "uob.accounts_services/h"
+    },
+    {
+      "at": "PART\\s+I\\.",
+      "clause": "uob.accounts_services/i"
+    },
+    {
+      "at": "PART\\s+J\\.",
+      "clause": "uob.accounts_services/j"
+    },
+    {
+      "at": "PART\\s+K\\.",
+      "clause": "uob.accounts_services/k"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "uob.accounts_services/a",
+      "clause_ref": "Part A",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2],
+      "text_sha256": "bb655599b8069b7c5afe6b3913f6f1dd9fce807f1f70f120e368846ae05d7200"
+    },
+    {
+      "clause_key": "uob.accounts_services/b",
+      "clause_ref": "Part B",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [2, 3, 4, 5, 6, 7],
+      "text_sha256": "9776dfe837fac9c05694a1bdf11d99966281c8a05381f6458ce7c78e7890d1de"
+    },
+    {
+      "clause_key": "uob.accounts_services/c",
+      "clause_ref": "Part C",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7],
+      "text_sha256": "1fa50f25f7191a7edc827fb926ffa91f3ea9799203c98a231b27a75b2f36d4be"
+    },
+    {
+      "clause_key": "uob.accounts_services/d",
+      "clause_ref": "Part D",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [7, 8],
+      "text_sha256": "28f7fc02f4f9fa93cd7ee9d2828d74b13e02da69e3a958d00fa4763d4d257dcd"
+    },
+    {
+      "clause_key": "uob.accounts_services/e",
+      "clause_ref": "Part E",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9],
+      "text_sha256": "64aca78f24606819a7ea56eccba1bafc6d4cf6fc89ec5a8cc49135dd90b38e60"
+    },
+    {
+      "clause_key": "uob.accounts_services/f",
+      "clause_ref": "Part F",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [9, 10, 11],
+      "text_sha256": "ef59c0203966d16da1135268dab00f07c1a8dd4d10d6130a7c42bab79fdbb292"
+    },
+    {
+      "clause_key": "uob.accounts_services/g",
+      "clause_ref": "Part G",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [11, 12, 13],
+      "text_sha256": "9bdde78a14dc18875d55bc8327aa46f22fda5a50142d83a18d10eddf8ed16b58"
+    },
+    {
+      "clause_key": "uob.accounts_services/h",
+      "clause_ref": "Part H",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [13, 14, 15],
+      "text_sha256": "56510f7a9e9e1e6004d66dc7657c41045c5560bc7d6f4cf320b456eecf3b6979"
+    },
+    {
+      "clause_key": "uob.accounts_services/i",
+      "clause_ref": "Part I",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [15, 16, 17, 18, 19, 20, 21],
+      "text_sha256": "18a57d407367bb2f5cab1be940d28479bd246b2ece45a83f7ae398d86cd559ed"
+    },
+    {
+      "clause_key": "uob.accounts_services/j",
+      "clause_ref": "Part J",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38],
+      "text_sha256": "0e6430d7ad01693a4274817607133642625f1d33be3ea8cac85ae64ec37022d4"
+    },
+    {
+      "clause_key": "uob.accounts_services/k",
+      "clause_ref": "Part K",
+      "heading_path": [],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [38, 39, 40, 41, 42, 43],
+      "text_sha256": "79f24c035f29bcc8f16f5fda38d59e579c9bd16f92dd7ef8ea4638f90082c6e3"
+    }
+  ]
+}

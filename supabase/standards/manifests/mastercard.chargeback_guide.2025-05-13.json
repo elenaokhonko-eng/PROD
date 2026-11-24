@@ -1,0 +1,277 @@
+{
+  "$comment": "Mastercard Chargeback Guide, Merchant Edition, 13 May 2025. Selected sections only (brief Phase 7): the definitions note and the chargeback cycle from Chapter 1, and from the Dual Message System chapter the fraud-related introduction and, for message reason codes 4837, 4870 and 4871, the scope, definitions, transactions ineligible for chargeback and the issuer chargeback (conditions, fraud reporting, supporting documents, time frame, reason code). Left out: second presentment, pre-arbitration and arbitration (acquirer stages), the Single Message System chapter (reason codes 37, 70, 71, 74; not held until a case needs them, Elena to decide), and the regional appendices. Regional bullets inside a held section are kept. Who the Standards bind is in the Mastercard Rules, not this guide (blocked to automated download: see blocked-sources.md). The 19 May 2026 edition is also blocked; editions between the two are listed in the pull request. Clause text stays in private storage and the corpus; the pack prints section references, the edition and reviewed statements only.",
+  "document": {
+    "document_key": "mastercard.chargeback_guide",
+    "title": "Chargeback Guide, Merchant Edition",
+    "publisher": "Mastercard",
+    "binding_level": "scheme_rule",
+    "applies_to": ["bank", "card_issuer"],
+    "instrument_scope": ["sg_card"],
+    "institution": null,
+    "card_scheme": "mastercard",
+    "canonical_url": "https://www.mastercard.com/content/dam/mccom/shared/business/support/rules-pdfs/chargeback-guide.pdf"
+  },
+  "version": {
+    "version_label": "13 May 2025 edition",
+    "effective_from": "2025-05-13",
+    "effective_from_basis": "document",
+    "issued_on": "2025-05-13",
+    "retrieved_at": "2026-11-24T04:19:00Z",
+    "source_url": "https://www.dm.mastercard.us/content/dam/public/mastercardcom/na/global-site/documents/chargeback-guide.pdf",
+    "snapshot_path": "mastercard/chargeback-guide-dm.pdf",
+    "content_sha256": "6526537019edd3cf0878ed7ac551d4849e4bd84b5dc6dc9b1804e52abb490fde",
+    "provenance": "publisher_site",
+    "coverage": "selected_sections"
+  },
+  "extraction": {
+    "format": "pdf",
+    "extractor": "pdftotext 4.00 (poppler), -enc UTF-8",
+    "remove": ["(?<![\\s\\S])[^\\n]*\\n", "\\s*© \\d{4} Mastercard\\. Proprietary\\. All rights reserved\\.\\s*\\n\\s*Chargeback Guide Merchant Edition • \\d{1,2} [A-Z][a-z]+ \\d{4}\\s*\\n\\s*\\d+\\s*(?![\\s\\S])"]
+  },
+  "markers": [
+    {
+      "at": "^Definitions",
+      "clause": "mastercard.chargeback_guide/1.definitions"
+    },
+    {
+      "at": "^Chargeback",
+      "clause": null
+    },
+    {
+      "at": "^Chargeback",
+      "clause": "mastercard.chargeback_guide/1.chargeback"
+    },
+    {
+      "at": "^Single",
+      "clause": null
+    },
+    {
+      "at": "^Fraud-related",
+      "clause": "mastercard.chargeback_guide/dms.fraud-related"
+    },
+    {
+      "at": "^No",
+      "clause": "mastercard.chargeback_guide/dms.4837.scope"
+    },
+    {
+      "at": "^Transactions",
+      "clause": "mastercard.chargeback_guide/dms.4837.ineligible"
+    },
+    {
+      "at": "^Translations\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^No",
+      "clause": "mastercard.chargeback_guide/dms.4837.issuer-chargeback"
+    },
+    {
+      "at": "^Acquirer Second Presentment\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Chip",
+      "clause": "mastercard.chargeback_guide/dms.4870.scope"
+    },
+    {
+      "at": "^Definitions\\s*$",
+      "clause": "mastercard.chargeback_guide/dms.4870.definitions"
+    },
+    {
+      "at": "^Transactions",
+      "clause": "mastercard.chargeback_guide/dms.4870.ineligible"
+    },
+    {
+      "at": "^Additional considerations\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Issuer Chargeback\\s*$",
+      "clause": "mastercard.chargeback_guide/dms.4870.issuer-chargeback"
+    },
+    {
+      "at": "^Acquirer Second Presentment\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Chip Liability",
+      "clause": "mastercard.chargeback_guide/dms.4871.scope"
+    },
+    {
+      "at": "^Definitions\\s*$",
+      "clause": "mastercard.chargeback_guide/dms.4871.definitions"
+    },
+    {
+      "at": "^Transactions",
+      "clause": "mastercard.chargeback_guide/dms.4871.ineligible"
+    },
+    {
+      "at": "^Additional considerations\\s*$",
+      "clause": null
+    },
+    {
+      "at": "^Issuer Chargeback\\s*$",
+      "clause": "mastercard.chargeback_guide/dms.4871.issuer-chargeback"
+    },
+    {
+      "at": "^Acquirer Second Presentment\\s*$",
+      "clause": null
+    }
+  ],
+  "clauses": [
+    {
+      "clause_key": "mastercard.chargeback_guide/1.definitions",
+      "clause_ref": "Chapter 1, Definitions",
+      "heading_path": ["Chapter 1 General Information", "Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [25],
+      "text_sha256": "96734e2d67a8594b79b613cd21669d0b56ada1fa779a635b3f2721a0282d7504",
+      "note": "Selection test 6. \"Customer\" and \"Standards\" are defined in the Mastercard Rules."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/1.chargeback",
+      "clause_ref": "Chapter 1, Chargeback",
+      "heading_path": ["Chapter 1 General Information", "Overview of the Single and Dual Message System Chargeback Cycles and Arbitration Case Filing", "Chargeback"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [26],
+      "text_sha256": "530ac178d72ca8a9cce7a41d62c0d524cfec803974f25b6e050983461d6130cb",
+      "note": "Selection test 3. The table of message types that follows is left out."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/dms.fraud-related",
+      "clause_ref": "Dual Message System, Fraud-related Chargebacks",
+      "heading_path": ["Dual Message System Chargebacks", "Fraud-related Chargebacks (Message Reason Codes 4837/37/4870/70/4871/4849/49)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [410],
+      "text_sha256": "30533ed132e63ba2f77ca549df7a0a54fc14b8c2307cd9e01c452f4361a49a7f",
+      "note": "Selection test 3."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/dms.4837.scope",
+      "clause_ref": "4837, scope",
+      "heading_path": ["Dual Message System Chargebacks", "No Cardholder Authorization (Message Reason Code 4837/37)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [410],
+      "text_sha256": "afabb8afc4bc629c40f0022538540865c40c4fc311dab4cb3e7b4942ba654118",
+      "note": "Selection test 3."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/dms.4837.ineligible",
+      "clause_ref": "4837, Transactions ineligible for chargeback",
+      "heading_path": ["Dual Message System Chargebacks", "No Cardholder Authorization (Message Reason Code 4837/37)", "Transactions ineligible for chargeback"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [410, 411, 412, 413, 414, 415],
+      "text_sha256": "bc30063363cb7c7f04aa8eb02824042810bf33d166edd14aa2246b1a2f5678a0",
+      "note": "Selection test 4."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/dms.4837.issuer-chargeback",
+      "clause_ref": "4837, Issuer Chargeback",
+      "heading_path": ["Dual Message System Chargebacks", "No Cardholder Authorization (Message Reason Code 4837/37)", "Issuer Chargeback"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [418, 419, 420],
+      "text_sha256": "d3f684ff3af6cb6313da67ad22c62783d37853c37410d687f7951a253dac5681",
+      "note": "Selection tests 2, 3, 5: conditions, fraud reporting, supporting documents, time frame, message reason code."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/dms.4870.scope",
+      "clause_ref": "4870, scope",
+      "heading_path": ["Dual Message System Chargebacks", "Chip Liability Shift (Message Reason Code 4870/70)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [494],
+      "text_sha256": "9902ebbd143676817e3839880e5482f85d7837716ee70b1ebd6e287284f6e8af",
+      "note": "Selection test 4."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/dms.4870.definitions",
+      "clause_ref": "4870, Definitions",
+      "heading_path": ["Dual Message System Chargebacks", "Chip Liability Shift (Message Reason Code 4870/70)", "Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [494, 495],
+      "text_sha256": "3a44144bc3535e97cc0401182ebdd852a5b77f836ec7ad1f5c973faaea32a145",
+      "note": "Selection test 6."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/dms.4870.ineligible",
+      "clause_ref": "4870, Transactions ineligible for chargeback",
+      "heading_path": ["Dual Message System Chargebacks", "Chip Liability Shift (Message Reason Code 4870/70)", "Transactions ineligible for chargeback"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [495, 496, 497],
+      "text_sha256": "1cec0d5eb69c6e8887dcacc0f231e8997f5a26d0be12c1e30ecd924f7b73fa21",
+      "note": "Selection test 4."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/dms.4870.issuer-chargeback",
+      "clause_ref": "4870, Issuer Chargeback",
+      "heading_path": ["Dual Message System Chargebacks", "Chip Liability Shift (Message Reason Code 4870/70)", "Issuer Chargeback"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [500, 501, 502, 503],
+      "text_sha256": "eda5e164a1e31f2e378773389ebb26ae43b060735ce05491902c5ce8a98fe75d",
+      "note": "Selection test 4: conditions, time frame."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/dms.4871.scope",
+      "clause_ref": "4871, scope",
+      "heading_path": ["Dual Message System Chargebacks", "Chip Liability Shift-Lost/Stolen/Never Received Issue (NRI) Fraud (Message Reason Code 4871)"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [522, 523],
+      "text_sha256": "febc6367ad2e522a5ac442e90bb092b9f4b21abc74da68a767ddbaaf9603142a",
+      "note": "Selection test 4, with the participation tables."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/dms.4871.definitions",
+      "clause_ref": "4871, Definitions",
+      "heading_path": ["Dual Message System Chargebacks", "Chip Liability Shift-Lost/Stolen/Never Received Issue (NRI) Fraud (Message Reason Code 4871)", "Definitions"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [524, 525, 526],
+      "text_sha256": "37dc0171c965b2cb35b15ff2abe0f9996af1db0f9c71fd2fe0a541d0db8e80ee",
+      "note": "Selection test 6."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/dms.4871.ineligible",
+      "clause_ref": "4871, Transactions ineligible for chargeback",
+      "heading_path": ["Dual Message System Chargebacks", "Chip Liability Shift-Lost/Stolen/Never Received Issue (NRI) Fraud (Message Reason Code 4871)", "Transactions ineligible for chargeback"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [526, 527],
+      "text_sha256": "2bfcc085dd52dd05cd21422467a7403395eba6afa150aead617072302ad7d579",
+      "note": "Selection test 4."
+    },
+    {
+      "clause_key": "mastercard.chargeback_guide/dms.4871.issuer-chargeback",
+      "clause_ref": "4871, Issuer Chargeback",
+      "heading_path": ["Dual Message System Chargebacks", "Chip Liability Shift-Lost/Stolen/Never Received Issue (NRI) Fraud (Message Reason Code 4871)", "Issuer Chargeback"],
+      "tags": [],
+      "instrument_scope": null,
+      "effective_from_override": null,
+      "pages": [530, 531, 532],
+      "text_sha256": "e3ae6be61408b942ba67ccc13638568e76f14cb904dadaada49b11e2cf790da2",
+      "note": "Selection test 4: conditions, time frame."
+    }
+  ]
+}
