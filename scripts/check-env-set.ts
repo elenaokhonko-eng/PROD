@@ -70,6 +70,9 @@ export const optionalKeys = [
   "PAID_STAGES_ENABLED",
   "PAID_STAGES_AVAILABLE_FROM",
   "BANK_PACK_ENABLED",
+  // The FIDReC update's server-written sections (Supabase function secret for run_fidrec_pack_v1 and
+  // run_bank_pack_v1). Off in every environment until Elena turns it on (condition A, 24 Nov 2026).
+  "FIDREC_UPDATE_SECTIONS_ENABLED",
   "STRIPE_PRICE_ID_HUMAN_CONSULT_30M_SGD",
   "GOOGLE_GENERATIVE_AI_MODEL",
   "OPENAI_MODEL",
@@ -255,6 +258,13 @@ export function checkEnvironmentSet(
   if ((paidStages || bankPack) && bankPack !== "true" && bankPack !== "false") {
     add("FAIL", "BANK_PACK_ENABLED is true or false", paidStages ? "required while PAID_STAGES_ENABLED is true" : undefined)
   }
+  // The FIDReC update's sections: off for every environment (blank or "false") until Elena decides otherwise.
+  const updateSections = get("FIDREC_UPDATE_SECTIONS_ENABLED").toLowerCase()
+  add(
+    updateSections === "" || updateSections === "false" ? "PASS" : "FAIL",
+    "FIDREC_UPDATE_SECTIONS_ENABLED is off",
+    updateSections === "" || updateSections === "false" ? undefined : "the FIDReC update's sections stay off in every environment until Elena turns them on",
+  )
   const placeholders = Object.keys(env).filter((key) => get(key) && isPlaceholder(get(key)))
   if (placeholders.length) add("FAIL", "no placeholder values", placeholders.join(", "))
   const known = new Set<string>([...requiredKeys, ...optionalKeys])
@@ -541,7 +551,7 @@ export function renderChecklist(blueprint: Record<string, RenderVariable[]>, set
     }
   }
   lines.push(
-    "\nNot on Render: `RENDER_GIT_COMMIT` is injected by Render. `GuideBuoy_EdgeFunction`, `GEMINI_API_KEY`, `SIMULATION_KEY` and `EDGE_PROXY_HMAC_SECRET` must also be set as Supabase function secrets.",
+    "\nNot on Render: `RENDER_GIT_COMMIT` is injected by Render. `GuideBuoy_EdgeFunction`, `GEMINI_API_KEY`, `SIMULATION_KEY` and `EDGE_PROXY_HMAC_SECRET` must also be set as Supabase function secrets. `FIDREC_UPDATE_SECTIONS_ENABLED` is read by the pack functions only, so it is a Supabase function secret too, and stays off.",
     "`WORKER_SECRET` is generated per Render service pair, so the env-file value is for local runs only.",
   )
   return lines.join("\n")

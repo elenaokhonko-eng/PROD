@@ -1,0 +1,198 @@
+## access_records: The institution's record of logins, devices and alerts
+- Time: 21:05 on 3 July 2025; Entry: One-time code sent; Channel: sms; Sent to: registered mobile number (E4)
+- Time: 21:06 on 3 July 2025; Entry: Digital token activated; Device: Phone model EX-200; Device reference: dev-ex-0002; IP address: 203.0.113.24; Channel: mobile app; Authorised by: SMS one-time code; Sent to: registered mobile number (E4)
+- Time: 21:06 on 3 July 2025; Entry: Alert sent; Channel: sms; Sent to: registered mobile number (E4)
+- Time: 21:10 on 3 July 2025; Entry: Login; Device: Phone model EX-200; Device reference: dev-ex-0002; IP address: 203.0.113.24; Channel: mobile app; Authorised by: digital token (E4)
+- Time: 21:20 on 3 July 2025; Entry: Payee added; Device: Phone model EX-200; Device reference: dev-ex-0002; IP address: 203.0.113.24; Channel: mobile app; Authorised by: digital token (E4)
+- Time: 21:35 on 3 July 2025; Entry: Login; Device: Browser on desktop EX-PC; Device reference: dev-ex-0003; IP address: 198.51.100.7; Channel: internet banking; Authorised by: digital token (E4)
+- Time: 21:40 on 3 July 2025; Entry: Payment authenticated; Device: Browser on desktop EX-PC; Device reference: dev-ex-0003; IP address: 198.51.100.7; Channel: internet banking; Authorised by: digital token (E4)
+- Time: 21:40 on 3 July 2025; Entry: Alert sent; Channel: email; Sent to: holder@example.com (E4)
+- Time: 22:05 on 3 July 2025; Entry: Payment authenticated; Device: Phone model EX-200; Device reference: dev-ex-0002; IP address: 203.0.113.24; Channel: mobile app; Authorised by: digital token (E4)
+- Time: 22:05 on 3 July 2025; Entry: Alert sent; Channel: email; Sent to: holder@example.com (E4)
+- Time: 07:05 on 4 July 2025; Entry: Login; Device: Tablet model EX-T1; Device reference: dev-ex-0004; IP address: 192.0.2.150; Channel: mobile app; Authorised by: digital token (E4)
+- Time: 07:10 on 4 July 2025; Entry: Payment authenticated; Device: Tablet model EX-T1; Device reference: dev-ex-0004; IP address: 192.0.2.150; Channel: mobile app; Authorised by: digital token (E4)
+- Time: 09:30 on 4 July 2025; Entry: Access blocked; Channel: hotline (E4)
+## ip_locations: Where the IP addresses in the records are registered
+IP address 203.0.113.24 — according to Example IP Database, 2025-10-01: registered to Example Hosting Network (AS64500), location Example City, Exampleland (accuracy about 50 km). (E4)
+The database lists this network as a hosting or VPN provider. (E4)
+IP address 198.51.100.7 — according to Example IP Database, 2025-10-01: registered to Example Mobile Network (AS64501), location Example Town, Exampleland (accuracy about 100 km). (E4)
+IP address 192.0.2.150 — according to Example IP Database, 2025-10-01: registered to Example VPN Service (AS64502). (E4)
+The database lists this network as a hosting or VPN provider. (E4)
+The institution's record gives the location as Exampleland. (E4)
+An IP location is the provider's estimate of where the network is registered or used. It can differ from where the person was, for example on mobile data, a VPN or a hosting service. Addresses can be reassigned over time; this lookup used a database dated 2025-10-01.
+## account_access_sequence: The sequence the records show
+- 1. The complainant states that they entered their credentials, card details or a one-time code on a fake website or app.
+- 2. The institution's record shows a digital token activated at 21:06 on 3 July 2025 on a device labelled 'Phone model EX-200'. The record shows the activation was authorised by SMS one-time code, sent to registered mobile number. (E4)
+- 3. The complainant states that this device is not theirs.
+- 4. The record shows an alert about the activation sent at 21:06 on 3 July 2025 to registered mobile number. (E4)
+- 5. The record shows a login at 21:10 on 3 July 2025 from this device, authorised by digital token. (E4)
+- 5. The record shows a payee added at 21:20 on 3 July 2025 from this device, authorised by digital token. (E4)
+- 9. The complainant reported to the institution on 4 July 2025. The record shows access to the account blocked at 09:30 on 4 July 2025. (E4)
+## duty_time_checks: Time-stamped points in the SRF Guidelines and the E-Payments User Protection Guidelines
+MAS guidelines that set out the duties of institutions and account holders and how losses are shared.
+### The 12 hours after the digital token was activated
+The record shows a digital token activated at 21:06 on 3 July 2025 on a device labelled 'Phone model EX-200'. (E4)
+### Activities the definitions name
+- 21:20 on 3 July 2025 (14 minutes after): Payee added: device labelled 'Phone model EX-200' (E4)
+### Other activities the record shows in the 12 hours
+- 21:10 on 3 July 2025 (4 minutes after): Login: device labelled 'Phone model EX-200' (E4)
+- 21:35 on 3 July 2025 (29 minutes after): Login: device labelled 'Browser on desktop EX-PC' (E4)
+- 21:40 on 3 July 2025 (34 minutes after): Payment authenticated: device labelled 'Browser on desktop EX-PC' (E4)
+- 22:05 on 3 July 2025 (59 minutes after): Payment authenticated: device labelled 'Phone model EX-200' (E4)
+- 07:05 on 4 July 2025 (9 hours 59 minutes after): Login: device labelled 'Tablet model EX-T1' (E4)
+- 07:10 on 4 July 2025 (10 hours 4 minutes after): Payment authenticated: device labelled 'Tablet model EX-T1' (E4)
+Synthetic wording of srf.highrisk.definition, revision 1. (R1)
+Synthetic wording of eupg.highrisk.definition, revision 1. (R2)
+Record: The record shows a digital token activated at 21:06 on 3 July 2025 on a device labelled 'Phone model EX-200', authorised by SMS one-time code. The first disputed payment after it is at 21:40 on 3 July 2025, 34 minutes after it. The record shows a payee added at 21:20 on 3 July 2025 from a device labelled 'Phone model EX-200', 14 minutes after it. (E4)
+Expected: Paragraph 4.2.1 of the Synthetic SRF Guidelines, version Issued 2024: "Placeholder text of 4.2.1." (R1)
+Expected: Paragraph 4.7 of the Synthetic EUPG, version A: "Placeholder text of 4.7, version A." (R2)
+Side by side: The documents expect what paragraph 4.2.1 of the Synthetic SRF Guidelines and paragraph 4.7 of the Synthetic EUPG (R1, R2) set out. The record shows a digital token activated at 21:06 on 3 July 2025 on a device labelled 'Phone model EX-200', authorised by SMS one-time code. The first disputed payment after it is at 21:40 on 3 July 2025, 34 minutes after it. The record shows a payee added at 21:20 on 3 July 2025 from a device labelled 'Phone model EX-200', 14 minutes after it.
+A reviewed summary of this point is not yet available.
+Placeholder statement link.eupg_s4, revision 1. (R2, E4)
+Record: The record shows a digital token activated at 21:06 on 3 July 2025 on a device labelled 'Phone model EX-200'. The record shows an alert sent at 21:06 on 3 July 2025 to registered mobile number by sms, 30 seconds after it. (E4)
+Expected: The text of paragraph 4.2.2 of the Shared Responsibility Framework Guidelines in force on 3 July 2025 is not held in a verified version.
+Expected: The text of paragraph 4.9 of the E-Payments User Protection Guidelines in force on 3 July 2025 is not held in a verified version.
+Side by side: The record shows a digital token activated at 21:06 on 3 July 2025 on a device labelled 'Phone model EX-200'. The record shows an alert sent at 21:06 on 3 July 2025 to registered mobile number by sms, 30 seconds after it, as the documents expect.
+Record: The record shows a payee added at 21:20 on 3 July 2025 from a device labelled 'Phone model EX-200'. The record shows no alert between this event and the next recorded event. (E4)
+Expected: The text of paragraph 4.2.2 of the Shared Responsibility Framework Guidelines in force on 3 July 2025 is not held in a verified version.
+Expected: The text of paragraph 4.9 of the E-Payments User Protection Guidelines in force on 3 July 2025 is not held in a verified version.
+Side by side: The documents expect what paragraph 4.2.2 of the Shared Responsibility Framework Guidelines and paragraph 4.9 of the E-Payments User Protection Guidelines set out. The record shows a payee added at 21:20 on 3 July 2025 from a device labelled 'Phone model EX-200'. The record shows no alert between this event and the next recorded event.
+The institution's record shows a login at 21:35 on 3 July 2025 from a device labelled 'Browser on desktop EX-PC'. The complainant states that this device is not theirs. The record shows the login was authorised by digital token. The record shows no alert between this event and the next recorded event. The record shows this login was approved with the digital token activated at 21:06 on 3 July 2025. (E4)
+The institution's record shows a login at 07:05 on 4 July 2025 from a device labelled 'Tablet model EX-T1'. The complainant states that they are not sure whether this device is theirs. The record shows the login was authorised by digital token. The record shows no alert between this event and the next recorded event. The record shows this login was approved with the digital token activated at 21:06 on 3 July 2025. (E4)
+Placeholder statement srf.newdevice.bank, revision 1. (R1, R2, E4)
+Record: Payment 1 of S$12,000 on 3 July 2025 is at or above the default threshold, S$100. The record shows an alert for it sent at 21:40 on 3 July 2025 to holder@example.com. (E1, E4)
+Expected: The text of paragraph 4.2.3 of the Shared Responsibility Framework Guidelines in force on 3 July 2025 is not held in a verified version.
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 3 July 2025 is not held in a verified version.
+Side by side: Payment 1 of S$12,000 on 3 July 2025 is at or above the default threshold, S$100. The record shows an alert for it sent at 21:40 on 3 July 2025 to holder@example.com. The record shows this, as the documents expect.
+Record: Payment 2 of S$12,500 on 3 July 2025 is at or above the default threshold, S$100. The record shows an alert for it sent at 22:05 on 3 July 2025 to holder@example.com. (E1, E4)
+Expected: The text of paragraph 4.2.3 of the Shared Responsibility Framework Guidelines in force on 3 July 2025 is not held in a verified version.
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 3 July 2025 is not held in a verified version.
+Side by side: Payment 2 of S$12,500 on 3 July 2025 is at or above the default threshold, S$100. The record shows an alert for it sent at 22:05 on 3 July 2025 to holder@example.com. The record shows this, as the documents expect.
+Record: Payment 3 of S$7,000 on 4 July 2025 is at or above the default threshold, S$100. The record shows no alert for it. (E1, E4)
+Expected: The text of paragraph 4.2.3 of the Shared Responsibility Framework Guidelines in force on 4 July 2025 is not held in a verified version.
+Expected: The text of paragraph 4.10 of the E-Payments User Protection Guidelines in force on 4 July 2025 is not held in a verified version.
+Side by side: The documents expect what paragraph 4.2.3 of the Shared Responsibility Framework Guidelines and paragraph 4.10 of the E-Payments User Protection Guidelines set out. Payment 3 of S$7,000 on 4 July 2025 is at or above the default threshold, S$100. The record shows no alert for it.
+Record: The complainant reported to the institution on 4 July 2025 (hotline). The record shows access blocked at 09:30 on 4 July 2025. The record shows no disputed payment after the report or the block. (E1, E4)
+Expected: The text of paragraph 4.2.4 of the Shared Responsibility Framework Guidelines in force on 3 July 2025 is not held in a verified version.
+Expected: The text of paragraph 4.14 of the E-Payments User Protection Guidelines in force on 3 July 2025 is not held in a verified version.
+Side by side: The complainant reported to the institution on 4 July 2025 (hotline). The record shows access blocked at 09:30 on 4 July 2025. The record shows no disputed payment after the report or the block. The record shows this, as the documents expect.
+Record: The bank statement shows a balance of S$56,000 immediately before the first disputed payment. The disputed payments out of the account total S$31,500 (3 payments), 56.25% of that balance. Payment 3, at 07:10 on 4 July 2025, brings the amount transferred out within 24 hours to S$31,500, 56.25% of the balance. The record does not show that payment 3 or any later payment was blocked or held; it shows access blocked at 09:30 on 4 July 2025. (E1, E4)
+Expected: Paragraph 4.2.5 of the Synthetic SRF Guidelines, version Issued 2024: "Placeholder text of 4.2.5." (R3)
+Side by side: The document expects what paragraph 4.2.5 of the Synthetic SRF Guidelines (R3) sets out. The bank statement shows a balance of S$56,000 immediately before the first disputed payment. The disputed payments out of the account total S$31,500 (3 payments), 56.25% of that balance. Payment 3, at 07:10 on 4 July 2025, brings the amount transferred out within 24 hours to S$31,500, 56.25% of the balance. The record does not show that payment 3 or any later payment was blocked or held; it shows access blocked at 09:30 on 4 July 2025.
+Record: The record shows 3 disputed payments from the account between 21:40 on 3 July 2025 and 07:10 on 4 July 2025. The record shows access blocked at 09:30 on 4 July 2025. (E1, E4)
+Expected: The text of paragraph 4.21 of the E-Payments User Protection Guidelines in force on 3 July 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 4.21 of the E-Payments User Protection Guidelines sets out took place.
+Record: The complainant reported to the institution on 4 July 2025. The institution's final reply is dated 28 July 2025, 16 business days later (Monday to Friday, less public holidays). (E2)
+Expected: The text of paragraph 7.9 of the Shared Responsibility Framework Guidelines in force on 3 July 2025 is not held in a verified version.
+Expected: The text of paragraph 4.26 of the E-Payments User Protection Guidelines in force on 3 July 2025 is not held in a verified version.
+Side by side: The complainant reported to the institution on 4 July 2025. The institution's final reply is dated 28 July 2025, 16 business days later (Monday to Friday, less public holidays). The record shows this, as the documents expect.
+Record: The institution's final reply dated 28 July 2025 is in the records. The reply states an outcome (rejected). It describes the complainant's conduct as 'negligent' and cites this conduct: entered the account password and a one-time code on a website reached from a message. (E2)
+Expected: The text of paragraph 7.10 of the Shared Responsibility Framework Guidelines in force on 3 July 2025 is not held in a verified version.
+Expected: The text of paragraph 7.7 of the E-Payments User Protection Guidelines in force on 3 July 2025 is not held in a verified version.
+Side by side: The institution's final reply dated 28 July 2025 is in the records. The reply states an outcome (rejected). It describes the complainant's conduct as 'negligent' and cites this conduct: entered the account password and a one-time code on a website reached from a message. The record shows this, as the documents expect.
+Record: The complainant asked the institution for its records on 10 July 2025. The institution's record of logins, devices and alerts is in the evidence. (E4, E5)
+Expected: The text of paragraph 7.5 of the Shared Responsibility Framework Guidelines in force on 3 July 2025 is not held in a verified version.
+Expected: The text of paragraph 4.25 of the E-Payments User Protection Guidelines in force on 3 July 2025 is not held in a verified version.
+Side by side: The complainant asked the institution for its records on 10 July 2025. The institution's record of logins, devices and alerts is in the evidence. The record shows this, as the documents expect.
+Record: The record shows the first alert sent at 21:06 on 3 July 2025. The complainant reported to the institution on 4 July 2025, 1 calendar day later. (E3, E4)
+Expected: The text of paragraph 7.3 of the Shared Responsibility Framework Guidelines in force on 3 July 2025 is not held in a verified version.
+Expected: The text of paragraph 3.14 of the E-Payments User Protection Guidelines in force on 3 July 2025 is not held in a verified version.
+Side by side: The record shows the first alert sent at 21:06 on 3 July 2025. The complainant reported to the institution on 4 July 2025, 1 calendar day later, as the documents expect.
+Record: The complainant reported to the police on 4 July 2025. The records provided do not show when supporting information was given to the institution. (E3, E4)
+Expected: The text of paragraph 7.3 of the Shared Responsibility Framework Guidelines in force on 3 July 2025 is not held in a verified version.
+Expected: The text of paragraph 3.14 of the E-Payments User Protection Guidelines in force on 3 July 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 7.3 of the Shared Responsibility Framework Guidelines and paragraph 3.14 of the E-Payments User Protection Guidelines set out took place.
+## disputed_amount_charges: Charges and credit records while a transaction is disputed
+Record: The complainant reported to the institution on 4 July 2025. The institution's final reply is dated 28 July 2025. The records provided do not show requests to pay the disputed amount or charges on it. (E2)
+Expected: The text of paragraph 8.1 of the E-Payments User Protection Guidelines in force on 4 July 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 8.1 of the E-Payments User Protection Guidelines sets out took place.
+Record: The institution's final reply is dated 28 July 2025. The reply states an outcome (rejected). The period after the reply runs from 28 July 2025 to 27 August 2025. The records provided do not show dispute resolution with FIDReC starting. The records provided do not show requests to pay the disputed amount or charges on it. (E2)
+Expected: The text of paragraph 8.2 of the E-Payments User Protection Guidelines in force on 4 July 2025 is not held in a verified version.
+Side by side: The records provided do not show whether what paragraph 8.2 of the E-Payments User Protection Guidelines sets out took place.
+## mas_notice_comparison: MAS notices
+MAS notices set requirements that MAS imposes on the institution. This section sets the institution's records beside those requirements. It does not say whether a requirement was met.
+A reviewed summary of this point is not yet available.
+Record: The institution's record shows a login at 21:10 on 3 July 2025 from a device labelled 'Phone model EX-200'. The complainant states that this device is not theirs. The record shows the login was authorised by digital token. (E4)
+Expected: The text of paragraph 9 of MAS Notice FSM-N05 in force on 3 July 2025 is not held in a verified version.
+Side by side: The document expects what paragraph 9 of MAS Notice FSM-N05 sets out. The institution's record shows a login at 21:10 on 3 July 2025 from a device labelled 'Phone model EX-200'. The complainant states that this device is not theirs. The record shows the login was authorised by digital token.
+Record: The institution's record shows a login at 21:35 on 3 July 2025 from a device labelled 'Browser on desktop EX-PC'. The complainant states that this device is not theirs. The record shows the login was authorised by digital token. (E4)
+Expected: The text of paragraph 9 of MAS Notice FSM-N05 in force on 3 July 2025 is not held in a verified version.
+Side by side: The document expects what paragraph 9 of MAS Notice FSM-N05 sets out. The institution's record shows a login at 21:35 on 3 July 2025 from a device labelled 'Browser on desktop EX-PC'. The complainant states that this device is not theirs. The record shows the login was authorised by digital token.
+The record shows a login at 07:05 on 4 July 2025 from a device labelled 'Tablet model EX-T1'. The complainant states that they are not sure whether this device is theirs. (E4)
+Record: The institution's record shows a payee added at 21:20 on 3 July 2025 from a device labelled 'Phone model EX-200'. The complainant states that this device is not theirs. The record shows no alert between this change and the next recorded event. (E4)
+Expected: The text of paragraph 9 of MAS Notice FSM-N05 in force on 3 July 2025 is not held in a verified version.
+Side by side: The document expects what paragraph 9 of MAS Notice FSM-N05 sets out. The institution's record shows a payee added at 21:20 on 3 July 2025 from a device labelled 'Phone model EX-200'. The complainant states that this device is not theirs. The record shows no alert between this change and the next recorded event.
+## customer_fault_definitions: What each framework says about customer fault
+Placeholder statement eupg.fault.term, revision 1. (R4)
+A reviewed summary of this point is not yet available.
+Example Bank A's terms in force on 3 July 2025 are not held.
+## customer_conduct_comparison: The conduct the records show, and what each document refers to
+The complainant states that they entered their credentials, card details or a one-time code on a fake website or app.
+The E-Payments User Protection Guidelines do not refer to entering credentials, card details or a code on a website or app.
+The record shows 3 alerts, the first sent at 21:06 on 3 July 2025 to registered mobile number. The complainant reported to the institution on 4 July 2025, 1 calendar day after the first alert. (E4)
+The E-Payments User Protection Guidelines refer to notifications and alerts from the institution in footnote 20 (R5).
+The record shows access blocked at 09:30 on 4 July 2025, channel recorded as 'hotline'. (E4)
+The E-Payments User Protection Guidelines do not refer to blocking access.
+The complainant reported to the police on 4 July 2025. (E3)
+The E-Payments User Protection Guidelines do not refer to reporting to the police.
+The Shared Responsibility Framework Guidelines have no test of the account user's conduct.
+The institution's letter describes the complainant's conduct as 'negligent'. The conduct it cites is entered the account password and a one-time code on a website reached from a message. (E2)
+The E-Payments User Protection Guidelines use the term 'recklessness'.
+The institution's own terms in force on 3 July 2025 are not held for that date.
+## citations
+R1 mas.srf/4.2.1 version Issued 2024 on 2025-07-03
+R2 mas.eupg/4.7 version A on 2025-07-03
+R3 mas.srf/4.2.5 version Issued 2024 on 2025-07-03
+R4 mas.eupg/5.2 version A on 2025-07-03, 2025-07-04
+R5 mas.eupg/fn20 version A on 2025-07-03
+R6 mas.srf/3.1 version Issued 2024 on 2025-07-03
+## statements
+duty_time_checks srf.highrisk.definition r1 on 2025-07-03
+duty_time_checks eupg.highrisk.definition r1 on 2025-07-03
+duty_time_checks link.eupg_s4 r1 on 2025-07-03
+duty_time_checks srf.newdevice.bank r1 on 2025-07-03
+customer_fault_definitions eupg.fault.term r1 on 2025-07-03
+## flags
+duty_time_checks statement_under_review link.srf_4_2 2025-07-03
+duty_time_checks clause_not_held mas.srf/4.2.2 2025-07-03
+duty_time_checks clause_not_held mas.eupg/4.9 2025-07-03
+duty_time_checks clause_not_held mas.srf/4.2.3 2025-07-03
+duty_time_checks clause_not_held mas.eupg/4.10 2025-07-03
+duty_time_checks clause_not_held mas.srf/4.2.3 2025-07-04
+duty_time_checks clause_not_held mas.eupg/4.10 2025-07-04
+duty_time_checks clause_not_held mas.srf/4.2.4 2025-07-03
+duty_time_checks clause_not_held mas.eupg/4.14 2025-07-03
+duty_time_checks clause_not_held mas.eupg/4.21 2025-07-03
+duty_time_checks clause_not_held mas.srf/7.9 2025-07-03
+duty_time_checks clause_not_held mas.eupg/4.26 2025-07-03
+duty_time_checks clause_not_held mas.srf/7.10 2025-07-03
+duty_time_checks clause_not_held mas.eupg/7.7 2025-07-03
+duty_time_checks clause_not_held mas.srf/7.5 2025-07-03
+duty_time_checks clause_not_held mas.eupg/4.25 2025-07-03
+duty_time_checks clause_not_held mas.srf/7.3 2025-07-03
+duty_time_checks clause_not_held mas.eupg/3.14 2025-07-03
+disputed_amount_charges clause_not_held mas.eupg/8.1 2025-07-04
+disputed_amount_charges clause_not_held mas.eupg/8.2 2025-07-04
+mas_notice_comparison statement_under_review bridge.mas_requirement 2025-07-03
+mas_notice_comparison clause_not_held mas.fsm-n05/9 2025-07-03
+industry_practice_comparison clause_not_held industry_practice.tokenActivationAlert 2025-07-03
+customer_fault_definitions statement_under_review eupg.fault.examples 2025-07-03
+customer_fault_definitions statement_under_review eupg.fault.examples 2025-07-04
+customer_fault_definitions statement_under_review eupg.fault.level1 2025-07-03
+customer_fault_definitions statement_under_review eupg.fault.level1 2025-07-04
+customer_fault_definitions statement_under_review eupg.fault.level2 2025-07-03
+customer_fault_definitions statement_under_review eupg.fault.level2 2025-07-04
+customer_fault_definitions statement_under_review eupg.fault.institution 2025-07-03
+customer_fault_definitions statement_under_review eupg.fault.institution 2025-07-04
+customer_fault_definitions statement_under_review eupg.fault.reasons 2025-07-03
+customer_fault_definitions statement_under_review eupg.fault.reasons 2025-07-04
+customer_fault_definitions statement_under_review srf.fault.terms 2025-07-03
+customer_fault_definitions statement_under_review srf.fault.terms 2025-07-04
+customer_fault_definitions statement_under_review srf.fault.userduties 2025-07-03
+customer_fault_definitions statement_under_review srf.fault.userduties 2025-07-04
+customer_fault_definitions statement_under_review srf.fault.allocation 2025-07-03
+customer_fault_definitions statement_under_review srf.fault.allocation 2025-07-04
+customer_fault_definitions statement_under_review srf.fault.section6 2025-07-03
+customer_fault_definitions statement_under_review srf.fault.section6 2025-07-04
+customer_fault_definitions statement_under_review srf.fidrec.scope 2025-07-03
+customer_fault_definitions statement_under_review srf.fidrec.scope 2025-07-04
