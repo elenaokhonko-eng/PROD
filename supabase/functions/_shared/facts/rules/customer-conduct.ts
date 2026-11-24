@@ -350,13 +350,12 @@ async function documentLine(out: SectionWriter, spec: FrameworkSpec, marker: Con
 
 export interface CustomerConductOptions {
   termRequests?: TermRequestSource;
-  /** The day the pack is generated; the MAS reply (`as_of_rule = 'any_date'`) is read as of it (Decision 6). Defaults to today. */
-  generatedOn?: IsoDate;
+  // The MAS reply (`as_of_rule = 'any_date'`) is read as of `SectionInput.generatedOn` (Decision 6; Lane 6, assembly).
 }
 
 async function buildConduct(input: SectionInput, options: CustomerConductOptions): Promise<SectionResult> {
   const out = new SectionWriter("customer_conduct_comparison", input);
-  const generatedOn = options.generatedOn ?? todayIso();
+  const generatedOn = input.generatedOn;
   const accountDate = earliestDate(input.payments.filter(isAccountPayment).map((p) => p.date));
   const cardDate = earliestDate(input.payments.filter(isCardPayment).map((p) => p.date));
   const anyDate = earliestDate([accountDate, cardDate]);

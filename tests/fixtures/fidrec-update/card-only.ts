@@ -96,6 +96,8 @@ export const cardOnlyCase = {
     ipLocations: [
       { ip: '198.51.100.40', country: 'Exampleland', region: 'Example Region', city: 'Example City', accuracyRadiusKm: 20, asn: 64503, organisation: 'Example Broadband', flags: [], database: 'Example IP Database', databaseEdition: '2025-10-01', institutionStatedLocation: null },
     ],
+    // The day the pack is generated (SectionInput.generatedOn), fixed so the any-date reads are repeatable.
+    generatedOn: '2026-11-24',
     evidenceIds: {
       transactions: ['E1'],
       total_loss: ['E1'],

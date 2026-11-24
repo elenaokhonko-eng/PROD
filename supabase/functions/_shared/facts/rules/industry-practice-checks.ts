@@ -124,8 +124,8 @@ export interface IndustryPracticeCheckOptions {
   clauseKeys?: Partial<IndustryPracticeClauseKeys>;
   /** The configured term requests (Lane 4's source). None by default: Part A then prints the "not held" line. */
   termRequests?: TermRequestSource;
-  /** The day the pack is generated, for documents read whatever the event date (Decision 6). Default: today (UTC). */
-  generatedOn?: IsoDate;
+  // The day the pack is generated, for documents read whatever the event date (Decision 6), is
+  // `SectionInput.generatedOn` (Lane 6, assembly).
 }
 
 /** The request the activation answers: the first one-time code or device registration since any earlier activation. */
@@ -172,7 +172,7 @@ export function createIndustryPracticeChecks(options: IndustryPracticeCheckOptio
   const termRequests = options.termRequests ?? NO_TERM_REQUESTS;
   return async (input: SectionInput): Promise<SectionResult> => {
     const w = new ComparisonWriter("industry_practice_comparison", input);
-    const generatedOn = options.generatedOn ?? new Date().toISOString().slice(0, 10);
+    const generatedOn = input.generatedOn;
     const account = paymentsIn(input.payments, "account");
     const card = paymentsIn(input.payments, "card");
     if (!input.payments.length) return w.result();

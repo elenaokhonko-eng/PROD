@@ -93,6 +93,8 @@ export const mixedCase = {
     ipLocations: [
       { ip: '192.0.2.33', country: 'Exampleland', region: null, city: 'Example Port', accuracyRadiusKm: 200, asn: 64504, organisation: 'Example Cloud Hosting', flags: ['hosting' as const, 'proxy' as const], database: 'Example IP Database', databaseEdition: '2025-10-01', institutionStatedLocation: null },
     ],
+    // The day the pack is generated (SectionInput.generatedOn), fixed so the any-date reads are repeatable.
+    generatedOn: '2026-11-24',
     evidenceIds: {
       transactions: ['E1'],
       total_loss: ['E1'],

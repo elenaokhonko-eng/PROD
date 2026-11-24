@@ -246,6 +246,11 @@ export class SectionWriter {
       textSha256: clause.text_sha256,
       versionId: clause.version_id,
       versionLabel: clause.version_label,
+      clauseRef: clause.clause_ref,
+      documentKey: clause.document_key,
+      documentTitle: clause.title,
+      effectiveFrom: clause.effective_from,
+      sourceUrl: clause.source_url,
     });
   }
 

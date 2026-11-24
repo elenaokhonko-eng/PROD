@@ -230,7 +230,7 @@ export class ComparisonWriter extends SectionWriter {
     if (!args.payments.length) return false;
     if (!args.skipInstrumentGuard && !clauseAppliesToGroup(args.clauseKey, args.payments)) return false;
     const text = await this.clauseText(args.clauseKey, args.onDate);
-    this.comparison({ clauseKey: args.clauseKey, record: args.record, expected: text ?? "", outcome: args.outcome, evidenceIds: args.evidenceIds });
+    this.comparison({ clauseKey: args.clauseKey, record: args.record, expected: text ?? "", outcome: args.outcome, evidenceIds: args.evidenceIds, onDate: args.onDate });
     const [link] = linkStatementsFor([{ clauseKey: args.clauseKey, outcome: args.outcome, group: args.group }]);
     if (link) await this.statementOn(link, args.onDate, args.evidenceIds);
     return true;
@@ -250,7 +250,7 @@ export class ComparisonWriter extends SectionWriter {
     const printed = this.comparisonOnDevice({
       ownership: args.ownership,
       requires: args.requires,
-      comparison: { clauseKey: args.clauseKey, record: args.record, expected: text ?? "", outcome: args.outcome, evidenceIds: args.evidenceIds },
+      comparison: { clauseKey: args.clauseKey, record: args.record, expected: text ?? "", outcome: args.outcome, evidenceIds: args.evidenceIds, onDate: args.onDate },
       notShownLine: args.notShownLine,
     });
     if (printed) {

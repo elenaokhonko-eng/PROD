@@ -126,9 +126,9 @@ const UOB_ROW: WalletProvisioningRequestRow = {
 }
 
 const provider = createFakeClauseProvider(testCorpus())
-const withKeys = createIndustryPracticeChecks({ clauseKeys: KEYS, generatedOn: GENERATED_ON })
-const withUobPage = createIndustryPracticeChecks({ clauseKeys: KEYS, generatedOn: GENERATED_ON, termRequests: createStaticTermRequestSource([UOB_ROW]) })
-const run = (data: CaseSectionData, builder = withKeys) => builder({ ...data, provider })
+const withKeys = createIndustryPracticeChecks({ clauseKeys: KEYS })
+const withUobPage = createIndustryPracticeChecks({ clauseKeys: KEYS, termRequests: createStaticTermRequestSource([UOB_ROW]) })
+const run = (data: CaseSectionData, builder = withKeys) => builder({ ...data, provider, generatedOn: GENERATED_ON })
 const clone = (data: CaseSectionData): CaseSectionData => structuredClone(data)
 const comparisons = (r: SectionResult): ComparisonLine[] => r.lines.flatMap((l) => (l.kind === 'comparison' ? [l.comparison] : []))
 const withKey = (r: SectionResult, key: string) => comparisons(r).filter((c) => c.clauseKey === key)
@@ -152,7 +152,7 @@ test('the default keys: the delay is 3(c) of the 19 January 2022 release; the al
     walletProvisioningVerification: 'abs.media_2025_02_card_provisioning/para4.verification',
     walletTokenRemoval: 'abs.media_2025_02_card_provisioning/para4.removal',
   })
-  const r = await run(cardOnlyCase.data, createIndustryPracticeChecks({ generatedOn: GENERATED_ON }))
+  const r = await run(cardOnlyCase.data, createIndustryPracticeChecks())
   assert.equal(r.sectionId, 'industry_practice_comparison')
   assert.deepEqual(comparisons(r).map((c) => c.clauseKey), [KEYS.tokenActivationDelay, KEYS.walletProvisioningVerification, KEYS.walletTokenRemoval])
   const waiting = r.flags.filter((f) => f.key.startsWith('industry_practice.'))
