@@ -9,7 +9,7 @@
  * Wording approved by Elena on 20 Nov 2026 (stage 2 copy list).
  */
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tier2PackPanel } from '@/components/state-machine/layer3/tier2-pack-panel'
@@ -99,6 +99,10 @@ export function FidrecOffer(props: FidrecOfferProps) {
     props.onDraftChange({ route: saved?.route ?? null, date: saved?.date ?? '', editing: true })
   }
 
+  // The latest answer being chosen, read after a save finishes (a closure would see the one from when it started).
+  const draftRef = useRef(props.draft)
+  draftRef.current = props.draft
+
   async function save() {
     if (!route) return
     if (option?.dateLabel && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -113,7 +117,11 @@ export function FidrecOffer(props: FidrecOfferProps) {
         ...(route === 'final_reply' ? { fidrec_final_reply_date: date } : {}),
         ...(route === 'no_reply' ? { fidrec_complaint_date: date } : {}),
       })
-      props.onDraftChange({ route: null, date: '', editing: false })
+      // Local gate repro, 26 Nov: the saved answer shows (with "Change my answer") before the save has finished
+      // refreshing the case, and this reset then closed an answer the person had already started changing. Reset
+      // only what this save submitted.
+      const now = draftRef.current
+      if (now.route === route && now.date === date) props.onDraftChange({ route: null, date: '', editing: false })
     } catch {
       setSaveError('We couldn’t save that. Please try again.')
     } finally {
@@ -190,7 +198,7 @@ export function FidrecOffer(props: FidrecOfferProps) {
           {saved ? <p className="font-medium">{routeAnswerText(saved)}</p> : null}
           <p>
             {blocked ? `${blocked} ` : null}
-            <button type="button" className="underline" onClick={startEditing}>
+            <button type="button" className="underline disabled:opacity-60" disabled={saving} onClick={startEditing}>
               Change my answer
             </button>
           </p>
