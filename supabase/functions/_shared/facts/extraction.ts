@@ -19,6 +19,7 @@ import {
   type Transaction,
 } from "./keys.ts";
 import type { FactCandidate } from "./reconcile.ts";
+import { type EvidenceItem, isEvidenceItem } from "../evidence-minimums.ts";
 import { normaliseInstitution } from "./institutions.ts";
 import { normaliseDate, normaliseMoney, normaliseYesNo } from "./normalise.ts";
 
@@ -55,6 +56,15 @@ const POLICE_REPORT_OPENING = /singapore police force|police report (?:acknowled
 
 // The report's own number, near the top of a police report: "Report No: G/20241031/0000", "Police report no. A2026...".
 const POLICE_REPORT_NUMBER = /\breport\s+(?:no\.?|number)\s*[:#.]?\s*([A-Z]{0,2}\/?\d{6,}(?:\/\d{1,6})?)/i;
+
+// The kinds of document each checklist item can be (evidence-minimums.ts); the first is used for a marked document
+// the model read as something else.
+const MARKED_DOCUMENT_TYPES: Record<EvidenceItem, readonly DocumentType[]> = {
+  payment_proof: ["bank_statement", "card_statement"],
+  police_report: ["police_report"],
+  bank_reply_or_complaint: ["bank_correspondence"],
+  scam_message: ["scam_message"],
+};
 
 export function documentTypeOf(modelType: unknown, text: string): DocumentType {
   const declared = oneOf(DOCUMENT_TYPES, modelType) ?? "other";
@@ -171,13 +181,21 @@ export function parseFactExtraction(
 ): FactCandidate[] {
   const out = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const candidates: FactCandidate[] = [];
-  const documentType: DocumentType | null = source.sourceType === "document" ? documentTypeOf(out.document_type, sourceText) : null;
+  const readType: DocumentType | null = source.sourceType === "document" ? documentTypeOf(out.document_type, sourceText) : null;
+  // PB-22 (Part B walk-through, 25 Nov): a document the person marked is read as that kind when the model read it as
+  // another, so a misread police report can back the police facts. typeFromMark lets every label say who identified it.
+  const marked = source.sourceRef.complainantItem;
+  const markedTypes = isEvidenceItem(marked) ? MARKED_DOCUMENT_TYPES[marked] : null;
+  const typeFromMark = readType !== null && markedTypes !== null && !markedTypes.includes(readType);
+  const documentType: DocumentType | null = typeFromMark ? markedTypes![0] : readType;
   // A document value outside what that kind of document can state, or below the confidence threshold, is kept as
   // context: stored for the record, never compared (finding A7).
   const add = (factKey: FactCandidate["factKey"], value: unknown, quotes: string[], items: unknown[] = []) => {
     const confidences = items.map(confidenceOf).filter((c): c is number => c !== null);
     const confidence = confidences.length ? Math.min(...confidences) : null;
-    const document = documentType ? { documentType, confidence, context: !documentCanContradict(documentType, factKey, confidence) } : {};
+    const document = documentType
+      ? { documentType, confidence, context: !documentCanContradict(documentType, factKey, confidence), ...(typeFromMark ? { typeFromMark: true } : {}) }
+      : {};
     candidates.push({
       factKey,
       value,
