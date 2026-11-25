@@ -48,7 +48,12 @@ test('missing facts make the assessment unclear rather than in or out', () => {
 })
 
 test('SMS phishing mentions the telco and IMDA; WhatsApp says telco duties do not apply', () => {
-  assert.match(assessSrf(phishing).telco!.text, /mobile operator may be responsible.*IMDA in writing, not to FIDReC/)
+  // Rules review, 25 Nov (row 6, wording chosen by Elena): the bank passes the claim on (G 7.7, 7.7.1, 7.11).
+  const telco = assessSrf(phishing).telco!
+  assert.match(telco.text, /mobile operator may be responsible/)
+  assert.ok(telco.text.endsWith("Your bank is your point of contact and passes the claim to the operator, which investigates its own duties. If you disagree with the operator's assessment, you can write to IMDA."))
+  assert.doesNotMatch(telco.text, /not to FIDReC|Your bank assesses this/)
+  assert.match(telco.cite, /7.7, 7.7.1, 7.11/)
   assert.match(assessSrf({ ...phishing, channel: 'messaging_app' }).telco!.text, /not SMS/)
 })
 

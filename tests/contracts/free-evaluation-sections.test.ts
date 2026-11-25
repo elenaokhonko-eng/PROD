@@ -84,9 +84,17 @@ test('C3: each part of the loss is assessed under the rules that apply to it, wi
   assert.doesNotMatch(text, /Shared Responsibility Framework \(SRF\): an early view/, 'the heading is not repeated inside the section')
 })
 
-test('C3: payments made knowingly are told plainly that no liability framework covers them', () => {
-  const text = srfAssessmentText(assessSrf({ scamTypes: ['investment'], channel: 'social_media', credentials: 'not_shared', impersonated: 'other_business', transactions: null, losses: null }))
-  assert.match(text, /not covered by a liability framework/)
+// Rules review, 25 Nov (row 8, wording chosen by Elena): the EUPG's rule for payments the account user knew of, and
+// FIDReC's wider assessment as MAS's SRF workflow states it. Before, "not covered by a liability framework" had no source.
+test('C3: payments made knowingly are told the EUPG rule for them and what FIDReC assesses, with sources', () => {
+  const a = assessSrf({ scamTypes: ['investment'], channel: 'social_media', credentials: 'not_shared', impersonated: 'other_business', transactions: null, losses: null })
+  const text = srfAssessmentText(a)
+  assert.ok(text.includes('Under the EUPG, the account holder is liable for payments an account user knew of and consented to, up to the agreed limits (paragraph 5.3).'))
+  // The next step stays (rules review, 25 Nov): the person can still complain to the bank.
+  assert.ok(text.includes('(paragraph 5.3). You can complain to your bank in writing. MAS'))
+  assert.ok(text.includes("MAS's workflow for the SRF states that FIDReC's assessment includes obligations outside the SRF, for example under statute, common law or the EUPG."))
+  assert.doesNotMatch(text, /not covered by a liability framework/)
+  assert.equal(a.remedies!.cite, 'E para 5.3; W (mas.srf.workflow/recourse.fidrec)')
 })
 
 test('C5: the free evaluation downloads as a PDF with the notice, even with characters the PDF fonts lack', async () => {
