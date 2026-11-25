@@ -4,9 +4,9 @@
 // prose goes through the same ladder as the free evaluation (summary-ladder.ts produceChecked): checked, repaired,
 // regenerated once, and otherwise replaced by fixed wording, never "failed". Shared by run_bank_pack_v1 and its tests.
 
-import { formatFactValue, formatMoney } from "./display.ts";
+import { formatDate, formatFactValue, formatMoney } from "./display.ts";
 import { type EvidenceFinding, evidenceLists } from "./free-sections.ts";
-import type { FactKey, Money, ReportedEvent, Transaction } from "./keys.ts";
+import type { FactKey, Instrument, Money, ReportedEvent, Transaction } from "./keys.ts";
 import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
 import type { SnapshotFacts, ValidateOptions } from "./validate-output.ts";
@@ -146,12 +146,25 @@ export function bankPackTimeline(facts: SnapshotFacts): Array<{ date?: string; e
   return items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
 }
 
+// Part B walk-through (25 Nov). PB-10: dates read "3 Oct 2026", as everywhere else in the packs. PB-11: the payments
+// table shows words, not system values ("method: account_transfer", lower-case column names).
+const METHOD_LABELS: Record<Instrument, string> = {
+  account_transfer: "Bank account payment",
+  sg_card: "Card payment",
+  ewallet: "E-wallet payment",
+  other: "Other payment",
+};
+
+export function withDisplayDates(items: Array<{ date?: string; event: string }>): Array<{ date?: string; event: string }> {
+  return items.map((item) => (item.date ? { ...item, date: formatDate(item.date) ?? item.date } : item));
+}
+
 export function bankPackTransactions(facts: SnapshotFacts): Array<Record<string, string>> {
   return (confirmedValue<Transaction[]>(facts, "transactions") ?? []).map((t) => ({
-    date: t.date ?? "Not known",
-    amount: formatMoney(t.amount),
-    paid_to: t.payee ?? "Not known",
-    method: t.channel ?? t.instrument ?? "Not known",
+    Date: formatDate(t.date) ?? "Not known",
+    Amount: formatMoney(t.amount),
+    "Paid to": t.payee ?? "Not known",
+    Method: t.channel ?? (t.instrument ? METHOD_LABELS[t.instrument] : null) ?? "Not known",
   }));
 }
 
@@ -182,7 +195,7 @@ export function assembleBankPack(args: {
   return {
     report_version: BANK_PACK_VERSION,
     ...args.prose,
-    timeline: bankPackTimeline(facts),
+    timeline: withDisplayDates(bankPackTimeline(facts)),
     disputed_transactions: bankPackTransactions(facts),
     total_loss: loss ? formatMoney(loss) : null,
     evidence_checklist: [

@@ -111,9 +111,13 @@ test('the fixed wording states only the confirmed facts and passes the same chec
 test('every other section is built from the confirmed facts, not by the model', () => {
   const report = assembleBankPack({ prose: GOOD, source: 'model', facts, findings: [] })
   assert.equal(report.report_version, 'bank_pack_v1')
-  assert.deepEqual(report.disputed_transactions.map((t) => t.amount), ['S$1,800', 'S$1,200'])
-  assert.equal(report.disputed_transactions[1].paid_to, 'Not known')
-  assert.deepEqual(report.timeline.map((t) => t.date ?? null), ['2026-10-02', '2026-10-02', '2026-10-03', '2026-10-03', '2026-10-04'])
+  // PB-10 and PB-11 (Part B walk-through, 25 Nov): words and "2 Oct 2026", not system values and ISO dates.
+  assert.deepEqual(report.disputed_transactions.map((t) => t.Amount), ['S$1,800', 'S$1,200'])
+  assert.deepEqual(report.disputed_transactions.map((t) => t.Date), ['2 Oct 2026', '2 Oct 2026'])
+  assert.equal(report.disputed_transactions[1]['Paid to'], 'Not known')
+  assert.deepEqual(Object.keys(report.disputed_transactions[0]), ['Date', 'Amount', 'Paid to', 'Method'])
+  assert.ok(report.disputed_transactions.every((t) => !/_/.test(t.Method)), 'no system value such as account_transfer')
+  assert.deepEqual(report.timeline.map((t) => t.date ?? null), ['2 Oct 2026', '2 Oct 2026', '3 Oct 2026', '3 Oct 2026', '4 Oct 2026'])
   assert.ok(report.evidence_checklist.every((item) => item.present === false), 'no document was uploaded')
   assert.match(report.rules_assessment, /It is not a decision/)
   assert.equal(report.prose_source, 'model')
@@ -147,4 +151,23 @@ test('the Edge Function is paid-only, once per case, exempt from the daily cap b
   assert.doesNotMatch(route, /overEvaluationLimit/)
   const migration = readFileSync('supabase/migrations/20261120120000_product_readiness.sql', 'utf8')
   assert.match(migration, /p_audience NOT IN \('run_case_extract_v4', 'bright-function', 'run_bank_pack_v1'\)/)
+})
+
+// PB-11 (Part B walk-through, 25 Nov): "method: sg_card" and "method: account_transfer" in both packs.
+test('the payments table names how each payment was made in words', () => {
+  const withMethods = {
+    ...facts,
+    transactions: {
+      value: [
+        { date: '2026-10-12', amount: sgd(1200), channel: null, payee: 'ONLINE MERCHANT ONE', last4: null, instrument: 'sg_card' },
+        { date: '2026-10-12', amount: sgd(850), channel: null, payee: null, last4: null, instrument: 'account_transfer' },
+        { date: null, amount: sgd(499), channel: 'FAST transfer', payee: null, last4: null, instrument: 'ewallet' },
+      ],
+      label: 'confirmed',
+    },
+  } as typeof facts
+  const rows = assembleBankPack({ prose: GOOD, source: 'model', facts: withMethods, findings: [] }).disputed_transactions
+  assert.deepEqual(rows.map((r) => r.Method), ['Card payment', 'Bank account payment', 'FAST transfer'])
+  assert.deepEqual(rows.map((r) => r.Date), ['12 Oct 2026', '12 Oct 2026', 'Not known'])
+  assert.equal(rows[0]['Paid to'], 'ONLINE MERCHANT ONE')
 })

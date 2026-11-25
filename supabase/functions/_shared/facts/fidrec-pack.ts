@@ -12,7 +12,7 @@ import type { BankReply, FactKey, Instrument, Money, ReportedEvent, Transaction 
 import { appliesToCase, appliesToLabel, instrumentsOf } from "./rules/instrument-scope.ts";
 import { type FidrecAvailability, fidrecAvailability, FIDREC_RULES } from "./rules/fidrec.ts";
 import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
-import { bankPackTransactions } from "./bank-pack.ts";
+import { bankPackTransactions, withDisplayDates } from "./bank-pack.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
 import { normaliseDate } from "./normalise.ts";
 import {
@@ -607,6 +607,18 @@ export interface FidrecPackReport {
   prose_source: "model" | "fallback";
 }
 
+// PB-12 (Part B walk-through, 25 Nov): points ended "(E1). (E1)": the model's own citation, then the IDs the page adds.
+// A closing citation is dropped from the text when every ID in it is added anyway; any other citation stays.
+const TRAILING_CITATION = /\s*\(([ER]\d+(?:\s*[,;]\s*[ER]\d+)*)\)(\.?)\s*$/;
+
+export function withoutTrailingCitation<T extends { text: string; evidence_ids: string[]; clause_ids?: string[] }>(item: T): T {
+  const match = TRAILING_CITATION.exec(item.text);
+  if (!match) return item;
+  const added = new Set([...item.evidence_ids, ...(item.clause_ids ?? [])]);
+  if (!match[1].split(/\s*[,;]\s*/).every((id) => added.has(id))) return item;
+  return { ...item, text: `${item.text.slice(0, match.index)}${match[2] ? "." : ""}` };
+}
+
 export function assembleFidrecPack(args: {
   prose: FidrecPackProse;
   source: "model" | "fallback";
@@ -623,10 +635,13 @@ export function assembleFidrecPack(args: {
   return {
     report_version: FIDREC_PACK_VERSION,
     ...args.prose,
+    arguments_for_claimant: args.prose.arguments_for_claimant.map(withoutTrailingCitation),
+    arguments_for_institution: args.prose.arguments_for_institution.map(withoutTrailingCitation),
+    institution_duties: args.prose.institution_duties.map(withoutTrailingCitation),
     regulatory_sources: (args.clauses ?? [])
       .filter((c) => args.prose.institution_duties.some((d) => d.clause_ids.includes(c.id)))
       .map((c) => ({ id: c.id, source: c.source, clause_ref: c.clause_ref, title: c.title })),
-    timeline: fidrecChronology(facts),
+    timeline: withDisplayDates(fidrecChronology(facts)),
     disputed_transactions: bankPackTransactions(facts),
     total_loss: loss ? formatMoney(loss) : null,
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label })),
