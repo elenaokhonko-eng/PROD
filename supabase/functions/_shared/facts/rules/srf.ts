@@ -93,7 +93,7 @@ const R = {
   telcoOtt: { code: "telco_not_assessed", cite: "G §2.1 (SMS excludes OTT messages)" },
   remedies: { code: "other_remedies", cite: "G paras 6.8, 7.11; E paras 5.2-5.6; R para 6.11(d)" },
   // Rules review of 25 Nov (row 8, wording chosen by Elena): payments the account user knew of and consented to.
-  remediesAuthorised: { code: "other_remedies", cite: "E para 5.3; W (FIDReC's assessment includes obligations outside the SRF)" },
+  remediesAuthorised: { code: "other_remedies", cite: "E para 5.3; W (mas.srf.workflow/recourse.fidrec)" },
 };
 
 const AUTHORISED_TYPES: ScamType[] = ["investment", "job", "romance", "ecommerce"];
