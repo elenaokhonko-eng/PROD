@@ -29,6 +29,20 @@ export interface FidrecOfferProps {
   onBuy: () => void
   /** Saves fidrec_route and the matching date, then refreshes the capabilities. */
   onSaveRoute: (answers: Record<string, string>) => Promise<void>
+  /** The saved answer: null when none is saved, undefined while it loads. */
+  savedRoute?: SavedFidrecRoute | null
+}
+
+export interface SavedFidrecRoute {
+  route: FidrecRoute
+  date: string | null
+}
+
+function routeAnswerText(saved: SavedFidrecRoute): string {
+  const label = ROUTE_OPTIONS.find((o) => o.value === saved.route)?.label ?? ''
+  if (!saved.date) return `${label}.`
+  const date = new Date(`${saved.date}T00:00:00Z`).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+  return `${label}, ${date}.`
 }
 
 const ROUTE_OPTIONS: Array<{ value: FidrecRoute; label: string; dateLabel: string | null }> = [
@@ -57,9 +71,18 @@ export function FidrecOffer(props: FidrecOfferProps) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
 
-  const needsAnswer = props.reason === 'complaint_not_raised' || editing
+  // Part B walk-through (25 Nov, PB-17): "not complained yet" leaves the reason at complaint_not_raised, as before any
+  // answer, so the reason alone kept the question up and hid its message. A saved answer is shown instead.
+  const saved = props.savedRoute ?? null
+  const needsAnswer = editing || (saved === null && props.reason === 'complaint_not_raised')
   const option = ROUTE_OPTIONS.find((o) => o.value === route) ?? null
   const today = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+
+  function startEditing() {
+    setRoute(saved?.route ?? null)
+    setDate(saved?.date ?? '')
+    setEditing(true)
+  }
 
   async function save() {
     if (!route) return
@@ -146,13 +169,17 @@ export function FidrecOffer(props: FidrecOfferProps) {
         </Card>
       ) : null}
 
-      {blocked && !needsAnswer ? (
-        <p role="status" className="rounded-lg border bg-muted/40 p-4 text-sm">
-          {blocked}{' '}
-          <button type="button" className="underline" onClick={() => setEditing(true)}>
-            Change my answer
-          </button>
-        </p>
+      {/* The saved answer and "Change my answer" in every state, the open one included (PB-17). */}
+      {!needsAnswer && (blocked || saved) ? (
+        <div role="status" className="space-y-1 rounded-lg border bg-muted/40 p-4 text-sm" data-fidrec-route-answer={saved?.route ?? ''}>
+          {saved ? <p className="font-medium">{routeAnswerText(saved)}</p> : null}
+          <p>
+            {blocked ? `${blocked} ` : null}
+            <button type="button" className="underline" onClick={startEditing}>
+              Change my answer
+            </button>
+          </p>
+        </div>
       ) : null}
 
       <Tier2PackPanel

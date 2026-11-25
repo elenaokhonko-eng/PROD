@@ -24,8 +24,38 @@ test.describe('paid pack journeys', () => {
     test.setTimeout(30 * 60_000)
   })
 
-  // A date the FIDReC route accepts: a final reply ten days ago (Singapore time).
-  const tenDaysAgo = () => new Date(Date.now() + 8 * 3_600_000 - 10 * 86_400_000).toISOString().slice(0, 10)
+  // Dates in Singapore time; a final reply ten days ago is one the FIDReC route accepts.
+  const daysAgo = (days: number) => new Date(Date.now() + 8 * 3_600_000 - days * 86_400_000).toISOString().slice(0, 10)
+  const tenDaysAgo = () => daysAgo(10)
+
+  // Part B walk-through (25 Nov, PB-17), steps 3.2–3.4: each closed route says why, offers no purchase, and the answer
+  // can be changed. Before the fix "not complained yet" showed nothing, and an answer could not be changed.
+  async function walkClosedFidrecRoutes(page: Page) {
+    const offer = page.locator('[data-fidrec-offer]').first()
+    const buy = offer.getByRole('button', { name: /Prepare my FIDReC case/ })
+    const change = offer.getByRole('button', { name: 'Change my answer' })
+    const answer = async (label: string, date: string | null) => {
+      await offer.getByText(label, { exact: true }).click()
+      if (date) await offer.locator('input[type="date"]').fill(date)
+      await offer.getByRole('button', { name: 'Save', exact: true }).click()
+    }
+
+    await answer('I haven’t complained to my bank in writing yet', null)
+    await expect(offer.getByText(/FIDReC needs your bank to have had the chance to answer first/)).toBeVisible({ timeout: 60_000 })
+    await expect(buy).toBeDisabled()
+
+    await change.click()
+    await answer('I complained in writing and haven’t had a final reply', daysAgo(3))
+    await expect(offer.getByText(/four weeks after your written complaint to the bank\. You can get this pack from/)).toBeVisible({ timeout: 60_000 })
+    await expect(buy).toBeDisabled()
+
+    await change.click()
+    await answer('Yes, my bank has given its final reply', daysAgo(215))
+    await expect(offer.getByText(/up to six months after the bank’s final reply, and that time has passed/)).toBeVisible({ timeout: 60_000 })
+    await expect(buy).toBeDisabled()
+
+    await change.click()
+  }
 
   async function rememberIntent(page: Page, intent: 'bank' | 'fidrec') {
     await page.goto('/')
@@ -117,7 +147,11 @@ test.describe('paid pack journeys', () => {
     const { clerkUserId, caseId, email } = await startFreshCase(page, supabase, syntheticNarrative)
     try {
       await expect(page.locator('[data-pack-intent="fidrec"]')).toBeVisible({ timeout: 120_000 })
+      await walkClosedFidrecRoutes(page)
       const buy = await answerFidrecRoute(page)
+      // The open route keeps its answer on screen and can still be changed.
+      await expect(page.locator('[data-fidrec-offer] [data-fidrec-route-answer="final_reply"]').first()).toBeVisible()
+      await expect(page.locator('[data-fidrec-offer]').first().getByRole('button', { name: 'Change my answer' })).toBeVisible()
       await buy.click()
       await payAndReturn(page, email, caseId, 'escalation_pack', 188)
 
