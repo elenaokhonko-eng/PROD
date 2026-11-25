@@ -19,6 +19,7 @@ import { createDutyTimeChecks } from "../rules/duty-time-checks.ts";
 import { createIndustryPracticeChecks } from "../rules/industry-practice-checks.ts";
 import { NO_TERM_REQUESTS, type TermRequestSource } from "../rules/institution-terms.ts";
 import { createMasNoticeChecks } from "../rules/mas-notice-checks.ts";
+import { createPoliceInvestigationSection } from "../rules/police-investigation.ts";
 import { ipLocationFooterLines, ipLocationLines } from "../../ip-location/lookup.ts";
 import {
   type AccessEventKind,
@@ -198,6 +199,7 @@ export function sectionBuilders(options: RegistryOptions = {}): Record<SectionId
     card_dispute_comparison: buildCardDisputeComparison,
     customer_fault_definitions: createCustomerFaultDefinitionsBuilder({ termRequests }),
     customer_conduct_comparison: createCustomerConductBuilder({ termRequests }),
+    police_investigation: createPoliceInvestigationSection(),
     standards: buildStandardsStub,
   };
 }

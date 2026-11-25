@@ -106,6 +106,8 @@ export const SECTION_HEADINGS: Record<SectionId, string> = {
   card_dispute_comparison: "Card scheme rules on disputing the card payments",
   customer_fault_definitions: "What each framework says about customer fault",
   customer_conduct_comparison: "The conduct the records show, and what each document refers to",
+  // Approved by Elena, 25 Nov 2026 (CR-1).
+  police_investigation: "Police investigation",
   standards: "Other standards",
 };
 

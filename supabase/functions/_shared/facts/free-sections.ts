@@ -61,12 +61,20 @@ export const DOCUMENT_LABELS: Record<string, string> = {
   card_authentication_record: "the institution's record of how card payments were authenticated (uploaded)",
   // Decision 8: approved by Elena, 24 Nov.
   credit_bureau_report: "your credit bureau report (uploaded)",
+  // CR-1: wording awaiting Elena's approval.
+  police_reply: "the police's reply on the investigation (uploaded)",
 };
 
 // Decision 8: a credit bureau report is optional. It is never required to buy or generate a pack and is not part of
 // the evidence check; the checklist only suggests it in credit card cases. Wording approved by Elena, 24 Nov.
 export const CREDIT_BUREAU_REPORT_SUGGESTION =
   "If your bank reported the disputed amount to a credit bureau, a copy of your credit bureau report can show it. This is optional.";
+
+// CR-1 (25 Nov 2026): the police's reply on the outcome of the investigation is optional. It is never required to buy or
+// generate a pack and is not part of the evidence check; the FIDReC pack's evidence checklist lists it, as optional,
+// when none was provided. Wording awaiting Elena's approval.
+export const POLICE_REPLY_SUGGESTION =
+  "The police's reply on the outcome of the investigation: if the police have replied to you by email or letter about the investigation, you can add a copy. This is optional.";
 
 export function suggestsCreditBureauReport(accountTypes: readonly string[] | null | undefined): boolean {
   return Boolean(accountTypes?.includes("credit_card"));

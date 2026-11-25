@@ -38,6 +38,7 @@ import {
   type DisputedAmountRequestSource,
   type FidrecDisputeDates,
   type InstitutionFaultLabel,
+  type PoliceInvestigationReply,
   TOKEN_ACTIVATION_METHODS,
   type TokenActivationMethod,
   type TransactionAlertThreshold,
@@ -103,6 +104,9 @@ function formatDate(iso: string | null): string | null {
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return `${d} ${months[m - 1]} ${y}`;
 }
+
+/** The packs' date form, "3 Oct 2026", from YYYY-MM-DD (CR-1: the "Police investigation" section). */
+export const formatPackDate = formatDate;
 
 // FIDReC update (Lane 2): draft wording for Elena.
 const DEVICE_ANSWER_TEXT: Record<DeviceRecognitionAnswer, string> = {
@@ -313,6 +317,11 @@ export function formatFactValue(key: FactKey, value: unknown): string {
       return (value as CreditBureauReport[])
         .map((r) => `${[formatDate(r.date) ?? "Date not given", r.bureau].filter(Boolean).join(", ")} (${CREDIT_BUREAU_SOURCE_TEXT[r.source]})`)
         .join("; ");
+    // CR-1: wording awaiting Elena's approval. The reply's own words, in quotation marks.
+    case "police_investigation_reply": {
+      const reply = value as PoliceInvestigationReply;
+      return [reply.date ? `Dated ${formatDate(reply.date)}` : null, `“${reply.statement}”`].filter(Boolean).join(": ");
+    }
     case "fidrec_dispute_dates": {
       const d = value as FidrecDisputeDates;
       return [

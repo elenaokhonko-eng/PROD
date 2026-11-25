@@ -19,10 +19,10 @@ import {
 } from "../_shared/edge-auth.ts";
 import { fidrecUpdateSectionsEnabled } from "../_shared/facts/update/switch.ts";
 // The FIDReC update's switch (FIDREC_UPDATE_SECTIONS_ENABLED; Elena, 24 Nov 2026). Off: the document types and
-// definitions are exactly main's, so no document is classified as a card authentication record or a credit bureau
-// report and the login-record definition is main's.
+// definitions are exactly main's, so no document is classified as a card authentication record, a credit bureau
+// report or the police's reply on the investigation, and the login-record definition is main's.
 const UPDATE_SECTIONS = fidrecUpdateSectionsEnabled((name) => Deno.env.get(name));
-const UPDATE_EVIDENCE_TYPES = new Set(["CARD_AUTHENTICATION_RECORD", "CREDIT_BUREAU_REPORT"]);
+const UPDATE_EVIDENCE_TYPES = new Set(["CARD_AUTHENTICATION_RECORD", "CREDIT_BUREAU_REPORT", "POLICE_INVESTIGATION_OUTCOME"]);
 // ==================== EVIDENCE TYPES (EXACTLY YOUR LIST) ====================
 const EVIDENCE_TYPES = [
   "PHISHING_EMAIL_COPY_OR_DESCRIPTION",
@@ -44,6 +44,8 @@ const EVIDENCE_TYPES = [
   "CARD_AUTHENTICATION_RECORD",
   // Decision 8 (24 Nov): optional; the facts extraction types it credit_bureau_report. Not critical, never required.
   "CREDIT_BUREAU_REPORT",
+  // CR-1 (25 Nov): optional; the facts extraction types it police_reply. Not critical, never required.
+  "POLICE_INVESTIGATION_OUTCOME",
   "TIMELINE_NOTES",
   "CYBER_EXPERT_REPORT",
   "OTHER"
@@ -85,6 +87,8 @@ function normalizeEvidenceType(t) {
     "CARD_AUTH_RECORD": "CARD_AUTHENTICATION_RECORD",
     "CREDIT_BUREAU_REPORT": "CREDIT_BUREAU_REPORT",
     "CREDIT_REPORT": "CREDIT_BUREAU_REPORT",
+    "POLICE_REPLY": "POLICE_INVESTIGATION_OUTCOME",
+    "POLICE_INVESTIGATION_OUTCOME": "POLICE_INVESTIGATION_OUTCOME",
     // very ambiguous legacy bucket; keep conservative
     "FRAUD_SCREENSHOTS": "PHISHING_EMAIL_COPY_OR_DESCRIPTION"
   };
@@ -97,7 +101,7 @@ function mapToDutyCategory(type) {
   if (type === "BANK_SRF_INVESTIGATION_REPORT_OR_OFFICIAL_RESPONSE" || type === "BANK_DISPUTED_TRANSACTIONS_OFFICIAL_RESPONSE_COPY") return "FI_INVESTIGATION_DUTY";
   if (type === "RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA" || type === "CARD_AUTHENTICATION_RECORD") return "FI_MONITORING_DUTY";
   if (type === "PHISHING_EMAIL_COPY_OR_DESCRIPTION") return "SCAM_ORIGIN_EVIDENCE";
-  if (type === "POLICE_REPORT_OF_FRAUD_SCAM") return "LAW_ENFORCEMENT_EVIDENCE";
+  if (type === "POLICE_REPORT_OF_FRAUD_SCAM" || type === "POLICE_INVESTIGATION_OUTCOME") return "LAW_ENFORCEMENT_EVIDENCE";
   if (type === "TIMELINE_NOTES") return "USER_ASSERTION_EVIDENCE";
   if (type === "CYBER_EXPERT_REPORT") return "EXPERT_EVIDENCE";
   return "GENERAL";
@@ -264,7 +268,7 @@ function evidenceDefinitionsBlock() {
 function evidenceDefinitionsMain() {
   return evidenceDefinitionsUpdate()
     .split("\n")
-    .filter((line) => !/^- (?:CARD_AUTHENTICATION_RECORD|CREDIT_BUREAU_REPORT):/.test(line))
+    .filter((line) => !/^- (?:CARD_AUTHENTICATION_RECORD|CREDIT_BUREAU_REPORT|POLICE_INVESTIGATION_OUTCOME):/.test(line))
     .map((line) => line.startsWith("- RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA:") ? "- RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA: raw login logs, IP logs, session/device information." : line)
     .join("\n");
 }
@@ -288,6 +292,7 @@ function evidenceDefinitionsUpdate() {
 - RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA: the institution's own record of logins and sessions, devices registered, digital-token activation, IP addresses, payee/limit/contact-detail changes, alerts or SMS sent, or the account block. A record listing these, even inside a letter; a letter that only describes them in prose is BANK_EMAILS_OR_COMMUNICATIONS_ADDITIONAL.
 - CARD_AUTHENTICATION_RECORD: the institution's own record of how card payments were authenticated: per payment the time, merchant, entry mode, authentication method and result (3-D Secure, OTP, in-app approval, digital token, wallet device), where a code was sent, the device or token that approved it, or a card added to a mobile wallet. Not a card statement.
 - CREDIT_BUREAU_REPORT: a report from a licensed credit bureau about the account holder's credit record. Not a bank or card statement.
+- POLICE_INVESTIGATION_OUTCOME: an email or letter from the police to the complainant about the investigation of their police report (its outcome or progress). Not the police report itself.
 - TIMELINE_NOTES: user timeline notes/narrative.
 - CYBER_EXPERT_REPORT: report by cyber/security expert.
 `.trim();

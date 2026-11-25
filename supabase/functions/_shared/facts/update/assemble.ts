@@ -31,6 +31,8 @@ export async function buildFidrecUpdate(args: {
   generatedOn: IsoDate;
   /** The index's documents with their text, so each account status cites only its own document. */
   documents?: readonly IndexedDocumentText[];
+  /** CR-1: the E-numbers of the documents read as the police's reply (fidrec-pack.ts `policeReplyEvidenceIds`). */
+  policeReplyEvidenceIds?: readonly string[];
   /** R-numbers continue after the clauses the model's duties section was given (R1…Rn). */
   firstClauseNumber: number;
 }): Promise<FidrecUpdate> {

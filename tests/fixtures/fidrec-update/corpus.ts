@@ -132,6 +132,26 @@ export const syntheticCorpus: FakeCorpus = {
         { clause_id: 'cl-bank-b-9', clause_key: 'examplebankb.card_terms/9', clause_ref: '9', text_content: 'Placeholder definition clause of Example Bank B.', text_sha256: sha('e').slice(0, 32) + sha('f').slice(0, 32), tags: ['definition_gross_negligence'] },
       ],
     },
+    // CR-1: FIDReC's Terms of Reference, Rule 5 (the "Police investigation" section cites it). Placeholder text.
+    {
+      version_id: 'ver-fidrec-tor',
+      document_key: 'fidrec.tor',
+      title: 'Synthetic FIDReC Terms of Reference',
+      publisher: 'Synthetic dispute resolution centre',
+      binding_level: 'forum_rules',
+      institution: null,
+      card_scheme: null,
+      document_instrument_scope: ['account_transfer', 'sg_card', 'ewallet'],
+      version_label: 'v2.2',
+      effective_from: '2025-07-01',
+      effective_to: null,
+      status: 'verified',
+      source_url: 'https://example.com/fidrec-tor.pdf',
+      coverage: 'selected_sections',
+      clauses: [
+        { clause_id: 'cl-fidrec-tor-5', clause_key: 'fidrec.tor/5', clause_ref: 'Rule 5', text_content: 'Placeholder text of Rule 5.', text_sha256: sha('9') },
+      ],
+    },
   ],
   statements: [
     // Rests on a clause that does not change between A and B: prints throughout.

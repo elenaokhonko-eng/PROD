@@ -32,6 +32,7 @@ import {
   fidrecRouteFromFacts,
   mapFidrecPackProse,
   parseFidrecPackProse,
+  policeReplyEvidenceIds,
   produceChecked,
   qualifyingFinalReplyDocumentId,
   type SnapshotFacts,
@@ -205,6 +206,8 @@ Deno.serve(async (req) => {
     }));
 
     const evidenceIndex = buildEvidenceIndex(findings ?? [], caseDocuments);
+    // CR-1 (switch on only): the documents read as the police's reply, for the "Police investigation" section.
+    const policeReplyIds = UPDATE_SECTIONS ? policeReplyEvidenceIds(evidenceIndex, caseDocuments) : [];
 
     const usageEnv = usageEnvironment(Deno.env.toObject());
     const usageClient = supabase as unknown as UsageClient;
@@ -231,6 +234,7 @@ Deno.serve(async (req) => {
           creditBureauReportRead: creditBureauReportReadFrom(caseDocuments),
           // Each account status cites only the document it was read from (server-side matching on the quote).
           documents: evidenceIndex.map((e) => ({ id: e.id, text: caseDocuments.find((d) => d.id === e.documentId)?.text ?? null })),
+          policeReplyEvidenceIds: policeReplyIds,
           institutionCode: await institutionCode(supabase, facts),
           ipLocations: await caseIpLocations(supabase, case_id, facts),
           provider: createDbClauseProvider((fn, args) => supabase.rpc(fn, args)),
@@ -361,6 +365,7 @@ ${JSON.stringify(input, null, 2)}`;
       finalReplyUsed: Boolean(finalReplyText),
       clauses,
       update: update?.rendered ?? null,
+      policeReplyEvidenceIds: policeReplyIds,
     });
     const { data: committed, error: commitErr } = await supabase.rpc("commit_fidrec_pack_v1", {
       p_case_id: case_id,

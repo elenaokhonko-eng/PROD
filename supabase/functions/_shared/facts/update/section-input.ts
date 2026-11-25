@@ -106,6 +106,8 @@ export function sectionInputFromSnapshot(args: {
   generatedOn: IsoDate;
   /** The index's documents with their text: each account status is placed on its own document (withStatusEvidenceIds). */
   documents?: readonly IndexedDocumentText[];
+  /** CR-1: the E-numbers of the documents read as the police's reply (fidrec-pack.ts `policeReplyEvidenceIds`). */
+  policeReplyEvidenceIds?: readonly string[];
 }): SectionInput {
   const placed = withStatusEvidenceIds(args.facts, args.documents ?? []);
   const payments = disputedPayments(placed);
@@ -126,5 +128,6 @@ export function sectionInputFromSnapshot(args: {
     evidenceIds: evidenceIdsByFact(args.evidenceIndex),
     provider: args.provider,
     generatedOn: args.generatedOn,
+    ...(args.policeReplyEvidenceIds?.length ? { policeReplyEvidenceIds: [...args.policeReplyEvidenceIds] } : {}),
   };
 }
