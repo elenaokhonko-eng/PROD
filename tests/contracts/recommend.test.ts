@@ -112,3 +112,13 @@ test('loss above S$150,000 mentions the FIDReC award cap; unknown members get a 
   assert.match(r.notes.join(' '), /couldn't confirm that Synthetic Bank is a FIDReC member/)
   assert.equal(run({ totalLoss: sgd(150_000), reportedToBank: yes() }).notes.length, 0)
 })
+
+// Rules review, 25 Nov (wording approved by Elena): within the four weeks after a written complaint, the next steps also
+// say FIDReC can be approached earlier once the institution has answered (Rule 13(1)(i)). Told only, with no written
+// complaint, they do not.
+test('within four weeks of a written complaint, the earlier route under Rule 13(1)(i) is named', () => {
+  const recent = recommend({ ...base, reportedToBank: yes(), writtenComplaint: yes('2026-10-01') }, { today: '2026-10-10', bankPackEnabled: true })
+  assert.equal(recent.position, 'complaint_recent')
+  assert.ok(recent.notes.includes("FIDReC's rules also allow filing earlier if the institution has already answered and the matter is not resolved (Rule 13(1)(i))."))
+  assert.ok(!run({ reportedToBank: yes() }).notes.some((n) => /Rule 13\(1\)\(i\)/.test(n)))
+})

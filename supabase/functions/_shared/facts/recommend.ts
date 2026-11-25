@@ -142,6 +142,11 @@ export function recommend(facts: RecommendFacts, options: RecommendOptions): Rec
     : null;
 
   const notes: string[] = [];
+  // Rules review, 25 Nov (wording approved by Elena): the four-week route is not the only one before a final reply.
+  // The 28-day check itself is unchanged.
+  if (fidrecReason === "fidrec_too_early" && "availableFrom" in fidrec && fidrec.availableFrom) {
+    notes.push("FIDReC's rules also allow filing earlier if the institution has already answered and the matter is not resolved (Rule 13(1)(i)).");
+  }
   const cap = FIDREC_RULES.awardCapSgd.value;
   if (facts.totalLoss?.currency === "SGD" && facts.totalLoss.amount > cap) {
     notes.push(`FIDReC awards are capped at ${formatMoney({ amount: cap, currency: "SGD", amountSgd: cap })} per claim. A larger claim goes to adjudication only if you limit your claim or your bank agrees.`);
