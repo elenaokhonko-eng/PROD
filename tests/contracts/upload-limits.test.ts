@@ -35,7 +35,8 @@ test('the upload route enforces the caps after the signature check', () => {
 // Part B walk-through, 25 Nov (PB-20): the same file uploaded twice was kept twice.
 test('an upload whose bytes match a document already in the case is refused before it is stored or counted', () => {
   const route = readFileSync('app/api/evidence/upload/route.ts', 'utf8')
-  assert.ok(route.includes('This file is already in your case as “${existing}”. You don’t need to add it again.'))
+  assert.ok(route.includes('const DUPLICATE_UPLOAD_MESSAGE = "You have already added this file to your case."'))
+  assert.ok(route.includes('error: DUPLICATE_UPLOAD_MESSAGE }, { status: 409 }'))
   assert.match(route, /\.from\("evidence"\)\s*\.select\("filename, file_path"\)\s*\.eq\("case_id", caseId\)\s*\.eq\("file_size", file\.size\)/)
   assert.match(route, /sha256Of\(await stored\.arrayBuffer\(\)\) === hash/)
   const check = route.indexOf('await duplicateOf(supabaseService, caseId, file)')

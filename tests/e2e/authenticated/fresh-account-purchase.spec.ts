@@ -101,7 +101,7 @@ test.describe('fresh free account', () => {
         mimeType: 'application/pdf',
         buffer: syntheticStatementPdf(),
       })
-      await expect(page.getByText('This file is already in your case as “synthetic-bank-statement.pdf”. You don’t need to add it again.')).toBeVisible({ timeout: 60_000 })
+      await expect(page.getByText('renamed-copy.pdf: You have already added this file to your case.')).toBeVisible({ timeout: 60_000 })
       const { count: after } = await supabase.from('evidence').select('id', { count: 'exact', head: true }).eq('case_id', caseId)
       expect(after, 'the repeat is not kept').toBe(before)
 

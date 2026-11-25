@@ -28,8 +28,8 @@ const MIME_EXTENSION = {
 // Part B walk-through (25 Nov, PB-20): the same file uploaded twice was kept twice, read twice and offered twice. A file
 // is a repeat when a document already in the case has the same bytes. Only same-size files are compared, so the stored
 // copy is fetched only in that rare case; renamed copies and documents uploaded before this check are caught too.
-const DUPLICATE_UPLOAD_MESSAGE = (existing: string) =>
-  `This file is already in your case as “${existing}”. You don’t need to add it again.`
+// Wording chosen by Elena (25 Nov); the upload screen puts the file's name before it.
+const DUPLICATE_UPLOAD_MESSAGE = "You have already added this file to your case."
 
 const sha256Of = (bytes: ArrayBuffer) => createHash("sha256").update(new Uint8Array(bytes)).digest("hex")
 
@@ -173,7 +173,7 @@ export async function POST(request: Request) {
     }
     // Before the usage limits: a refused repeat is not read by a model, so it does not count.
     const existing = await duplicateOf(supabaseService, caseId, file)
-    if (existing) return NextResponse.json({ error: DUPLICATE_UPLOAD_MESSAGE(existing) }, { status: 409 })
+    if (existing) return NextResponse.json({ error: DUPLICATE_UPLOAD_MESSAGE }, { status: 409 })
     // Every upload is read by a model: limited per account per day and per IP per hour (cost-controls §5 B1).
     if (await overUploadLimit(user.supabaseUuid)) return limitResponse()
     if (overIpModelLimit(request)) return limitResponse(HOURLY_LIMIT_MESSAGE)
