@@ -58,6 +58,8 @@ const POLICE_REPORT_OPENING = /singapore police force|police report (?:acknowled
 // The report's own number, near the top of a police report: "Report No: G/20241031/0000", "Police report no. A2026...".
 const POLICE_REPORT_NUMBER = /\breport\s+(?:no\.?|number)\s*[:#.]?\s*([A-Z]{0,2}\/?\d{6,}(?:\/\d{1,6})?)/i;
 
+// Words that make an amount a total rather than one payment: "totalling S$2,549", "S$2,549 in total", "a total of".
+const STATES_A_TOTAL = /\btotal(?:l)?ing\b|\bin total\b|\ba total of\b/i;
 export function documentTypeOf(modelType: unknown, text: string): DocumentType {
   const declared = oneOf(DOCUMENT_TYPES, modelType) ?? "other";
   if (declared !== "police_report" && declared !== "bank_correspondence" && POLICE_REPORT_OPENING.test(text.slice(0, 600))) {
@@ -125,12 +127,16 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
     "  installed_app_or_malware when an app was installed.",
     "- institutions: the bank or provider that issued a statement, alert or letter is one of them, named as printed in",
     "  its heading.",
+    "- transactions: one entry per payment the source states on its own, with the payee or merchant as printed. A total",
+    "  of several payments is not a transaction: put it in total_loss.",
     "- scam_types: the kind of scam the source describes, never the bank's later handling of it.",
     "- total_loss: one entry per amount stated as lost, with the account or card it left from when the source says so.",
     "- A police report is itself evidence that the scam was reported to the police: reported_to_police is yes, with the",
     "  report's own number as reference and its date.",
     "- For a document: set document_type, and give every value \"confidence\" (0 to 1) that the document states it about",
     "  this scam. Correspondence about the dispute is bank_correspondence, even when it repeats the claimant's words.",
+    "  bank_correspondence is only a letter, email or message from a bank or payment provider; an acknowledgement or",
+    "  receipt that does not show it comes from one is other.",
     "",
     `TEMPLATE: ${JSON.stringify(template)}`,
     "",
@@ -175,6 +181,9 @@ export function parseFactExtraction(
 ): FactCandidate[] {
   const out = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const candidates: FactCandidate[] = [];
+  const institutions = list(out.institutions)
+    .map((i) => ({ institution: normaliseInstitution((i as { name?: unknown })?.name), quote: quoted(sourceText, i) }))
+    .filter((i) => i.institution && i.quote);
   const documentType: DocumentType | null = source.sourceType === "document" ? documentTypeOf(out.document_type, sourceText) : null;
   // A document value outside what that kind of document can state, or below the confidence threshold, is kept as
   // context: stored for the record, never compared (finding A7).
@@ -190,9 +199,6 @@ export function parseFactExtraction(
     } as FactCandidate);
   };
 
-  const institutions = list(out.institutions)
-    .map((i) => ({ institution: normaliseInstitution((i as { name?: unknown })?.name), quote: quoted(sourceText, i) }))
-    .filter((i) => i.institution && i.quote);
   if (institutions.length) {
     const byName = new Map(institutions.map((i) => [i.institution!.name.toLowerCase(), i.institution!]));
     add("institution_names", [...byName.values()], institutions.map((i) => i.quote!), list(out.institutions));
@@ -231,6 +237,9 @@ export function parseFactExtraction(
     const quote = quoted(sourceText, t);
     const amount = normaliseMoney(typeof t.amount === "number" ? t.amount : String(t.amount ?? ""), typeof t.currency === "string" ? t.currency.toUpperCase() : "SGD");
     if (!quote || !amount || amount.amount <= 0) continue;
+    // A total of several payments is the amount lost, never a payment (Part B walk-through, 25 Nov, PB-26: "three card
+    // payments totalling S$2,549" in a police report replaced the statement's three payments).
+    if (STATES_A_TOTAL.test(quote)) continue;
     const last4 = typeof t.card_last4 === "string" && /^\d{4}$/.test(t.card_last4) ? t.card_last4 : null;
     transactions.push({
       date: normaliseDate(t.date),

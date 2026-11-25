@@ -171,3 +171,33 @@ test('the heading backstop adds nothing when the model named the bank, when the 
   const police = parseFactExtraction({ document_type: 'police_report', institutions: [] }, report, doc)
   assert.equal(police.filter((c) => c.factKey === 'institution_names').length, 0)
 })
+
+// Part B walk-through, 25 Nov (PB-25): an acknowledgement naming no sender was filed as a letter from the bank. A rule
+// on the text alone would also demote genuine bank emails that print no bank name (A7 test, confirm-facts-cards), so the
+// prompt says what a bank letter is; the model's type is kept.
+test('the prompt says a bank letter comes from a bank or payment provider', () => {
+  assert.match(buildFactExtractionPrompt('document', 'x'), /bank_correspondence is only a letter, email or message from a bank or payment provider; an acknowledgement or\s+receipt that does not show it comes from one is other/)
+})
+
+// Part B walk-through, 25 Nov (PB-26): "three card payments totalling S$2,549" replaced the statement's three payments.
+test('a total of several payments is the amount lost, never a payment', () => {
+  assert.match(buildFactExtractionPrompt('document', 'x'), /A total\s+of several payments is not a transaction: put it in total_loss/)
+  const report = 'Police report (synthetic test document) Report number: TEST-2222-2026 Reported on 13 Oct 2026: phishing SMS; three card payments totalling S$2,549.00 on 12 Oct 2026, Synthetic Bank'
+  const doc = { sourceType: 'document' as const, sourceRef: { sourceKey: 'document:d7' } }
+  const fromReport = parseFactExtraction({
+    document_type: 'police_report',
+    transactions: [{ date: '2026-10-12', amount: 2549, currency: 'SGD', payee: null, card_last4: null, instrument: 'sg_card', quote: 'three card payments totalling S$2,549.00 on 12 Oct 2026', confidence: 0.9 }],
+    total_loss: [{ amount: 2549, currency: 'SGD', account: 'credit_card', quote: 'three card payments totalling S$2,549.00', confidence: 0.9 }],
+  }, report, doc)
+  assert.equal(fromReport.filter((c) => c.factKey === 'transactions').length, 0)
+  assert.equal(fromReport.filter((c) => c.factKey === 'total_loss').length, 1, 'the total is kept as the amount lost')
+
+  const statement = 'Synthetic Bank Visa Credit Card - Statement (synthetic test document) Card ending 0000 12 Oct 2026 ONLINE MERCHANT ONE (card not present) S$1,200.00 12 Oct 2026 ONLINE MERCHANT TWO (card not present) S$850.00 12 Oct 2026 ONLINE MERCHANT THREE (card not present) S$499.00'
+  const line = (payee: string, amount: number, printed: string) => ({ date: '2026-10-12', amount, currency: 'SGD', payee, card_last4: null, instrument: 'sg_card', quote: `12 Oct 2026 ${payee} (card not present) S$${printed}`, confidence: 0.95 })
+  const fromStatement = parseFactExtraction({
+    document_type: 'card_statement',
+    transactions: [line('ONLINE MERCHANT ONE', 1200, '1,200.00'), line('ONLINE MERCHANT TWO', 850, '850.00'), line('ONLINE MERCHANT THREE', 499, '499.00')],
+  }, statement, doc)
+  const payments = fromStatement.find((c) => c.factKey === 'transactions')!.value as Array<{ amount: { amount: number }; payee: string | null }>
+  assert.deepEqual(payments.map((p) => [p.amount.amount, p.payee]), [[1200, 'ONLINE MERCHANT ONE'], [850, 'ONLINE MERCHANT TWO'], [499, 'ONLINE MERCHANT THREE']])
+})
