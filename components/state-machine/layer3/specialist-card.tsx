@@ -1,8 +1,9 @@
 'use client'
 
 import { UserRoundX } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+// Part B walk-through (25 Nov, PB-6): no greyed button under a line that says how to book.
 
 export interface SpecialistCardProps {
   name: string
@@ -25,11 +26,6 @@ export function SpecialistCard(_props: SpecialistCardProps) {
           <CardDescription>Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.</CardDescription>
         </div>
       </CardHeader>
-      <CardContent>
-        <Button type="button" className="min-h-11" disabled>
-          Consultation unavailable
-        </Button>
-      </CardContent>
     </Card>
   )
 }

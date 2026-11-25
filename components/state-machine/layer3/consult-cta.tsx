@@ -1,8 +1,9 @@
 'use client'
 
 import { PhoneOff } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+// Part B walk-through (25 Nov, PB-6): no greyed button under a line that says how to book.
 
 export interface ConsultCtaProps {
   priceLabel?: string
@@ -25,11 +26,6 @@ export function ConsultCta(_props: ConsultCtaProps) {
           </CardDescription>
         </div>
       </CardHeader>
-      <CardContent>
-        <Button type="button" className="min-h-11" disabled>
-          Consultation unavailable
-        </Button>
-      </CardContent>
     </Card>
   )
 }

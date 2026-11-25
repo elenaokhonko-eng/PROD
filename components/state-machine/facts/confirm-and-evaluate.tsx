@@ -12,7 +12,8 @@ import { qk } from '@/hooks/state-machine/query-keys'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmFactsPanel } from '@/components/state-machine/facts/confirm-facts-panel'
-import { PACK_NAMES } from '@/components/state-machine/facts/pack-evidence'
+import { addMissingEvidenceText, PACK_NAMES } from '@/components/state-machine/facts/pack-evidence'
+import type { EvidenceItem } from '@/lib/billing/evidence-minimums'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { FactsRequestError } from '@/hooks/state-machine/facts/use-case-facts'
 import { type GeneratedStage, useGenerateStage } from '@/hooks/state-machine/facts/use-generate-free-evaluation'
@@ -55,12 +56,15 @@ export function ConfirmAndEvaluate({
   readyDocumentsKey,
   stage = 'free',
   evidenceReady,
+  missingEvidence,
 }: {
   caseId: string
   readyDocumentsKey: string
   stage?: GeneratedStage
   /** Paid packs only: whether the documents the pack needs are in (evidence-minimums.ts). Undefined: no check. */
   evidenceReady?: boolean
+  /** Paid packs only: the required items still missing, named after confirming (PB-3). */
+  missingEvidence?: readonly EvidenceItem[]
 }) {
   const generate = useGenerateStage(caseId, stage)
   const copy = COPY[stage]
@@ -95,7 +99,9 @@ export function ConfirmAndEvaluate({
           <CardDescription>
             {evidenceReady
               ? `Your documents are in. You can generate your ${PACK_NAMES[stage]} now.`
-              : `When the documents listed above are added, you can generate your ${PACK_NAMES[stage]}.`}
+              : missingEvidence?.length
+                ? addMissingEvidenceText(stage, missingEvidence)
+                : `When the documents listed above are added, you can generate your ${PACK_NAMES[stage]}.`}
           </CardDescription>
         </CardHeader>
         <CardContent>
