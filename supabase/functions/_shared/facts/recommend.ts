@@ -4,6 +4,7 @@
 import type { BankReply, Institution, Money, ReportedEvent } from "./keys.ts";
 import { fidrecAvailability, type FidrecAvailability, FIDREC_RULES } from "./rules/fidrec.ts";
 import { formatMoney } from "./display.ts";
+import { addMonths } from "./normalise.ts";
 
 export type JourneyPosition =
   | "not_told"
@@ -65,6 +66,9 @@ function position(facts: RecommendFacts, fidrec: FidrecAvailability): JourneyPos
   if (facts.reportedToBank?.value === "yes") return "told_no_complaint";
   return "not_told";
 }
+
+export const FINAL_REPLY_EXPIRED_NOTE =
+  "FIDReC's Terms of Reference say a final reply is a letter that expressly states it is the institution's final reply, tells you that you can contact FIDReC within six months, and gives FIDReC's contact details (Rule 13(2)). If the reply you received did not state these, you can ask your bank in writing to confirm whether it was its final reply. Whether a document is a final reply is decided by FIDReC.";
 
 export function recommend(facts: RecommendFacts, options: RecommendOptions): Recommendation {
   const fidrec = fidrecAvailability(
@@ -142,6 +146,12 @@ export function recommend(facts: RecommendFacts, options: RecommendOptions): Rec
     : null;
 
   const notes: string[] = [];
+  // Rules review, 25 Nov (row 22, wording approved by Elena): when the six months after a final reply have passed, what
+  // makes a letter a final reply under FIDReC's rules, and how to ask the bank. FIDReC decides; the free evaluation
+  // does not. Shown in the signed-in free evaluation only (this module is not used by public pages).
+  if (finalReplyReceived && facts.bankReply?.date && addMonths(facts.bankReply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value) < options.today) {
+    notes.push(FINAL_REPLY_EXPIRED_NOTE);
+  }
   const cap = FIDREC_RULES.awardCapSgd.value;
   if (facts.totalLoss?.currency === "SGD" && facts.totalLoss.amount > cap) {
     notes.push(`FIDReC awards are capped at ${formatMoney({ amount: cap, currency: "SGD", amountSgd: cap })} per claim. A larger claim goes to adjudication only if you limit your claim or your bank agrees.`);
