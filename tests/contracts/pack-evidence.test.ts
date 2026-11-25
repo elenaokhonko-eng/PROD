@@ -121,3 +121,13 @@ test('only the case owner can mark a document, and only as a known item', () => 
   assert.match(route, /if \(!access\.isOwner\)/)
   assert.match(route, /\.eq\('id', documentId\)\s+\.eq\('case_id', caseId\)/)
 })
+
+// Part B walk-through (25 Nov, PB-5): with both packs bought, the case page read as one report shown twice.
+test('each pack on the case page is labelled with its name, and the two are separated', () => {
+  const dashboard = readFileSync('app/(case)/app/case/[id]/dashboard/_components/dashboard-client.tsx', 'utf8')
+  assert.match(dashboard, /<p id="pack-label-fidrec"[^>]*>\s*\{PACK_NAMES\.fidrec\}\s*<\/p>\s*<FidrecPackView/)
+  assert.match(dashboard, /<p id="pack-label-bank"[^>]*>\s*\{PACK_NAMES\.bank\}\s*<\/p>/)
+  assert.match(dashboard, /className=\{fidrecReport \? 'space-y-3 border-t pt-8' : 'space-y-3'\}/)
+  const names = readFileSync('components/state-machine/facts/pack-evidence.tsx', 'utf8')
+  assert.match(names, /PACK_NAMES: Record<PackProduct, string> = \{ bank: 'Bank dispute pack', fidrec: 'FIDReC pack' \}/)
+})

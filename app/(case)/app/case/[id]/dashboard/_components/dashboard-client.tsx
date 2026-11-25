@@ -29,7 +29,7 @@ import { UploadRefusedError, UsageLimitError, useUploadEvidence } from '@/hooks/
 import { useDeleteEvidence } from '@/hooks/state-machine/layer1/use-delete-evidence'
 import { EVIDENCE_SKIPPED_KEY, useEvidenceSkipped } from '@/hooks/state-machine/facts/use-evidence-skipped'
 import { useCaseDocumentsRealtime } from '@/hooks/state-machine/layer1/use-case-documents-realtime'
-import { documentsBeingRead, PackEvidenceChecklist } from '@/components/state-machine/facts/pack-evidence'
+import { documentsBeingRead, PACK_NAMES, PackEvidenceChecklist } from '@/components/state-machine/facts/pack-evidence'
 import { checkPackEvidence, type EvidenceItem, type PackProduct } from '@/lib/billing/evidence-minimums'
 import { useTier0Draft } from '@/hooks/state-machine/layer1/use-tier0-draft'
 import { useQueryClient } from '@tanstack/react-query'
@@ -446,23 +446,41 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
 
   const renderLayer3 = () => (
     <div className="space-y-6">
+      {/* Part B walk-through (25 Nov, PB-5): each pack's title is written from the case, so with both bought the page
+          read as one report shown twice. Each pack is labelled with its name, and a rule separates them. */}
       {fidrecReport ? (
-        <FidrecPackView
-          pack={(fidrecReport.report_json ?? {}) as FidrecPackJson}
-          createdAt={fidrecReport.created_at}
-          onDownload={() => window.location.assign(`/api/cases/${caseId}/fidrec-pack/pdf`)}
-        />
+        <section className="space-y-3" aria-labelledby="pack-label-fidrec" data-pack-section="fidrec">
+          <p id="pack-label-fidrec" className="text-sm font-semibold text-primary">
+            {PACK_NAMES.fidrec}
+          </p>
+          <FidrecPackView
+            pack={(fidrecReport.report_json ?? {}) as FidrecPackJson}
+            createdAt={fidrecReport.created_at}
+            onDownload={() => window.location.assign(`/api/cases/${caseId}/fidrec-pack/pdf`)}
+          />
+        </section>
       ) : null}
       {reportQuery.data?.status === 'COMPLETED' ? (
-        <ReportView
-          report={reportQuery.data}
-          decision={decisionQuery.data}
-          onDownload={
-            reportQuery.data.report_type === 'bank_pack_v1'
-              ? () => window.location.assign(`/api/cases/${caseId}/bank-pack/pdf`)
-              : undefined
-          }
-        />
+        <section
+          className={fidrecReport ? 'space-y-3 border-t pt-8' : 'space-y-3'}
+          aria-labelledby={reportQuery.data.report_type === 'bank_pack_v1' ? 'pack-label-bank' : undefined}
+          data-pack-section="bank"
+        >
+          {reportQuery.data.report_type === 'bank_pack_v1' ? (
+            <p id="pack-label-bank" className="text-sm font-semibold text-primary">
+              {PACK_NAMES.bank}
+            </p>
+          ) : null}
+          <ReportView
+            report={reportQuery.data}
+            decision={decisionQuery.data}
+            onDownload={
+              reportQuery.data.report_type === 'bank_pack_v1'
+                ? () => window.location.assign(`/api/cases/${caseId}/bank-pack/pdf`)
+                : undefined
+            }
+          />
+        </section>
       ) : null}
       <div className="rounded-lg border bg-muted/40 p-4 text-sm">
         <p className="font-medium">Case reference</p>
