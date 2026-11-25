@@ -82,7 +82,7 @@ const R = {
   card: { code: "sg_card_excluded", cite: "G fn 1; R para 8.3(d)" },
   // Cards (Elena, 8 Nov): the ABS card code and the card scheme's chargeback; the EUPG excludes cards from its
   // loss-sharing rules and keeps only some issuer duties for them.
-  cardRules: { code: "card_rules", cite: "ABS Code of Practice for Banks – Credit Cards (rev. 2 July 2020) 5(a), 5(e), 6(a); EUPG (16 Dec 2024) 1.2 fn 3, 5.1; 4.2–4.6, 4.10–4.12, 4.14–4.16" },
+  cardRules: { code: "card_rules", cite: "ABS Code of Practice for Banks – Credit Cards (rev. 2 July 2020) 5(a), 5(e), 6(a); EUPG (16 Dec 2024) 1.2 fn 3, 5.1; 4.2–4.6, 4.10–4.12, 4.14–4.16; mas.reply.20250107/3(a).3ds" },
   malware: { code: "malware_excluded", cite: "R para 3.4; CP para 4.4(c)" },
   nonDigital: { code: "non_digital_excluded", cite: "R para 3.5; CP para 4.4(b)" },
   givenDirectly: { code: "credentials_given_directly", cite: "G §2.1 limb (c); CP para 4.4(b)" },
@@ -188,7 +188,7 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
         },
         {
           ...R.cardRules,
-          text: "Card losses are covered by the ABS Code of Practice for Banks – Credit Cards. Before you tell your card issuer, your liability for unauthorised charges is capped at S$100, unless you acted fraudulently or with gross negligence, or did not tell the issuer as soon as reasonably practicable (5(a)). If your card details were used without the card being stolen, and you did not act fraudulently or with gross negligence, you are not liable (6(a)). The cap also applies to debit cards that work like credit cards (5(e)). If you approved a payment yourself, for example with a one-time password or an in-app confirmation sent to you for that payment, the issuer may treat it as negligence and the cap may not apply.",
+          text: "Card losses are covered by the ABS Code of Practice for Banks – Credit Cards. Before you tell your card issuer, your liability for unauthorised charges is capped at S$100, unless you acted fraudulently or with gross negligence, or did not tell the issuer as soon as reasonably practicable (5(a)). If your card details were used without the card being stolen, and you did not act fraudulently or with gross negligence, you are not liable (6(a)). The cap also applies to debit cards that work like credit cards (5(e)). In a written reply to Parliament on 7 January 2025, MAS stated that the S$100 limit will not apply to a cardholder who unwittingly authenticates a 3DS transaction that turns out to be fraudulent, 'as that would be considered negligent'. 3DS is the step where you approve a card payment with a one-time password or in your banking app.",
         },
         {
           ...R.cardRules,
@@ -213,7 +213,7 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
       ...R.telcoSms,
       // Rules review of 25 Nov (row 6, wording chosen by Elena): the bank passes the claim on and the operator investigates
       // its own duties (G 7.7, 7.7.1, 7.11); the earlier "your bank assesses this … not to FIDReC" had no such source.
-      text: "Because the scam message came by SMS, your mobile operator may be responsible if your bank met all its duties and the operator did not meet its own. Your bank is your point of contact and passes the claim to the operator, which investigates its own duties. If you disagree with the operator's assessment, you can write to IMDA.",
+      text: "Because the scam message came by SMS, your mobile operator may be responsible if your bank met all its duties and the operator did not meet its own. The SRF applies to four mobile network operators only: Singtel, M1, StarHub and SIMBA. It does not apply to other mobile providers. Your bank is your point of contact and passes the claim to the operator, which investigates its own duties. If you disagree with the operator's assessment, you can write to IMDA.",
     };
   } else if (srfInScope && facts.channel === "messaging_app") {
     telco = { ...R.telcoOtt, text: "Messages through WhatsApp or similar apps are not SMS, so the mobile operator's SRF duties do not apply." };
