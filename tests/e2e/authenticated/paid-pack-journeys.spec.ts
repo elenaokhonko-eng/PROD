@@ -64,13 +64,28 @@ test.describe('paid pack journeys', () => {
       await intent.getByRole('button', { name: /Get Bank dispute pack/ }).click()
       await payAndReturn(page, email, caseId, 'self_serve_report', 18)
 
+      // Part B walk-through (25 Nov, PB-2): facts confirmed before the documents are added. The S$18 purchase test
+      // keeps the other order (documents first).
+      await confirmFactsInDashboard(page, caseId, 'bank')
+      await expect(page.getByText('Thank you, your facts are confirmed', { exact: true })).toBeVisible({ timeout: 60_000 })
+      await expect(page.getByRole('button', { name: 'Generate your Bank dispute pack' })).toBeDisabled()
       await addPackEvidence(page, 'bank')
+      // Once the documents are read the step goes back to the facts by itself, and one press confirms and starts the pack.
+      await expect(page.getByRole('heading', { name: 'Confirm your facts' })).toBeVisible({ timeout: 120_000 })
       await confirmFactsInDashboard(page, caseId, 'bank')
       await expect(page.getByText('Executive summary', { exact: true })).toBeVisible({ timeout: 5 * 60_000 })
+      await expect(page.getByText('We couldn’t prepare your bank dispute pack')).toHaveCount(0)
       const { data: narratives } = await supabase.from('case_narratives').select('id').eq('case_id', caseId).eq('narrative_type', 'tier0_summary')
       expect(narratives, 'no free evaluation was needed').toEqual([])
-      const { data: reports } = await supabase.from('reports').select('report_type, status').eq('case_id', caseId)
-      expect(reports).toEqual([{ report_type: 'bank_pack_v1', status: 'COMPLETED' }])
+      const { data: snapshots } = await supabase
+        .from('case_fact_snapshots')
+        .select('id')
+        .eq('case_id', caseId)
+        .eq('stage', 'bank')
+        .order('created_at', { ascending: false })
+      expect(snapshots, 'one confirmation before the documents, one after').toHaveLength(2)
+      const { data: reports } = await supabase.from('reports').select('report_type, status, fact_snapshot_id').eq('case_id', caseId)
+      expect(reports).toEqual([{ report_type: 'bank_pack_v1', status: 'COMPLETED', fact_snapshot_id: snapshots?.[0]?.id }])
     } finally {
       await deleteClerkUser(clerkUserId)
     }
