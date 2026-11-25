@@ -598,7 +598,8 @@ export function fidrecRouteText(route: FidrecAvailability, finalReply: FinalRepl
   const fee = `If the case goes to adjudication, FIDReC charges individuals a S$${FIDREC_RULES.adjudicationFeeSgd.individual} case fee.`;
   // Part B walk-through (25 Nov). PB-24: a confirmed final reply read from a letter carries no "qualifies" answer, so
   // the route fell back to "the complaint is not resolved" and the deadline a customer acts on was left out; it is now
-  // counted from any confirmed final reply. PB-13 (wording approved by Elena): the line says whose date it is.
+  // counted from any confirmed final reply. PB-13 (wording chosen by Elena, 25 Nov): the line says whose date it is
+  // and how the deadline was counted.
   if (finalReply) {
     const deadline = addMonths(finalReply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value);
     // The pack does not decide whether the reply "qualifies" under FIDReC's rules; it says whose date it is.
@@ -606,7 +607,7 @@ export function fidrecRouteText(route: FidrecAvailability, finalReply: FinalRepl
       ? `The institution's letter dated ${formatDate(finalReply.date)} says it is its final reply (${finalReply.letterEvidenceId}).`
       : `You told us the final reply is dated ${formatDate(finalReply.date)}.`;
     const by = today && deadline < today ? "FIDReC had to receive the complaint by" : "FIDReC must receive the complaint by";
-    return `${dated} Counted from that date, ${by} ${formatDate(deadline)}. ${fee}`;
+    return `${dated} Counted from that date, ${by} ${formatDate(deadline)} (six months after the final reply). ${fee}`;
   }
   if (route.available && route.route === "final_reply") {
     return `The institution gave its final reply. FIDReC must receive the complaint by ${formatDate(route.deadline)} (six months after the final reply). ${fee}`;
@@ -616,9 +617,10 @@ export function fidrecRouteText(route: FidrecAvailability, finalReply: FinalRepl
 }
 
 // PB-23 (Part B walk-through, 25 Nov; wording chosen by Elena): an investment scam met the SRF's phishing duties
-// before reading, under "How the rules may apply", that the SRF does not cover it.
+// before reading, under "How the rules may apply", that the SRF does not cover it. "Likely not covered by the SRF" is
+// that section's own label, so both say it the same way.
 export const SRF_DUTIES_NOTE =
-  "This payment is likely outside the Shared Responsibility Framework (see 'How the rules may apply'). The duties below are listed because FIDReC can consider how the institution handled the case.";
+  "This payment is likely not covered by the SRF (see 'How the rules may apply'). The duties below are listed because FIDReC can consider how the institution handled the case.";
 
 export function srfDutiesNote(assessment: SrfAssessment): string | null {
   const portions = assessment.portions;

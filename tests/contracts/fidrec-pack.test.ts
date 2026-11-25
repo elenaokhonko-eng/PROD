@@ -176,10 +176,10 @@ test('the model sees the letter only when given, and the evidence index; the pro
 test('every other section is built from the confirmed facts', () => {
   const report = assembleFidrecPack({ prose: GOOD, source: 'model', facts, findings: [], evidenceIndex: index, route, finalReplyUsed: true })
   assert.equal(report.report_version, 'fidrec_pack_v1')
-  // PB-13 (wording approved by Elena, 25 Nov) and PB-10's date form: whose date the deadline is counted from.
+  // PB-13 (wording chosen by Elena, 25 Nov) and PB-10's date form: whose date it is and how the deadline was counted.
   assert.equal(
     report.route,
-    'You told us the final reply is dated 1 Sep 2026. Counted from that date, FIDReC must receive the complaint by 1 Mar 2027. If the case goes to adjudication, FIDReC charges individuals a S$50 case fee.',
+    'You told us the final reply is dated 1 Sep 2026. Counted from that date, FIDReC must receive the complaint by 1 Mar 2027 (six months after the final reply). If the case goes to adjudication, FIDReC charges individuals a S$50 case fee.',
   )
   assert.deepEqual(report.timeline.map((t) => t.event), [
     'Payment of S$3,000',
@@ -349,7 +349,7 @@ test("a regulation's own issue and effective dates may be stated (measured 20 No
 
 // Part B walk-through, case B (25 Nov), PB-24: a final reply read from a letter has no "qualifies" answer, so the
 // filing section said the complaint "is not resolved" and left out the deadline. It now counts from any confirmed
-// final reply, and names the document that shows the date (PB-13, wording approved by Elena).
+// final reply, and names the document that shows the date (PB-13, wording chosen by Elena).
 test('the filing section counts the deadline from a confirmed final reply, whoever states its date', () => {
   const fromLetter = { ...finalReply, date: '2026-11-10', qualifies: null }
   const caseB: SnapshotFacts = { ...facts, bank_reply: { value: fromLetter, label: 'confirmed' } }
@@ -361,19 +361,19 @@ test('the filing section counts the deadline from a confirmed final reply, whoev
   // Wording chosen by Elena (25 Nov): the pack says whose date it is and never decides whether the reply "qualifies".
   assert.equal(
     report.route,
-    "The institution's letter dated 10 Nov 2026 says it is its final reply (E1). Counted from that date, FIDReC must receive the complaint by 10 May 2027. If the case goes to adjudication, FIDReC charges individuals a S$50 case fee.",
+    "The institution's letter dated 10 Nov 2026 says it is its final reply (E1). Counted from that date, FIDReC must receive the complaint by 10 May 2027 (six months after the final reply). If the case goes to adjudication, FIDReC charges individuals a S$50 case fee.",
   )
   assert.doesNotMatch(report.route, /not resolved|qualif/)
 
   const late = assembleFidrecPack({ prose: GOOD, source: 'model', facts: caseB, findings: letter as never, evidenceIndex: index, route: caseBRoute, finalReplyUsed: true, today: '2027-06-01' })
-  assert.match(late.route, /Counted from that date, FIDReC had to receive the complaint by 10 May 2027\./)
+  assert.ok(late.route.includes('Counted from that date, FIDReC had to receive the complaint by 10 May 2027 (six months after the final reply).'))
 
   const noFinalReply: SnapshotFacts = { ...facts, bank_reply: { value: { ...finalReply, status: 'acknowledged', date: null }, label: 'confirmed' } }
   const fourWeeks = assembleFidrecPack({ prose: GOOD, source: 'model', facts: noFinalReply, findings: [], evidenceIndex: index, route: fidrecRouteFromFacts(noFinalReply, '2026-11-25'), finalReplyUsed: false })
   assert.match(fourWeeks.route, /^The complainant complained in writing more than four weeks ago and the complaint is not resolved\./)
 })
 
-// PB-23 (wording approved by Elena, 25 Nov): a case outside the SRF says so before the SRF duties.
+// PB-23 (wording chosen by Elena, 25 Nov): a case outside the SRF says so before the SRF duties.
 test('the duties section opens with one sentence when every payment is likely outside the SRF', () => {
   const investment: SnapshotFacts = {
     ...facts,
@@ -383,7 +383,7 @@ test('the duties section opens with one sentence when every payment is likely ou
   const outside = assembleFidrecPack({ prose: GOOD, source: 'model', facts: investment, findings: [], evidenceIndex: index, route, finalReplyUsed: false })
   assert.equal(
     outside.duties_note,
-    "This payment is likely outside the Shared Responsibility Framework (see 'How the rules may apply'). The duties below are listed because FIDReC can consider how the institution handled the case.",
+    "This payment is likely not covered by the SRF (see 'How the rules may apply'). The duties below are listed because FIDReC can consider how the institution handled the case.",
   )
   const phishing: SnapshotFacts = {
     ...facts,
