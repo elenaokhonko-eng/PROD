@@ -85,3 +85,16 @@ test('the SMS line names the four operators; the card line quotes MAS on 3DS, wi
   assert.doesNotMatch(text, /may treat it as negligence/)
   assert.ok(card.reasons.some((r) => r.cite.endsWith('; mas.reply.20250107/3(a).3ds')))
 })
+
+// Rules review, 25 Nov (row 19, wording approved by Elena): civil claims through the courts, in both forms of the
+// "other routes" line (R para 6.11(d)).
+test('both forms of the other-routes line name civil claims through the courts, citing R 6.11(d)', () => {
+  const civil = "MAS and IMDA's Response to Consultation also states that scam victims can pursue civil claims against the relevant entities through the courts (paragraph 6.11(d))."
+  const knowingly = assessSrf({ scamTypes: ['investment'], channel: 'social_media', credentials: 'not_shared', impersonated: 'other_business', transactions: null, losses: null }).remedies!
+  const unauthorised = assessSrf({ ...phishing, channel: 'phone_call' }).remedies
+  for (const remedies of [knowingly, unauthorised]) {
+    assert.ok(remedies, 'the other-routes line is shown')
+    assert.ok(remedies!.text.endsWith(civil), remedies!.text)
+    assert.match(remedies!.cite, /R para 6\.11\(d\)/)
+  }
+})

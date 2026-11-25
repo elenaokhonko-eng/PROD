@@ -93,7 +93,7 @@ const R = {
   telcoOtt: { code: "telco_not_assessed", cite: "G §2.1 (SMS excludes OTT messages)" },
   remedies: { code: "other_remedies", cite: "G paras 6.8, 7.11; E paras 5.2-5.6; R para 6.11(d)" },
   // Rules review of 25 Nov (row 8, wording chosen by Elena): payments the account user knew of and consented to.
-  remediesAuthorised: { code: "other_remedies", cite: "E para 5.3; W (mas.srf.workflow/recourse.fidrec)" },
+  remediesAuthorised: { code: "other_remedies", cite: "E para 5.3; W (mas.srf.workflow/recourse.fidrec); R para 6.11(d)" },
 };
 
 const AUTHORISED_TYPES: ScamType[] = ["investment", "job", "romance", "ecommerce"];
@@ -228,11 +228,11 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
     : authorised
       ? {
           ...R.remediesAuthorised,
-          text: "Under the EUPG, the account holder is liable for payments an account user knew of and consented to, up to the agreed limits (paragraph 5.3). You can complain to your bank in writing. MAS's workflow for the SRF states that FIDReC's assessment includes obligations outside the SRF, for example under statute, common law or the EUPG.",
+          text: "Under the EUPG, the account holder is liable for payments an account user knew of and consented to, up to the agreed limits (paragraph 5.3). You can complain to your bank in writing. MAS's workflow for the SRF states that FIDReC's assessment includes obligations outside the SRF, for example under statute, common law or the EUPG. MAS and IMDA's Response to Consultation also states that scam victims can pursue civil claims against the relevant entities through the courts (paragraph 6.11(d)).",
         }
       : {
           ...R.remedies,
-          text: "For losses outside the SRF that you did not authorise, the MAS E-Payments User Protection Guidelines (EUPG) set out how such losses are shared between you and your bank or e-wallet provider (card losses follow the card rules). Your bank assesses this; you can complain in writing and, if you disagree with the outcome, go to FIDReC.",
+          text: "For losses outside the SRF that you did not authorise, the MAS E-Payments User Protection Guidelines (EUPG) set out how such losses are shared between you and your bank or e-wallet provider (card losses follow the card rules). Your bank assesses this; you can complain in writing and, if you disagree with the outcome, go to FIDReC. MAS and IMDA's Response to Consultation also states that scam victims can pursue civil claims against the relevant entities through the courts (paragraph 6.11(d)).",
         };
 
   return { portions, telco, remedies };
