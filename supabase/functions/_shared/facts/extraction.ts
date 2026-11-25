@@ -19,9 +19,11 @@ import {
   type Transaction,
 } from "./keys.ts";
 import type { FactCandidate } from "./reconcile.ts";
-import { normaliseInstitution } from "./institutions.ts";
+import { issuerInHeading, normaliseInstitution } from "./institutions.ts";
 import { normaliseDate, normaliseMoney, normaliseYesNo } from "./normalise.ts";
 
+// Not bumped for the issuer rule (Part B walk-through, 25 Nov): it reaches newly read sources only, and whether existing
+// cases are re-read is Elena's separate decision. A bump re-reads every source of every case.
 export const FACT_EXTRACTION_PROMPT_VERSION = "fact-extract-v3";
 
 const ACCOUNT_TYPES: AccountType[] = ["savings_or_current", "debit_card", "credit_card", "ewallet", "investment", "other"];
@@ -56,6 +58,8 @@ const POLICE_REPORT_OPENING = /singapore police force|police report (?:acknowled
 // The report's own number, near the top of a police report: "Report No: G/20241031/0000", "Police report no. A2026...".
 const POLICE_REPORT_NUMBER = /\breport\s+(?:no\.?|number)\s*[:#.]?\s*([A-Z]{0,2}\/?\d{6,}(?:\/\d{1,6})?)/i;
 
+// Words that make an amount a total rather than one payment: "totalling S$2,549", "S$2,549 in total", "a total of".
+const STATES_A_TOTAL = /\btotal(?:l)?ing\b|\bin total\b|\ba total of\b/i;
 export function documentTypeOf(modelType: unknown, text: string): DocumentType {
   const declared = oneOf(DOCUMENT_TYPES, modelType) ?? "other";
   if (declared !== "police_report" && declared !== "bank_correspondence" && POLICE_REPORT_OPENING.test(text.slice(0, 600))) {
@@ -121,12 +125,18 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
     "- credentials: entered_on_fake_site_or_app when details were typed into a fake website or app; given_directly when",
     "  an OTP or password was told to the scammer by phone; given_in_message when it was sent in a message;",
     "  installed_app_or_malware when an app was installed.",
+    "- institutions: the bank or provider that issued a statement, alert or letter is one of them, named as printed in",
+    "  its heading.",
+    "- transactions: one entry per payment the source states on its own, with the payee or merchant as printed. A total",
+    "  of several payments is not a transaction: put it in total_loss.",
     "- scam_types: the kind of scam the source describes, never the bank's later handling of it.",
     "- total_loss: one entry per amount stated as lost, with the account or card it left from when the source says so.",
     "- A police report is itself evidence that the scam was reported to the police: reported_to_police is yes, with the",
     "  report's own number as reference and its date.",
     "- For a document: set document_type, and give every value \"confidence\" (0 to 1) that the document states it about",
     "  this scam. Correspondence about the dispute is bank_correspondence, even when it repeats the claimant's words.",
+    "  bank_correspondence is only a letter, email or message from a bank or payment provider; an acknowledgement or",
+    "  receipt that does not show it comes from one is other.",
     "",
     `TEMPLATE: ${JSON.stringify(template)}`,
     "",
@@ -171,6 +181,9 @@ export function parseFactExtraction(
 ): FactCandidate[] {
   const out = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const candidates: FactCandidate[] = [];
+  const institutions = list(out.institutions)
+    .map((i) => ({ institution: normaliseInstitution((i as { name?: unknown })?.name), quote: quoted(sourceText, i) }))
+    .filter((i) => i.institution && i.quote);
   const documentType: DocumentType | null = source.sourceType === "document" ? documentTypeOf(out.document_type, sourceText) : null;
   // A document value outside what that kind of document can state, or below the confidence threshold, is kept as
   // context: stored for the record, never compared (finding A7).
@@ -186,12 +199,14 @@ export function parseFactExtraction(
     } as FactCandidate);
   };
 
-  const institutions = list(out.institutions)
-    .map((i) => ({ institution: normaliseInstitution((i as { name?: unknown })?.name), quote: quoted(sourceText, i) }))
-    .filter((i) => i.institution && i.quote);
   if (institutions.length) {
     const byName = new Map(institutions.map((i) => [i.institution!.name.toLowerCase(), i.institution!]));
     add("institution_names", [...byName.values()], institutions.map((i) => i.quote!), list(out.institutions));
+  } else if (documentType === "bank_statement" || documentType === "card_statement" || documentType === "bank_correspondence") {
+    // The bank that issued a statement or letter is involved even when the model leaves its name out (Part B
+    // walk-through, 25 Nov). Read from the heading only, so payees in the transaction lines are never added.
+    const issuer = issuerInHeading(sourceText);
+    if (issuer) add("institution_names", [issuer.institution], [issuer.quote], [{ confidence: 1 }]);
   }
 
   for (const [field, factKey, allowed] of [
@@ -222,6 +237,9 @@ export function parseFactExtraction(
     const quote = quoted(sourceText, t);
     const amount = normaliseMoney(typeof t.amount === "number" ? t.amount : String(t.amount ?? ""), typeof t.currency === "string" ? t.currency.toUpperCase() : "SGD");
     if (!quote || !amount || amount.amount <= 0) continue;
+    // A total of several payments is the amount lost, never a payment (Part B walk-through, 25 Nov, PB-26: "three card
+    // payments totalling S$2,549" in a police report replaced the statement's three payments).
+    if (STATES_A_TOTAL.test(quote)) continue;
     const last4 = typeof t.card_last4 === "string" && /^\d{4}$/.test(t.card_last4) ? t.card_last4 : null;
     transactions.push({
       date: normaliseDate(t.date),
