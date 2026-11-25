@@ -58,3 +58,18 @@ test('sign-in and sign-up remember the intent; the dashboard offers the bank pac
   assert.match(dashboard, /packIntent === 'fidrec' && showFidrecOffer && BEFORE_FREE_EVALUATION\.has\(node\)/)
   assert.match(readFileSync('lib/harbor/packs.ts', 'utf8'), /`\/sign-in\?intent=\$\{pack\}`/)
 })
+
+// Part B walk-through (25 Nov, PB-17): "not complained yet" left the reason at complaint_not_raised, as before any
+// answer, so the route question stayed up and its message never showed; an answer that opened the pack could not be
+// changed.
+test('the FIDReC route question shows the saved answer and can be changed in every state', () => {
+  const offer = readFileSync('components/state-machine/transition/fidrec-offer.tsx', 'utf8')
+  assert.match(offer, /const needsAnswer = editing \|\| \(saved === null && props\.reason === 'complaint_not_raised'\)/)
+  assert.match(offer, /\{!needsAnswer && \(blocked \|\| saved\) \? \(/)
+  assert.match(offer, /onClick=\{startEditing\}>\s*Change my answer/)
+  const hook = readFileSync('hooks/state-machine/facts/use-fidrec-route.ts', 'utf8')
+  assert.match(hook, /\.in\('question_key', \[\.\.\.ROUTE_KEYS\]\)/)
+  const dashboard = readFileSync('app/(case)/app/case/[id]/dashboard/_components/dashboard-client.tsx', 'utf8')
+  assert.match(dashboard, /savedRoute=\{fidrecRouteQuery\.isError \? null : fidrecRouteQuery\.data\}/)
+  assert.match(dashboard, /await Promise\.all\(\[paymentStatusQuery\.refetch\(\), fidrecRouteQuery\.refetch\(\)\]\)/)
+})
