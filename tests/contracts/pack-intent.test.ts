@@ -64,7 +64,9 @@ test('sign-in and sign-up remember the intent; the dashboard offers the bank pac
 // changed.
 test('the FIDReC route question shows the saved answer and can be changed in every state', () => {
   const offer = readFileSync('components/state-machine/transition/fidrec-offer.tsx', 'utf8')
-  assert.match(offer, /const needsAnswer = editing \|\| \(saved === null && props\.reason === 'complaint_not_raised'\)/)
+  // Gate run 45631835006 (26 Nov): and not while the saved answer is still loading.
+  assert.match(offer, /const needsAnswer = editing \|\| \(!loading && saved === null && props\.reason === 'complaint_not_raised'\)/)
+  assert.match(offer, /const loading = props\.savedRoute === undefined/)
   assert.match(offer, /\{!needsAnswer && \(blocked \|\| saved\) \? \(/)
   assert.match(offer, /onClick=\{startEditing\}>\s*Change my answer/)
   const hook = readFileSync('hooks/state-machine/facts/use-fidrec-route.ts', 'utf8')
