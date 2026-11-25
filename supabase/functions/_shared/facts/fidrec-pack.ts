@@ -7,7 +7,7 @@
 import { EVIDENCE_RULES, type EvidenceItem, isEvidenceItem } from "../evidence-minimums.ts";
 import { formatDate, formatMoney } from "./display.ts";
 import { DOCUMENT_CONFIDENCE_THRESHOLD } from "./extraction.ts";
-import { DOCUMENT_LABELS, documentsShowing, type EvidenceFinding, evidenceLists } from "./free-sections.ts";
+import { COMPLAINANT_ITEM_LABELS, DOCUMENT_LABELS, documentsShowing, type EvidenceFinding, evidenceLists } from "./free-sections.ts";
 import type { BankReply, FactKey, Instrument, Money, ReportedEvent, Transaction } from "./keys.ts";
 import { appliesToCase, appliesToLabel, instrumentsOf } from "./rules/instrument-scope.ts";
 import { type FidrecAvailability, fidrecAvailability, FIDREC_RULES } from "./rules/fidrec.ts";
@@ -300,13 +300,8 @@ export interface CaseDocument {
   text: string | null;
 }
 
-// A document counted only because the customer said what it is: the pack says so, not what the pipeline read it as.
-const COMPLAINANT_ITEM_LABELS: Record<EvidenceItem, string> = {
-  payment_proof: "a document identified by the complainant as proof of the disputed payments",
-  police_report: "a document identified by the complainant as a police report",
-  bank_reply_or_complaint: "a document identified by the complainant as the bank's written reply or the written complaint",
-  scam_message: "a document identified by the complainant as the scam message",
-};
+// A document counted only because the customer said what it is: the pack says so, not what the pipeline read it as
+// (COMPLAINANT_ITEM_LABELS, shared with the evidence lists in free-sections.ts).
 
 function complainantLabel(document: CaseDocument): string | null {
   const item = document.complainantItem;
@@ -329,7 +324,11 @@ export function buildEvidenceIndex(findings: readonly Tier0Finding[], documents:
         let entry = byDocument.get(documentId);
         if (!entry) {
           const type = String(source.sourceRef?.documentType ?? "");
-          entry = { id: `E${byDocument.size + 1}`, documentId, label: DOCUMENT_LABELS[type] ?? "an uploaded document", facts: [] };
+          const marked = source.sourceRef?.complainantItem;
+          const label = source.sourceRef?.typeFromMark === true && isEvidenceItem(marked)
+            ? COMPLAINANT_ITEM_LABELS[marked]
+            : DOCUMENT_LABELS[type] ?? "an uploaded document";
+          entry = { id: `E${byDocument.size + 1}`, documentId, label, facts: [] };
           byDocument.set(documentId, entry);
         }
         const key = finding.fact_key as FactKey;

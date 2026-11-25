@@ -6,6 +6,7 @@ import { FACT_LABELS } from "./keys.ts";
 import { formatFactValue } from "./display.ts";
 import type { FindingValue } from "./reconcile.ts";
 import type { FactLabel, Resolution } from "./snapshot.ts";
+import { type EvidenceItem, isEvidenceItem } from "../evidence-minimums.ts";
 
 export interface EvidenceFinding {
   factKey: FactKey;
@@ -51,10 +52,23 @@ export const DOCUMENT_LABELS: Record<string, string> = {
   scam_message: "the scam message (uploaded)",
 };
 
+// A document counted only because the person said what it is: every label says so, never what the pipeline read it as
+// (PB-22, review condition of 25 Nov: nothing has verified what it is).
+export const COMPLAINANT_ITEM_LABELS: Record<EvidenceItem, string> = {
+  payment_proof: "a document identified by the complainant as proof of the disputed payments",
+  police_report: "a document identified by the complainant as a police report",
+  bank_reply_or_complaint: "a document identified by the complainant as the bank's written reply or the written complaint",
+  scam_message: "a document identified by the complainant as the scam message",
+};
+
 function documentNames(values: FindingValue[]): string[] {
   const names = values.flatMap((v) => v.sources)
     .filter((s) => s.sourceType === "document")
-    .map((s) => DOCUMENT_LABELS[String(s.sourceRef.documentType)] ?? "an uploaded document");
+    .map((s) => {
+      const marked = s.sourceRef.complainantItem;
+      if (s.sourceRef.typeFromMark === true && isEvidenceItem(marked)) return COMPLAINANT_ITEM_LABELS[marked];
+      return DOCUMENT_LABELS[String(s.sourceRef.documentType)] ?? "an uploaded document";
+    });
   return [...new Set(names)];
 }
 

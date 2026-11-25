@@ -131,3 +131,11 @@ test('each pack on the case page is labelled with its name, and the two are sepa
   const names = readFileSync('components/state-machine/facts/pack-evidence.tsx', 'utf8')
   assert.match(names, /PACK_NAMES: Record<PackProduct, string> = \{ bank: 'Bank dispute pack', fidrec: 'FIDReC pack' \}/)
 })
+
+// PB-22 (Part B walk-through, 25 Nov): marking a document reads it again as that kind (facts-extraction.test.ts).
+test('the fact reading gets the mark, and marking changes the source so it is read again', () => {
+  const runner = readFileSync('lib/server/facts/run-reconcile.ts', 'utf8')
+  assert.match(runner, /select\("id, original_filename, processing_status, content_latest_id, complainant_item"\)/)
+  assert.match(runner, /\$\{complainantItem \? `:marked:\$\{complainantItem\}` : ""\}/)
+  assert.match(runner, /\.\.\.\(complainantItem \? \{ complainantItem \} : \{\}\)/)
+})

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { answerCandidates, buildFactExtractionPrompt, JOURNEY_KEYS, parseFactExtraction, reconcile } from '../../lib/facts'
+import { answerCandidates, buildFactExtractionPrompt, evidenceLists, JOURNEY_KEYS, parseFactExtraction, reconcile } from '../../lib/facts'
 
 // Synthetic content only.
 const story =
@@ -200,4 +200,42 @@ test('a total of several payments is the amount lost, never a payment', () => {
   }, statement, doc)
   const payments = fromStatement.find((c) => c.factKey === 'transactions')!.value as Array<{ amount: { amount: number }; payee: string | null }>
   assert.deepEqual(payments.map((p) => [p.amount.amount, p.payee]), [[1200, 'ONLINE MERCHANT ONE'], [850, 'ONLINE MERCHANT TWO'], [499, 'ONLINE MERCHANT THREE']])
+})
+
+// Part B walk-through, case B (25 Nov), PB-22: B4 marked "This is my police report" counted for the checklist, but the
+// facts ignored the mark, so "Whether you reported this to the police" still had no document. A marked document is
+// read as that kind, and every label says the complainant identified it.
+test('a document marked by the person is read as that kind, and labelled as identified by them', async () => {
+  const b4 = 'Acknowledgement (synthetic test document) Ref TEST-ACK-1111. Received 06 Sep 2026. Matter: investment offer, transfer S$5,000.00 on 05 Sep 2026. Keep this for your records.'
+  const raw = { document_type: 'other', reported_to_police: { value: 'yes', date: '2026-09-06', reference: 'TEST-ACK-1111', quote: 'Received 06 Sep 2026', confidence: 0.8 } }
+  const unmarked = parseFactExtraction(raw, b4, { sourceType: 'document', sourceRef: { sourceKey: 'document:b4', documentId: 'b4' } })
+  assert.equal((unmarked.find((c) => c.factKey === 'reported_to_police')!.sourceRef as { context?: boolean }).context, true, 'unmarked, it shows nothing')
+
+  const marked = parseFactExtraction(raw, b4, { sourceType: 'document', sourceRef: { sourceKey: 'document:b4:marked:police_report', documentId: 'b4', complainantItem: 'police_report' } })
+  const police = marked.find((c) => c.factKey === 'reported_to_police')!
+  assert.equal((police.sourceRef as { documentType?: string }).documentType, 'police_report')
+  assert.equal((police.sourceRef as { context?: boolean }).context, false)
+  assert.equal((police.sourceRef as { typeFromMark?: boolean }).typeFromMark, true)
+
+  const { candidates: answers } = answerCandidates([
+    { questionKey: JOURNEY_KEYS.policeReport, value: 'yes', revisionId: 'p0' },
+    { questionKey: JOURNEY_KEYS.policeReportDate, value: '2026-09-06', revisionId: 'p1' },
+  ])
+  const findings = await reconcile([...marked, ...answers])
+  const finding = findings.find((f) => f.factKey === 'reported_to_police')!
+  const { shown } = evidenceLists(
+    { reported_to_police: { value: finding.values[0].value, label: 'confirmed' } },
+    [{ factKey: 'reported_to_police', values: finding.values, resolution: { kind: 'agreed' } }],
+  )
+  assert.deepEqual(shown, ['Whether you reported this to the police: Yes, 6 Sep 2026. Shown by a document identified by the complainant as a police report.'])
+  assert.ok(!shown.join(' ').includes('your police report (uploaded)'))
+
+  const statement = 'Synthetic Bank Visa Credit Card - Statement (synthetic test document) 12 Oct 2026 ONLINE MERCHANT ONE S$1,200.00'
+  const card = parseFactExtraction(
+    { document_type: 'card_statement', transactions: [{ date: '2026-10-12', amount: 1200, currency: 'SGD', payee: 'ONLINE MERCHANT ONE', card_last4: null, instrument: 'sg_card', quote: '12 Oct 2026 ONLINE MERCHANT ONE S$1,200.00', confidence: 0.9 }] },
+    statement,
+    { sourceType: 'document', sourceRef: { sourceKey: 'document:c1:marked:payment_proof', complainantItem: 'payment_proof' } },
+  )[0]
+  assert.equal((card.sourceRef as { documentType?: string }).documentType, 'card_statement', 'a card statement marked as payment proof stays a card statement')
+  assert.equal((card.sourceRef as { typeFromMark?: boolean }).typeFromMark, undefined)
 })
