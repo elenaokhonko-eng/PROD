@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { answerCandidates, buildFactExtractionPrompt, JOURNEY_KEYS, parseFactExtraction, reconcile } from '../../lib/facts'
+import { answerCandidates, buildFactExtractionPrompt, evidenceLists, JOURNEY_KEYS, parseFactExtraction, reconcile } from '../../lib/facts'
 
 // Synthetic content only.
 const story =
@@ -143,4 +143,35 @@ test('a reference with no digits is not a case reference (walkthrough, 9 Nov)', 
   ])
   const findings = await reconcile(candidates)
   assert.equal(findings.find((f) => f.factKey === 'bank_case_reference')?.findingType, 'missing')
+})
+
+// Part B walk-through, case B (25 Nov), PB-24: the route answer "I complained in writing and haven't had a final reply"
+// was kept only as a written complaint, so a final-reply letter met no conflict and the pack followed one of them
+// quietly. It is now also "no final reply yet", which agrees with any other reply and conflicts with a final reply.
+test('"no final reply" from the FIDReC route conflicts with a final-reply letter, and with nothing else', async () => {
+  const route = [
+    { questionKey: 'fidrec_route', value: 'no_reply', revisionId: 'r0' },
+    { questionKey: 'fidrec_complaint_date', value: '2026-10-04', revisionId: 'r1' },
+  ]
+  const fromRoute = answerCandidates(route).candidates.filter((c) => c.factKey === 'bank_reply')
+  assert.deepEqual(fromRoute.map((c) => (c.value as { status: string }).status), ['not_final'])
+
+  const letterText = 'Synthetic Bank - Final reply to your complaint\nThis is our final reply. You may refer the matter to FIDReC.'
+  const letter = parseFactExtraction(
+    { document_type: 'bank_correspondence', institutions: [{ name: 'Synthetic Bank', quote: 'Synthetic Bank', confidence: 0.95 }], bank_reply: { status: 'final_reply', date: '2026-11-10', outcome: 'rejected', quote: 'This is our final reply.', confidence: 0.95 } },
+    letterText,
+    { sourceType: 'document', sourceRef: { sourceKey: 'document:b3', documentId: 'b3' } },
+  )
+  const clash = (await reconcile([...answerCandidates(route).candidates, ...letter])).find((f) => f.factKey === 'bank_reply')!
+  assert.equal(clash.findingType, 'conflict', 'the confirm screen asks which is right')
+  assert.deepEqual(clash.values.map((v) => (v.value as { status: string }).status).sort(), ['final_reply', 'not_final'])
+
+  const acknowledged = answerCandidates([...route, { questionKey: JOURNEY_KEYS.bankReplyStatus, value: 'acknowledged', revisionId: 'j0' }]).candidates
+  const agreed = (await reconcile(acknowledged)).find((f) => f.factKey === 'bank_reply')!
+  assert.notEqual(agreed.findingType, 'conflict')
+  assert.deepEqual(agreed.values.map((v) => (v.value as { status: string }).status), ['acknowledged'], 'the more specific answer is kept')
+
+  const alone = (await reconcile(answerCandidates(route).candidates)).find((f) => f.factKey === 'bank_reply')!
+  const { missing } = evidenceLists({ bank_reply: { value: alone.values[0].value, label: 'confirmed' } }, [])
+  assert.deepEqual(missing, [], '"no final reply yet" needs no document')
 })
