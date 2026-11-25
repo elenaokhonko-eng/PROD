@@ -12,7 +12,7 @@ import { qk } from '@/hooks/state-machine/query-keys'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmFactsPanel } from '@/components/state-machine/facts/confirm-facts-panel'
-import { PACK_NAMES } from '@/components/state-machine/facts/pack-evidence'
+import { DocumentsReadingNote, PACK_NAMES } from '@/components/state-machine/facts/pack-evidence'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { FactsRequestError } from '@/hooks/state-machine/facts/use-case-facts'
 import { type GeneratedStage, useGenerateStage } from '@/hooks/state-machine/facts/use-generate-free-evaluation'
@@ -55,12 +55,17 @@ export function ConfirmAndEvaluate({
   readyDocumentsKey,
   stage = 'free',
   evidenceReady,
+  documentsUploading = 0,
+  documentsReading = 0,
 }: {
   caseId: string
   readyDocumentsKey: string
   stage?: GeneratedStage
   /** Paid packs only: whether the documents the pack needs are in (evidence-minimums.ts). Undefined: no check. */
   evidenceReady?: boolean
+  /** Files in the upload under way, and documents uploaded but not yet read. */
+  documentsUploading?: number
+  documentsReading?: number
 }) {
   const generate = useGenerateStage(caseId, stage)
   const copy = COPY[stage]
@@ -73,7 +78,15 @@ export function ConfirmAndEvaluate({
     if (lastDocumentsKey.current === readyDocumentsKey) return
     lastDocumentsKey.current = readyDocumentsKey
     void queryClient.invalidateQueries({ queryKey: qk.case.facts(caseId, stage) })
-  }, [caseId, queryClient, readyDocumentsKey, stage])
+    // Part B walk-through (25 Nov, PB-2): facts confirmed before this document was read no longer match it, and the
+    // server refuses them (facts_unconfirmed). Go back to the facts by themselves, so one press confirms them with it.
+    if (snapshotId && !generate.isPending && !generate.isSuccess) {
+      generate.reset()
+      setSnapshotId(null)
+    }
+  }, [caseId, generate, queryClient, readyDocumentsKey, snapshotId, stage])
+
+  const documentsInFlight = documentsUploading + documentsReading
 
   if (generate.isPending) {
     return (
@@ -98,8 +111,9 @@ export function ConfirmAndEvaluate({
               : `When the documents listed above are added, you can generate your ${PACK_NAMES[stage]}.`}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button disabled={!evidenceReady} onClick={() => generate.mutate(snapshotId)}>
+        <CardContent className="space-y-3">
+          <DocumentsReadingNote uploadingCount={documentsUploading} readingCount={documentsReading} />
+          <Button disabled={!evidenceReady || documentsInFlight > 0} onClick={() => generate.mutate(snapshotId)}>
             Generate your {PACK_NAMES[stage]}
           </Button>
         </CardContent>

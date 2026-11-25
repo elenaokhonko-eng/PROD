@@ -111,7 +111,8 @@ test('the generate screen reads the same check and waits for the documents', () 
   assert.match(dashboard, /stage="fidrec"\s+evidenceReady=\{packEvidence\.fidrec\.ready\}/)
   const confirm = readFileSync('components/state-machine/facts/confirm-and-evaluate.tsx', 'utf8')
   assert.match(confirm, /if \(evidenceReady !== false\) generate\.mutate\(id\)/)
-  assert.match(confirm, /<Button disabled=\{!evidenceReady\}/)
+  // PB-2 (25 Nov): also disabled while a document uploads or is read.
+  assert.match(confirm, /<Button disabled=\{!evidenceReady \|\| documentsInFlight > 0\}/)
 })
 
 test('only the case owner can mark a document, and only as a known item', () => {
