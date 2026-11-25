@@ -14,6 +14,10 @@
   "version": {
     "version_label": "24 October 2024",
     "effective_from": "2024-12-16",
+    "effective_from_basis": "announcement",
+    "effective_from_source": "https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/pso/guidelines-on-shared-responsibility-framework/guidelines-on-shared-responsibility-framework.pdf",
+    "effective_from_basis_status": "proposed",
+    "effective_from_evidence": "The infographic prints no date. 16 December 2024 is the 'Effective Date' on page 2 of the SRF Guidelines it was published with (linked as effective_from_source). The closest of the four bases; Elena to choose.",
     "issued_on": "2024-10-24",
     "retrieved_at": "2026-11-24T04:20:00Z",
     "source_url": "https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/pso/guidelines-on-shared-responsibility-framework/infographic-on-operational-workflow-for-shared-responsibility-framework.pdf",

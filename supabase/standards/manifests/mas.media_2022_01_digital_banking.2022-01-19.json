@@ -14,6 +14,9 @@
   "version": {
     "version_label": "19 January 2022",
     "effective_from": "2022-01-19",
+    "effective_from_basis": "document",
+    "effective_from_basis_status": "proposed",
+    "effective_from_evidence": "Dateline 'Singapore, 19 January 2022' on the MAS page. The release date; the measures were to be in place 'within the next two weeks' (para 3).",
     "issued_on": "2022-01-19",
     "retrieved_at": "2026-11-24T10:00:00Z",
     "source_url": "https://www.mas.gov.sg/news/media-releases/2022/mas-and-abs-announce-measures-to-bolster-the-security-of-digital-banking",

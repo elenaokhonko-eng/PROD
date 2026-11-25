@@ -14,6 +14,9 @@
   "version": {
     "version_label": "24 October 2024",
     "effective_from": "2024-12-16",
+    "effective_from_basis": "document",
+    "effective_from_basis_status": "proposed",
+    "effective_from_evidence": "Page 2 'Issue Date : 24 October 2024' and 'Effective Date : 16 December 2024'. Paragraph 4.2.5 from 16 June 2025 carries its own effective_from_override.",
     "issued_on": "2024-10-24",
     "retrieved_at": "2026-11-24T04:20:00Z",
     "source_url": "https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/pso/guidelines-on-shared-responsibility-framework/guidelines-on-shared-responsibility-framework.pdf",

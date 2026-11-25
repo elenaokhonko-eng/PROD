@@ -14,6 +14,9 @@
   "version": {
     "version_label": "25 October 2023",
     "effective_from": "2023-10-25",
+    "effective_from_basis": "document",
+    "effective_from_basis_status": "proposed",
+    "effective_from_evidence": "Page 1 and every page footer print '25 October 2023'. A consultation paper: the publication date, never in force.",
     "issued_on": "2023-10-25",
     "retrieved_at": "2026-11-24T05:20:00Z",
     "source_url": "https://www.mas.gov.sg/-/media/mas-media-library/publications/consultations/pd/2023/srf/consultation-paper-on-proposed-shared-responsibility-framework.pdf",

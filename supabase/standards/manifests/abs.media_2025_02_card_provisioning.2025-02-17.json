@@ -14,6 +14,9 @@
   "version": {
     "version_label": "17 February 2025",
     "effective_from": "2025-02-17",
+    "effective_from_basis": "document",
+    "effective_from_basis_status": "proposed",
+    "effective_from_evidence": "Page 1 dateline 'Singapore, 17 February 2025'. The release date; it says the banks' changes are expected to be complete by July 2025.",
     "issued_on": "2025-02-17",
     "retrieved_at": "2026-11-24T04:20:00Z",
     "source_url": "https://www.abs.org.sg/docs/library/major-card-issuing-banks-to-step-up-measures-to-combat-card-provisioning-scams.pdf",

@@ -15,6 +15,9 @@
   "version": {
     "version_label": "7 January 2025",
     "effective_from": "2025-01-07",
+    "effective_from_basis": "document",
+    "effective_from_basis_status": "proposed",
+    "effective_from_evidence": "The MAS page prints 'Date: For Parliament Sitting on 7 January 2025'.",
     "issued_on": "2025-01-07",
     "retrieved_at": "2026-11-24T04:20:00Z",
     "source_url": "https://www.mas.gov.sg/news/parliamentary-replies/2025/written-reply-to-pq-on-credit-card-fraud",
