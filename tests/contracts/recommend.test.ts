@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import { fidrecAvailability, recommend, type RecommendFacts } from '../../lib/facts'
+import { FINAL_REPLY_EXPIRED_NOTE, fidrecAvailability, recommend, type RecommendFacts } from '../../lib/facts'
 
 // Synthetic journeys. "today" is fixed so every date boundary is exact.
 const today = '2026-11-30'
@@ -121,4 +122,19 @@ test('within four weeks of a written complaint, the earlier route under Rule 13(
   assert.equal(recent.position, 'complaint_recent')
   assert.ok(recent.notes.includes("FIDReC's rules also allow filing earlier if the institution has already answered and the matter is not resolved (Rule 13(1)(i))."))
   assert.ok(!run({ reportedToBank: yes() }).notes.some((n) => /Rule 13\(1\)\(i\)/.test(n)))
+})
+
+// Rules review, 25 Nov (row 22, wording approved by Elena): only once the six months after a final reply have passed,
+// whether or not the letter was read as qualifying; never within the six months.
+test('a final reply more than six months old explains what a final reply is under Rule 13(2)', () => {
+  const reply = (date: string, qualifies: 'yes' | null) => ({ status: 'final_reply' as const, date, outcome: 'rejected' as const, qualifies, reference: null })
+  const expired = run({ reportedToBank: yes(), writtenComplaint: yes('2026-03-01'), bankReply: reply('2026-04-01', 'yes') })
+  assert.equal(expired.position, 'final_reply_expired')
+  assert.ok(expired.notes.includes(FINAL_REPLY_EXPIRED_NOTE))
+  assert.ok(run({ reportedToBank: yes(), bankReply: reply('2026-04-01', null) }).notes.includes(FINAL_REPLY_EXPIRED_NOTE), 'also when not read as qualifying')
+  assert.ok(!run({ reportedToBank: yes(), bankReply: reply('2026-10-01', 'yes') }).notes.includes(FINAL_REPLY_EXPIRED_NOTE), 'not within six months')
+  assert.ok(!run({ reportedToBank: yes(), bankReply: reply('2026-05-30', 'yes') }).notes.includes(FINAL_REPLY_EXPIRED_NOTE), 'not on the last day')
+  assert.match(FINAL_REPLY_EXPIRED_NOTE, /^FIDReC's Terms of Reference say a final reply is a letter that expressly states it is the institution's final reply, tells you that you can contact FIDReC within six months, and gives FIDReC's contact details \(Rule 13\(2\)\)\. If the reply you received did not state these, you can ask your bank in writing to confirm whether it was its final reply\. Whether a document is a final reply is decided by FIDReC\.$/)
+  // Signed-in only: the recommendation is served by a case-access route, and no public page imports it.
+  assert.match(readFileSync('app/api/cases/[caseId]/recommendation/route.ts', 'utf8'), /await factsCaseAccess\(caseId\)/)
 })
