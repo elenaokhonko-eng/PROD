@@ -78,7 +78,7 @@ const REPLY_TEXT: Record<BankReply["status"], string> = {
   final_reply: "Final reply",
 };
 
-function formatDate(iso: string | null): string | null {
+export function formatDate(iso: string | null): string | null {
   if (!iso) return null;
   const [y, m, d] = iso.split("-").map(Number);
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

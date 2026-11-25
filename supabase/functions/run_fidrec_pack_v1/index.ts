@@ -295,6 +295,7 @@ ${JSON.stringify(input, null, 2)}`;
       route,
       finalReplyUsed: Boolean(finalReplyText),
       clauses,
+      today,
     });
     const { data: committed, error: commitErr } = await supabase.rpc("commit_fidrec_pack_v1", {
       p_case_id: case_id,
