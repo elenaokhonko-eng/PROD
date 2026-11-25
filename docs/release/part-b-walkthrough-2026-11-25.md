@@ -168,6 +168,91 @@ and "final reply, rejected", read from the story's "The bank refused to refund m
 and two answers repeating it. The open question is whether a refusal in a story should be read as a *final* reply at
 all, or only as a reply whose status the user confirms.
 
+## Case B (staging case `fd0c0961`), 25 Nov
+
+Elena's result: 3.1, 3.5, 3.6, 4.1 and 4.3–4.7 pass; 3.2–3.4 and 4.2 skipped (PB-17, PB-21, PB-22). Documents: the
+synthetic B1, B3 and B4 (B4 uploaded twice). PB-6 ("Consultation unavailable") was seen again.
+
+### PB-16 (change, Elena): the paid pack buttons on /pricing are outlined
+
+The free evaluation's button is filled; the two pack buttons use the outline style (`pack-comparison.tsx`,
+`variant={card.paid ? 'outline' : 'default'}`). Elena: when the packs are live, all three buttons are filled, to show
+they work.
+
+### PB-17 (bug): the FIDReC route question cannot show its answer or be changed
+
+Seen: "I haven't complained to my bank in writing yet" and Save: nothing seemed to happen, and "FIDReC needs your bank
+to have had the chance to answer first…" never showed. After an answer that opens the pack, the question disappeared
+and could not be changed, so 3.3 and 3.4 could not be run.
+
+Cause (`fidrec-offer.tsx`): the question shows while the readiness reason is `complaint_not_raised`, which is also the
+reason after the answer "not complained yet", so the question stays and the message under it is hidden. "Change my
+answer" is shown only beside a blocking message, so once the pack can be bought there is no way back. Staging shows one
+saved answer on the case (complained in writing, 4 Oct 2026), never changed.
+
+Fix: the step knows whether a route answer is saved. Once saved, it shows the answer's message (or the buy button) with
+"Change my answer" in every state. Existing wording only.
+
+### PB-18 (change): the pricing FIDReC button leads to the free evaluation's story page
+
+Seen: pricing, "Prepare my FIDReC case", sign up, then the same button again: each time the story page, titled as the
+free evaluation. The pack is offered only after the story.
+
+Cause: the button goes to `/sign-in?intent=fidrec`, which remembers the pack and moves a signed-in person on; a case
+starts with the story whatever the pack. The design (stage 2 plan) keeps the story first, so the order is right, but
+the page does not say the pack comes next, and a signed-in person with a case is not taken to that case.
+
+Proposed: with a pack intent, the story page says the pack follows the story (wording for Elena), and a signed-in
+person with a case goes to the case's dashboard.
+
+### PB-19 (change): two sets of "where are you with your bank" questions on one screen
+
+Seen: with the FIDReC intent, the dashboard shows the FIDReC route question and, under it, the free evaluation's six
+journey questions ("Where are you with your bank?"); after paying, the journey questions showed briefly before the
+FIDReC step.
+
+Proposed (Elena's decision): with the FIDReC intent, the route question comes first and the journey questions wait
+until it is answered. The flash after payment is the dashboard rendering before the purchase is visible; cause not yet
+traced.
+
+### PB-20 (bug): the same file can be uploaded twice
+
+Seen: B4 uploaded twice, both kept, both listed and both offered in "Choose one of your documents".
+
+Cause: `/api/evidence/upload` never fills `case_documents.sha256` (empty on every document of the case), so nothing
+can see a repeat.
+
+Fix: hash each upload and refuse a file already in the case, with a message naming it (wording for Elena).
+
+### PB-21 (change): a document that matches no item is silent
+
+Seen: B4 was read as "other"; the police report row stayed "Missing" with no message, and the file only appeared in
+the dropdown.
+
+Proposed (wording for Elena): after a document is read and matches no item, the checklist says so and points to
+"Choose one of your documents" if it is one of them.
+
+### PB-22 (bug, decision): a document marked by hand as the police report is not used by the facts
+
+Seen: B4 marked "This is my police report" turned the item "Added", but the fact "Whether you reported this to the
+police" still said "We couldn't find a document that shows this".
+
+Cause: the evidence checklist reads the mark (`complainant_item`); the fact reading ignores it and uses the type the
+model gave the document ("other"), so the document can back no police fact. B4 states "Received 06 Sep 2026" and a
+reference, which would match the story's 6 September.
+
+Proposed (Elena's decision): a document marked by hand is read as that kind of document (police report, bank letter,
+payment proof), and marking it re-reads it, so its date and number are compared like any other police report's.
+
+### PB-23 (with the update): the FIDReC duties ignore the scam type
+
+Seen: an investment scam (payments made knowingly) gets the SRF's phishing duties (surveillance, cooling period,
+alerts) as if they applied, while "How the rules may apply" correctly says the SRF does not cover it.
+
+Proposed: with the update's rewrite of the FIDReC sections, duties under a framework the case is outside are left out
+or labelled as not applying. Elena (25 Nov): such cases may still buy and generate packs, as long as the pack says
+plainly what is not covered, which it does.
+
 ## Order of work (review, 25 Nov)
 
 1. On branches now, nothing merged into main: PB-1 (#106), PB-2 (#107), PB-5 (#108), all drafts.
@@ -175,5 +260,7 @@ all, or only as a reply whose status the user confirms.
    (wording only).
 3. Merge as one batch after Elena finishes cases B and C, then three gate runs on that commit, then Elena re-runs
    steps 2.3–2.6 in both orders.
-4. With the update (`feat/fidrec-update`): PB-7 and PB-8.
+4. With the update (`feat/fidrec-update`): PB-7, PB-8 and PB-23.
+6. Case B (proposed, for review): PB-16, PB-17 and PB-20 in the batch; PB-18, PB-19, PB-21 and PB-22 once Elena
+   decides. Then 3.2–3.4 and 4.2 re-run.
 5. Any time: PB-14. PB-9: walk-through updated with the batch.
