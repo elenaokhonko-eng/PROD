@@ -1,0 +1,121 @@
+{
+  "$comment": "Elena marked these statements 'Approve' in the confirmation workbook after reading them against the SRF Guidelines (mas.srf.2024-12-16.json). Each is recorded as reviewed against that version. Only statements resting on the SRF alone are recorded as approved here; the others are approved once their other documents are verified.",
+  "by": "Elena Okhonko",
+  "at": "2026-11-25T18:18:00+08:00",
+  "statement_reviews": [
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "statement_key": "srf.fault.terms",
+      "revision": 1,
+      "text_sha256": "65d875c3b53b466bc85ad8aef28689b45e1e4e3e8c4162de8fd2fa3cfb0d5f45",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "statement_key": "srf.fault.userduties",
+      "revision": 1,
+      "text_sha256": "5157244548876833be829eb56c66148e8ae01da17bca00d71f0d28baee015dde",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "statement_key": "srf.fault.allocation",
+      "revision": 1,
+      "text_sha256": "31db09fb0890744de354f85874bbec08b9cf48ee7f6873b884d0d50d43b12ac0",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "statement_key": "srf.fault.section6",
+      "revision": 1,
+      "text_sha256": "406569c45e17c7d3f464c95386e0dd197803053ef3eea09fe3375c802f43cded",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "statement_key": "srf.fault.cards",
+      "revision": 1,
+      "text_sha256": "73b11c52733034a452f087140c567039ccec8a704b9ff000ea19249f1f77b0d6",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "statement_key": "srf.newdevice.bank",
+      "revision": 1,
+      "text_sha256": "b41776b1c700e73d0d7a2390bee1228b3ee625da80984cc75a0d1099615d8862",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "statement_key": "srf.highrisk.definition",
+      "revision": 1,
+      "text_sha256": "dd8b823815c45d450d33001e4c44ffabd020959edfa7b8625ad086b80b28b55e",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "statement_key": "bridge.mas_requirement",
+      "revision": 1,
+      "text_sha256": "76d3437277d9ace2452ad0fe3c803ea2c1e107c380cface224a926c3695da3db",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "statement_key": "bridge.mas_requirement.cards",
+      "revision": 1,
+      "text_sha256": "6b22412277acaa2e6f58a90a9e43195a9b8eaa718e0f543c7c1991d909890fd4",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "statement_key": "link.srf_4_2",
+      "revision": 1,
+      "text_sha256": "8f0ac8d46cb6f6653c60d9b4c4c182f7d577ddca585f208d7201baed5f51d52a",
+      "outcome": "unchanged"
+    }
+  ],
+  "statements": [
+    {
+      "statement_key": "srf.fault.terms",
+      "revision": 1,
+      "text_sha256": "65d875c3b53b466bc85ad8aef28689b45e1e4e3e8c4162de8fd2fa3cfb0d5f45",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "srf.fault.userduties",
+      "revision": 1,
+      "text_sha256": "5157244548876833be829eb56c66148e8ae01da17bca00d71f0d28baee015dde",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "srf.fault.allocation",
+      "revision": 1,
+      "text_sha256": "31db09fb0890744de354f85874bbec08b9cf48ee7f6873b884d0d50d43b12ac0",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "srf.fault.section6",
+      "revision": 1,
+      "text_sha256": "406569c45e17c7d3f464c95386e0dd197803053ef3eea09fe3375c802f43cded",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "srf.fault.cards",
+      "revision": 1,
+      "text_sha256": "73b11c52733034a452f087140c567039ccec8a704b9ff000ea19249f1f77b0d6",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "srf.highrisk.definition",
+      "revision": 1,
+      "text_sha256": "dd8b823815c45d450d33001e4c44ffabd020959edfa7b8625ad086b80b28b55e",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "link.srf_4_2",
+      "revision": 1,
+      "text_sha256": "8f0ac8d46cb6f6653c60d9b4c4c182f7d577ddca585f208d7201baed5f51d52a",
+      "clauses_as_of": "2026-11-25"
+    }
+  ]
+}
