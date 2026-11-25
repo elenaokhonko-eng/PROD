@@ -1,0 +1,13 @@
+{
+  "$comment": "Elena checked the stored text of each version below against its source, using the verification sheet generated from the manifest (the hashes name exactly what she checked). Applied by scripts/standards/confirm.ts.",
+  "by": "Elena Okhonko",
+  "at": "2026-11-25T17:48:00+08:00",
+  "versions": [
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "content_sha256": "bc5f937a1baffac0758532b3ae95c9f7cc4b7db5ba9d2c2d7b5a5124892af6a1",
+      "clauses_sha256": "05177a55217c9179663ffa29c98803d38250221f7d2bd64bc3b533acf91b4616",
+      "note": "All 89 clauses read against the source."
+    }
+  ]
+}
