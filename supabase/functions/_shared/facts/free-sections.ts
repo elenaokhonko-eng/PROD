@@ -58,6 +58,12 @@ function documentNames(values: FindingValue[]): string[] {
   return [...new Set(names)];
 }
 
+/** The documents behind the value the person confirmed for a fact, named by kind; empty when none. */
+export function documentsShowing(key: FactKey, findings: readonly EvidenceFinding[]): string[] {
+  const finding = findings.find((f) => f.factKey === key);
+  return finding ? documentNames(chosenValues(finding)) : [];
+}
+
 // "No" (not told, no complaint) or "no reply yet" needs no document.
 function claimsSomething(key: FactKey, value: unknown): boolean {
   if (key === "reported_to_bank" || key === "reported_to_police" || key === "written_complaint_sent") {

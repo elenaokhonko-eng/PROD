@@ -73,6 +73,7 @@ export function FidrecPackView({ pack, createdAt, onDownload }: FidrecPackViewPr
 
       {pack.institution_duties?.length ? (
         <Section title="The institution’s duties and what the records show">
+          {pack.duties_note ? <p className="mb-3 text-sm" data-duties-note>{pack.duties_note}</p> : null}
           <ul className="ml-4 list-disc space-y-2 text-sm">
             {pack.institution_duties.map((duty, i) => (
               <li key={i}>

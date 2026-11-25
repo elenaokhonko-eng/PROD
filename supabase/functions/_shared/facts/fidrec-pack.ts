@@ -5,16 +5,16 @@
 // regenerates once, and otherwise uses fixed wording. Shared by run_fidrec_pack_v1 and its tests.
 
 import { EVIDENCE_RULES, type EvidenceItem, isEvidenceItem } from "../evidence-minimums.ts";
-import { formatMoney } from "./display.ts";
+import { formatDate, formatMoney } from "./display.ts";
 import { DOCUMENT_CONFIDENCE_THRESHOLD } from "./extraction.ts";
-import { DOCUMENT_LABELS, type EvidenceFinding, evidenceLists } from "./free-sections.ts";
+import { DOCUMENT_LABELS, documentsShowing, type EvidenceFinding, evidenceLists } from "./free-sections.ts";
 import type { BankReply, FactKey, Instrument, Money, ReportedEvent, Transaction } from "./keys.ts";
 import { appliesToCase, appliesToLabel, instrumentsOf } from "./rules/instrument-scope.ts";
 import { type FidrecAvailability, fidrecAvailability, FIDREC_RULES } from "./rules/fidrec.ts";
-import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
+import { assessSrf, type SrfAssessment, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
 import { bankPackTransactions } from "./bank-pack.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
-import { normaliseDate } from "./normalise.ts";
+import { addMonths, normaliseDate } from "./normalise.ts";
 import {
   DATE_PATTERN,
   MONEY_PATTERN,
@@ -574,14 +574,47 @@ export function fidrecChronology(facts: SnapshotFacts): Array<{ date?: string; e
   return items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
 }
 
+/** The confirmed final reply the FIDReC deadline counts from, and the document that shows its date when one does. */
+export interface FinalReplyBasis {
+  date: string;
+  shownBy: string | null;
+}
+
+export function finalReplyBasis(facts: SnapshotFacts, findings: readonly EvidenceFinding[]): FinalReplyBasis | null {
+  const reply = confirmedValue<BankReply>(facts, "bank_reply");
+  if (!reply || reply.status !== "final_reply" || !reply.date) return null;
+  return { date: reply.date, shownBy: documentsShowing("bank_reply", findings)[0] ?? null };
+}
+
 /** How and when FIDReC can be approached, with the fee: fixed wording from the Terms of Reference (rules/fidrec.ts). */
-export function fidrecRouteText(route: FidrecAvailability): string {
+export function fidrecRouteText(route: FidrecAvailability, finalReply: FinalReplyBasis | null = null, today?: string): string {
   const fee = `If the case goes to adjudication, FIDReC charges individuals a S$${FIDREC_RULES.adjudicationFeeSgd.individual} case fee.`;
+  // Part B walk-through (25 Nov). PB-24: a confirmed final reply read from a letter carries no "qualifies" answer, so
+  // the route fell back to "the complaint is not resolved" and the deadline a customer acts on was left out; it is now
+  // counted from any confirmed final reply. PB-13 (wording approved by Elena): the line says whose date it is.
+  if (finalReply) {
+    const deadline = addMonths(finalReply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value);
+    const dated = finalReply.shownBy
+      ? `The final reply is dated ${formatDate(finalReply.date)}, as shown by ${finalReply.shownBy}.`
+      : `You told us the final reply is dated ${formatDate(finalReply.date)}.`;
+    const by = today && deadline < today ? "FIDReC had to receive the complaint by" : "FIDReC must receive the complaint by";
+    return `${dated} Counted from that date, ${by} ${formatDate(deadline)}. ${fee}`;
+  }
   if (route.available && route.route === "final_reply") {
-    return `The institution gave its final reply. FIDReC must receive the complaint by ${route.deadline} (six months after the final reply). ${fee}`;
+    return `The institution gave its final reply. FIDReC must receive the complaint by ${formatDate(route.deadline)} (six months after the final reply). ${fee}`;
   }
   if (route.available) return `The complainant complained in writing more than four weeks ago and the complaint is not resolved. ${fee}`;
   return fee;
+}
+
+// PB-23 (Part B walk-through, 25 Nov; wording approved by Elena): an investment scam met the SRF's phishing duties
+// before reading, under "How the rules may apply", that the SRF does not cover it.
+export const SRF_DUTIES_NOTE =
+  "On the confirmed facts, the disputed payments are likely outside the SRF (see “How the rules may apply”). The duties below describe what the institution is expected to do; they do not decide who bears the loss.";
+
+export function srfDutiesNote(assessment: SrfAssessment): string | null {
+  const portions = assessment.portions;
+  return portions.length > 0 && portions.every((p) => p.assessment === "likely_out_of_scope") ? SRF_DUTIES_NOTE : null;
 }
 
 export interface FidrecPackReport {
@@ -593,6 +626,8 @@ export interface FidrecPackReport {
   arguments_for_claimant: FidrecArgument[];
   arguments_for_institution: FidrecArgument[];
   institution_duties: FidrecDuty[];
+  /** Server-written, above the duties when every payment is likely outside the SRF (PB-23); null otherwise. */
+  duties_note: string | null;
   /** The clauses the duties cite, with their source documents. */
   regulatory_sources: Array<{ id: string; source: string; clause_ref: string | null; title: string | null }>;
   timeline: Array<{ date?: string; event: string }>;
@@ -616,10 +651,13 @@ export function assembleFidrecPack(args: {
   route: FidrecAvailability;
   finalReplyUsed: boolean;
   clauses?: readonly RegulatoryClause[];
+  /** Singapore date (YYYY-MM-DD), to say whether the six months after the final reply have passed. */
+  today?: string;
 }): FidrecPackReport {
   const { facts } = args;
   const { shown, missing } = evidenceLists(facts, args.findings);
   const loss = confirmedValue<Money>(facts, "total_loss");
+  const srf = assessSrf(srfFactsFromSnapshot(facts));
   return {
     report_version: FIDREC_PACK_VERSION,
     ...args.prose,
@@ -631,8 +669,9 @@ export function assembleFidrecPack(args: {
     total_loss: loss ? formatMoney(loss) : null,
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label })),
     evidence_checklist: [...shown.map((label) => ({ label, present: true })), ...missing.map((label) => ({ label, present: false }))],
-    route: fidrecRouteText(args.route),
-    rules_assessment: srfAssessmentText(assessSrf(srfFactsFromSnapshot(facts))),
+    duties_note: srfDutiesNote(srf),
+    route: fidrecRouteText(args.route, finalReplyBasis(facts, args.findings), args.today),
+    rules_assessment: srfAssessmentText(srf),
     final_reply_used: args.finalReplyUsed,
     prose_source: args.source,
   };
