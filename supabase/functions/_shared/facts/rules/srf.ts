@@ -3,7 +3,8 @@
 //
 // Sources: G = MAS/IMDA Guidelines on Shared Responsibility Framework (issued 24 Oct 2024, effective 16 Dec 2024);
 // R = MAS/IMDA Response to Consultation (24 Oct 2024); CP = Consultation Paper (25 Oct 2023);
-// E = MAS E-Payments User Protection Guidelines (from 16 Dec 2024).
+// E = MAS E-Payments User Protection Guidelines (from 16 Dec 2024); W = MAS SRF workflow (how claims are handled,
+// including FIDReC's assessment).
 
 import {
   type CredentialsShared,
@@ -88,9 +89,11 @@ const R = {
   authorised: { code: "authorised_scam_excluded", cite: "CP para 4.4(a); E fn 4(a)" },
   privatePerson: { code: "private_person_impersonated", cite: "G §2.1 (legitimate business or government entity)" },
   beforeEffective: { code: "before_effective_date", cite: "G cover (effective 16 Dec 2024); no source states pre-commencement treatment" },
-  telcoSms: { code: "telco_sms", cite: "G paras 6.2-6.5, 7.11; G §2.1 (SMS); R fn 2" },
+  telcoSms: { code: "telco_sms", cite: "G paras 6.2-6.5, 7.7, 7.7.1, 7.11; G §2.1 (SMS); R fn 2" },
   telcoOtt: { code: "telco_not_assessed", cite: "G §2.1 (SMS excludes OTT messages)" },
   remedies: { code: "other_remedies", cite: "G paras 6.8, 7.11; E paras 5.2-5.6; R para 6.11(d)" },
+  // Rules review of 25 Nov (row 8, wording chosen by Elena): payments the account user knew of and consented to.
+  remediesAuthorised: { code: "other_remedies", cite: "E para 5.3; W (FIDReC's assessment includes obligations outside the SRF)" },
 };
 
 const AUTHORISED_TYPES: ScamType[] = ["investment", "job", "romance", "ecommerce"];
@@ -208,22 +211,24 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
   if (srfInScope && facts.channel === "sms") {
     telco = {
       ...R.telcoSms,
-      text: "Because the scam message came by SMS, your mobile operator may be responsible if your bank met all its duties and the operator did not meet its own. Your bank assesses this; disagreements about the operator go to IMDA in writing, not to FIDReC.",
+      // Rules review of 25 Nov (row 6, wording chosen by Elena): the bank passes the claim on and the operator investigates
+      // its own duties (G 7.7, 7.7.1, 7.11); the earlier "your bank assesses this … not to FIDReC" had no such source.
+      text: "Because the scam message came by SMS, your mobile operator may be responsible if your bank met all its duties and the operator did not meet its own. Your bank is your point of contact and passes the claim to the operator, which investigates its own duties. If you disagree with the operator's assessment, you can write to IMDA.",
     };
   } else if (srfInScope && facts.channel === "messaging_app") {
     telco = { ...R.telcoOtt, text: "Messages through WhatsApp or similar apps are not SMS, so the mobile operator's SRF duties do not apply." };
   }
 
-  // Losses outside the SRF (C3): payments made knowingly have no liability framework; unauthorised ones fall under
-  // the EUPG.
+  // Losses outside the SRF (C3): payments the account user knew of follow EUPG 5.3, with FIDReC's wider assessment;
+  // unauthorised ones fall under the EUPG's loss-sharing rules.
   const anyNotInScope = portions.some((p) => p.assessment !== "likely_in_scope");
   const authorised = (facts.scamTypes ?? []).some((t) => AUTHORISED_TYPES.includes(t));
   const remedies = !anyNotInScope
     ? null
     : authorised
       ? {
-          ...R.remedies,
-          text: "Payments you made knowingly, for example in an investment, job, romance or shopping scam, are not covered by a liability framework. You can still complain to your bank in writing, and FIDReC can consider whether your bank handled your case properly.",
+          ...R.remediesAuthorised,
+          text: "Under the EUPG, the account holder is liable for payments an account user knew of and consented to, up to the agreed limits (paragraph 5.3). MAS's workflow for the SRF states that FIDReC's assessment includes obligations outside the SRF, for example under statute, common law or the EUPG.",
         }
       : {
           ...R.remedies,
