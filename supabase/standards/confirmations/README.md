@@ -41,9 +41,19 @@ result (for example the confirmation workbook); it never adds a line the person 
 
 ```
 npx tsx scripts/standards/confirm.ts                      # what is ready and what each item is waiting on
-npx tsx scripts/standards/confirm.ts --psql "<command>"   # apply to a LOCAL database
+npx tsx scripts/standards/confirm.ts --psql "<command>"   # apply to a database on this machine; any other host is refused
 npx tsx scripts/standards/confirm.ts --sql-out <file>     # write the SQL; a hosted database only with Elena's OK
+npx tsx scripts/standards/confirm.ts --require-ready      # also fail while any recorded item is still waiting
 ```
 
-Not covered yet: reviews of bank term requests. A version with a term request resting on it is refused by the
-database until that review exists.
+The command fails, and writes or applies nothing, while any record is malformed, contradicts another or is stale.
+`scripts/standards/seed.ts --psql` applies the records after seeding, so a reloaded database gets its confirmations
+back (load every confirmed version first; `--no-confirm` leaves the step out).
+
+Not covered yet:
+- Card scheme statements (`seeds/statements/schemes`). The seed step does not load them, because each needs a check
+  per edition; a result recorded for one is reported as an error.
+- A reworded statement. "Change" needs a new revision in the seed file first; the old revision's review is then
+  recorded as `reworded` and the new revision is approved on its own.
+- Reviews of bank term requests. A version with a term request resting on it is refused by the database until that
+  review exists.

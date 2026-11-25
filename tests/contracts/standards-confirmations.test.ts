@@ -1,16 +1,15 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { readdirSync } from 'node:fs'
-import { join } from 'node:path'
 import test from 'node:test'
+import { assertLocalPsql, currentPlan } from '../../scripts/standards/confirm-run.ts'
 import { buildConfirmSql } from '../../scripts/standards/confirm-sql.ts'
 import {
-  clausesSha256, type ConfirmationFile, describePlan, type NamedManifest, planConfirmations, readConfirmations,
+  clausesSha256, type ConfirmationFile, describePlan, type NamedManifest, planConfirmations,
   statementTextSha256, validateConfirmationFile,
 } from '../../scripts/standards/confirmations.ts'
-import { type Manifest, readManifest } from '../../scripts/standards/manifest.ts'
-import { MANIFEST_DIR, readStatements, type RuleCitation, ruleCitations, type SeedStatement } from '../../scripts/standards/seeds.ts'
+import type { Manifest } from '../../scripts/standards/manifest.ts'
+import type { RuleCitation, SeedStatement } from '../../scripts/standards/seeds.ts'
 import { sha256Hex } from '../../scripts/standards/segment.ts'
 import { buildLoadSql, sqlLiteral } from '../../scripts/standards/sql.ts'
 
@@ -150,10 +149,33 @@ test('malformed and contradicting records stop everything', () => {
   assert.equal(buildConfirmSql(twice), null)
 })
 
+test('a result for a statement the seed step does not load is an error, and an undated version waits', () => {
+  const w = world()
+  const [one] = w.statements
+  const plan = planConfirmations({
+    files: [file('a.json', { statements: [w.approval(one, '2025-06-01')] })], manifests: w.manifests, statements: w.statements, citations: w.citations,
+    notLoaded: new Set([one.statement_key]),
+  })
+  assert.match(plan.errors[0], /is not loaded by the seed step yet/)
+  assert.equal(buildConfirmSql(plan), null)
+
+  w.manifests[0].manifest.version.effective_from = null
+  const undated = planConfirmations({ files: [file('b.json', { versions: [w.version(0)] })], manifests: w.manifests, statements: [], citations: [] })
+  assert.match(undated.versions[0].waitingOn[0], /an in-force date/)
+  assert.equal(buildConfirmSql(undated), null)
+})
+
+test('only a database on this machine is accepted', () => {
+  for (const ok of ['psql -h 127.0.0.1 -p 54322 -U postgres', 'psql postgresql://postgres:x@localhost:54322/postgres', 'docker exec -i db psql -U postgres', 'psql "host=/var/run/postgresql dbname=x"']) {
+    assert.doesNotThrow(() => assertLocalPsql(ok), ok)
+  }
+  for (const bad of ['psql -h db.example.com -U postgres', 'psql postgresql://u:p@10.0.0.5:5432/x', 'psql "host=db.internal dbname=x"', 'PGHOST=db.example.com psql', 'psql --host=aws-0.pooler.supabase.com', 'psql -h db.abc.supabase.co']) {
+    assert.throws(() => assertLocalPsql(bad), /local database only/, bad)
+  }
+})
+
 test('the committed records are well formed and still cover what the repo holds', () => {
-  const manifests: NamedManifest[] = readdirSync(MANIFEST_DIR).filter((f) => f.endsWith('.json')).sort()
-    .map((f) => ({ file: f, manifest: readManifest(join(MANIFEST_DIR, f)) }))
-  const plan = planConfirmations({ files: readConfirmations(), manifests, statements: readStatements(), citations: ruleCitations() })
+  const plan = currentPlan()
   assert.deepEqual(plan.errors, [])
   // A manifest or statement edited after it was confirmed must have its record removed or renewed in the same change.
   assert.deepEqual(plan.stale, [])

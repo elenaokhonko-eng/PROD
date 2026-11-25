@@ -15,6 +15,22 @@ import type { RuleCitation, SeedStatement } from "./seeds.ts"
 import { sha256Hex } from "./segment.ts"
 
 export const CONFIRMATIONS_DIR = "supabase/standards/confirmations"
+/** Statements held in the repo that scripts/standards/seed.ts does not load: each needs a check per edition first. */
+export const UNLOADED_STATEMENTS_DIR = "supabase/standards/seeds/statements/schemes"
+
+export function unloadedStatementKeys(dir = UNLOADED_STATEMENTS_DIR): Set<string> {
+  const keys = new Set<string>()
+  let files: string[]
+  try {
+    files = readdirSync(dir).filter((f) => f.endsWith(".json"))
+  } catch {
+    return keys
+  }
+  for (const file of files) {
+    for (const s of (JSON.parse(readFileSync(join(dir, file), "utf8")) as { statements: Array<{ statement_key: string }> }).statements) keys.add(s.statement_key)
+  }
+  return keys
+}
 
 export const REVIEW_OUTCOMES = ["unchanged", "reworded", "retired"] as const
 export type ReviewOutcome = (typeof REVIEW_OUTCOMES)[number]
@@ -178,6 +194,8 @@ export function planConfirmations(input: {
   manifests: NamedManifest[]
   statements: SeedStatement[]
   citations: RuleCitation[]
+  /** Statement keys that exist in the repo but that the seed step does not load (the card scheme statements). */
+  notLoaded?: ReadonlySet<string>
 }): ConfirmationPlan {
   const errors = input.files.flatMap(validateConfirmationFile)
   const stale: string[] = []
@@ -186,6 +204,12 @@ export function planConfirmations(input: {
   const manifestByFile = new Map(input.manifests.map((m) => [m.file, m]))
   const statementByKey = new Map(input.statements.map((s) => [`${s.statement_key} r${s.revision}`, s]))
   const ruleIds = new Set(input.citations.map((c) => c.rule_id))
+  // A result for a statement the seed step does not load cannot be applied anywhere. It is an error, not a skip.
+  for (const f of input.files) {
+    for (const key of new Set([...(f.statement_reviews ?? []), ...(f.statements ?? [])].map((r) => r.statement_key))) {
+      if (input.notLoaded?.has(key)) errors.push(`${f.file}: statement ${key} is not loaded by the seed step yet (card scheme statements), so a result for it cannot be recorded`)
+    }
+  }
 
   // Confirmed versions, one per manifest.
   const confirmed = new Map<string, { by: string; at: string; note: string | null }>()
@@ -259,6 +283,7 @@ export function planConfirmations(input: {
 
     const planned: PlannedReview[] = []
     const waitingOn: string[] = []
+    if (!m.version.effective_from) waitingOn.push("an in-force date (the manifest has none, and a version cannot be verified without one)")
     const hashesFor = (keys: string[]) => keys.filter((k) => newHashes.has(k)).sort().map((k) => newHashes.get(k)!)
     for (const s of input.statements) {
       const review = reviews.get(reviewKey(named.file, "statement", s.statement_key, s.revision))
