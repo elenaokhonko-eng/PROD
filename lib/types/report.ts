@@ -33,6 +33,7 @@ export interface FidrecPackJson {
   arguments_for_claimant?: Array<{ text: string; evidence_ids: string[] }>
   arguments_for_institution?: Array<{ text: string; evidence_ids: string[] }>
   institution_duties?: Array<{ text: string; clause_ids: string[]; evidence_ids: string[] }>
+  duties_note?: string | null
   regulatory_sources?: Array<{ id: string; source: string; clause_ref: string | null; title: string | null }>
   timeline?: Array<{ date?: string; event: string }>
   disputed_transactions?: Array<Record<string, string>>
