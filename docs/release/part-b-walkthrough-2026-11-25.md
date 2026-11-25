@@ -301,8 +301,11 @@ showing that the person told the bank.
 Cause: the model typed both copies of B4 as a bank letter, though B4 names no institution. Nothing checks that a "bank
 letter" names a bank.
 
-Fix (with PB-1, #106): a document typed as a bank letter that names no institution (none returned by the model and
-none in its heading) is read as "other". Test with B4's synthetic text.
+Fix (with PB-1, #106): the prompt says a bank letter is only a letter, email or message from a bank or payment
+provider; an acknowledgement that does not show one is "other". On gpt-6-luna, B4 was a bank letter 5 of 5 times
+before and "other" 5 of 5 after, while a genuine bank email that prints no bank name stays a bank letter 5 of 5. A
+rule on the text alone (no institution named → "other") was tried and dropped: it also demoted that genuine email,
+which an existing test (A7) protects.
 
 ### PB-26 (bug): three card payments became one (case C, staging case `fe204ab1`)
 
@@ -331,8 +334,8 @@ read, so it covers both rows (payment proof and police report) on a card case.
 
 ## Order of work (review, 25 Nov)
 
-1. On branches now, nothing merged into main: PB-1 (#106), PB-2 (#107), PB-5 (#108), PB-17 (#109), all drafts.
-2. Before selling, also on main: PB-10, PB-11, PB-12, PB-16, PB-20, PB-24, PB-25, PB-26, and the wording items once
+1. On branches now, nothing merged into main: PB-1, PB-25 and PB-26 (#106), PB-2 (#107), PB-5 (#108), PB-17 (#109), all drafts.
+2. Before selling, also on main: PB-10, PB-11, PB-12, PB-16, PB-20, PB-24, and the wording items once
    approved (PB-3, PB-4, PB-6, PB-13, PB-21, PB-23's sentence).
 3. Elena's decisions: PB-18, PB-19 (both packs), PB-22, the re-read of existing cases (PB-1).
 4. One batch after Elena's own three cases, then three gate runs on that commit, then the re-runs above.
