@@ -504,12 +504,10 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
 
       <section className="rounded-xl border border-dashed bg-muted/30 p-5" aria-labelledby="consultation-status">
         <h2 id="consultation-status" className="font-semibold">Human consultation</h2>
+        {/* PB-6 (Elena, 25 Nov): the line says how to book, with no greyed button under it. */}
         <p className="mt-2 text-sm text-muted-foreground">
           Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.
         </p>
-        <button type="button" className="mt-4 min-h-11 rounded-full border px-4 text-sm font-semibold" disabled>
-          Consultation unavailable
-        </button>
       </section>
     </div>
   )
@@ -694,6 +692,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               caseId={caseId}
               stage="fidrec"
               evidenceReady={packEvidence.fidrec.ready}
+              missingEvidence={packEvidence.fidrec.missing}
               documentsUploading={filesUploading}
               documentsReading={documentsBeingRead(documentsQuery.data ?? [])}
               readyDocumentsKey={(documentsQuery.data ?? []).filter((d) => d.processing_status === 'ready').map((d) => d.id).sort().join(',')}
@@ -716,6 +715,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               caseId={caseId}
               stage="bank"
               evidenceReady={packEvidence.bank.ready}
+              missingEvidence={packEvidence.bank.missing}
               documentsUploading={filesUploading}
               documentsReading={documentsBeingRead(documentsQuery.data ?? [])}
               readyDocumentsKey={(documentsQuery.data ?? []).filter((d) => d.processing_status === 'ready').map((d) => d.id).sort().join(',')}

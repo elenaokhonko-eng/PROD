@@ -9,7 +9,7 @@
 import { useRef, useState } from 'react'
 import { CheckCircle2, Circle, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { type EvidenceCheck, type EvidenceItem, type PackProduct } from '@/lib/billing/evidence-minimums'
+import { EVIDENCE_RULES, type EvidenceCheck, type EvidenceItem, type PackProduct } from '@/lib/billing/evidence-minimums'
 import type { CaseDocumentRow } from '@/lib/types/documents'
 
 export const PACK_NAMES: Record<PackProduct, string> = { bank: 'Bank dispute pack', fidrec: 'FIDReC pack' }
@@ -32,6 +32,22 @@ const IDENTIFY_LABELS: Record<EvidenceItem, string> = {
   police_report: 'This is my police report',
   bank_reply_or_complaint: 'This is the bank’s reply or my complaint',
   scam_message: 'This is the scam message',
+}
+
+// PB-3 (Elena, 25 Nov): after confirming, the step names what is still missing ("Add your police report to generate
+// your Bank dispute pack.") instead of pointing to "the documents listed above".
+const MISSING_NAMES: Record<EvidenceItem, string> = {
+  payment_proof: 'your payment proof',
+  police_report: 'your police report',
+  bank_reply_or_complaint: 'your bank’s written reply or a copy of your written complaint',
+  scam_message: 'the scam message',
+}
+
+export function addMissingEvidenceText(product: PackProduct, missing: readonly EvidenceItem[]): string {
+  const names = missing.map((item) => MISSING_NAMES[item])
+  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0] ?? ''
+  const sentence = `Add ${list} to generate your ${PACK_NAMES[product]}.`
+  return sentence
 }
 
 /** Under each buy button; it never blocks buying. */
@@ -103,6 +119,7 @@ export function PackEvidenceChecklist({
             required={status.required}
             added={status.added}
             candidates={ready.filter((d) => !status.documentIds.includes(d.id))}
+            unrecognised={status.item === 'police_report' && !status.added ? unrecognisedDocuments(ready) : []}
             isUploading={isUploading}
             onUpload={onUpload}
             onIdentify={onIdentify}
@@ -113,11 +130,20 @@ export function PackEvidenceChecklist({
   )
 }
 
+// Every type the checklist recognises, for any pack.
+const KNOWN_TYPES = new Set(Object.values(EVIDENCE_RULES).flatMap((rule) => rule.types))
+
+/** Read, but matching no checklist item and not marked by hand (PB-21: such a document was silent). */
+function unrecognisedDocuments(ready: CaseDocumentRow[]): CaseDocumentRow[] {
+  return ready.filter((d) => !d.complainant_item && !(d.verified_document_type && KNOWN_TYPES.has(d.verified_document_type)))
+}
+
 function ChecklistItem({
   item,
   required,
   added,
   candidates,
+  unrecognised,
   isUploading,
   onUpload,
   onIdentify,
@@ -126,6 +152,8 @@ function ChecklistItem({
   required: boolean
   added: boolean
   candidates: CaseDocumentRow[]
+  /** Police report row only, while it is missing: documents read as none of the items. */
+  unrecognised: CaseDocumentRow[]
   isUploading: boolean
   onUpload: (files: File[]) => void
   onIdentify: (documentId: string, item: EvidenceItem) => Promise<void>
@@ -149,6 +177,13 @@ function ChecklistItem({
           <p className="text-xs font-medium text-muted-foreground">{added ? 'Added' : required ? 'Missing' : 'Suggested'}</p>
         </div>
       </div>
+      {/* PB-21 (Elena, 25 Nov). */}
+      {unrecognised.map((d) => (
+        <p key={d.id} role="status" className="pl-7 text-sm" data-unrecognised-document>
+          <span className="font-medium">{d.original_filename || d.filename}:</span> We read this document, but it does not
+          look like a police report. If it is one, choose it below and press “This is my police report”.
+        </p>
+      ))}
       {added ? null : (
         <div className="flex flex-wrap items-center gap-2 pl-7">
           <input

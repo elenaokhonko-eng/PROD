@@ -12,7 +12,8 @@ test.describe('Slice 7 Layer 3 availability QA', () => {
       timeout: 60_000,
     })
     await expect(page.getByText('Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Consultation unavailable' })).toBeDisabled()
+    // PB-6 (Elena, 25 Nov): booking is by email, so no consultation button at all, not even a greyed one.
+    await expect(page.getByRole('button', { name: /consultation/i })).toHaveCount(0)
     await expect(page.getByText('Request specialist support')).toHaveCount(0)
     await expect(page.getByRole('link', { name: /WhatsApp/i })).toHaveCount(0)
   })
