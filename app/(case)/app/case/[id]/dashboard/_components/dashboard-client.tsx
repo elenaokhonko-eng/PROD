@@ -471,7 +471,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
         ) : null}
         {initialCaseSnapshot.claimAmount != null ? (
           <p className="text-muted-foreground">
-            Reported loss: SGD {initialCaseSnapshot.claimAmount.toLocaleString()}
+            {/* PB-11 (Part B walk-through, 25 Nov): "S$2,400", as in the packs, not "SGD 2,400". */}
+            Reported loss: S${initialCaseSnapshot.claimAmount.toLocaleString('en-SG')}
           </p>
         ) : null}
       </div>

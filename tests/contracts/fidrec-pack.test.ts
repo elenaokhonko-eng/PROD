@@ -343,3 +343,20 @@ test("a regulation's own issue and effective dates may be stated (measured 20 No
   const fn = readFileSync('supabase/functions/run_fidrec_pack_v1/index.ts', 'utf8')
   assert.match(fn, /\.\.\.clauses\.flatMap\(\(c\) => c\.dates\)/)
 })
+
+// PB-12 (Part B walk-through, 25 Nov): points ended "(E1). (E1)".
+test('a closing citation the page adds anyway is not printed twice', () => {
+  const prose = {
+    ...GOOD,
+    arguments_for_claimant: [
+      { text: 'The statement records the S$3,000 transfer (E1).', evidence_ids: ['E1'] },
+      { text: 'The letter is about another payment (E9).', evidence_ids: ['E1'] },
+    ],
+    institution_duties: [{ text: 'The records do not show whether the payment was held (R1, R2; E1).', clause_ids: ['R1', 'R2'], evidence_ids: ['E1'] }],
+  }
+  const report = assembleFidrecPack({ prose, source: 'model', facts, findings: [], evidenceIndex: index, route, finalReplyUsed: false })
+  assert.equal(report.arguments_for_claimant[0].text, 'The statement records the S$3,000 transfer.')
+  assert.equal(report.arguments_for_claimant[1].text, 'The letter is about another payment (E9).', 'a citation the page does not add stays')
+  assert.equal(report.institution_duties[0].text, 'The records do not show whether the payment was held.')
+  assert.equal(report.timeline[0].date, '2 Aug 2026', 'PB-10: chronology dates read like the rest of the pack')
+})
