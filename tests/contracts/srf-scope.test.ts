@@ -72,3 +72,16 @@ test('e-wallet payments note the protected-account criteria', () => {
   const a = assessSrf({ ...phishing, transactions: [txn(800, 'ewallet')] })
   assert.match(a.portions[0].reasons.map((r) => r.text).join(' '), /licensed major payment institutions/)
 })
+
+// Rules review, 25 Nov (wording approved by Elena): the four operators the SRF covers (R fn 2), and MAS's reply to
+// Parliament of 7 Jan 2025 on 3DS, in place of "the issuer may treat it as negligence".
+test('the SMS line names the four operators; the card line quotes MAS on 3DS, with its citation', () => {
+  const telco = assessSrf(phishing).telco!.text
+  assert.ok(telco.includes('did not meet its own. The SRF applies to four mobile network operators only: Singtel, M1, StarHub and SIMBA. It does not apply to other mobile providers. Your bank is your point of contact'))
+  const card = assessSrf({ ...phishing, transactions: [{ date: '2026-10-12', amount: { amount: 1200, currency: 'SGD', amountSgd: 1200 }, channel: null, payee: null, last4: null, instrument: 'sg_card' }] })
+    .portions.find((p) => p.kind === 'card')!
+  const text = card.reasons.map((r) => r.text).join(' ')
+  assert.ok(text.includes("In a written reply to Parliament on 7 January 2025, MAS stated that the S$100 limit will not apply to a cardholder who unwittingly authenticates a 3DS transaction that turns out to be fraudulent, 'as that would be considered negligent'. 3DS is the step where you approve a card payment with a one-time password or in your banking app."))
+  assert.doesNotMatch(text, /may treat it as negligence/)
+  assert.ok(card.reasons.some((r) => r.cite.endsWith('; mas.reply.20250107/3(a).3ds')))
+})
