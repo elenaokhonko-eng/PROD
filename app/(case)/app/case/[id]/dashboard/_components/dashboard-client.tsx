@@ -29,7 +29,7 @@ import { UploadRefusedError, UsageLimitError, useUploadEvidence } from '@/hooks/
 import { useDeleteEvidence } from '@/hooks/state-machine/layer1/use-delete-evidence'
 import { EVIDENCE_SKIPPED_KEY, useEvidenceSkipped } from '@/hooks/state-machine/facts/use-evidence-skipped'
 import { useCaseDocumentsRealtime } from '@/hooks/state-machine/layer1/use-case-documents-realtime'
-import { PackEvidenceChecklist } from '@/components/state-machine/facts/pack-evidence'
+import { documentsBeingRead, PackEvidenceChecklist } from '@/components/state-machine/facts/pack-evidence'
 import { checkPackEvidence, type EvidenceItem, type PackProduct } from '@/lib/billing/evidence-minimums'
 import { useTier0Draft } from '@/hooks/state-machine/layer1/use-tier0-draft'
 import { useQueryClient } from '@tanstack/react-query'
@@ -339,6 +339,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     await documentsQuery.refetch()
   }
 
+  const filesUploading = uploadEvidence.isPending ? Math.max(1, uploadEvidence.variables?.files.length ?? 0) : 0
+
   function packEvidenceChecklist(product: PackProduct) {
     return (
       <PackEvidenceChecklist
@@ -346,6 +348,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
         check={packEvidence[product]}
         documents={documentsQuery.data ?? []}
         isUploading={uploadEvidence.isPending}
+        uploadingCount={filesUploading}
         onUpload={handleUpload}
         onIdentify={handleIdentifyDocument}
       />
@@ -670,6 +673,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               caseId={caseId}
               stage="fidrec"
               evidenceReady={packEvidence.fidrec.ready}
+              documentsUploading={filesUploading}
+              documentsReading={documentsBeingRead(documentsQuery.data ?? [])}
               readyDocumentsKey={(documentsQuery.data ?? []).filter((d) => d.processing_status === 'ready').map((d) => d.id).sort().join(',')}
             />
             <EvidenceUploadPanel
@@ -690,6 +695,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               caseId={caseId}
               stage="bank"
               evidenceReady={packEvidence.bank.ready}
+              documentsUploading={filesUploading}
+              documentsReading={documentsBeingRead(documentsQuery.data ?? [])}
               readyDocumentsKey={(documentsQuery.data ?? []).filter((d) => d.processing_status === 'ready').map((d) => d.id).sort().join(',')}
             />
             <EvidenceUploadPanel

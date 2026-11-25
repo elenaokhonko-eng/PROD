@@ -43,11 +43,39 @@ export function PackEvidenceNote({ product }: { product: PackProduct }) {
   )
 }
 
+/** Documents uploaded but not yet read (neither ready nor failed). */
+export function documentsBeingRead(documents: CaseDocumentRow[]): number {
+  return documents.filter((d) => d.processing_status !== 'ready' && d.processing_status !== 'failed').length
+}
+
+// Part B walk-through (25 Nov, PB-2): an upload from the checklist showed nothing until the item turned "Added". These
+// are the upload panel's and the confirm step's existing lines.
+export function DocumentsReadingNote({ uploadingCount, readingCount }: { uploadingCount: number; readingCount: number }) {
+  if (uploadingCount > 0) {
+    return (
+      <p role="status" className="text-sm text-muted-foreground" data-documents-reading="uploading">
+        Uploading and processing <strong>{uploadingCount}</strong> file{uploadingCount === 1 ? '' : 's'}&hellip; Reading a
+        long document can take about a minute.
+      </p>
+    )
+  }
+  if (readingCount > 0) {
+    return (
+      <p role="status" className="text-sm text-muted-foreground" data-documents-reading="reading">
+        {readingCount} {readingCount === 1 ? 'document is' : 'documents are'} still being read. Check back in a minute;
+        we’ll include {readingCount === 1 ? 'it' : 'them'} here.
+      </p>
+    )
+  }
+  return null
+}
+
 export function PackEvidenceChecklist({
   product,
   check,
   documents,
   isUploading,
+  uploadingCount,
   onUpload,
   onIdentify,
 }: {
@@ -55,6 +83,8 @@ export function PackEvidenceChecklist({
   check: EvidenceCheck
   documents: CaseDocumentRow[]
   isUploading: boolean
+  /** Files in the upload under way; 0 when none. */
+  uploadingCount: number
   onUpload: (files: File[]) => void
   onIdentify: (documentId: string, item: EvidenceItem) => Promise<void>
 }) {
@@ -64,6 +94,7 @@ export function PackEvidenceChecklist({
       <h2 id="pack-evidence-heading" className="text-lg font-semibold">
         Add these documents to generate your {PACK_NAMES[product]}
       </h2>
+      <DocumentsReadingNote uploadingCount={uploadingCount} readingCount={documentsBeingRead(documents)} />
       <ul className="space-y-3">
         {check.items.map((status) => (
           <ChecklistItem

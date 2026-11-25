@@ -57,6 +57,28 @@ test('the confirm buttons are disabled while the facts reload', () => {
   assert.match(panel, /disabled=\{confirm\.isPending \|\| refreshing\}>Continue/)
 })
 
+// Part B walk-through, 25 Nov (PB-2): facts confirmed before the police report was added left a "confirmed" card that
+// hid every progress line, then offered Generate with the old confirmation, which the server refused.
+test('a document read after confirming returns the paid step to the facts, and nothing is offered while one is read', () => {
+  const step = readFileSync('components/state-machine/facts/confirm-and-evaluate.tsx', 'utf8')
+  assert.match(step, /if \(snapshotId && !generate\.isPending && !generate\.isSuccess\) \{\s*generate\.reset\(\)\s*setSnapshotId\(null\)/)
+  assert.match(step, /<DocumentsReadingNote uploadingCount=\{documentsUploading\} readingCount=\{documentsReading\} \/>/)
+  assert.match(step, /disabled=\{!evidenceReady \|\| documentsInFlight > 0\}/)
+
+  const checklist = readFileSync('components/state-machine/facts/pack-evidence.tsx', 'utf8')
+  assert.match(checklist, /<DocumentsReadingNote uploadingCount=\{uploadingCount\} readingCount=\{documentsBeingRead\(documents\)\} \/>/)
+  // The existing lines, word for word: the upload panel's and the confirm step's.
+  assert.ok(checklist.includes('Uploading and processing <strong>{uploadingCount}</strong> file'))
+  assert.ok(readFileSync('components/state-machine/layer1/evidence-upload-panel.tsx', 'utf8').includes('Reading a long document can take about a minute.'))
+  const flat = checklist.replace(/\s+/g, ' ')
+  assert.ok(flat.includes('Reading a long document can take about a minute.'))
+  assert.ok(flat.includes('still being read. Check back in a minute; we’ll include'))
+
+  const dashboard = readFileSync('app/(case)/app/case/[id]/dashboard/_components/dashboard-client.tsx', 'utf8')
+  assert.equal(dashboard.match(/documentsReading=\{documentsBeingRead\(documentsQuery\.data \?\? \[\]\)\}/g)?.length, 2, 'both paid steps')
+  assert.equal(dashboard.match(/documentsUploading=\{filesUploading\}/g)?.length, 2)
+})
+
 test('while the facts reload, the confirm step says so (approved 25 Nov 2026)', () => {
   const panel = readFileSync('components/state-machine/facts/confirm-facts-panel.tsx', 'utf8')
   assert.equal(panel.match(/data-facts-refreshing>Checking your facts…<\/p>/g)?.length, 2)
