@@ -141,7 +141,9 @@ export interface ReportedEvent {
   channel: string | null;
 }
 
-export type BankReplyStatus = "none" | "acknowledged" | "interim" | "final_reply";
+// "not_final" comes only from the FIDReC route answer "I complained in writing and haven't had a final reply": it says
+// the reply is not final without saying which reply there was (Part B walk-through, 25 Nov, PB-24).
+export type BankReplyStatus = "none" | "acknowledged" | "interim" | "final_reply" | "not_final";
 export type BankReplyOutcome = "rejected" | "partial_offer" | "full_offer" | "other";
 
 export interface BankReply {

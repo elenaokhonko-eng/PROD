@@ -76,6 +76,7 @@ const REPLY_TEXT: Record<BankReply["status"], string> = {
   acknowledged: "Acknowledged only",
   interim: "Interim reply",
   final_reply: "Final reply",
+  not_final: "No final reply yet",
 };
 
 function formatDate(iso: string | null): string | null {

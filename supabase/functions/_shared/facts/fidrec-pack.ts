@@ -568,7 +568,7 @@ export function fidrecChronology(facts: SnapshotFacts): Array<{ date?: string; e
     if (reported?.value === "yes") items.push({ ...(reported.date ? { date: reported.date } : {}), event });
   }
   const reply = confirmedValue<BankReply>(facts, "bank_reply");
-  if (reply && reply.status !== "none") {
+  if (reply && reply.status !== "none" && reply.status !== "not_final") {
     items.push({ ...(reply.date ? { date: reply.date } : {}), event: reply.status === "final_reply" ? "The institution gave its final reply" : "The institution replied" });
   }
   return items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
