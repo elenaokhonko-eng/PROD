@@ -90,6 +90,8 @@ test('C3: payments made knowingly are told the EUPG rule for them and what FIDRe
   const a = assessSrf({ scamTypes: ['investment'], channel: 'social_media', credentials: 'not_shared', impersonated: 'other_business', transactions: null, losses: null })
   const text = srfAssessmentText(a)
   assert.ok(text.includes('Under the EUPG, the account holder is liable for payments an account user knew of and consented to, up to the agreed limits (paragraph 5.3).'))
+  // The next step stays (rules review, 25 Nov): the person can still complain to the bank.
+  assert.ok(text.includes('(paragraph 5.3). You can complain to your bank in writing. MAS'))
   assert.ok(text.includes("MAS's workflow for the SRF states that FIDReC's assessment includes obligations outside the SRF, for example under statute, common law or the EUPG."))
   assert.doesNotMatch(text, /not covered by a liability framework/)
   assert.equal(a.remedies!.cite, 'E para 5.3; W (mas.srf.workflow/recourse.fidrec)')

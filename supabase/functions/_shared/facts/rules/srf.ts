@@ -228,7 +228,7 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
     : authorised
       ? {
           ...R.remediesAuthorised,
-          text: "Under the EUPG, the account holder is liable for payments an account user knew of and consented to, up to the agreed limits (paragraph 5.3). MAS's workflow for the SRF states that FIDReC's assessment includes obligations outside the SRF, for example under statute, common law or the EUPG.",
+          text: "Under the EUPG, the account holder is liable for payments an account user knew of and consented to, up to the agreed limits (paragraph 5.3). You can complain to your bank in writing. MAS's workflow for the SRF states that FIDReC's assessment includes obligations outside the SRF, for example under statute, common law or the EUPG.",
         }
       : {
           ...R.remedies,
