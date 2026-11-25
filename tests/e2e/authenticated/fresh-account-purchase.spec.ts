@@ -9,6 +9,7 @@ import {
   smsPhishingNarrative,
   startFreshCase,
   syntheticNarrative,
+  syntheticStatementPdf,
 } from '../helpers/fresh-account'
 import { PAID_STAGES_DEFERRED, paidStagesEnabled } from '../helpers/paid-stages'
 
@@ -92,6 +93,18 @@ test.describe('fresh free account', () => {
       // Stage 2 (Elena, 13 Nov 2026): pay first, then confirm the bank facts; the pack is generated from them.
       // Evidence minimums (#35): the police report is added after payment; the statement was uploaded before.
       await addPackEvidence(page, 'bank')
+
+      // PB-20 (Part B walk-through, 25 Nov): the same file again is refused, by its bytes, and not kept.
+      const { count: before } = await supabase.from('evidence').select('id', { count: 'exact', head: true }).eq('case_id', caseId)
+      await page.locator('[data-evidence-item="scam_message"] input[type="file"]').setInputFiles({
+        name: 'renamed-copy.pdf',
+        mimeType: 'application/pdf',
+        buffer: syntheticStatementPdf(),
+      })
+      await expect(page.getByText('This file is already in your case as “synthetic-bank-statement.pdf”. You don’t need to add it again.')).toBeVisible({ timeout: 60_000 })
+      const { count: after } = await supabase.from('evidence').select('id', { count: 'exact', head: true }).eq('case_id', caseId)
+      expect(after, 'the repeat is not kept').toBe(before)
+
       await confirmFactsInDashboard(page, caseId, 'bank')
 
       // A generated pack has its own title; every pack shows these.

@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 
 import { NextResponse } from "next/server"
 
@@ -24,6 +24,34 @@ const MIME_EXTENSION = {
   "image/png": "png",
   "image/jpeg": "jpg",
 } as const
+
+// Part B walk-through (25 Nov, PB-20): the same file uploaded twice was kept twice, read twice and offered twice. A file
+// is a repeat when a document already in the case has the same bytes. Only same-size files are compared, so the stored
+// copy is fetched only in that rare case; renamed copies and documents uploaded before this check are caught too.
+const DUPLICATE_UPLOAD_MESSAGE = (existing: string) =>
+  `This file is already in your case as “${existing}”. You don’t need to add it again.`
+
+const sha256Of = (bytes: ArrayBuffer) => createHash("sha256").update(new Uint8Array(bytes)).digest("hex")
+
+async function duplicateOf(
+  service: ReturnType<typeof createServiceClient>,
+  caseId: string,
+  file: Blob,
+): Promise<string | null> {
+  const { data, error } = await service
+    .from("evidence")
+    .select("filename, file_path")
+    .eq("case_id", caseId)
+    .eq("file_size", file.size)
+    .limit(20)
+  if (error || !data?.length) return null
+  const hash = sha256Of(await file.arrayBuffer())
+  for (const row of data) {
+    const { data: stored } = await service.storage.from(STORAGE_BUCKET).download(row.file_path as string)
+    if (stored && sha256Of(await stored.arrayBuffer()) === hash) return row.filename as string
+  }
+  return null
+}
 
 function getContentLength(request: Request): number | null {
   const value = request.headers.get("content-length")?.trim()
@@ -143,6 +171,9 @@ export async function POST(request: Request) {
     if (caseAccess === "forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
+    // Before the usage limits: a refused repeat is not read by a model, so it does not count.
+    const existing = await duplicateOf(supabaseService, caseId, file)
+    if (existing) return NextResponse.json({ error: DUPLICATE_UPLOAD_MESSAGE(existing) }, { status: 409 })
     // Every upload is read by a model: limited per account per day and per IP per hour (cost-controls §5 B1).
     if (await overUploadLimit(user.supabaseUuid)) return limitResponse()
     if (overIpModelLimit(request)) return limitResponse(HOURLY_LIMIT_MESSAGE)

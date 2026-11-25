@@ -70,7 +70,8 @@ export function useUploadEvidence() {
 
         if (!uploadResponse.ok) {
           if (uploadResponse.status === 429 && uploadJson?.error) throw new UsageLimitError(uploadJson.error)
-          if ((uploadResponse.status === 413 || uploadResponse.status === 415) && uploadJson?.error) {
+          // 409: the same file is already in the case (PB-20).
+          if ((uploadResponse.status === 413 || uploadResponse.status === 415 || uploadResponse.status === 409) && uploadJson?.error) {
             throw new UploadRefusedError(`${file.name}: ${uploadJson.error}`)
           }
           throw new Error(uploadJson?.error ?? 'Failed to upload evidence')
