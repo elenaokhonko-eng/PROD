@@ -34,6 +34,7 @@ import { checkPackEvidence, type EvidenceItem, type PackProduct } from '@/lib/bi
 import { useTier0Draft } from '@/hooks/state-machine/layer1/use-tier0-draft'
 import { useQueryClient } from '@tanstack/react-query'
 import { useJourneyAnswered } from '@/hooks/state-machine/facts/use-journey-answered'
+import { useFidrecRoute } from '@/hooks/state-machine/facts/use-fidrec-route'
 import { qk } from '@/hooks/state-machine/query-keys'
 import { ConfirmAndEvaluate } from '@/components/state-machine/facts/confirm-and-evaluate'
 import { JourneyQuestions } from '@/components/state-machine/facts/journey-questions'
@@ -48,7 +49,7 @@ import { useReportRealtime } from '@/hooks/state-machine/layer2/use-report-realt
 import { clearPackIntent, type PackIntent, readPackIntent } from '@/lib/journey/pack-intent'
 import { useJobStatus } from '@/hooks/state-machine/layer2/use-job-status'
 import { FidrecPackView } from '@/components/state-machine/layer3/fidrec-pack-view'
-import { FidrecOffer } from '@/components/state-machine/transition/fidrec-offer'
+import { EMPTY_FIDREC_ROUTE_DRAFT, FidrecOffer, type FidrecRouteDraft } from '@/components/state-machine/transition/fidrec-offer'
 import type { FidrecPackJson } from '@/lib/types/report'
 import {
   getValidationResponseTypes,
@@ -100,6 +101,9 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const intakeCompletionQuery = useIntakeCompletion(caseId)
   const journeyQuery = useJourneyAnswered(caseId)
   const evidenceSkippedQuery = useEvidenceSkipped(caseId)
+  const fidrecRouteQuery = useFidrecRoute(caseId)
+  // The FIDReC route answer being chosen: kept here so it survives the offer being drawn again (gate run 45631835006).
+  const [fidrecRouteDraft, setFidrecRouteDraft] = useState<FidrecRouteDraft>(EMPTY_FIDREC_ROUTE_DRAFT)
   const [skippingEvidence, setSkippingEvidence] = useState(false)
   const queryClient = useQueryClient()
   const [journeySaving, setJourneySaving] = useState(false)
@@ -422,7 +426,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     const all = { ...answers, ...mirrored }
     const types = Object.fromEntries(Object.keys(all).map((key) => [key, key.endsWith('_date') ? 'date' : 'text']))
     await saveResponses(all, types)
-    await paymentStatusQuery.refetch()
+    await Promise.all([paymentStatusQuery.refetch(), fidrecRouteQuery.refetch()])
   }
 
   const fidrecOffer = (
@@ -436,6 +440,9 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
       errorMessage={checkoutProduct === 'fidrec_tier2_pack' ? checkoutError : null}
       onBuy={() => void handleCheckout('fidrec_tier2_pack')}
       onSaveRoute={saveFidrecRoute}
+      savedRoute={fidrecRouteQuery.isError ? null : fidrecRouteQuery.data}
+      draft={fidrecRouteDraft}
+      onDraftChange={setFidrecRouteDraft}
     />
   )
   // Offered wherever packs can be bought, once paid stages are on and the case doesn't own it.

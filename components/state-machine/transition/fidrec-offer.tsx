@@ -9,7 +9,7 @@
  * Wording approved by Elena on 20 Nov 2026 (stage 2 copy list).
  */
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tier2PackPanel } from '@/components/state-machine/layer3/tier2-pack-panel'
@@ -29,6 +29,31 @@ export interface FidrecOfferProps {
   onBuy: () => void
   /** Saves fidrec_route and the matching date, then refreshes the capabilities. */
   onSaveRoute: (answers: Record<string, string>) => Promise<void>
+  /** The saved answer: null when none is saved, undefined while it loads. */
+  savedRoute?: SavedFidrecRoute | null
+  /** The answer being chosen, kept by the dashboard so it survives the offer being drawn again. */
+  draft: FidrecRouteDraft
+  onDraftChange: (draft: FidrecRouteDraft) => void
+}
+
+export interface FidrecRouteDraft {
+  route: FidrecRoute | null
+  date: string
+  editing: boolean
+}
+
+export const EMPTY_FIDREC_ROUTE_DRAFT: FidrecRouteDraft = { route: null, date: '', editing: false }
+
+export interface SavedFidrecRoute {
+  route: FidrecRoute
+  date: string | null
+}
+
+function routeAnswerText(saved: SavedFidrecRoute): string {
+  const label = ROUTE_OPTIONS.find((o) => o.value === saved.route)?.label ?? ''
+  if (!saved.date) return `${label}.`
+  const date = new Date(`${saved.date}T00:00:00Z`).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+  return `${label}, ${date}.`
 }
 
 const ROUTE_OPTIONS: Array<{ value: FidrecRoute; label: string; dateLabel: string | null }> = [
@@ -51,15 +76,32 @@ function tooEarly(opensOn: string | null): string {
 }
 
 export function FidrecOffer(props: FidrecOfferProps) {
-  const [route, setRoute] = useState<FidrecRoute | null>(null)
-  const [date, setDate] = useState('')
+  // The answer being chosen is kept by the dashboard (props.draft), so it survives the offer being drawn again, for
+  // example while the case refreshes (gate run 45631835006, 26 Nov: a chosen answer was lost and Save never enabled).
+  const { route, date, editing } = props.draft
+  const setDraft = (change: Partial<FidrecRouteDraft>) => props.onDraftChange({ ...props.draft, ...change })
+  const setRoute = (value: FidrecRoute | null) => setDraft({ route: value })
+  const setDate = (value: string) => setDraft({ date: value })
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
-  const [editing, setEditing] = useState(false)
 
-  const needsAnswer = props.reason === 'complaint_not_raised' || editing
+  // Part B walk-through (25 Nov, PB-17): "not complained yet" leaves the reason at complaint_not_raised, as before any
+  // answer, so the reason alone kept the question up and hid its message. A saved answer is shown instead.
+  // While the saved answer is still loading (undefined), neither the question nor the answer shows, so the question
+  // cannot appear, take a click and then be replaced by the answer that arrives.
+  const loading = props.savedRoute === undefined
+  const saved = props.savedRoute ?? null
+  const needsAnswer = editing || (!loading && saved === null && props.reason === 'complaint_not_raised')
   const option = ROUTE_OPTIONS.find((o) => o.value === route) ?? null
   const today = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+
+  function startEditing() {
+    props.onDraftChange({ route: saved?.route ?? null, date: saved?.date ?? '', editing: true })
+  }
+
+  // The latest answer being chosen, read after a save finishes (a closure would see the one from when it started).
+  const draftRef = useRef(props.draft)
+  draftRef.current = props.draft
 
   async function save() {
     if (!route) return
@@ -75,7 +117,11 @@ export function FidrecOffer(props: FidrecOfferProps) {
         ...(route === 'final_reply' ? { fidrec_final_reply_date: date } : {}),
         ...(route === 'no_reply' ? { fidrec_complaint_date: date } : {}),
       })
-      setEditing(false)
+      // Local gate repro, 26 Nov: the saved answer shows (with "Change my answer") before the save has finished
+      // refreshing the case, and this reset then closed an answer the person had already started changing. Reset
+      // only what this save submitted.
+      const now = draftRef.current
+      if (now.route === route && now.date === date) props.onDraftChange({ route: null, date: '', editing: false })
     } catch {
       setSaveError('We couldn’t save that. Please try again.')
     } finally {
@@ -146,13 +192,17 @@ export function FidrecOffer(props: FidrecOfferProps) {
         </Card>
       ) : null}
 
-      {blocked && !needsAnswer ? (
-        <p role="status" className="rounded-lg border bg-muted/40 p-4 text-sm">
-          {blocked}{' '}
-          <button type="button" className="underline" onClick={() => setEditing(true)}>
-            Change my answer
-          </button>
-        </p>
+      {/* The saved answer and "Change my answer" in every state, the open one included (PB-17). */}
+      {!needsAnswer && (blocked || saved) ? (
+        <div role="status" className="space-y-1 rounded-lg border bg-muted/40 p-4 text-sm" data-fidrec-route-answer={saved?.route ?? ''}>
+          {saved ? <p className="font-medium">{routeAnswerText(saved)}</p> : null}
+          <p>
+            {blocked ? `${blocked} ` : null}
+            <button type="button" className="underline disabled:opacity-60" disabled={saving} onClick={startEditing}>
+              Change my answer
+            </button>
+          </p>
+        </div>
       ) : null}
 
       <Tier2PackPanel
@@ -163,7 +213,9 @@ export function FidrecOffer(props: FidrecOfferProps) {
             ? undefined
             : props.checkoutInProgress
               ? 'A checkout for this pack is already in progress.'
-              : needsAnswer
+              : loading
+                ? undefined
+                : needsAnswer
                 ? 'Answer the question above first.'
                 : 'This pack isn’t available for your case yet.'
         }
