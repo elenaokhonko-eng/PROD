@@ -67,6 +67,9 @@ test('the FIDReC route question shows the saved answer and can be changed in eve
   // Gate run 45631835006 (26 Nov): and not while the saved answer is still loading.
   assert.match(offer, /const needsAnswer = editing \|\| \(!loading && saved === null && props\.reason === 'complaint_not_raised'\)/)
   assert.match(offer, /const loading = props\.savedRoute === undefined/)
+  // Local gate repro (26 Nov): a save finishing after the person had started changing the answer closed it again.
+  assert.match(offer, /disabled=\{saving\} onClick=\{startEditing\}>\s*Change my answer/)
+  assert.match(offer, /if \(now\.route === route && now\.date === date\) props\.onDraftChange\(\{ route: null, date: '', editing: false \}\)/)
   assert.match(offer, /\{!needsAnswer && \(blocked \|\| saved\) \? \(/)
   assert.match(offer, /onClick=\{startEditing\}>\s*Change my answer/)
   const hook = readFileSync('hooks/state-machine/facts/use-fidrec-route.ts', 'utf8')
