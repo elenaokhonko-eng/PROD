@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
+import { Button } from '@/components/ui/button'
 import { Layer1Shell } from '@/components/state-machine/layer1/layer1-shell'
 import type { IntakeAnswers } from '@/components/state-machine/layer1/intake-form'
 import { BuyReportCTA } from '@/components/state-machine/transition/buy-report-cta'
@@ -234,11 +235,14 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   // evaluation, since the bank pack needs only the story (stage2-plan §3a, milestone 4).
   const [packIntent, setPackIntent] = useState<PackIntent | null>(null)
   useEffect(() => setPackIntent(readPackIntent()), [])
+  // PB-19: with a pack chosen, the free evaluation's questions wait until the person asks for them.
+  const [freeEvaluationChosen, setFreeEvaluationChosen] = useState(false)
   const showBankIntent =
     packIntent === 'bank' &&
     reportCapability?.entitled !== true &&
     reportCapability?.canCheckout === true &&
-    BEFORE_FREE_EVALUATION.has(node)
+    BEFORE_FREE_EVALUATION.has(node) &&
+    paymentReturnProduct === null
   const fidrecCapability = capabilityBilling?.capabilities.fidrecPack
   const returnedProductIsEntitled =
     paymentReturnProduct === 'fidrec_tier2_pack'
@@ -446,6 +450,10 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   )
   // Offered wherever packs can be bought, once paid stages are on and the case doesn't own it.
   const showFidrecOffer = fidrecCapability?.entitled !== true && capabilityBilling?.access.paidStagesEnabled === true
+  // The pack chosen before sign-in, offered first while the case is before its free evaluation; not while a payment
+  // is being confirmed (PB-19).
+  const showFidrecIntent =
+    packIntent === 'fidrec' && showFidrecOffer && BEFORE_FREE_EVALUATION.has(node) && !isAwaitingPaymentConfirmation
 
   const renderLayer3 = () => (
     <div className="space-y-6">
@@ -516,7 +524,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto max-w-5xl px-4 py-8" data-harbor-node={node} data-harbor-ready={stateReady ? 'true' : 'false'}>
-        {packIntent === 'fidrec' && showFidrecOffer && BEFORE_FREE_EVALUATION.has(node) ? (
+        {showFidrecIntent ? (
           <div className="mb-8" data-pack-intent="fidrec">
             {fidrecOffer}
           </div>
@@ -546,8 +554,26 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
                 : undefined
             }
           />
+        ) : hasInvalidPaymentReturn ? (
+          <StateMachineErrorCard
+            kind="internal"
+            context="Invalid payment return product"
+            onRetry={() => router.replace(`/app/case/${caseId}/dashboard`)}
+          />
+        ) : isAwaitingPaymentConfirmation ? (
+          // PB-19 (Part B walk-through, 25 Nov): checked before the free evaluation's steps, which showed for a moment
+          // after paying until the purchase was visible.
+          <PaymentSuccessLanding isConfirming />
         ) : node === 'S1-IntakeForm' && journeyQuery.isPending ? (
           <StateMachineLoading title="Loading your case" />
+        ) : node === 'S1-Journey' && (showFidrecIntent || showBankIntent) && !freeEvaluationChosen ? (
+          // PB-19: with a pack chosen, its offer (and the FIDReC route question) comes first; the free evaluation's
+          // questions wait until the person asks for them.
+          <div className="flex justify-center" data-free-evaluation-waits>
+            <Button variant="outline" className="min-h-11" onClick={() => setFreeEvaluationChosen(true)}>
+              Continue with the free evaluation
+            </Button>
+          </div>
         ) : node === 'S1-Journey' ? (
           <JourneyQuestions isSaving={journeySaving} errorMessage={journeyError} onSave={(answers) => void handleJourneySave(answers)} />
         ) : node === 'S1-Tier0DraftPending' ? (
@@ -650,14 +676,6 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               ),
             }}
           />
-        ) : hasInvalidPaymentReturn ? (
-          <StateMachineErrorCard
-            kind="internal"
-            context="Invalid payment return product"
-            onRetry={() => router.replace(`/app/case/${caseId}/dashboard`)}
-          />
-        ) : isAwaitingPaymentConfirmation ? (
-          <PaymentSuccessLanding isConfirming />
         ) : node === 'T-EligibilityGate' ? (
           <>
             <EligibilityGate

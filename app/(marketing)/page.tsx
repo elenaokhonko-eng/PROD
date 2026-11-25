@@ -3,6 +3,7 @@ import { pageAlternates, pagePreview } from '@/lib/seo/indexing'
 import Image from 'next/image'
 import { FileCheck2, LockKeyhole, Repeat2 } from 'lucide-react'
 import { NarrativeCapture } from '@/components/landing/narrative-capture'
+import { PackIntentNote } from '@/components/journey/pack-intent-note'
 import { EmergencyStrip } from '@/components/harbor/emergency-strip'
 import { PackComparison } from '@/components/harbor/pack-comparison'
 import { RouteStrip } from '@/components/harbor/route-strip'
@@ -120,6 +121,8 @@ export default function HomePage() {
       <div className="flex flex-col">
         <section className="gb-container -mt-1 py-10 sm:py-14">
           <div id="tell-your-story" className="mx-auto flex max-w-3xl scroll-mt-24 flex-col gap-4">
+            {/* PB-18: the chosen pack, above the promises, which stay directly above the box (W1 §B1). */}
+            <PackIntentNote />
             {/* Brief W1 §B1: the promises sit directly above the box where the visitor is asked to trust us. */}
             <TrustRow />
             <NarrativeCapture />
