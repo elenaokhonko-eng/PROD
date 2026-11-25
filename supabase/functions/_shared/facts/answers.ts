@@ -161,6 +161,11 @@ export function answerCandidates(rows: readonly AnswerRow[]): { candidates: Fact
       [FIDREC_ROUTE_KEYS.route, FIDREC_ROUTE_KEYS.complaintDate],
     );
   }
+  // PB-24 (Part B walk-through, 25 Nov): "no final reply" is also a statement about the bank's reply, so a final-reply
+  // letter conflicts with it and the confirm screen asks, instead of the pack quietly following one of them.
+  if (route === "no_reply") {
+    add("bank_reply", { status: "not_final", date: null, outcome: null, qualifies: null, reference: null }, [FIDREC_ROUTE_KEYS.route]);
+  }
 
   // Follow-up answers use the extract's field paths as question keys.
   const followUpInstitution = institutionsIn(value("case_meta.institution_name"));

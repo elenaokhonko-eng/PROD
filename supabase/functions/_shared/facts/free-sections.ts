@@ -90,7 +90,7 @@ function claimsSomething(key: FactKey, value: unknown): boolean {
   if (key === "reported_to_bank" || key === "reported_to_police" || key === "written_complaint_sent") {
     return (value as ReportedEvent | null)?.value === "yes";
   }
-  if (key === "bank_reply") return (value as { status?: string } | null)?.status !== "none";
+  if (key === "bank_reply") return !["none", "not_final"].includes(String((value as { status?: string } | null)?.status));
   return true;
 }
 
