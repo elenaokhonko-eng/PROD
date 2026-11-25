@@ -17,6 +17,7 @@ import {
   sha256Hex,
 } from "@/lib/facts"
 import { generateJson, getOpenAiModel } from "@/lib/server/ai/generate-json"
+import { isEvidenceItem } from "@/lib/billing/evidence-minimums"
 import { ModelBudgetExceeded, OUTPUT_CAPS } from "@/lib/server/model-usage"
 import { logger } from "@/lib/logger"
 
@@ -78,7 +79,7 @@ async function loadSources(service: SupabaseClient, caseId: string) {
       .order("revision", { ascending: false }).limit(1).maybeSingle(),
     service.from("case_response_revisions").select("id, question_key, response_value, created_at").eq("case_id", caseId)
       .order("created_at", { ascending: true }),
-    service.from("case_documents").select("id, original_filename, processing_status, content_latest_id").eq("case_id", caseId),
+    service.from("case_documents").select("id, original_filename, processing_status, content_latest_id, complainant_item").eq("case_id", caseId),
     service.from("case_document_extractions").select("id, document_id, extracted_text, created_at").eq("case_id", caseId)
       .order("created_at", { ascending: false }),
   ])
@@ -129,7 +130,10 @@ async function loadSources(service: SupabaseClient, caseId: string) {
     const extraction = latestExtraction.get(doc.id as string)
     const text = parsed || extraction?.text
     if (!text) continue
-    const sourceKey = parsed ? `document:content:${contentId}` : `document:${extraction!.id}`
+    // PB-22 (Part B walk-through, 25 Nov): a document the person marked ("This is my police report") is read as that
+    // kind of document. The mark is part of the source key, so marking it reads it again and the facts are checked.
+    const complainantItem = isEvidenceItem(doc.complainant_item) ? doc.complainant_item : null
+    const sourceKey = `${parsed ? `document:content:${contentId}` : `document:${extraction!.id}`}${complainantItem ? `:marked:${complainantItem}` : ""}`
     sources.push({
       sourceKey,
       sourceType: "document",
@@ -138,6 +142,7 @@ async function loadSources(service: SupabaseClient, caseId: string) {
         sourceKey,
         documentId: doc.id,
         documentName: doc.original_filename,
+        ...(complainantItem ? { complainantItem } : {}),
       },
     })
   }

@@ -120,3 +120,11 @@ test('only the case owner can mark a document, and only as a known item', () => 
   assert.match(route, /if \(!access\.isOwner\)/)
   assert.match(route, /\.eq\('id', documentId\)\s+\.eq\('case_id', caseId\)/)
 })
+
+// PB-22 (Part B walk-through, 25 Nov): marking a document reads it again as that kind (facts-extraction.test.ts).
+test('the fact reading gets the mark, and marking changes the source so it is read again', () => {
+  const runner = readFileSync('lib/server/facts/run-reconcile.ts', 'utf8')
+  assert.match(runner, /select\("id, original_filename, processing_status, content_latest_id, complainant_item"\)/)
+  assert.match(runner, /\$\{complainantItem \? `:marked:\$\{complainantItem\}` : ""\}/)
+  assert.match(runner, /\.\.\.\(complainantItem \? \{ complainantItem \} : \{\}\)/)
+})
