@@ -19,9 +19,11 @@ import {
   type Transaction,
 } from "./keys.ts";
 import type { FactCandidate } from "./reconcile.ts";
-import { normaliseInstitution } from "./institutions.ts";
+import { issuerInHeading, normaliseInstitution } from "./institutions.ts";
 import { normaliseDate, normaliseMoney, normaliseYesNo } from "./normalise.ts";
 
+// Not bumped for the issuer rule (Part B walk-through, 25 Nov): it reaches newly read sources only, and whether existing
+// cases are re-read is Elena's separate decision. A bump re-reads every source of every case.
 export const FACT_EXTRACTION_PROMPT_VERSION = "fact-extract-v3";
 
 const ACCOUNT_TYPES: AccountType[] = ["savings_or_current", "debit_card", "credit_card", "ewallet", "investment", "other"];
@@ -121,6 +123,8 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
     "- credentials: entered_on_fake_site_or_app when details were typed into a fake website or app; given_directly when",
     "  an OTP or password was told to the scammer by phone; given_in_message when it was sent in a message;",
     "  installed_app_or_malware when an app was installed.",
+    "- institutions: the bank or provider that issued a statement, alert or letter is one of them, named as printed in",
+    "  its heading.",
     "- scam_types: the kind of scam the source describes, never the bank's later handling of it.",
     "- total_loss: one entry per amount stated as lost, with the account or card it left from when the source says so.",
     "- A police report is itself evidence that the scam was reported to the police: reported_to_police is yes, with the",
@@ -192,6 +196,11 @@ export function parseFactExtraction(
   if (institutions.length) {
     const byName = new Map(institutions.map((i) => [i.institution!.name.toLowerCase(), i.institution!]));
     add("institution_names", [...byName.values()], institutions.map((i) => i.quote!), list(out.institutions));
+  } else if (documentType === "bank_statement" || documentType === "card_statement" || documentType === "bank_correspondence") {
+    // The bank that issued a statement or letter is involved even when the model leaves its name out (Part B
+    // walk-through, 25 Nov). Read from the heading only, so payees in the transaction lines are never added.
+    const issuer = issuerInHeading(sourceText);
+    if (issuer) add("institution_names", [issuer.institution], [issuer.quote], [{ confidence: 1 }]);
   }
 
   for (const [field, factKey, allowed] of [

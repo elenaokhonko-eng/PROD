@@ -144,3 +144,30 @@ test('a reference with no digits is not a case reference (walkthrough, 9 Nov)', 
   const findings = await reconcile(candidates)
   assert.equal(findings.find((f) => f.factKey === 'bank_case_reference')?.findingType, 'missing')
 })
+
+// Part B walk-through, 25 Nov: a statement headed by its bank gave the payments but not the bank, so "Banks involved"
+// was listed as having no document.
+test('the bank that issued a statement is named from its heading, never from its transaction lines', () => {
+  assert.match(buildFactExtractionPrompt('document', 'x'), /the bank or provider that issued a statement, alert or letter is one of them/)
+  const statement = 'OCBC Statement of Account\n03 Oct 2026 FAST transfer to UOB account S$2,400.00\n04 Oct 2026 GrabPay top-up S$50.00'
+  const doc = { sourceType: 'document' as const, sourceRef: { sourceKey: 'document:d4', documentId: 'd4' } }
+  const transactions = { amount: 2400, currency: 'SGD', date: '2026-10-03', payee: null, card_last4: null, instrument: 'account_transfer', quote: 'FAST transfer to UOB account', confidence: 0.9 }
+  const fromDoc = parseFactExtraction({ document_type: 'bank_statement', institutions: [], transactions: [transactions] }, statement, doc)
+  const institutions = fromDoc.filter((c) => c.factKey === 'institution_names')
+  assert.equal(institutions.length, 1)
+  assert.deepEqual(institutions[0].value, [{ name: 'OCBC', type: 'bank' }], 'the issuer only: not the payee bank or the e-wallet')
+  assert.equal((institutions[0].sourceRef as { context?: boolean }).context, false, 'it counts as shown by the statement')
+  assert.deepEqual((institutions[0].sourceRef as { quotes?: string[] }).quotes, ['OCBC'])
+})
+
+test('the heading backstop adds nothing when the model named the bank, when the heading names no known bank, or for other documents', () => {
+  const doc = { sourceType: 'document' as const, sourceRef: { sourceKey: 'document:d5' } }
+  const synthetic = 'Synthetic Bank - Statement of account Account: Savings ending 0000 03 Oct 2026 Transfer to DBS S$2,400.00 debit'
+  const named = parseFactExtraction({ document_type: 'bank_statement', institutions: [{ name: 'Synthetic Bank', quote: 'Synthetic Bank', confidence: 0.95 }] }, synthetic, doc)
+  assert.deepEqual(named.filter((c) => c.factKey === 'institution_names').map((c) => c.value), [[{ name: 'Synthetic Bank', type: 'other' }]])
+  const unnamed = parseFactExtraction({ document_type: 'bank_statement', institutions: [] }, synthetic, doc)
+  assert.equal(unnamed.filter((c) => c.factKey === 'institution_names').length, 0, 'an unknown name is not guessed, and DBS after the date is a payee')
+  const report = 'DBS customer reported a scam\nThe informant transferred S$2,400.'
+  const police = parseFactExtraction({ document_type: 'police_report', institutions: [] }, report, doc)
+  assert.equal(police.filter((c) => c.factKey === 'institution_names').length, 0)
+})
