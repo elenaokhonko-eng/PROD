@@ -94,7 +94,7 @@ test('C3: payments made knowingly are told the EUPG rule for them and what FIDRe
   assert.ok(text.includes('(paragraph 5.3). You can complain to your bank in writing. MAS'))
   assert.ok(text.includes("MAS's workflow for the SRF states that FIDReC's assessment includes obligations outside the SRF, for example under statute, common law or the EUPG."))
   assert.doesNotMatch(text, /not covered by a liability framework/)
-  assert.equal(a.remedies!.cite, 'E para 5.3; W (mas.srf.workflow/recourse.fidrec)')
+  assert.equal(a.remedies!.cite, 'E para 5.3; W (mas.srf.workflow/recourse.fidrec); R para 6.11(d)')
 })
 
 test('C5: the free evaluation downloads as a PDF with the notice, even with characters the PDF fonts lack', async () => {
