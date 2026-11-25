@@ -130,6 +130,10 @@ confirmed disputed payments counts only as context, never as proof, and the chec
 different payment. Many real letters name no payment at all; a letter naming none keeps its current treatment
 (review, 25 Nov). Made with the update, which rewrites the document checks.
 
+Addition (case B review): "Shown by" must not vouch for a value the document does not state. The case B checklist says
+"written complaint: Yes, 4 Oct 2026. Shown by a letter from your bank", but the letter states no date; the date is
+the person's own answer, merged with the letter's undated "yes".
+
 ### PB-9 (walk-through): steps 2.4–2.6 assumed the upload came before confirming
 
 Journey 5 (try to continue without the police report) leads to confirming first, so 2.4–2.6 had nothing to show. After
@@ -170,7 +174,8 @@ all, or only as a reply whose status the user confirms.
 
 ## Case B (staging case `fd0c0961`), 25 Nov
 
-Elena's result: 3.1, 3.5, 3.6, 4.1 and 4.3–4.7 pass; 3.2–3.4 and 4.2 skipped (PB-17, PB-21, PB-22). Documents: the
+Elena's result: 3.1, 3.5, 3.6, 4.1 and 4.3–4.7 pass. Recorded as: 3.2 failed (PB-17); 3.3–3.4 blocked by PB-17;
+4.2 skipped (PB-20, PB-21). Documents: the
 synthetic B1, B3 and B4 (B4 uploaded twice). PB-6 ("Consultation unavailable") was seen again.
 
 ### PB-16 (change, Elena): the paid pack buttons on /pricing are outlined
@@ -215,6 +220,9 @@ Proposed (Elena's decision): with the FIDReC intent, the route question comes fi
 until it is answered. The flash after payment is the dashboard rendering before the purchase is visible; cause not yet
 traced.
 
+Case C: the same on the bank path. The free evaluation's journey questions sit under the bank pack offer, and the
+same flash after paying for the bank pack. The fix covers both packs.
+
 ### PB-20 (bug): the same file can be uploaded twice
 
 Seen: B4 uploaded twice, both kept, both listed and both offered in "Choose one of your documents".
@@ -238,11 +246,17 @@ Seen: B4 marked "This is my police report" turned the item "Added", but the fact
 police" still said "We couldn't find a document that shows this".
 
 Cause: the evidence checklist reads the mark (`complainant_item`); the fact reading ignores it and uses the type the
-model gave the document ("other"), so the document can back no police fact. B4 states "Received 06 Sep 2026" and a
-reference, which would match the story's 6 September.
+model gave the document. For both copies of B4 that type was "bank letter" (see PB-25), and a bank letter cannot
+state police facts. B4 states "Received 06 Sep 2026" and a reference, which would match the story's 6 September.
 
 Proposed (Elena's decision): a document marked by hand is read as that kind of document (police report, bank letter,
 payment proof), and marking it re-reads it, so its date and number are compared like any other police report's.
+Review condition (25 Nov): wherever such a document is named it stays "a document identified by the complainant as a
+police report", never "your police report (uploaded)", because nothing has verified what it is.
+
+Alternative from the first review: keep the facts as they are and change the fact card's wording for a marked
+document, for example "You marked a document as your police report. We could not read a report date from it. Keep
+your own account of the date, or correct it." Elena chooses.
 
 ### PB-23 (with the update): the FIDReC duties ignore the scam type
 
@@ -253,14 +267,74 @@ Proposed: with the update's rewrite of the FIDReC sections, duties under a frame
 or labelled as not applying. Elena (25 Nov): such cases may still buy and generate packs, as long as the pack says
 plainly what is not covered, which it does.
 
+Addition (case B review): one server-written sentence at the top of the duties section when the case is outside the
+SRF, so a reader does not meet the SRF duties before being told the case is outside it. Wording for Elena; in the
+batch. The rest with the update.
+
+### PB-24 (bug): the FIDReC "Filing" section ignores a confirmed final reply
+
+Seen in the case B pack: "The complainant complained in writing more than four weeks ago and the complaint is not
+resolved", with no deadline, while its own chronology shows the bank's final reply of 10 Nov 2026.
+
+Cause, two parts:
+- The deadline is counted only from a final reply that "qualifies" (ToR Rule 13(2): the letter says it is final and
+  mentions FIDReC within six months). Only the typed answers set that marker; a final reply read from a letter always
+  has it empty. The confirmed reply on the case (final reply, 10 Nov 2026, from B3) had it empty, so the section fell
+  back to the four-weeks route and printed no deadline.
+- The route answer "complained in writing, no final reply" (4 Oct 2026) is saved only as a written complaint, never as
+  "no final reply", so it did not conflict with the final-reply letter and the confirm step asked nothing.
+
+Proposed:
+- When the confirmed bank reply is a final reply with a date, the section counts the deadline from it. If the letter's
+  wording was not checked (the marker is empty), the line says so rather than dropping the deadline. Wording for
+  Elena, with PB-13. Whether a letter that says "final reply" and names FIDReC sets the marker by itself is Elena's
+  decision (it is a reading of ToR Rule 13(2)).
+- The route answer "no final reply" also counts as a bank reply that is not final, so a final-reply letter conflicts
+  with it and the confirm step asks. Test: route "no reply", then a final-reply letter.
+
+### PB-25 (bug): an acknowledgement naming no sender was filed as a letter from the bank
+
+Seen in the case B pack: E3 and E4 are the same file (B4, uploaded twice). One is listed as "a letter or email from
+your bank" and cited as "the institution's acknowledgement records receipt on 6 Sep 2026"; the checklist counts it as
+showing that the person told the bank.
+
+Cause: the model typed both copies of B4 as a bank letter, though B4 names no institution. Nothing checks that a "bank
+letter" names a bank.
+
+Fix (with PB-1, #106): a document typed as a bank letter that names no institution (none returned by the model and
+none in its heading) is read as "other". Test with B4's synthetic text.
+
+### PB-26 (bug): three card payments became one (case C, staging case `fe204ab1`)
+
+Seen: the story and the card statement list three payments (S$1,200, S$850 and S$499); the bank pack has one "Payment
+of S$2,549", paid to "Not known", says the individual amounts are not confirmed, and credits the police report.
+
+How it was resolved on staging: the police report says "three card payments totalling S$2,549.00 on 12 Oct 2026",
+which was read as one payment of S$2,549. That made the payments a conflict between three payments (story and card
+statement) and one (police report), and the answer saved on the confirm sheet chose the police report's. The total
+also agrees with the three payments, so the conflict was false from the start.
+
+Fix: a stated total of several payments is the amount lost, never a payment. The extraction prompt says so, and a
+payment whose words state a total ("totalling", "in total", "a total of", or several payments) is dropped. The card
+statement's merchants ("ONLINE MERCHANT ONE" and so on) were not read as payees either; the same change asks for the
+payee as printed. Test with C2's and C1's synthetic text.
+
+Re-run after the fix: 6.2–6.3.
+
+## Results (25 Nov)
+
+Elena: 31 pass, 8 skipped. None of the skipped steps is neutral: 2.4–2.6 (PB-2), 3.2 failed and 3.3–3.4 blocked
+(PB-17), 4.2 (PB-20, PB-21). Re-run after the batch: 2.4–2.6, 3.2–3.4, 4.2 and 6.2–6.3.
+
+PB-2 on case C: the checklist line from #107 sits at the top of the checklist and counts every file uploading or being
+read, so it covers both rows (payment proof and police report) on a card case.
+
 ## Order of work (review, 25 Nov)
 
-1. On branches now, nothing merged into main: PB-1 (#106), PB-2 (#107), PB-5 (#108), all drafts.
-2. Before selling, on main: also PB-3, PB-6, PB-10, PB-11, PB-12, PB-13 (wording items once approved), and PB-4
-   (wording only).
-3. Merge as one batch after Elena finishes cases B and C, then three gate runs on that commit, then Elena re-runs
-   steps 2.3–2.6 in both orders.
-4. With the update (`feat/fidrec-update`): PB-7, PB-8 and PB-23.
-6. Case B (proposed, for review): PB-16, PB-17 and PB-20 in the batch; PB-18, PB-19, PB-21 and PB-22 once Elena
-   decides. Then 3.2–3.4 and 4.2 re-run.
-5. Any time: PB-14. PB-9: walk-through updated with the batch.
+1. On branches now, nothing merged into main: PB-1 (#106), PB-2 (#107), PB-5 (#108), PB-17 (#109), all drafts.
+2. Before selling, also on main: PB-10, PB-11, PB-12, PB-16, PB-20, PB-24, PB-25, PB-26, and the wording items once
+   approved (PB-3, PB-4, PB-6, PB-13, PB-21, PB-23's sentence).
+3. Elena's decisions: PB-18, PB-19 (both packs), PB-22, the re-read of existing cases (PB-1).
+4. One batch after Elena's own three cases, then three gate runs on that commit, then the re-runs above.
+5. With the update (`feat/fidrec-update`): PB-7, PB-8 (with its addition) and the rest of PB-23.
+6. Any time: PB-14. PB-9: walk-through updated with the batch.
