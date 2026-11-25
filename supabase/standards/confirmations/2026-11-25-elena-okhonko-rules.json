@@ -1,0 +1,87 @@
+{
+  "$comment": "From the Rules sheet of the confirmation workbook: the server rules Elena marked 'Agree' against the text of each document they cite. Rules marked 'Change', or whose wording she asked to extend, are recorded after the code changes.",
+  "by": "Elena Okhonko",
+  "at": "2026-11-25T20:57:00+08:00",
+  "rule_reviews": [
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "rule_id": "srf.sg_card_excluded",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf_response.2024-10-24.json",
+      "rule_id": "srf.protected_account",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf_response.2024-10-24.json",
+      "rule_id": "srf.sg_card_excluded",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf_response.2024-10-24.json",
+      "rule_id": "srf.malware_excluded",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf_consultation.2023-10-25.json",
+      "rule_id": "srf.malware_excluded",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf_response.2024-10-24.json",
+      "rule_id": "srf.non_digital_excluded",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf_consultation.2023-10-25.json",
+      "rule_id": "srf.non_digital_excluded",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf_consultation.2023-10-25.json",
+      "rule_id": "srf.credentials_given_directly",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf_consultation.2023-10-25.json",
+      "rule_id": "srf.authorised_scam_excluded",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "fidrec.tor.2025-07-01.json",
+      "rule_id": "fidrec.filing_window_months_after_final_reply",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "fidrec.tor.2025-07-01.json",
+      "rule_id": "fidrec.final_reply_definition",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "fidrec.tor.2025-07-01.json",
+      "rule_id": "fidrec.complain_first",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "fidrec.tor.2025-07-01.json",
+      "rule_id": "fidrec.subscriber_required",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "fidrec.tor.2025-07-01.json",
+      "rule_id": "fidrec.award_cap_sgd",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "fidrec.tor.2025-07-01.json",
+      "rule_id": "fidrec.excluded_resolved",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "fidrec.tor.2025-07-01.json",
+      "rule_id": "fidrec.adjudication_fee_sgd",
+      "outcome": "unchanged"
+    }
+  ]
+}
