@@ -58,10 +58,17 @@ function documentNames(values: FindingValue[]): string[] {
   return [...new Set(names)];
 }
 
-/** The documents behind the value the person confirmed for a fact, named by kind; empty when none. */
-export function documentsShowing(key: FactKey, findings: readonly EvidenceFinding[]): string[] {
+/** The documents behind the value the person confirmed for a fact: their ids and the kind each was read as. */
+export function documentsShowing(key: FactKey, findings: readonly EvidenceFinding[]): Array<{ documentId: string | null; documentType: string }> {
   const finding = findings.find((f) => f.factKey === key);
-  return finding ? documentNames(chosenValues(finding)) : [];
+  if (!finding) return [];
+  return chosenValues(finding)
+    .flatMap((v) => v.sources)
+    .filter((s) => s.sourceType === "document")
+    .map((s) => ({
+      documentId: typeof s.sourceRef.documentId === "string" ? s.sourceRef.documentId : null,
+      documentType: String(s.sourceRef.documentType ?? ""),
+    }));
 }
 
 // "No" (not told, no complaint) or "no reply yet" needs no document.

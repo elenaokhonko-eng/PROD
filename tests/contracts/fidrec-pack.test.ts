@@ -355,13 +355,15 @@ test('the filing section counts the deadline from a confirmed final reply, whoev
   const caseB: SnapshotFacts = { ...facts, bank_reply: { value: fromLetter, label: 'confirmed' } }
   const caseBRoute = fidrecRouteFromFacts(caseB, '2026-11-25')
   assert.equal(caseBRoute.available && caseBRoute.route, 'four_weeks', 'the route alone would not give a deadline')
-  const letter = [{ factKey: 'bank_reply' as const, values: [{ value: fromLetter, sources: [{ sourceType: 'document', sourceRef: { documentType: 'bank_correspondence' } }] }], resolution: { kind: 'agreed' as const } }]
+  // doc-letter is E1 in the evidence index.
+  const letter = [{ factKey: 'bank_reply' as const, values: [{ value: fromLetter, sources: [{ sourceType: 'document', sourceRef: { documentId: 'doc-letter', documentType: 'bank_correspondence' } }] }], resolution: { kind: 'agreed' as const } }]
   const report = assembleFidrecPack({ prose: GOOD, source: 'model', facts: caseB, findings: letter as never, evidenceIndex: index, route: caseBRoute, finalReplyUsed: true, today: '2026-11-25' })
+  // Wording chosen by Elena (25 Nov): the pack says whose date it is and never decides whether the reply "qualifies".
   assert.equal(
     report.route,
-    'The final reply is dated 10 Nov 2026, as shown by a letter or email from your bank (uploaded). Counted from that date, FIDReC must receive the complaint by 10 May 2027. If the case goes to adjudication, FIDReC charges individuals a S$50 case fee.',
+    "The institution's letter dated 10 Nov 2026 says it is its final reply (E1). Counted from that date, FIDReC must receive the complaint by 10 May 2027. If the case goes to adjudication, FIDReC charges individuals a S$50 case fee.",
   )
-  assert.doesNotMatch(report.route, /not resolved/)
+  assert.doesNotMatch(report.route, /not resolved|qualif/)
 
   const late = assembleFidrecPack({ prose: GOOD, source: 'model', facts: caseB, findings: letter as never, evidenceIndex: index, route: caseBRoute, finalReplyUsed: true, today: '2027-06-01' })
   assert.match(late.route, /Counted from that date, FIDReC had to receive the complaint by 10 May 2027\./)
@@ -381,7 +383,7 @@ test('the duties section opens with one sentence when every payment is likely ou
   const outside = assembleFidrecPack({ prose: GOOD, source: 'model', facts: investment, findings: [], evidenceIndex: index, route, finalReplyUsed: false })
   assert.equal(
     outside.duties_note,
-    'On the confirmed facts, the disputed payments are likely outside the SRF (see “How the rules may apply”). The duties below describe what the institution is expected to do; they do not decide who bears the loss.',
+    "This payment is likely outside the Shared Responsibility Framework (see 'How the rules may apply'). The duties below are listed because FIDReC can consider how the institution handled the case.",
   )
   const phishing: SnapshotFacts = {
     ...facts,

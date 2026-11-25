@@ -574,16 +574,23 @@ export function fidrecChronology(facts: SnapshotFacts): Array<{ date?: string; e
   return items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
 }
 
-/** The confirmed final reply the FIDReC deadline counts from, and the document that shows its date when one does. */
+/** The confirmed final reply the FIDReC deadline counts from, and the bank letter that states it, by evidence ID. */
 export interface FinalReplyBasis {
   date: string;
-  shownBy: string | null;
+  /** The E-number of the bank letter read as this final reply; null when only the person's answers state it. */
+  letterEvidenceId: string | null;
 }
 
-export function finalReplyBasis(facts: SnapshotFacts, findings: readonly EvidenceFinding[]): FinalReplyBasis | null {
+export function finalReplyBasis(
+  facts: SnapshotFacts,
+  findings: readonly EvidenceFinding[],
+  evidenceIndex: readonly EvidenceIndexEntry[] = [],
+): FinalReplyBasis | null {
   const reply = confirmedValue<BankReply>(facts, "bank_reply");
   if (!reply || reply.status !== "final_reply" || !reply.date) return null;
-  return { date: reply.date, shownBy: documentsShowing("bank_reply", findings)[0] ?? null };
+  const letter = documentsShowing("bank_reply", findings).find((d) => d.documentType === "bank_correspondence" && d.documentId);
+  const entry = letter ? evidenceIndex.find((e) => e.documentId === letter.documentId) : undefined;
+  return { date: reply.date, letterEvidenceId: entry?.id ?? null };
 }
 
 /** How and when FIDReC can be approached, with the fee: fixed wording from the Terms of Reference (rules/fidrec.ts). */
@@ -594,8 +601,9 @@ export function fidrecRouteText(route: FidrecAvailability, finalReply: FinalRepl
   // counted from any confirmed final reply. PB-13 (wording approved by Elena): the line says whose date it is.
   if (finalReply) {
     const deadline = addMonths(finalReply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value);
-    const dated = finalReply.shownBy
-      ? `The final reply is dated ${formatDate(finalReply.date)}, as shown by ${finalReply.shownBy}.`
+    // The pack does not decide whether the reply "qualifies" under FIDReC's rules; it says whose date it is.
+    const dated = finalReply.letterEvidenceId
+      ? `The institution's letter dated ${formatDate(finalReply.date)} says it is its final reply (${finalReply.letterEvidenceId}).`
       : `You told us the final reply is dated ${formatDate(finalReply.date)}.`;
     const by = today && deadline < today ? "FIDReC had to receive the complaint by" : "FIDReC must receive the complaint by";
     return `${dated} Counted from that date, ${by} ${formatDate(deadline)}. ${fee}`;
@@ -607,10 +615,10 @@ export function fidrecRouteText(route: FidrecAvailability, finalReply: FinalRepl
   return fee;
 }
 
-// PB-23 (Part B walk-through, 25 Nov; wording approved by Elena): an investment scam met the SRF's phishing duties
+// PB-23 (Part B walk-through, 25 Nov; wording chosen by Elena): an investment scam met the SRF's phishing duties
 // before reading, under "How the rules may apply", that the SRF does not cover it.
 export const SRF_DUTIES_NOTE =
-  "On the confirmed facts, the disputed payments are likely outside the SRF (see “How the rules may apply”). The duties below describe what the institution is expected to do; they do not decide who bears the loss.";
+  "This payment is likely outside the Shared Responsibility Framework (see 'How the rules may apply'). The duties below are listed because FIDReC can consider how the institution handled the case.";
 
 export function srfDutiesNote(assessment: SrfAssessment): string | null {
   const portions = assessment.portions;
@@ -670,7 +678,7 @@ export function assembleFidrecPack(args: {
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label })),
     evidence_checklist: [...shown.map((label) => ({ label, present: true })), ...missing.map((label) => ({ label, present: false }))],
     duties_note: srfDutiesNote(srf),
-    route: fidrecRouteText(args.route, finalReplyBasis(facts, args.findings), args.today),
+    route: fidrecRouteText(args.route, finalReplyBasis(facts, args.findings, args.evidenceIndex), args.today),
     rules_assessment: srfAssessmentText(srf),
     final_reply_used: args.finalReplyUsed,
     prose_source: args.source,
