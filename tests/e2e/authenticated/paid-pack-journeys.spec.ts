@@ -33,6 +33,11 @@ test.describe('paid pack journeys', () => {
   async function walkClosedFidrecRoutes(page: Page) {
     const offer = page.locator('[data-fidrec-offer]').first()
     const buy = offer.getByRole('button', { name: /Prepare my FIDReC case/ })
+    // A closed route offers no purchase: the panel's button reads "Not available yet" and is greyed (tier2-pack-panel.tsx).
+    const noPurchase = async () => {
+      await expect(offer.getByRole('button', { name: 'Not available yet' })).toBeDisabled()
+      await expect(buy).toHaveCount(0)
+    }
     const change = offer.getByRole('button', { name: 'Change my answer' })
     const answer = async (label: string, date: string | null) => {
       await offer.getByText(label, { exact: true }).click()
@@ -42,17 +47,17 @@ test.describe('paid pack journeys', () => {
 
     await answer('I haven’t complained to my bank in writing yet', null)
     await expect(offer.getByText(/FIDReC needs your bank to have had the chance to answer first/)).toBeVisible({ timeout: 60_000 })
-    await expect(buy).toBeDisabled()
+    await noPurchase()
 
     await change.click()
     await answer('I complained in writing and haven’t had a final reply', daysAgo(3))
     await expect(offer.getByText(/four weeks after your written complaint to the bank\. You can get this pack from/)).toBeVisible({ timeout: 60_000 })
-    await expect(buy).toBeDisabled()
+    await noPurchase()
 
     await change.click()
     await answer('Yes, my bank has given its final reply', daysAgo(215))
     await expect(offer.getByText(/up to six months after the bank’s final reply, and that time has passed/)).toBeVisible({ timeout: 60_000 })
-    await expect(buy).toBeDisabled()
+    await noPurchase()
 
     await change.click()
   }
