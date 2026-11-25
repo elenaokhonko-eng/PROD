@@ -29,10 +29,13 @@ Seen in the free evaluation and the bank pack: "Banks or payment providers invol
 although the uploaded bank statement is headed "Synthetic Bank - Statement of account". The FIDReC pack shows it only
 because the later bank letter named the bank.
 
-Cause: the checklist marks a fact as shown when the confirmed value has a document among its sources. In all four
-extraction runs on the case, the statement gave the transactions, account type and loss but never an institution. The
+Cause: the checklist marks a fact as shown when the confirmed value has a document among its sources. The statement
+was read once (the later runs on the case reuse that reading) and gave the transactions, account type and loss but no
+institution. The
 extraction prompt (`fact-extract-v3` on main, and `fact-extract-v4` on `feat/fidrec-update`) has no rule that the bank
-or provider that issued a statement or letter is an institution involved, so the model leaves the header out.
+or provider that issued a statement or letter is an institution involved. On the statement's exact text, staging's
+model (gpt-6-luna, production output cap) named the bank in 3 of 10 calls with the current prompt and 9 of 10 with
+the rule added (#106).
 
 Fix:
 - Add the rule to both prompts: the bank or provider that issued a statement, alert or letter is an institution, quoting
@@ -167,7 +170,7 @@ all, or only as a reply whose status the user confirms.
 
 ## Order of work (review, 25 Nov)
 
-1. On branches now, nothing merged into main: PB-1, PB-2, PB-5.
+1. On branches now, nothing merged into main: PB-1 (#106), PB-2 (#107), PB-5 (#108), all drafts.
 2. Before selling, on main: also PB-3, PB-6, PB-10, PB-11, PB-12, PB-13 (wording items once approved), and PB-4
    (wording only).
 3. Merge as one batch after Elena finishes cases B and C, then three gate runs on that commit, then Elena re-runs
