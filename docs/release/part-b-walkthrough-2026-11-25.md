@@ -341,3 +341,31 @@ read, so it covers both rows (payment proof and police report) on a card case.
 4. One batch after Elena's own three cases, then three gate runs on that commit, then the re-runs above.
 5. With the update (`feat/fidrec-update`): PB-7, PB-8 (with its addition) and the rest of PB-23.
 6. Any time: PB-14. PB-9: walk-through updated with the batch.
+
+## Change requests for the update (`feat/fidrec-update`), not the batch
+
+### CR-1 (Elena, 25 Nov): a "Police investigation" section in the FIDReC pack
+
+Text, with the date and evidence numbers filled from the confirmed facts:
+
+> FIDReC's Terms of Reference, Rule 5(iv), say FIDReC cannot take "cases under investigation by any law enforcement
+> agency, including cases where allegations of fraud or criminal activity have been made, and where the matter has
+> been referred to the police for investigation". A police report was made on [date] (E#). The police's reply dated
+> [date] states: [what the reply says] (E#).
+
+With no police reply uploaded, the last sentence is: "The complainant did not provide a reply from the police on the
+outcome of the investigation."
+
+- A new optional document type: the police's outcome email or letter. Never required for generation.
+- It appears in the pack's list of documents to provide.
+- The pack quotes what the reply says. It does not say whether the investigation is closed unless the document says so.
+- A new rule citation, `fidrec.tor/5`, so the corpus tracks it.
+
+Note: the update branch takes no new work except the switch-on release steps (agreed release order). Elena to say
+when CR-1 is built: before the switch-on review, or after.
+
+## Batch status (25 Nov)
+
+All batch fixes are combined on `release/part-b-fixes` (#121). It now includes #119's additions: the four SRF mobile
+operators, MAS's reply on 3DS, and FIDReC's earlier route (Rule 13(1)(i)). The batch waited for Elena's own three cases;
+she waived that on 25 Nov. Next: staging deploy and three gate runs (Elena's go), then the re-runs.
