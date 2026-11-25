@@ -58,3 +58,29 @@ test('sign-in and sign-up remember the intent; the dashboard offers the bank pac
   assert.match(dashboard, /packIntent === 'fidrec' && showFidrecOffer && BEFORE_FREE_EVALUATION\.has\(node\)/)
   assert.match(readFileSync('lib/harbor/packs.ts', 'utf8'), /`\/sign-in\?intent=\$\{pack\}`/)
 })
+
+// Part B walk-through (25 Nov), PB-19: with a pack chosen, the free evaluation's six questions sat under the pack's
+// offer (and under the FIDReC route question), and they flashed after paying until the purchase was visible.
+test('with a pack chosen, its offer comes first and the free evaluation waits; nothing flashes after paying', () => {
+  const dashboard = readFileSync('app/(case)/app/case/[id]/dashboard/_components/dashboard-client.tsx', 'utf8')
+  assert.match(dashboard, /node === 'S1-Journey' && \(showFidrecIntent \|\| showBankIntent\) && !freeEvaluationChosen \? \(/)
+  assert.match(dashboard, /onClick=\{\(\) => setFreeEvaluationChosen\(true\)\}>\s*Continue with the free evaluation/)
+  // The payment check comes before the free evaluation's steps.
+  assert.ok(dashboard.indexOf(') : isAwaitingPaymentConfirmation ? (') < dashboard.indexOf(") : node === 'S1-Journey'"))
+  assert.equal(dashboard.split(') : isAwaitingPaymentConfirmation ? (').length - 1, 1)
+  assert.match(dashboard, /BEFORE_FREE_EVALUATION\.has\(node\) && !isAwaitingPaymentConfirmation/)
+  assert.match(dashboard, /BEFORE_FREE_EVALUATION\.has\(node\) &&\s*paymentReturnProduct === null/)
+})
+
+// PB-18: the story box says the pack comes next, and a signed-in person with a case is taken to it once per tab.
+test('the story box names the chosen pack, and the case list opens the latest case once', () => {
+  const home = readFileSync('app/(marketing)/page.tsx', 'utf8')
+  // Above the trust row, which stays directly above the story box (trust-row.test.ts, W1 §B1).
+  assert.ok(home.indexOf('<PackIntentNote />') > 0 && home.indexOf('<PackIntentNote />') < home.indexOf('<TrustRow />'))
+  const note = readFileSync('components/journey/pack-intent-note.tsx', 'utf8').replace(/\s+/g, ' ')
+  assert.ok(note.includes('You chose the {PACK_NAMES[intent]}. Tell us what happened first; your case page offers the pack straight after.'))
+  const route = readFileSync('components/journey/pack-intent-route.tsx', 'utf8')
+  assert.match(route, /if \(window\.sessionStorage\.getItem\(ROUTED_KEY\)\) return/)
+  assert.match(route, /router\.replace\(`\/app\/case\/\$\{caseId\}\/dashboard`\)/)
+  assert.match(readFileSync('app/(case)/app/page.tsx', 'utf8'), /<PackIntentRoute caseId=\{cases\?\.\[0\]\?\.id \?\? null\} \/>/)
+})

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowRight, FolderOpen, Plus } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { PackIntentRoute } from '@/components/journey/pack-intent-route'
 import { getCurrentUser } from '@/lib/auth'
 import { linkNewAccount } from '@/lib/server/current-user'
 import { createUserClient } from '@/lib/supabase/server'
@@ -21,6 +22,7 @@ export default async function CasesPage() {
 
   return (
     <main className="gb-container py-8 sm:py-12">
+      <PackIntentRoute caseId={cases?.[0]?.id ?? null} />
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="gb-eyebrow">Case workspace</p>
