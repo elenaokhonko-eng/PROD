@@ -386,7 +386,7 @@ The same test passed on this commit in runs
 the failed run.
 
 **What was checked (26 Nov):**
-- Elena tested the same journey by hand on an iPhone without a problem. The number of tries is not recorded.
+- Elena tested the same journey by hand on an iPhone without a problem: 4 of 4 passed (re-test steps S.1 to S.4, 26 Nov).
 - It was not reproduced. No automated reproduction was run: a local check was prepared but never executed.
 - Staging web log for 20:50:10–20:50:48 UTC: no lines. The stream holds application messages only, not requests, so it
   does not show whether the page load was answered or how fast. The test fakes `/api/cases/bootstrap` in the browser,
