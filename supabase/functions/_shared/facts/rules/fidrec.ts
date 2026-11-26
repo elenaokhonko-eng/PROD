@@ -36,7 +36,10 @@ export type FidrecAvailability =
   | { available: false; reason: "fidrec_window_expired"; deadline: string };
 
 export function finalReplyDeadline(reply: BankReply | null): string | null {
-  if (!reply || reply.status !== "final_reply" || reply.qualifies !== "yes" || !reply.date) return null;
+  if (!reply || reply.status !== "final_reply" || !reply.date) return null;
+  // Elena, 26 Nov 2026: a final reply read from a letter carries no answer on whether it qualifies, and nothing saying
+  // it does not is enough to open the route (Rule 13(2) is FIDReC's call). Before this, a paid pack was refused.
+  if (reply.qualifies === "no" || reply.qualifies === "unsure") return null;
   return addMonths(reply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value);
 }
 

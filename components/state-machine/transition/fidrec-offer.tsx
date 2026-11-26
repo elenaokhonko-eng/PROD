@@ -71,7 +71,7 @@ export const FIDREC_REASON_TEXT: Partial<Record<ProductReadinessReason, string>>
 
 function tooEarly(opensOn: string | null): string {
   return opensOn
-    ? `FIDReC takes a complaint four weeks after your written complaint to the bank. You can get this pack from ${opensOn}.`
+    ? `FIDReC takes a complaint four weeks after your written complaint to the bank. You can get this pack from ${new Date(`${opensOn}T00:00:00Z`).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}.`
     : 'FIDReC takes a complaint four weeks after your written complaint to the bank.'
 }
 

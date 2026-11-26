@@ -39,7 +39,7 @@ import { useFidrecRoute } from '@/hooks/state-machine/facts/use-fidrec-route'
 import { qk } from '@/hooks/state-machine/query-keys'
 import { ConfirmAndEvaluate } from '@/components/state-machine/facts/confirm-and-evaluate'
 import { JourneyQuestions } from '@/components/state-machine/facts/journey-questions'
-import { NextSteps } from '@/components/state-machine/facts/next-steps'
+import { NextSteps, RecommendationNotes } from '@/components/state-machine/facts/next-steps'
 import { EvidenceUploadPanel } from '@/components/state-machine/layer1/evidence-upload-panel'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { useAutoRefireExtract } from '@/hooks/state-machine/layer1/use-auto-refire-extract'
@@ -667,6 +667,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               factsHref,
               footerSlot: (
                 <div className="pt-4">
+                  <RecommendationNotes caseId={caseId} />
                   <BuyReportCTA
                     priceLabel={priceLabels.report}
                     disabled={reportCapability?.canCheckout !== true}

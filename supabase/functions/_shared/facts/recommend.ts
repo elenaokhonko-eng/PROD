@@ -2,8 +2,8 @@
 // may choose any other available stage. Follows the FIDReC Terms of Reference (rules/fidrec.ts).
 
 import type { BankReply, Institution, Money, ReportedEvent } from "./keys.ts";
-import { fidrecAvailability, type FidrecAvailability, FIDREC_RULES } from "./rules/fidrec.ts";
-import { formatMoney } from "./display.ts";
+import { fidrecAvailability, type FidrecAvailability, FIDREC_RULES, finalReplyDeadline } from "./rules/fidrec.ts";
+import { formatDate, formatMoney } from "./display.ts";
 import { addMonths } from "./normalise.ts";
 
 export type JourneyPosition =
@@ -59,7 +59,7 @@ function position(facts: RecommendFacts, fidrec: FidrecAvailability): JourneyPos
   if (reply?.outcome === "full_offer" || fullyRecovered) return "resolved";
   if (facts.fidrecFiled?.value === "yes") return "fidrec_filed";
   if (reply?.status === "final_reply") {
-    if (reply.qualifies === "yes" && reply.date) return fidrec.available ? "final_reply_in_window" : "final_reply_expired";
+    if (finalReplyDeadline(reply)) return fidrec.available ? "final_reply_in_window" : "final_reply_expired";
     return "final_reply_not_qualifying";
   }
   if (facts.writtenComplaint?.value === "yes") return fidrec.available ? "complaint_four_weeks" : "complaint_recent";
@@ -155,6 +155,9 @@ export function recommend(facts: RecommendFacts, options: RecommendOptions): Rec
   // makes a letter a final reply under FIDReC's rules, and how to ask the bank. FIDReC decides; the free evaluation
   // does not. Shown in the signed-in free evaluation only (this module is not used by public pages).
   if (finalReplyReceived && facts.bankReply?.date && addMonths(facts.bankReply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value) < options.today) {
+    // CR-2 note (26 Nov): the date fact first. Wording awaiting Elena's approval.
+    const ended = addMonths(facts.bankReply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value);
+    notes.push(`The final reply you told us about is dated ${formatDate(facts.bankReply.date)}. Six months from that date ended on ${formatDate(ended)} (Rule 13(1)(ii)).`);
     notes.push(FINAL_REPLY_EXPIRED_NOTE);
   }
   const cap = FIDREC_RULES.awardCapSgd.value;
