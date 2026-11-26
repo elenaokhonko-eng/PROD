@@ -369,3 +369,37 @@ when CR-1 is built: before the switch-on review, or after.
 All batch fixes are combined on `release/part-b-fixes` (#121). It now includes #119's additions: the four SRF mobile
 operators, MAS's reply on 3DS, and FIDReC's earlier route (Rule 13(1)(i)). The batch waited for Elena's own three cases;
 she waived that on 25 Nov. Next: staging deploy and three gate runs (Elena's go), then the re-runs.
+
+## Known issues
+
+### KI-1: story hand-over to a new case failed once on mobile Safari (gate run 45691510299)
+
+**Status:** open. Cause not known.
+
+**What failed:** `tests/e2e/authenticated/preservation.spec.ts`, "anonymous narrative is handed to the signed-in
+bootstrap exactly once", on the `webkit-mobile-390` profile only. The page was expected to move to the case dashboard
+and stayed on `/onboarding` for 30 seconds. Commit `9b8a813`,
+[run 45691510299](https://github.com/elenaokhonko-eng/PROD/actions/runs/45691510299), 25 Nov 20:50:10–20:50:48 UTC.
+The same test passed on this commit in runs
+[45677190879](https://github.com/elenaokhonko-eng/PROD/actions/runs/45677190879) and
+[45684264769](https://github.com/elenaokhonko-eng/PROD/actions/runs/45684264769), and on the other three profiles in
+the failed run.
+
+**What was checked (26 Nov):**
+- Elena tested the same journey by hand on an iPhone without a problem. The number of tries is not recorded.
+- It was not reproduced. No automated reproduction was run: a local check was prepared but never executed.
+- Staging web log for 20:50:10–20:50:48 UTC: no lines. The stream holds application messages only, not requests, so it
+  does not show whether the page load was answered or how fast. The test fakes `/api/cases/bootstrap` in the browser,
+  so that request never reaches staging.
+- The batch's change to where a signed-in person lands (#118) does not touch `/onboarding`.
+
+**Unconfirmed lead, from reading the code:** in `app/(auth)/onboarding/page.tsx`, if the effect runs again while the
+case is being created, its cleanup cancels the request and the new run returns early, so the screen would stay on
+"Setting up your case". Nothing shows that this happened here.
+
+**Waiver, 26 Nov (Elena):** the three-passes-in-a-row rule is waived once, for run 45691510299. Part B proceeds
+although the rule was not met on `9b8a813`. Runs 45677190879 and 45684264769 passed. This waiver covers this failure
+and this commit only.
+
+**Watch:** check this test in every gate run on the update branch (`feat/fidrec-update`). A repeat there is not covered
+by the waiver. No retry is added to the test.
