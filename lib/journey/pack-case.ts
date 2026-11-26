@@ -50,23 +50,40 @@ type CaseRow = { id: string; pack_first_at?: string | null; primary_narrative?: 
  * takes a signed-in person who has cases with a story: that case if there is one, My cases to choose if there are
  * several. Null: none has a story, so the pack-first step runs.
  */
-export function packDestinationForCases(cases: readonly CaseRow[], pack: PaidPack): string | null {
+export function packDestinationForCases(
+  cases: readonly CaseRow[],
+  pack: PaidPack,
+  // The one case with a story shows no offer for this pack (it has the FIDReC pack, and the bank pack is asked for).
+  { bankOfferHidden = false }: { bankOfferHidden?: boolean } = {},
+): string | null {
   const storied = cases.filter((c) => c.primary_narrative?.trim())
-  if (storied.length === 1) return `/app/case/${storied[0].id}/dashboard?pack=${pack}`
-  return storied.length > 1 ? `/app?pack=${pack}` : null
+  if (storied.length === 1 && !(pack === 'bank' && bankOfferHidden)) return `/app/case/${storied[0].id}/dashboard?pack=${pack}`
+  return storied.length ? `/app?pack=${pack}` : null
 }
 
-/** The line at the top of My cases. Wording awaiting Elena's approval. */
+/** The product_code a paid purchase is recorded under (case_purchases). */
+export const PURCHASE_PRODUCT_CODE: Record<(typeof PACK_PRODUCT)[PaidPack], string> = {
+  self_serve_report: 'self_serve_report',
+  fidrec_tier2_pack: 'escalation_pack',
+}
+
+/**
+ * The line at the top of My cases (wording approved by Elena, 27 Nov 2026). A payment is reported only from the
+ * recorded purchase on the case waiting for its story: until the record arrives the page says it is confirming.
+ */
 export function myCasesNotice(
   params: { checkout?: unknown; product?: unknown; pack?: unknown },
-  awaitingStory: boolean,
+  { awaitingStory, paidProducts }: { awaitingStory: boolean; paidProducts: readonly string[] },
 ): string | null {
   const bought = (Object.keys(PACK_PRODUCT) as PaidPack[]).find((p) => PACK_PRODUCT[p] === params.product)
-  // Only while a case waits for its story: a typed address alone cannot claim a payment.
-  if (awaitingStory && bought && params.checkout === 'success') {
-    return `Payment received for your ${PACK_TITLE[bought]}. Add a new case to tell your story.`
+  if (bought && (params.checkout === 'success' || params.checkout === 'cancel')) {
+    if (!awaitingStory) return null
+    const recorded = paidProducts.includes(PURCHASE_PRODUCT_CODE[PACK_PRODUCT[bought]])
+    if (params.checkout === 'cancel') return recorded ? null : 'Payment cancelled. You have not been charged.'
+    return recorded ? `Payment received for your ${PACK_TITLE[bought]}. Add a new case to tell your story.` : CONFIRMING_PAYMENT
   }
-  if (awaitingStory && bought && params.checkout === 'cancel') return 'Payment cancelled. You have not been charged.'
   const wanted = parsePack(typeof params.pack === 'string' ? params.pack : null)
   return wanted ? `Choose the case your ${PACK_TITLE[wanted]} is for, or add a new case.` : null
 }
+
+export const CONFIRMING_PAYMENT = 'Confirming your payment'

@@ -26,17 +26,41 @@ test('on the chosen case the pack is offered before its evaluation too, and nowh
   assert.doesNotMatch(dashboard, /useEffect\([^)]*askedPack/)
 })
 
-test('My cases says when a payment was received or cancelled, and asks which case a pack is for', () => {
+// Elena, 27 Nov: the payment message depends on the recorded purchase, never on the address alone.
+test('My cases reports a payment only from the recorded purchase', () => {
+  const bought = { awaitingStory: true, paidProducts: ['self_serve_report'] }
+  const nothing = { awaitingStory: true, paidProducts: [] as string[] }
+  const success = { checkout: 'success', product: 'self_serve_report' }
+  assert.equal(myCasesNotice(success, bought), 'Payment received for your Bank dispute pack. Add a new case to tell your story.')
+  assert.equal(myCasesNotice(success, nothing), 'Confirming your payment')
   assert.equal(
-    myCasesNotice({ checkout: 'success', product: 'self_serve_report' }, true),
-    'Payment received for your Bank dispute pack. Add a new case to tell your story.',
+    myCasesNotice({ checkout: 'success', product: 'fidrec_tier2_pack' }, { awaitingStory: true, paidProducts: ['escalation_pack'] }),
+    'Payment received for your FIDReC pack. Add a new case to tell your story.',
   )
-  assert.equal(myCasesNotice({ checkout: 'cancel', product: 'fidrec_tier2_pack' }, true), 'Payment cancelled. You have not been charged.')
-  assert.equal(myCasesNotice({ pack: 'fidrec' }, false), 'Choose the case your FIDReC pack is for, or add a new case.')
-  // A typed address cannot claim a payment when no case is waiting for its story, nor with unknown values.
-  assert.equal(myCasesNotice({ checkout: 'success', product: 'self_serve_report' }, false), null)
-  assert.equal(myCasesNotice({ checkout: 'success', product: 'other' }, true), null)
-  assert.equal(myCasesNotice({}, true), null)
+  const cancel = { checkout: 'cancel', product: 'self_serve_report' }
+  assert.equal(myCasesNotice(cancel, nothing), 'Payment cancelled. You have not been charged.')
+  assert.equal(myCasesNotice(cancel, bought), null, 'never "not charged" when a payment is recorded')
+  assert.equal(myCasesNotice({ pack: 'fidrec' }, { awaitingStory: false, paidProducts: [] }), 'Choose the case your FIDReC pack is for, or add a new case.')
+  assert.equal(myCasesNotice(success, { awaitingStory: false, paidProducts: [] }), null)
+  assert.equal(myCasesNotice({ checkout: 'success', product: 'other' }, bought), null)
+  const page = readFileSync('app/(case)/app/page.tsx', 'utf8')
+  assert.match(page, /\.from\('case_purchases'\)/)
+  assert.match(page, /\.eq\('payment_status', 'paid'\)/)
+})
+
+// The gap: a case with the FIDReC pack shows no bank offer, so a bank button must not end there.
+test('a bank button for the only case that already has the FIDReC pack goes to My cases', () => {
+  assert.equal(packDestinationForCases([storied('a')], 'bank', { bankOfferHidden: true }), '/app?pack=bank')
+  assert.equal(packDestinationForCases([storied('a')], 'fidrec', { bankOfferHidden: true }), '/app/case/a/dashboard?pack=fidrec')
+  const page = readFileSync('app/(case)/app/pack/[pack]/page.tsx', 'utf8')
+  assert.match(page, /bankOfferHidden/)
+  assert.match(page, /'fidrec_tier2_pack'/)
+})
+
+test('"No saved draft found" says what happened, in the approved words', () => {
+  const page = readFileSync('app/(auth)/onboarding/page.tsx', 'utf8')
+  assert.ok(page.includes('We couldn’t find a story saved in this browser tab, so no case was started. Add a new case to write your story.'))
+  assert.doesNotMatch(page, /Nothing was cleared/)
 })
 
 test('a story told on the public home page fills the waiting case first; the client sends nothing extra', () => {

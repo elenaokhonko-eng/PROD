@@ -3,7 +3,8 @@ import { ArrowRight, FolderOpen, Plus } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { getCurrentUser } from '@/lib/auth'
-import { isAwaitingStory, myCasesNotice, parsePack } from '@/lib/journey/pack-case'
+import { RefreshWhileConfirming } from '@/components/journey/refresh-while-confirming'
+import { CONFIRMING_PAYMENT, isAwaitingStory, myCasesNotice, parsePack } from '@/lib/journey/pack-case'
 import { linkNewAccount } from '@/lib/server/current-user'
 import { createUserClient } from '@/lib/supabase/server'
 
@@ -26,7 +27,16 @@ export default async function CasesPage({
 
   const params = await searchParams
   const wanted = parsePack(params.pack)
-  const notice = myCasesNotice(params, (cases ?? []).some(isAwaitingStory))
+  const waiting = (cases ?? []).filter(isAwaitingStory).map((c) => c.id)
+  const purchases = waiting.length
+    ? await supabase.from('case_purchases').select('product_code').in('case_id', waiting).eq('payment_status', 'paid')
+    : { data: [] as Array<{ product_code: string }>, error: null }
+  // A failed read is not "no payment": it must not lead to "you have not been charged".
+  if (purchases.error) throw new Error('The case list could not be loaded.')
+  const notice = myCasesNotice(params, {
+    awaitingStory: waiting.length > 0,
+    paidProducts: (purchases.data ?? []).map((p) => p.product_code as string),
+  })
 
   return (
     <main className="gb-container py-8 sm:py-12">
@@ -35,6 +45,7 @@ export default async function CasesPage({
           {notice}
         </p>
       ) : null}
+      {notice === CONFIRMING_PAYMENT ? <RefreshWhileConfirming /> : null}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="gb-eyebrow">Case workspace</p>

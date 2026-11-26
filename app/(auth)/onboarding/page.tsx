@@ -157,7 +157,7 @@ export default function OnboardingPage() {
       <section className="gb-card w-full max-w-md p-8 text-center">
         <h1 className="text-2xl font-semibold text-harbor-deep">No saved draft found</h1>
         <p className="mt-3 text-muted-foreground">
-          Nothing was cleared. Add a new case to write your story.
+          We couldn’t find a story saved in this browser tab, so no case was started. Add a new case to write your story.
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Button asChild className="min-h-11 rounded-full">

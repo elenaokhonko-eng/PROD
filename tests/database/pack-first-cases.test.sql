@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(25);
+select plan(27);
 
 -- CR-2 (26 Nov 2026): the empty case created before payment. Synthetic rows only; rolled back at the end.
 insert into public.profiles (id, email)
@@ -101,6 +101,28 @@ select results_eq(
 );
 select isnt(public.open_pack_case_v1('30000000-0000-4000-8000-000000000003', true), (select id from opened), 'the next pack after a story gets its own case');
 select is(public.open_pack_case_v1('40000000-0000-4000-8000-000000000004', false), null, 'another account has none of this');
+
+-- A voice story: the fill records what a normal voice case start records (the text as the story, source "voice").
+create temporary table voice_opened as select public.open_pack_case_v1('40000000-0000-4000-8000-000000000004', true) as id;
+grant select on voice_opened to authenticated;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"user_clerk_packfirst_b","supabase_uuid":"40000000-0000-4000-8000-000000000004"}', true);
+create temporary table voice_filled as
+select public.fill_pack_case_v1('Synthetic spoken story.', 'Synthetic spoken story.', 'phishing_scam', repeat('1', 64), repeat('2', 64)) as id;
+create temporary table voice_normal as
+select public.bootstrap_case_v1('Synthetic spoken story.', 'Synthetic spoken story.', 'phishing_scam', repeat('3', 64), repeat('4', 64)) as id;
+grant select on voice_filled, voice_normal to postgres;
+reset role;
+select results_eq(
+  $$select intake_type::text, narrative_text, source::text from public.case_intake where case_id = (select id from voice_filled)$$,
+  $$select intake_type::text, narrative_text, source::text from public.case_intake where case_id = (select id from voice_normal)$$,
+  'a voice story is recorded as a normal voice case start records it'
+);
+select results_eq(
+  $$select source::text from public.case_intake where case_id = (select id from voice_filled)$$,
+  $$values ('voice'::text)$$,
+  'and it is marked as voice'
+);
 
 select * from finish();
 rollback;
