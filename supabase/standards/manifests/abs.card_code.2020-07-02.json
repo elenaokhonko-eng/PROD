@@ -14,6 +14,9 @@
   "version": {
     "version_label": "revised 2 July 2020",
     "effective_from": "2020-07-02",
+    "effective_from_basis": "document",
+    "effective_from_basis_status": "proposed",
+    "effective_from_evidence": "Page 5 prints 'With effect from: 1 November 2009 Last revised: 2 July 2020'. The revision's own start date is not printed; effective_from is the revision date.",
     "issued_on": "2020-07-02",
     "retrieved_at": "2026-11-24T04:20:00Z",
     "source_url": "https://abs.org.sg/docs/library/code-of-practice-for-banks---credit-cards_68422ccf-ca83-4635-a658-bda71bc50f2a.pdf",

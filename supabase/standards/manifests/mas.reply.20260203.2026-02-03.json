@@ -15,6 +15,9 @@
   "version": {
     "version_label": "3 February 2026",
     "effective_from": "2026-02-03",
+    "effective_from_basis": "document",
+    "effective_from_basis_status": "proposed",
+    "effective_from_evidence": "The MAS page prints 'Date: For Parliament Sitting on 3 February 2026'.",
     "issued_on": "2026-02-03",
     "retrieved_at": "2026-11-24T10:00:00Z",
     "source_url": "https://www.mas.gov.sg/news/parliamentary-replies/2026/written-reply-to-pqs-on-srf-and-fraud-surveillance",

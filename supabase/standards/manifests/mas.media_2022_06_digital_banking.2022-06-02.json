@@ -14,6 +14,9 @@
   "version": {
     "version_label": "2 June 2022",
     "effective_from": "2022-06-02",
+    "effective_from_basis": "document",
+    "effective_from_basis_status": "proposed",
+    "effective_from_evidence": "Dateline 'Singapore, 2 June 2022' on the MAS page. The release date; the measures 'will be in full effect by 31 October 2022' (para 2).",
     "issued_on": "2022-06-02",
     "retrieved_at": "2026-11-24T10:00:00Z",
     "source_url": "https://www.mas.gov.sg/news/media-releases/2022/additional-measures-to-strengthen-the-security-of-digital-banking",
