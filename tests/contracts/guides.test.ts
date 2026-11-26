@@ -60,8 +60,8 @@ test('§O: a published guide without a reviewer, a date or an official source st
 
 test('§O, §E3: the call to action follows the stage and the pack state', () => {
   assert.deepEqual(guideAction('reported', false), { kind: 'evaluation' })
-  assert.deepEqual(guideAction('reported', true), { kind: 'pack', label: 'Prepare my bank complaint', href: '/sign-in?intent=bank' })
-  assert.deepEqual(guideAction('final-reply', true), { kind: 'pack', label: 'Prepare my FIDReC case', href: '/sign-in?intent=fidrec' })
+  assert.deepEqual(guideAction('reported', true), { kind: 'pack', label: 'Prepare my bank complaint', href: '/start-pack/bank' })
+  assert.deepEqual(guideAction('final-reply', true), { kind: 'pack', label: 'Prepare my FIDReC case', href: '/start-pack/fidrec' })
   assert.deepEqual(guideAction('just-happened', true), { kind: 'evaluation' })
 })
 

@@ -171,3 +171,12 @@ test('the payments table names how each payment was made in words', () => {
   assert.deepEqual(rows.map((r) => r.Date), ['12 Oct 2026', '12 Oct 2026', 'Not known'])
   assert.equal(rows[0]['Paid to'], 'ONLINE MERCHANT ONE')
 })
+
+// Elena, 27 Nov 2026: the bank pack is the written complaint, so it never says one has not been sent.
+test('the bank pack never says that a written complaint has not been sent', () => {
+  const said = 'I have not received a reply from the bank. I have not yet sent a written complaint. I ask the bank to review these payments.'
+  const report = assembleBankPack({ prose: { title: 'T', executive_summary: said, requested_resolution: 'R' }, source: 'model', facts: {}, findings: [] })
+  assert.equal(report.executive_summary, 'I have not received a reply from the bank. I ask the bank to review these payments.')
+  const facts = { written_complaint_sent: { value: { value: 'no', date: null, reference: null, channel: null }, label: 'confirmed' } } as never
+  assert.doesNotMatch(bankPackFallback(facts).executive_summary, /Written complaint/)
+})

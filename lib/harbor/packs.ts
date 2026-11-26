@@ -27,10 +27,11 @@ export const PACK_ACTION: Record<PaidPack, string> = {
 
 export const PACK_ANCHOR: Record<PaidPack, string> = { bank: 'bank-pack', fidrec: 'fidrec-pack' }
 
-// §E3: when the packs are live a pack link starts sign-in with the pack as the intent; until then it opens the pack's
-// card on Pricing, so no link leads to a button that isn't there.
+// §E3 and CR-2: when the packs are live a pack link leads to the pack entry (app/(auth)/start-pack), which sends a
+// visitor to sign-up and a signed-in person into the dashboard; until then it opens the pack's card on Pricing, so no
+// link leads to a button that isn't there.
 export function packHref(pack: PaidPack, live: boolean): string {
-  return live ? `/sign-in?intent=${pack}` : `/pricing#${PACK_ANCHOR[pack]}`
+  return live ? `/start-pack/${pack}` : `/pricing#${PACK_ANCHOR[pack]}`
 }
 
 export type PackCard = {

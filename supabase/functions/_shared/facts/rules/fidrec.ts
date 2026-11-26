@@ -35,8 +35,21 @@ export type FidrecAvailability =
   | { available: false; reason: "fidrec_too_early"; availableFrom: string | null }
   | { available: false; reason: "fidrec_window_expired"; deadline: string };
 
+// Wording approved by Elena, 27 Nov 2026. Whenever the six months after a final reply have passed, the person is asked
+// to go back to the bank. FIDReC decides whether a letter is a final reply; nothing here promises a new period.
+export const FINAL_REPLY_ASK =
+  "You can ask your bank to confirm in writing: (a) whether its reply was its final reply; (b) whether you can take the dispute to FIDReC, and by when; (c) what it offers: nothing, part of the amount, or all of it. Whether a letter is a final reply is decided by FIDReC (Rule 13(2)). When you have the bank's letter, add it to your case.";
+
+/** Whether the six months after a dated final reply have passed (SGT date, YYYY-MM-DD). */
+export function finalReplyWindowClosed(reply: BankReply | null | undefined, today: string): boolean {
+  return Boolean(reply?.status === "final_reply" && reply.date && addMonths(reply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value) < today);
+}
+
 export function finalReplyDeadline(reply: BankReply | null): string | null {
-  if (!reply || reply.status !== "final_reply" || reply.qualifies !== "yes" || !reply.date) return null;
+  if (!reply || reply.status !== "final_reply" || !reply.date) return null;
+  // Elena, 26 Nov 2026: a final reply read from a letter carries no answer on whether it qualifies, and nothing saying
+  // it does not is enough to open the route (Rule 13(2) is FIDReC's call). Before this, a paid pack was refused.
+  if (reply.qualifies === "no" || reply.qualifies === "unsure") return null;
   return addMonths(reply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value);
 }
 

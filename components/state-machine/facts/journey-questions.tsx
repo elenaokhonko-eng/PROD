@@ -36,7 +36,6 @@ const REPLY: Choice[] = [
 const OUTCOME: Choice[] = [
   { value: 'rejected', label: 'They rejected my claim' },
   { value: 'partial_offer', label: 'They offered part of the money' },
-  { value: 'full_offer', label: 'They offered all of it back' },
   { value: 'other', label: 'Something else' },
 ]
 const CHANNELS: Choice[] = [

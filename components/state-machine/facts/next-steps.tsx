@@ -46,6 +46,18 @@ function ruleNote(state: ProductState | undefined): string | null {
   return null
 }
 
+// Re-test of 26 Nov (D.4, E.2): with paid stages on, the evaluation shows the buy buttons instead of NextSteps, so the
+// approved FIDReC notes (Rule 13) never appeared. They show here in that case.
+export function RecommendationNotes({ caseId }: { caseId: string }) {
+  const notes = useRecommendation(caseId).data?.recommendation?.notes ?? []
+  if (!notes.length) return null
+  return (
+    <div className="mb-6 space-y-3 text-sm text-muted-foreground" data-recommendation-notes>
+      {notes.map((note) => <p key={note}>{note}</p>)}
+    </div>
+  )
+}
+
 export function NextSteps({ caseId, priceLabels }: { caseId: string; priceLabels: { report: string; tier2: string } }) {
   const recommendation = useRecommendation(caseId)
   const join = useJoinWaitlist()

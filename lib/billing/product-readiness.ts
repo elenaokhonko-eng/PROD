@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { agreeWithGenerator } from "@/lib/billing/fidrec-offer-check"
 import { bankPackEnabled, paidStagesEnabled } from "@/lib/billing/paid-stages"
 
 // Whether a case may buy a pack (Elena, 13 Nov 2026; docs/release/stage2-plan.md §3a). The packs are sold on their
@@ -62,5 +63,19 @@ export async function loadProductReadiness(
     p_checkout_product_key: product,
   })
   if (error) throw new Error("Failed to load product readiness")
-  return parseProductReadiness(data)
+  const readiness = parseProductReadiness(data)
+  if (product !== "fidrec_tier2_pack" || !readiness.ready) return readiness
+
+  const [snapshot, answer] = await Promise.all([
+    service.from("case_fact_snapshots").select("facts, created_at").eq("case_id", caseId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    service.from("case_responses").select("created_at").eq("case_id", caseId).eq("question_key", "fidrec_route").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+  ])
+  if (snapshot.error || answer.error) throw new Error("Failed to load product readiness")
+  const today = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+  return agreeWithGenerator(
+    readiness,
+    snapshot.data ? { facts: snapshot.data.facts, confirmedAt: snapshot.data.created_at as string } : null,
+    (answer.data?.created_at as string | undefined) ?? null,
+    today,
+  )
 }

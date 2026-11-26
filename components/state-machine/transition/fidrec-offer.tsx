@@ -10,6 +10,7 @@
  */
 
 import { useRef, useState } from 'react'
+import { FINAL_REPLY_ASK } from '@/lib/facts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tier2PackPanel } from '@/components/state-machine/layer3/tier2-pack-panel'
@@ -65,13 +66,12 @@ const ROUTE_OPTIONS: Array<{ value: FidrecRoute; label: string; dateLabel: strin
 export const FIDREC_REASON_TEXT: Partial<Record<ProductReadinessReason, string>> = {
   complaint_not_raised:
     'FIDReC needs your bank to have had the chance to answer first. Complain to your bank in writing; the bank pack can help you do that.',
-  fidrec_window_expired:
-    'FIDReC takes complaints up to six months after the bank’s final reply, and that time has passed. Ask your bank to review your complaint again; a new final reply may start a new six-month window.',
+  fidrec_window_expired: `FIDReC takes complaints up to six months after the bank’s final reply, and that time has passed. ${FINAL_REPLY_ASK}`,
 }
 
 function tooEarly(opensOn: string | null): string {
   return opensOn
-    ? `FIDReC takes a complaint four weeks after your written complaint to the bank. You can get this pack from ${opensOn}.`
+    ? `FIDReC takes a complaint four weeks after your written complaint to the bank. You can get this pack from ${new Date(`${opensOn}T00:00:00Z`).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}.`
     : 'FIDReC takes a complaint four weeks after your written complaint to the bank.'
 }
 

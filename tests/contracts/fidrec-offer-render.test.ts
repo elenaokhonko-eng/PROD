@@ -49,3 +49,10 @@ test('the answer being chosen comes from the dashboard, so drawing the offer aga
   assert.match(editing, /Before the FIDReC pack/, 'changing an answer keeps the question open')
   assert.match(editing, /value="2026-11-10"/)
 })
+
+// Re-test of 26 Nov (B.3): the opening date read "2026-12-12".
+test('the too-early message gives the opening date in words', () => {
+  const html = render({ reason: 'fidrec_too_early', opensOn: '2026-12-12', savedRoute: { route: 'no_reply', date: '2026-11-14' } })
+  assert.match(html, /You can get this pack from 12 Dec 2026\./)
+  assert.doesNotMatch(html, /2026-12-12/)
+})

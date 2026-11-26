@@ -18,26 +18,11 @@ import {
 } from "@/lib/router-session"
 import { trackClientEvent } from "@/lib/analytics/client"
 import { savedFirstTouch, trackFunnel } from "@/lib/analytics/funnel"
+import { clearBootstrapIdempotencyKey, getOrCreateBootstrapIdempotencyKey } from "@/lib/journey/bootstrap-key"
 
-const BOOTSTRAP_IDEMPOTENCY_KEY = "gb_bootstrap_idempotency_key"
-const BOOTSTRAP_REQUEST_FINGERPRINT = "gb_bootstrap_request_fingerprint"
 // Just after sign-up the account can take a few seconds to be linked, so "not signed in" is retried quietly first.
 const ACCOUNT_LINK_RETRIES = 3
 const ACCOUNT_LINK_RETRY_MS = 2000
-
-async function getOrCreateBootstrapIdempotencyKey(requestBody: unknown) {
-  const encoded = new TextEncoder().encode(JSON.stringify(requestBody))
-  const digest = await crypto.subtle.digest("SHA-256", encoded)
-  const fingerprint = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")
-  const existing = sessionStorage.getItem(BOOTSTRAP_IDEMPOTENCY_KEY)
-  if (existing && sessionStorage.getItem(BOOTSTRAP_REQUEST_FINGERPRINT) === fingerprint) {
-    return existing
-  }
-  const created = crypto.randomUUID()
-  sessionStorage.setItem(BOOTSTRAP_IDEMPOTENCY_KEY, created)
-  sessionStorage.setItem(BOOTSTRAP_REQUEST_FINGERPRINT, fingerprint)
-  return created
-}
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -119,8 +104,7 @@ export default function OnboardingPage() {
 
         const legacySessionId = getSessionToken()
         clearPendingNarrative()
-        sessionStorage.removeItem(BOOTSTRAP_IDEMPOTENCY_KEY)
-        sessionStorage.removeItem(BOOTSTRAP_REQUEST_FINGERPRINT)
+        clearBootstrapIdempotencyKey()
         clearConvertedRouterSessionToken()
         clearSessionToken()
         rotateRouterSessionIntent()
@@ -173,14 +157,14 @@ export default function OnboardingPage() {
       <section className="gb-card w-full max-w-md p-8 text-center">
         <h1 className="text-2xl font-semibold text-harbor-deep">No saved draft found</h1>
         <p className="mt-3 text-muted-foreground">
-          Nothing was cleared. Start a new case, or return home to write your story first.
+          We couldn’t find a story saved in this browser tab, so no case was started. Add a new case to write your story.
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Button asChild className="min-h-11 rounded-full">
-            <Link href="/app/case/new">Start a new case</Link>
+            <Link href="/app/case/new">Add a new case</Link>
           </Button>
           <Button asChild variant="outline" className="min-h-11 rounded-full">
-            <Link href="/">Return home</Link>
+            <Link href="/app">My cases</Link>
           </Button>
         </div>
         <Link href="/faq" className="mt-5 inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">
@@ -210,7 +194,7 @@ export default function OnboardingPage() {
             Try again
           </Button>
           <Button asChild variant="outline" className="min-h-11 rounded-full">
-            <Link href="/">Return home</Link>
+            <Link href="/app">My cases</Link>
           </Button>
         </div>
         <Link href="/faq" className="mt-5 inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">

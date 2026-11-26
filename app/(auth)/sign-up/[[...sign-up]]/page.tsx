@@ -1,12 +1,10 @@
 import type { Metadata } from 'next'
 import { SignUp } from '@clerk/nextjs'
-import { Suspense } from 'react'
-import { PackIntentCapture } from '@/components/journey/pack-intent-capture'
 import { NO_CARD_LINE } from '@/lib/harbor/cta'
 import { SAFETY_NOTICE_SHORT } from '@/lib/safety-notice'
 import { FunnelStep } from '@/components/analytics/funnel-step'
 import { GoogleTagManager } from '@/components/analytics/google-tag-manager'
-import { signedUpRedirect } from '@/lib/analytics/google-tag'
+import { safeNextPath, signedUpRedirect } from '@/lib/analytics/google-tag'
 
 // Brief W1 §F and §L3: plain wording, email code or Google only, its own title (noindex comes from the root layout).
 export const metadata: Metadata = { title: { absolute: 'Create your account · GuideBuoy' } }
@@ -24,7 +22,16 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
         </p>
       </section>
       <div className="flex flex-col items-center gap-4">
-        <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" forceRedirectUrl={signedUpRedirect(redirectUrl)} />
+        {/* CR-2: someone who already has an account and signs in from here still goes where they were going (for
+            example the pack step), and otherwise to My cases. */}
+        <SignUp
+          routing="path"
+          path="/sign-up"
+          signInUrl="/sign-in"
+          forceRedirectUrl={signedUpRedirect(redirectUrl)}
+          signInForceRedirectUrl={redirectUrl ? safeNextPath(redirectUrl) : undefined}
+          signInFallbackRedirectUrl="/app"
+        />
         <p className="max-w-sm text-center text-sm leading-6 text-muted-foreground">
           {NO_CARD_LINE} {SAFETY_NOTICE_SHORT}
         </p>
@@ -32,9 +39,6 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
       <FunnelStep event="signup_reached" />
       {/* Sign-up is the campaigns' conversion page; the signed-in case area has no Google tag. */}
       <GoogleTagManager />
-      <Suspense fallback={null}>
-        <PackIntentCapture />
-      </Suspense>
     </div>
   )
 }

@@ -134,7 +134,29 @@ test('a final reply more than six months old explains what a final reply is unde
   assert.ok(run({ reportedToBank: yes(), bankReply: reply('2026-04-01', null) }).notes.includes(FINAL_REPLY_EXPIRED_NOTE), 'also when not read as qualifying')
   assert.ok(!run({ reportedToBank: yes(), bankReply: reply('2026-10-01', 'yes') }).notes.includes(FINAL_REPLY_EXPIRED_NOTE), 'not within six months')
   assert.ok(!run({ reportedToBank: yes(), bankReply: reply('2026-05-30', 'yes') }).notes.includes(FINAL_REPLY_EXPIRED_NOTE), 'not on the last day')
-  assert.match(FINAL_REPLY_EXPIRED_NOTE, /^FIDReC's Terms of Reference say a final reply is a letter that expressly states it is the institution's final reply, tells you that you can contact FIDReC within six months, and gives FIDReC's contact details \(Rule 13\(2\)\)\. If the reply you received did not state these, you can ask your bank in writing to confirm whether it was its final reply\. Whether a document is a final reply is decided by FIDReC\.$/)
+  // Wording approved by Elena, 27 Nov 2026, in place of the 25 Nov paragraph.
+  assert.match(FINAL_REPLY_EXPIRED_NOTE, /^FIDReC's Terms of Reference say a final reply is a letter .*\(Rule 13\(2\)\)\. You can ask your bank to confirm in writing: .* When you have the bank's letter, add it to your case\.$/)
   // Signed-in only: the recommendation is served by a case-access route, and no public page imports it.
   assert.match(readFileSync('app/api/cases/[caseId]/recommendation/route.ts', 'utf8'), /await factsCaseAccess\(caseId\)/)
+})
+
+// Elena, 26 Nov 2026 (re-test: a paid FIDReC pack was refused): a final reply read from a letter carries no answer on
+// whether it qualifies. With a date and nothing saying it does not, it opens the six-month route (Rule 13(2) is
+// FIDReC's call, and the pack already counts its deadline from the letter).
+test('a dated final reply with no qualifying answer opens the six-month route', () => {
+  const facts = { reportedToBank: yes(), writtenComplaint: no, bankReply: finalReply('2026-11-10', null) }
+  assert.deepEqual(fidrecAvailability(facts, today), { available: true, route: 'final_reply', deadline: '2027-05-10', daysLeft: 161, deadlineSoon: false })
+  assert.equal(run(facts).position, 'final_reply_in_window')
+  for (const qualifies of ['no', 'unsure'] as const) {
+    assert.equal(fidrecAvailability({ ...facts, bankReply: finalReply('2026-11-10', qualifies) }, today).available, false, qualifies)
+  }
+})
+
+// Wording approved for CR-2 pending Elena's own yes (26 Nov 2026).
+test('a final reply more than six months old states the two dates before the Rule 13(2) text', () => {
+  const notes = run({ reportedToBank: yes(), bankReply: finalReply('2026-04-01') }).notes
+  const dates = 'The final reply you told us about is dated 1 Apr 2026. Six months from that date ended on 1 Oct 2026 (Rule 13(1)(ii)).'
+  assert.equal(notes.indexOf(dates), notes.indexOf(FINAL_REPLY_EXPIRED_NOTE) - 1)
+  assert.ok(notes.includes(dates))
+  assert.ok(!run({ reportedToBank: yes(), bankReply: finalReply('2026-10-01') }).notes.some((n) => n.startsWith('The final reply you told us about')))
 })

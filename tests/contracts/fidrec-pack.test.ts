@@ -354,7 +354,7 @@ test('the filing section counts the deadline from a confirmed final reply, whoev
   const fromLetter = { ...finalReply, date: '2026-11-10', qualifies: null }
   const caseB: SnapshotFacts = { ...facts, bank_reply: { value: fromLetter, label: 'confirmed' } }
   const caseBRoute = fidrecRouteFromFacts(caseB, '2026-11-25')
-  assert.equal(caseBRoute.available && caseBRoute.route, 'four_weeks', 'the route alone would not give a deadline')
+  assert.equal(caseBRoute.available && caseBRoute.route, 'final_reply', 'a dated reply read from a letter opens the route (Elena, 26 Nov)')
   // doc-letter is E1 in the evidence index.
   const letter = [{ factKey: 'bank_reply' as const, values: [{ value: fromLetter, sources: [{ sourceType: 'document', sourceRef: { documentId: 'doc-letter', documentType: 'bank_correspondence' } }] }], resolution: { kind: 'agreed' as const } }]
   const report = assembleFidrecPack({ prose: GOOD, source: 'model', facts: caseB, findings: letter as never, evidenceIndex: index, route: caseBRoute, finalReplyUsed: true, today: '2026-11-25' })

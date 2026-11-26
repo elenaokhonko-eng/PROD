@@ -5,6 +5,7 @@ import {
   addPackEvidence,
   completeFreeEvaluation,
   confirmFactsInDashboard,
+  createLinkedAccount,
   deleteClerkUser,
   payWithTestCard,
   startFreshCase,
@@ -62,9 +63,20 @@ test.describe('paid pack journeys', () => {
     await change.click()
   }
 
-  async function rememberIntent(page: Page, intent: 'bank' | 'fidrec') {
-    await page.goto('/')
-    await page.evaluate((value) => localStorage.setItem('guidebuoy.packIntent', JSON.stringify({ intent: value, at: Date.now() })), intent)
+  // CR-2, pack first: the empty case the pack step created for this account.
+  async function waitingCaseId(supabase: ReturnType<typeof createServiceClientFromEnvironment>, profileId: string) {
+    const { data } = await supabase.from('cases').select('id').eq('user_id', profileId)
+    expect(data, 'one case, created before payment').toHaveLength(1)
+    return data![0].id as string
+  }
+
+  // After payment: back in My cases, then "Add a new case" and the story, which leads to the pack's documents.
+  async function addStoryAfterPaying(page: Page, caseId: string, pack: 'bank' | 'fidrec') {
+    await page.getByRole('link', { name: 'Add a new case' }).first().click()
+    await page.locator('#story').fill(syntheticNarrative)
+    await page.getByRole('button', { name: 'Submit the story' }).click()
+    await page.waitForURL(new RegExp(`/app/case/${caseId}/dashboard$`), { timeout: 120_000 })
+    await expect(page.locator(`[data-pack-evidence="${pack}"]`)).toBeVisible({ timeout: 120_000 })
   }
 
   async function answerFidrecRoute(page: Page) {
@@ -77,10 +89,11 @@ test.describe('paid pack journeys', () => {
     return buy
   }
 
-  async function payAndReturn(page: Page, email: string, caseId: string, productCode: string, amount: number) {
+  // From inside a case, Stripe returns to that case; a case still waiting for its story returns to My cases.
+  async function payAndReturn(page: Page, email: string, caseId: string, productCode: string, amount: number, returnsTo: 'case' | 'my cases' = 'case') {
     await page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 })
     await payWithTestCard(page, email)
-    await page.waitForURL(new RegExp(`/app/case/${caseId}/dashboard`), { timeout: 180_000 })
+    await page.waitForURL(returnsTo === 'case' ? new RegExp(`/app/case/${caseId}/dashboard`) : (url) => url.pathname === '/app', { timeout: 180_000 })
     const supabase = createServiceClientFromEnvironment()
     await expect
       .poll(async () => {
@@ -90,14 +103,15 @@ test.describe('paid pack journeys', () => {
       .toEqual([{ product_code: productCode, payment_status: 'paid', amount }])
   }
 
-  test('the Bank dispute pack bought straight away, without the free evaluation (?intent=bank)', async ({ page }) => {
+  test('the Bank dispute pack bought first, without the free evaluation', async ({ page }) => {
     const supabase = createServiceClientFromEnvironment()
-    await rememberIntent(page, 'bank')
-    const { clerkUserId, caseId, email } = await startFreshCase(page, supabase, syntheticNarrative)
+    const { clerkUserId, email, profileId } = await createLinkedAccount(page, supabase)
     try {
-      const intent = page.locator('[data-pack-intent="bank"]')
-      await intent.getByRole('button', { name: /Get Bank dispute pack/ }).click()
-      await payAndReturn(page, email, caseId, 'self_serve_report', 18)
+      await page.goto('/app/pack/bank')
+      await page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 })
+      const caseId = await waitingCaseId(supabase, profileId)
+      await payAndReturn(page, email, caseId, 'self_serve_report', 18, 'my cases')
+      await addStoryAfterPaying(page, caseId, 'bank')
 
       // Part B walk-through (25 Nov, PB-2): facts confirmed before the documents are added. The S$18 purchase test
       // keeps the other order (documents first).
@@ -132,13 +146,21 @@ test.describe('paid pack journeys', () => {
     try {
       await completeFreeEvaluation(page, caseId, syntheticNarrative)
       const buy = await answerFidrecRoute(page)
+      // Back from Stripe: no stuck "Redirecting to secure payment" screen (CR-2).
       await buy.click()
+      await page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 })
+      await page.goBack()
+      await expect(page.locator('[data-harbor-ready="true"]')).toBeVisible({ timeout: 120_000 })
+      await expect(page.getByText('Redirecting to secure payment')).toHaveCount(0)
+      await page.locator('[data-fidrec-offer]').first().getByRole('button', { name: /Prepare my FIDReC case/ }).click()
       await payAndReturn(page, email, caseId, 'escalation_pack', 188)
 
       await addPackEvidence(page, 'fidrec')
       await confirmFactsInDashboard(page, caseId, 'fidrec')
       await expect(page.getByText('Points for the institution', { exact: true })).toBeVisible({ timeout: 5 * 60_000 })
       await expect(page.getByText('Filing with FIDReC', { exact: true })).toBeVisible()
+      // The FIDReC pack's report page offers no Bank dispute pack.
+      await expect(page.getByRole('button', { name: /Get Bank dispute pack/ })).toHaveCount(0)
       const { data: reports } = await supabase.from('reports').select('report_type, status').eq('case_id', caseId)
       expect(reports).toEqual([{ report_type: 'fidrec_pack_v1', status: 'COMPLETED' }])
     } finally {
@@ -146,19 +168,21 @@ test.describe('paid pack journeys', () => {
     }
   })
 
-  test('the FIDReC pack on its own, without the free evaluation or the bank pack (?intent=fidrec)', async ({ page }) => {
+  test('the FIDReC pack bought first, without the free evaluation or the bank pack', async ({ page }) => {
     const supabase = createServiceClientFromEnvironment()
-    await rememberIntent(page, 'fidrec')
-    const { clerkUserId, caseId, email } = await startFreshCase(page, supabase, syntheticNarrative)
+    const { clerkUserId, email, profileId } = await createLinkedAccount(page, supabase)
     try {
-      await expect(page.locator('[data-pack-intent="fidrec"]')).toBeVisible({ timeout: 120_000 })
+      await page.goto('/app/pack/fidrec')
+      await expect(page.locator('[data-fidrec-offer]')).toBeVisible({ timeout: 120_000 })
+      const caseId = await waitingCaseId(supabase, profileId)
       await walkClosedFidrecRoutes(page)
       const buy = await answerFidrecRoute(page)
       // The open route keeps its answer on screen and can still be changed.
       await expect(page.locator('[data-fidrec-offer] [data-fidrec-route-answer="final_reply"]').first()).toBeVisible()
       await expect(page.locator('[data-fidrec-offer]').first().getByRole('button', { name: 'Change my answer' })).toBeVisible()
       await buy.click()
-      await payAndReturn(page, email, caseId, 'escalation_pack', 188)
+      await payAndReturn(page, email, caseId, 'escalation_pack', 188, 'my cases')
+      await addStoryAfterPaying(page, caseId, 'fidrec')
 
       await addPackEvidence(page, 'fidrec')
       await confirmFactsInDashboard(page, caseId, 'fidrec')
