@@ -139,6 +139,8 @@ The Shared Responsibility Framework Guidelines have no test of the account user'
 The institution's letter describes the complainant's conduct as 'negligent'. The conduct it cites is entered the account password and a one-time code on a website reached from a message. (E2)
 The E-Payments User Protection Guidelines use the term 'recklessness'.
 The institution's own terms in force on 3 July 2025 are not held for that date.
+## police_investigation: Police investigation
+FIDReC's Terms of Reference, Rule 5(iv), say FIDReC cannot take "cases under investigation by any law enforcement agency, including cases where allegations of fraud or criminal activity have been made, and where the matter has been referred to the police for investigation". A police report was made on 4 Jul 2025 (E3). The complainant did not provide a reply from the police on the outcome of the investigation.
 ## citations
 R1 mas.srf/4.2.1 version Issued 2024 on 2025-07-03
 R2 mas.eupg/4.7 version A on 2025-07-03
@@ -146,6 +148,7 @@ R3 mas.srf/4.2.5 version Issued 2024 on 2025-07-03
 R4 mas.eupg/5.2 version A on 2025-07-03, 2025-07-04
 R5 mas.eupg/fn20 version A on 2025-07-03
 R6 mas.srf/3.1 version Issued 2024 on 2025-07-03
+R7 fidrec.tor/5 version v2.2 on 2026-11-24
 ## statements
 duty_time_checks srf.highrisk.definition r1 on 2025-07-03
 duty_time_checks eupg.highrisk.definition r1 on 2025-07-03

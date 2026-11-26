@@ -229,6 +229,8 @@ export const UPDATE_RECONCILED_FACT_KEYS = [
   "fidrec_dispute_dates",
   // The account's status as a credit bureau report shows it (Lane 6 contract, 25 Nov 2026; Lane 2 extracts it).
   "credit_account_status",
+  // CR-1 (25 Nov 2026): what the police's reply says about the investigation.
+  "police_investigation_reply",
 ] as const satisfies readonly FactKey[];
 
 export const PAID_STAGE_ONLY_FACT_KEYS: ReadonlySet<FactKey> = new Set<FactKey>([...UPDATE_RECONCILED_FACT_KEYS, "device_recognition"]);
@@ -245,6 +247,8 @@ export const DOCUMENT_ONLY_FACT_KEYS: ReadonlySet<FactKey> = new Set<FactKey>([
   "charges_on_disputed_amount",
   // From a credit bureau report or the institution's letter only (25 Nov 2026).
   "credit_account_status",
+  // From the police's own reply only (CR-1, 25 Nov 2026).
+  "police_investigation_reply",
 ]);
 
 // List facts whose entries from different sources are combined, never set against each other: two statements show
@@ -296,6 +300,8 @@ export const FACT_LABELS: Record<FactKey, string> = {
   fidrec_dispute_dates: "Dates of your dispute with FIDReC",
   // Approved by Elena, 25 Nov 2026 (AS-5 as changed).
   credit_account_status: "Your card account's status in a credit bureau report or your bank's letter",
+  // CR-1: wording awaiting Elena's approval.
+  police_investigation_reply: "The police's reply on the outcome of the investigation",
 };
 
 // Facts each stage needs before it can be generated (spec section 7, adapted to the launch set).

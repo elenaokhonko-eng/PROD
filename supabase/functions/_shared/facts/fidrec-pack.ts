@@ -7,8 +7,8 @@
 import { EVIDENCE_RULES, type EvidenceItem, isEvidenceItem } from "../evidence-minimums.ts";
 import { formatMoney } from "./display.ts";
 import { DOCUMENT_CONFIDENCE_THRESHOLD } from "./extraction.ts";
-import { DOCUMENT_LABELS, type EvidenceFinding, evidenceLists } from "./free-sections.ts";
-import type { BankReply, FactKey, Instrument, Money, ReportedEvent, Transaction } from "./keys.ts";
+import { DOCUMENT_LABELS, type EvidenceFinding, evidenceLists, POLICE_REPLY_SUGGESTION } from "./free-sections.ts";
+import { type BankReply, FACT_LABELS, type FactKey, type Instrument, type Money, type ReportedEvent, type Transaction } from "./keys.ts";
 import { appliesToCase, appliesToLabel, instrumentsOf } from "./rules/instrument-scope.ts";
 import { type FidrecAvailability, fidrecAvailability, FIDREC_RULES } from "./rules/fidrec.ts";
 import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
@@ -17,6 +17,7 @@ import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } fr
 import { normaliseDate } from "./normalise.ts";
 import { factsForModel, isServerOnlyDocument, redactServerOnly, withoutDeviceAnswers } from "./update/model-guard.ts";
 import type { PinnedCitation, PinnedStatement, PrintedSection, RenderedUpdate } from "./update/render.ts";
+import { POLICE_REPLY_DOCUMENT_TYPE, POLICE_REPLY_EVIDENCE_TYPE } from "./update/contract.ts";
 import {
   DATE_PATTERN,
   MONEY_PATTERN,
@@ -307,6 +308,8 @@ const EVIDENCE_KIND_LABELS: Record<string, string> = {
   RAW_BANK_ACCOUNT_LOGIN_AND_IP_DATA: "the bank's login, device and IP records (uploaded)",
   TIMELINE_NOTES: "your timeline notes (uploaded)",
   CYBER_EXPERT_REPORT: "a technical expert's report (uploaded)",
+  // CR-1: typed only with FIDREC_UPDATE_SECTIONS_ENABLED on; the same label as the facts extraction's police_reply.
+  [POLICE_REPLY_EVIDENCE_TYPE]: DOCUMENT_LABELS[POLICE_REPLY_DOCUMENT_TYPE],
 };
 
 export interface CaseDocument {
@@ -366,6 +369,36 @@ export function buildEvidenceIndex(findings: readonly Tier0Finding[], documents:
     if (label && entry) entry.label = label;
   }
   return [...byDocument.values()];
+}
+
+/**
+ * CR-1: the E-numbers of the documents in the index read as the police's reply on the investigation, by the evidence
+ * pipeline's type or by the facts extraction (a reply fact taken from it, or its kind's label), in index order.
+ */
+export function policeReplyEvidenceIds(index: readonly EvidenceIndexEntry[], documents: readonly CaseDocument[] = []): string[] {
+  const label = DOCUMENT_LABELS[POLICE_REPLY_DOCUMENT_TYPE];
+  return index
+    .filter((e) =>
+      e.facts.includes("police_investigation_reply") || e.label === label ||
+      documents.some((d) => d.id === e.documentId && d.evidenceType === POLICE_REPLY_EVIDENCE_TYPE)
+    )
+    .map((e) => e.id);
+}
+
+/**
+ * CR-1: the evidence checklist's line for the police's reply, with the update's sections on. Optional: shown when a
+ * reply was provided (unless the confirmed facts already list it), suggested as optional when none was. It never
+ * blocks generation (evidence-minimums.ts does not list it).
+ */
+export function policeReplyChecklistItem(
+  shown: readonly string[],
+  provided: boolean,
+): { label: string; present: boolean } | null {
+  const factLabel = FACT_LABELS.police_investigation_reply;
+  if (!provided) return { label: POLICE_REPLY_SUGGESTION, present: false };
+  if (shown.some((s) => s.startsWith(`${factLabel}:`))) return null;
+  // Wording awaiting Elena's approval.
+  return { label: `${factLabel}: shown by ${DOCUMENT_LABELS[POLICE_REPLY_DOCUMENT_TYPE]}.`, present: true };
 }
 
 export const DOCUMENT_EXCERPT_MAX_CHARS = 4_000;
@@ -714,9 +747,15 @@ export function assembleFidrecPack(args: {
   clauses?: readonly RegulatoryClause[];
   /** The rendered update sections, when FIDREC_UPDATE_SECTIONS_ENABLED is on. Absent: the report is unchanged. */
   update?: (RenderedUpdate & { generatedOn: string }) | null;
+  /** CR-1, switch on only: the E-numbers of the documents read as the police's reply (`policeReplyEvidenceIds`). */
+  policeReplyEvidenceIds?: readonly string[];
 }): FidrecPackReport {
   const { facts } = args;
   const { shown, missing } = evidenceLists(facts, args.findings);
+  // CR-1: the police's reply in the list of documents to provide, as optional; switch on only.
+  const policeReply = args.update
+    ? policeReplyChecklistItem(shown, (args.policeReplyEvidenceIds?.length ?? 0) > 0 || Boolean(facts.police_investigation_reply?.value))
+    : null;
   const loss = confirmedValue<Money>(facts, "total_loss");
   const update = args.update
     ? {
@@ -737,7 +776,11 @@ export function assembleFidrecPack(args: {
     disputed_transactions: bankPackTransactions(facts),
     total_loss: loss ? formatMoney(loss) : null,
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label })),
-    evidence_checklist: [...shown.map((label) => ({ label, present: true })), ...missing.map((label) => ({ label, present: false }))],
+    evidence_checklist: [
+      ...shown.map((label) => ({ label, present: true })),
+      ...missing.map((label) => ({ label, present: false })),
+      ...(policeReply ? [policeReply] : []),
+    ],
     route: fidrecRouteText(args.route),
     rules_assessment: srfAssessmentText(assessSrf(srfFactsFromSnapshot(facts))),
     final_reply_used: args.finalReplyUsed,

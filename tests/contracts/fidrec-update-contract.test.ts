@@ -208,13 +208,17 @@ test('fixtures hold no real-looking personal data', () => {
 // Sections and keys against the brief and the migrations
 // ---------------------------------------------------------------------------------------------------------------
 
-test('section IDs follow the order of brief 4i, with disputed_amount_charges after duty_time_checks (review Decision 8)', () => {
+test('section IDs follow the order of brief 4i, with disputed_amount_charges after duty_time_checks (review Decision 8) and police_investigation before standards (CR-1)', () => {
   const line = read(BRIEF).split('\n').find((l) => l.startsWith('Existing sections, then:'))
   assert.ok(line, 'brief 4i order line')
   const ids = [...line.matchAll(/`([a-z_]+)`/g)].map((m) => m[1])
   // Brief v5 does not have the Section 8 check yet (brief v6 will); the review of 24 Nov 2026 places it here.
   assert.ok(!ids.includes('disputed_amount_charges'), 'once the brief names it, compare with the brief alone')
   ids.splice(ids.indexOf('duty_time_checks') + 1, 0, 'disputed_amount_charges')
+  // CR-1 (Elena, 25 Nov 2026): the "Police investigation" section, after the update's other sections.
+  assert.ok(!ids.includes('police_investigation'), 'once the brief names it, compare with the brief alone')
+  assert.ok(ids.includes('standards'))
+  ids.splice(ids.indexOf('standards'), 0, 'police_investigation')
   assert.deepEqual([...SECTION_IDS], ids)
   assert.ok(line.trimEnd().endsWith('arguments for each side.'))
 })
@@ -251,6 +255,8 @@ test('every rule clause key matches the standard_clauses key pattern and names a
     'mas.reply.20250107',
     'visa.core_rules',
     'mastercard.chargeback_guide',
+    // CR-1 (25 Nov 2026): FIDReC's Terms of Reference (Rule 5), committed as a manifest.
+    'fidrec.tor',
   ])
   for (const key of RULE_CLAUSE_KEYS) {
     assert.match(key, new RegExp(pattern), key)

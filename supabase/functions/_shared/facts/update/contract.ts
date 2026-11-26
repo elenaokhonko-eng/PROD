@@ -28,7 +28,15 @@ export type TechnicalRecordDocumentType = (typeof TECHNICAL_RECORD_DOCUMENT_TYPE
  * data (privacy wording, export and deletion before release).
  */
 export const CREDIT_BUREAU_REPORT_DOCUMENT_TYPE = "credit_bureau_report" as const;
-export const OPTIONAL_UPDATE_DOCUMENT_TYPES = [CREDIT_BUREAU_REPORT_DOCUMENT_TYPE] as const;
+/**
+ * CR-1 (Elena, 25 Nov 2026): the police's email or letter on the outcome of the investigation of the police report.
+ * Optional: never required to buy or generate a pack and not part of the evidence check (evidence-minimums.ts). The
+ * pack's "Police investigation" section quotes it word for word (`police_investigation_reply`).
+ */
+export const POLICE_REPLY_DOCUMENT_TYPE = "police_reply" as const;
+/** The same document as the evidence pipeline (evidence_processed_v2) types it, with the update's switch on only. */
+export const POLICE_REPLY_EVIDENCE_TYPE = "POLICE_INVESTIGATION_OUTCOME" as const;
+export const OPTIONAL_UPDATE_DOCUMENT_TYPES = [CREDIT_BUREAU_REPORT_DOCUMENT_TYPE, POLICE_REPLY_DOCUMENT_TYPE] as const;
 export type OptionalUpdateDocumentType = (typeof OPTIONAL_UPDATE_DOCUMENT_TYPES)[number];
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -439,6 +447,24 @@ export function creditRecordsReading(args: {
   return covered ? { kind: "matches" } : { kind: "not_read", reason: "report_before_period_end" };
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// CR-1 (Elena, 25 Nov 2026): the police's reply on the outcome of the investigation, for the "Police investigation"
+// section (FIDReC Terms of Reference, Rule 5(iv)).
+// ---------------------------------------------------------------------------------------------------------------
+
+/**
+ * What the police's reply says about the investigation, read from a `police_reply` document only. Both values are the
+ * document's own: `statement` is a span of the document copied word for word (checked against the document's text at
+ * extraction, never paraphrased or summarised), and `date` is a date the document itself writes on the line that
+ * dates it. The section prints the statement inside quotation marks, never a conclusion drawn from it.
+ */
+export interface PoliceInvestigationReply {
+  /** The reply's own date (the letter's date, or the email's sent date); null when the document gives none. */
+  date: IsoDate | null;
+  /** What the reply says about the investigation, word for word from the document. */
+  statement: string;
+}
+
 /** The new facts (stages `bank` and `fidrec`), keyed as the facts tables key them. */
 export interface UpdateFactValues {
   access_events: AccessEvent[];
@@ -465,6 +491,8 @@ export interface UpdateFactValues {
   fidrec_dispute_dates: FidrecDisputeDates;
   /** The account's status as a credit bureau report or the institution's letter shows it (25 Nov 2026). */
   credit_account_status: CreditAccountStatus[];
+  /** CR-1: what the police's reply says about the investigation (a `police_reply` document only). */
+  police_investigation_reply: PoliceInvestigationReply;
 }
 
 export type UpdateFactKey = keyof UpdateFactValues;
@@ -485,6 +513,7 @@ export const UPDATE_FACT_KEYS = [
   "credit_bureau_reports",
   "fidrec_dispute_dates",
   "credit_account_status",
+  "police_investigation_reply",
 ] as const satisfies readonly UpdateFactKey[];
 
 export type ContractFactValues = FactValues & UpdateFactValues;
@@ -553,6 +582,8 @@ export const SECTION_IDS = [
   "card_dispute_comparison",
   "customer_fault_definitions",
   "customer_conduct_comparison",
+  // CR-1 (Elena, 25 Nov 2026): FIDReC's Rule 5(iv), the police report and the police's reply.
+  "police_investigation",
   "standards",
 ] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
@@ -806,6 +837,12 @@ export interface SectionInput {
    * 'any_date'`, Decision 6) are read as of this day. Replaces the builders' own `generatedOn` options (Lane 6).
    */
   generatedOn: IsoDate;
+  /**
+   * CR-1: the E-numbers of the documents in the pack's evidence index read as the police's reply on the investigation
+   * (by the evidence pipeline's type or the facts extraction's), whether or not a reply could be read from them. Lets
+   * the "Police investigation" section tell "no reply provided" from "a reply it could not read". Absent: none.
+   */
+  policeReplyEvidenceIds?: string[];
 }
 
 /** An empty `lines` means the section prints nothing (a stub, or nothing in the records to compare). */
@@ -1125,6 +1162,8 @@ export const CLAUSE_KEYS = {
     // `card_payment_approved`, "refers to" line only where the complainant recognises the device (Decision 1).
     NAMED_CLAUSE_KEYS.masReply3ds,
   ],
+  // CR-1: FIDReC's Terms of Reference, Rule 5 (excepted complaints); the section quotes 5(iv).
+  police_investigation: ["fidrec.tor/5"],
 } as const satisfies { readonly [K in SectionId]?: readonly string[] };
 
 export type RuleClauseKey = (typeof CLAUSE_KEYS)[keyof typeof CLAUSE_KEYS][number];

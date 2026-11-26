@@ -43,6 +43,8 @@ import {
   type FidrecDisputeDates,
   OPTIONAL_UPDATE_DOCUMENT_TYPES,
   type IsoDateTime,
+  POLICE_REPLY_DOCUMENT_TYPE,
+  type PoliceInvestigationReply,
   TECHNICAL_RECORD_DOCUMENT_TYPES,
   type TechnicalRecordDocumentType,
   TOKEN_ACTIVATION_METHODS,
@@ -68,7 +70,7 @@ export const DOCUMENT_TYPES = [
   "police_report",
   "scam_message",
   ...TECHNICAL_RECORD_DOCUMENT_TYPES,
-  // credit_bureau_report (decision 8): optional, never required, not part of the evidence check.
+  // credit_bureau_report (decision 8) and police_reply (CR-1): optional, never required, not part of the evidence check.
   ...OPTIONAL_UPDATE_DOCUMENT_TYPES,
   "other",
 ] as const;
@@ -118,6 +120,8 @@ const DOCUMENT_FACTS: Record<DocumentType, ReadonlySet<FactKey>> = {
   // A bureau report states reports of the disputed amount only where its words name them (#81), and the account's status
   // (overdue, default, current) as it stands (credit_account_status, 25 Nov 2026).
   credit_bureau_report: new Set(["credit_bureau_reports", "credit_account_status"]),
+  // CR-1: the police's reply speaks only to what it says about the investigation; anything else it repeats is context.
+  police_reply: new Set(["police_investigation_reply"]),
   other: new Set(),
 };
 
@@ -146,7 +150,11 @@ const POLICE_REPORT_NUMBER = /\breport\s+(?:no\.?|number)\s*[:#.]?\s*([A-Z]{0,2}
 
 export function documentTypeOf(modelType: unknown, text: string): DocumentType {
   const declared = oneOf(DOCUMENT_TYPES, modelType) ?? "other";
-  if (declared !== "police_report" && declared !== "bank_correspondence" && POLICE_REPORT_OPENING.test(text.slice(0, 600))) {
+  // The police's own reply (CR-1) opens with the police's name too; it stays a reply.
+  if (
+    declared !== "police_report" && declared !== "bank_correspondence" && declared !== POLICE_REPLY_DOCUMENT_TYPE &&
+    POLICE_REPORT_OPENING.test(text.slice(0, 600))
+  ) {
     return "police_report";
   }
   if (isTechnicalRecordType(declared) && !looksLikeRecord(text)) return "bank_correspondence";
@@ -245,6 +253,8 @@ const DOCUMENT_TEMPLATE = {
   }],
   // The document's own date, once per document (a report's date of issue; a letter's date). Every status takes it.
   report_date: { date: "YYYY-MM-DD|null", quote: "string" },
+  // CR-1: a police_reply only. quote is what the reply says about the investigation, word for word.
+  police_investigation_reply: { date: "YYYY-MM-DD|null", date_line: "string|null", quote: "string" },
 };
 
 const SOURCE_DESCRIPTIONS: Record<SourceType, string> = {
@@ -300,6 +310,13 @@ export function buildFactExtractionPrompt(sourceType: SourceType, sourceText: st
       "  Type, Date Open/Close, Overdue Balance, Last 12 cycles): one entry per row, quote = the whole row. lender = the",
       "  Grantor Bank cell; product_type, overdue_balance and cycle_codes copied exactly from the row's cells; status_text",
       "  only if the row itself has status words, otherwise null. Never interpret the cycle letters.",
+      "- police_reply: an email or letter from the police to the complainant about the investigation of their police",
+      "  report (its outcome or progress). Not the police report itself, which is police_report.",
+      "- police_investigation_reply: only from a police_reply. quote is the sentence or sentences in which the police",
+      "  state the outcome or status of the investigation, copied exactly and in full as written (for this quote only,",
+      "  up to 80 words). Never summarise, shorten or reword it, and never state an outcome the words do not state.",
+      "  date is the reply's own date (the letter's date, or the date the email was sent), and date_line the line that",
+      "  gives that date, copied exactly; both null when the reply gives no date.",
     ]
     : [];
   return [
@@ -505,6 +522,7 @@ export function parseFactExtraction(
 
   parseUpdateFacts(out, sourceText, source.sourceType, add);
   parseSection8Facts(out, sourceText, source.sourceType, documentType, add);
+  parsePoliceReply(out, sourceText, documentType, add);
 
   return candidates;
 }
@@ -878,4 +896,46 @@ function parseSection8Facts(
     };
   });
   if (charges.length) add("charges_on_disputed_amount", charges.map((c) => c.value), charges.map((c) => c.quote), charges.map((c) => c.raw));
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// CR-1 (Elena, 25 Nov 2026): the police's reply on the outcome of the investigation. The pack quotes what the reply
+// says, so the statement must be the document's own words: a span of the document, found word for word (only line
+// breaks and spacing may differ), printed as the document writes it. Nothing is shortened: a statement longer than
+// POLICE_REPLY_STATEMENT_MAX_CHARS is dropped, never cut.
+// ---------------------------------------------------------------------------------------------------------------
+
+export const POLICE_REPLY_STATEMENT_MAX_CHARS = 600;
+
+const QUOTE_MARKS: Record<string, string> = { "‘": "'", "’": "'", "“": '"', "”": '"' };
+const straightQuotes = (text: string) => text.replace(/[‘’“”]/g, (c) => QUOTE_MARKS[c]);
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * The document's own words for `quote`: the span of `sourceText` that matches it word for word (letter case and
+ * punctuation included; spacing and line breaks may differ, curly and straight quotation marks count as the same),
+ * with its spacing collapsed. Null when the document does not contain it, or it is longer than `maxChars`.
+ */
+export function verbatimSpan(sourceText: string, quote: unknown, maxChars = POLICE_REPLY_STATEMENT_MAX_CHARS): string | null {
+  if (typeof quote !== "string") return null;
+  const words = straightQuotes(quote).trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return null;
+  // The quote marks are replaced one character for one, so a match in the straightened text is the same span of the
+  // document.
+  const match = new RegExp(words.map(escapeRegExp).join("\\s+")).exec(straightQuotes(sourceText));
+  if (!match) return null;
+  const span = sourceText.slice(match.index, match.index + match[0].length).replace(/\s+/g, " ").trim();
+  return span.length <= maxChars ? span : null;
+}
+
+function parsePoliceReply(out: Record<string, unknown>, sourceText: string, documentType: DocumentType | null, add: Add): void {
+  if (documentType !== POLICE_REPLY_DOCUMENT_TYPE) return;
+  const item = (out.police_investigation_reply && typeof out.police_investigation_reply === "object"
+    ? out.police_investigation_reply
+    : null) as Record<string, unknown> | null;
+  const statement = item ? verbatimSpan(sourceText, item.quote) : null;
+  if (!item || !statement) return;
+  // The reply's date only where the line that dates it is in the document and writes that date (documentDateIn).
+  const value: PoliceInvestigationReply = { date: documentDateIn({ date: item.date, quote: item.date_line }, sourceText), statement };
+  add("police_investigation_reply", value, [statement], [item]);
 }
