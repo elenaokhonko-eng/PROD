@@ -12,6 +12,8 @@ const BootstrapBody = z.object({
   transcript: z.string().max(20000).optional(),
   claim_type: z.enum(["phishing_scam", "mis_sold_product", "denied_insurance"]).optional(),
   title: z.string().max(200).optional(),
+  // CR-2: the in-dashboard story page fills the case waiting for its story (a pack bought first) before starting one.
+  fill_pack_case: z.boolean().optional(),
 })
 
 export async function POST(req: Request) {
@@ -26,17 +28,12 @@ export async function POST(req: Request) {
     logRefusal('case_start', 'invalid_body', 400, { fields: invalidFields(parsed.error) })
     return NextResponse.json({ error: 'invalid_body', details: parsed.error.flatten() }, { status: 400 })
   }
-  const { narrative, transcript, claim_type } = parsed.data
+  const { narrative, transcript, claim_type, fill_pack_case: fillPackCase } = parsed.data
   const idempotencyKey = req.headers.get('idempotency-key')?.trim()
   if (!idempotencyKey || idempotencyKey.length > 200) {
     logRefusal('case_start', 'valid_idempotency_key_required', 400)
     return NextResponse.json({ error: 'valid_idempotency_key_required' }, { status: 400 })
   }
-
-  // A new case starts model work: limited per account per day and per IP per hour (cost-controls §5 B1).
-  // limitResponse logs its own refusals.
-  if (await overCaseLimit(user.supabaseUuid)) return limitResponse()
-  if (overIpModelLimit(req)) return limitResponse(HOURLY_LIMIT_MESSAGE)
 
   const normalizedRequest = {
     narrative,
@@ -46,13 +43,41 @@ export async function POST(req: Request) {
   const hash = (value: string) => createHash('sha256').update(value).digest('hex')
 
   const supabase = await createUserClient()
-  const { data: caseId, error } = await supabase.rpc('bootstrap_case_v1', {
+  const story = {
     p_narrative: normalizedRequest.narrative,
     p_transcript: normalizedRequest.transcript,
     p_claim_type: normalizedRequest.claim_type,
     p_idempotency_key_hash: hash(idempotencyKey),
     p_request_hash: hash(JSON.stringify(normalizedRequest)),
-  })
+  }
+
+  // A story that fills the case waiting for it creates no case (that one was counted when it was opened), so only the
+  // hourly limit on model work applies. With none waiting, a new case is started below, under both limits.
+  if (fillPackCase) {
+    const { data: waiting } = await supabase
+      .from('cases')
+      .select('id')
+      .eq('user_id', user.supabaseUuid)
+      .not('pack_first_at', 'is', null)
+      .is('primary_narrative', null)
+      .limit(1)
+    if (waiting?.length) {
+      if (overIpModelLimit(req)) return limitResponse(HOURLY_LIMIT_MESSAGE)
+      const { data: filledCaseId, error: fillError } = await supabase.rpc('fill_pack_case_v1', story)
+      if (fillError) {
+        logRefusal('case_start', 'case_bootstrap_failed', 500, { code: fillError.code ?? null })
+        return NextResponse.json({ error: 'case_bootstrap_failed' }, { status: 500 })
+      }
+      if (filledCaseId) return NextResponse.json({ case_id: filledCaseId }, { status: 201 })
+    }
+  }
+
+  // A new case starts model work: limited per account per day and per IP per hour (cost-controls §5 B1).
+  // limitResponse logs its own refusals.
+  if (await overCaseLimit(user.supabaseUuid)) return limitResponse()
+  if (overIpModelLimit(req)) return limitResponse(HOURLY_LIMIT_MESSAGE)
+
+  const { data: caseId, error } = await supabase.rpc('bootstrap_case_v1', story)
 
   if (error || !caseId) {
     logRefusal('case_start', 'case_bootstrap_failed', 500, { code: error?.code ?? null })

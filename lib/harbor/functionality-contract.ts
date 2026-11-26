@@ -25,13 +25,14 @@ export interface HarborFlowContract {
  */
 export const HARBOR_FUNCTIONALITY_CONTRACT: Record<HarborFlowId, HarborFlowContract> = {
   'narrative-capture': {
-    entryRoutes: ['/', '/router', '/router/classify', '/router/results', '/onboarding'],
+    entryRoutes: ['/', '/router', '/router/classify', '/router/results', '/onboarding', '/app/case/new'],
     uiOwners: [
       'app/(marketing)/page.tsx',
       'app/router/page.tsx',
       'components/landing/narrative-capture.tsx',
       'components/landing/hero-capture.tsx',
       'app/(auth)/onboarding/page.tsx',
+      'app/(case)/app/case/new/page.tsx',
     ],
     hooks: ['persistPendingNarrative', 'readPendingNarrative'],
     api: [
@@ -75,10 +76,14 @@ export const HARBOR_FUNCTIONALITY_CONTRACT: Record<HarborFlowId, HarborFlowContr
     redirects: [],
   },
   checkout: {
-    entryRoutes: ['/app/case/:caseId/dashboard'],
-    uiOwners: ['hooks/state-machine/transition/use-create-checkout-session.ts', 'lib/payments/product-catalogue.ts'],
+    entryRoutes: ['/app/case/:caseId/dashboard', '/app/pack/:pack'],
+    uiOwners: [
+      'hooks/state-machine/transition/use-create-checkout-session.ts',
+      'lib/payments/product-catalogue.ts',
+      'app/(case)/app/pack/[pack]/_components/pack-first-client.tsx',
+    ],
     hooks: ['useCreateCheckoutSession', 'usePaymentStatus'],
-    api: ['GET /api/cases/:caseId/capabilities', 'POST /api/payments/create-checkout-session'],
+    api: ['GET /api/cases/:caseId/capabilities', 'POST /api/cases/pack-first', 'POST /api/payments/create-checkout-session'],
     dataOwners: ['typed case capability response', 'PRODUCT_CATALOGUE', 'Stripe webhook fulfilment'],
     analytics: [],
     redirects: ['Stripe-hosted checkout URL', '/app/case/:caseId/dashboard?checkout=success', '/app/case/:caseId/dashboard?checkout=cancel'],

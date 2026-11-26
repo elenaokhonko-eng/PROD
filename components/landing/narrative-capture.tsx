@@ -7,10 +7,11 @@ import { FileText, Loader2, Mic, Pause, Play, Square, Trash2, WifiOff } from 'lu
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { trackClientEvent } from '@/lib/analytics/client'
-import { trackFunnel } from '@/lib/analytics/funnel'
-import { ACCOUNT_NOTICE, SUBMIT_STORY } from '@/lib/harbor/cta'
+import { savedFirstTouch, trackFunnel } from '@/lib/analytics/funnel'
+import { ACCOUNT_NOTICE, SUBMIT_CASE_STORY, SUBMIT_STORY } from '@/lib/harbor/cta'
+import { clearBootstrapIdempotencyKey, getOrCreateBootstrapIdempotencyKey } from '@/lib/journey/bootstrap-key'
 import { appendToStory } from '@/lib/story-text'
-import { persistPendingNarrative, readPendingNarrative } from '@/components/landing/hero-capture'
+import { clearPendingNarrative, persistPendingNarrative, readPendingNarrative } from '@/components/landing/hero-capture'
 
 // Brief W1 Addendum V §V4: a one-line placeholder; the worked example (finding B1, synthetic) is shown below the box.
 export const STORY_PLACEHOLDER = 'Start anywhere. You can edit it before you continue.'
@@ -21,7 +22,10 @@ function formatTime(seconds: number) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
-export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?: string }) {
+// CR-2: variant "case" is the same box inside the dashboard, for a person who is already signed in: it starts (or
+// fills) the case itself instead of going through sign-up.
+export function NarrativeCapture({ initialNarrative = '', variant = 'public' }: { initialNarrative?: string; variant?: 'public' | 'case' }) {
+  const inDashboard = variant === 'case'
   const router = useRouter()
   const [narrative, setNarrative] = useState(initialNarrative)
   const [inputMethod, setInputMethod] = useState<'text' | 'voice'>('text')
@@ -204,12 +208,46 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
         pageUrl: window.location.href,
         eventData: { narrative_length: narrative.trim().length, input_method: inputMethod },
       })
+      if (inDashboard) {
+        await startCase()
+        return
+      }
       router.push('/sign-up?redirect_url=/onboarding')
     } catch {
       setError('Your story could not be saved. It is still here — check your connection and try again.')
     } finally {
       setIsProcessing(false)
     }
+  }
+
+  // The story fills the case waiting for it (a pack bought first), or else starts a new one. The draft is kept until
+  // the case exists.
+  const startCase = async () => {
+    const pending = readPendingNarrative() ?? { narrative: narrative.trim() }
+    const response = await fetch('/api/cases/bootstrap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': await getOrCreateBootstrapIdempotencyKey(pending) },
+      body: JSON.stringify({ ...pending, fill_pack_case: true }),
+    })
+    const data = (await response.json().catch(() => null)) as { case_id?: string; error?: string } | null
+    if (response.status === 429 && data?.error) {
+      setError(`${data.error} Your saved draft remains available.`)
+      return
+    }
+    if (!response.ok || !data?.case_id) throw new Error('case_start_failed')
+    clearPendingNarrative()
+    clearBootstrapIdempotencyKey()
+    trackFunnel('case_created')
+    const firstTouch = savedFirstTouch()
+    if (firstTouch) {
+      void fetch(`/api/cases/${data.case_id}/first-touch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(firstTouch),
+        keepalive: true,
+      }).catch(() => {})
+    }
+    router.push(`/app/case/${data.case_id}/dashboard`)
   }
 
   return (
@@ -307,12 +345,12 @@ export function NarrativeCapture({ initialNarrative = '' }: { initialNarrative?:
       {/* §C: the button sits directly under the box, before the guidance. */}
       <Button type="button" size="lg" className="mt-4 w-full text-base font-semibold" disabled={isProcessing || isTranscribing || isRecording || !isOnline} onClick={() => void submitNarrative()}>
         {isProcessing && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {isProcessing ? 'Saving your story…' : SUBMIT_STORY}
+        {isProcessing ? 'Saving your story…' : inDashboard ? SUBMIT_CASE_STORY : SUBMIT_STORY}
       </Button>
       {/* Brief W1 §B2: no surprise sign-in wall after a painful story. */}
-      <p className="mt-3 text-center text-sm leading-6 text-muted-foreground">{ACCOUNT_NOTICE}</p>
+      {inDashboard ? null : <p className="mt-3 text-center text-sm leading-6 text-muted-foreground">{ACCOUNT_NOTICE}</p>}
       <p id="story-privacy" className="mt-4 text-sm leading-6 text-muted-foreground">
-        Your draft stays in this browser tab until you sign in. It is deleted when you close the tab. Voice is sent for transcription when you stop recording.
+        Your draft stays in this browser tab until you {inDashboard ? 'submit it' : 'sign in'}. It is deleted when you close the tab. Voice is sent for transcription when you stop recording.
       </p>
 
       {/* V4: the worked example (finding B1, Elena 7 Nov) moves out of the placeholder, word for word. */}
