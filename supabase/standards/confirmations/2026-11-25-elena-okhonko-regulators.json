@@ -1,0 +1,332 @@
+{
+  "$comment": "From the confirmation workbook as Elena completed it on 25 November: the regulator, ABS and FIDReC versions she marked 'Verified', the statements she marked 'Approve', and the server rules she marked 'Agree' against the SRF and EUPG text. Rules she marked 'Change' are recorded after the code changes. Card scheme and bank versions are not recorded yet: their statements and term requests are not loaded, and a verified version takes no later review.",
+  "by": "Elena Okhonko",
+  "at": "2026-11-25T19:46:00+08:00",
+  "versions": [
+    {
+      "manifest": "abs.card_code.2020-07-02.json",
+      "content_sha256": "b543bb93e09b06ec6cd6afc5fc86dcdc059eada471a975aadaefcdcc61a92263",
+      "clauses_sha256": "4ee69767cf5338ce43c0849f96470ec95efd168a61528734b7e73f7abb7d582a",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "abs.media_2025_02_card_provisioning.2025-02-17.json",
+      "content_sha256": "173919a3fb031d83054f95e0391abe1fe8f627a819f2d45f21b8506c55ef4285",
+      "clauses_sha256": "2b59459587834a231e6a53e9bf10f23b6402d5c29dcc5262cfd95104b0b9b880",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "fidrec.tor.2025-07-01.json",
+      "content_sha256": "03414c81bb6df1410a86ee4cb8f7be9bde5cff8fde76dcdd23e4edb795e6e635",
+      "clauses_sha256": "b2d8717451c8a387b39fe97cac1eae27ab6e66bf6842dee4fee76628e4d0535a",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.fsm-n05.2024-05-10.json",
+      "content_sha256": "4db66f0feabb9e24e017b3d96fdf0306c3b7c02bc7945b0b49ffb8727d2d26b6",
+      "clauses_sha256": "abf673392e367642570fdceec52fb115b547cfa450d058c1b891170dda6d58ef",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.fsm-n06.2024-05-10.json",
+      "content_sha256": "95f1a911aa6972b1b068bce2ce96465adeb128c6297bff0d810fa8073b388736",
+      "clauses_sha256": "4facc93f7c2915b729e1821010005ecf0d2928ad19ee58fcbd80921293b0b428",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.fsm-n07.2024-05-10.json",
+      "content_sha256": "eaa10b96967dfee5e5ce19ac27620f15c193ebcfecdf2a9c4fb47936c2b1f55e",
+      "clauses_sha256": "464e79669cbe6cb15585d5e7320cc1e66098d9bac6e528d40daf4ecf76633317",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.fsm-n08.2024-05-10.json",
+      "content_sha256": "b474f53ed8a1c31d0812148610e1ca08174c1b7393d7f6019fbcd9d2bc931940",
+      "clauses_sha256": "656de84217440e5c501247cefaf4969b67051a63fc73ee53a2c7239b7922e1a6",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.media_2022_01_digital_banking.2022-01-19.json",
+      "content_sha256": "3f47522fda7ea5cffc6eb7aa4743b7e7d7b6f17e003f502ac388bae26cd7714a",
+      "clauses_sha256": "209de2e58d8e397fac5e05bd8f251e13714b2324312a70559fdb9b0fb400b9a9",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.media_2022_06_digital_banking.2022-06-02.json",
+      "content_sha256": "53e9bd209269535b8918647f54dd1474e7eb8e9795f58b30ada149f339def961",
+      "clauses_sha256": "2afc1cd040fa0461a81ed01170bd0b9d400e34ca7ce55651ff4e9525a9f955af",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.media_2024_07_otp_login.2024-07-09.json",
+      "content_sha256": "1af9e2717df54a23ff69e65d01c57f4ecf224f95a29af7612e464f0423dc328c",
+      "clauses_sha256": "bf56117ead9cdf97196cda28efff0fe9557adf4784b0610cb80c2c2411c31922",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.media_2024_09_singpass_face_verification.2024-09-18.json",
+      "content_sha256": "9bf67cdff90a4785d3570737868b5908954a755862cfc150cb63978567d115d0",
+      "clauses_sha256": "e9b80f00342f178d0a0c70c4abb9b34fa31de4d8a62218ba340f26d701e463a9",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.reply.20250107.2025-01-07.json",
+      "content_sha256": "d5189d2435c96ee40a79b60bf9f900127ad8be2d6a5a4d188a55621a494577d9",
+      "clauses_sha256": "7ed5c176ad9873fc52250d78243567a1653c8ed4fb672ad32821585c25e94be7",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.reply.20260113.2026-01-13.json",
+      "content_sha256": "c91605302188d74aa51db4503d34306accedec9230b0787f8a2642856bf8c810",
+      "clauses_sha256": "af1698b8534e33989574ae996bb3fc75017f9c7ebd64f2d43c781c64f83c1886",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.reply.20260203.2026-02-03.json",
+      "content_sha256": "9b506439a7b3c8fcd7fe7787933422a2f67515b79dee478d88ddda24bc106dda",
+      "clauses_sha256": "ad01477fabc8807d88e9e46b6487a42e7875db6e7d50c7a0ac8c42804eb83ac2",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.srf_consultation.2023-10-25.json",
+      "content_sha256": "45304ff9a9ec319b63bf4b0273d12e50516be135b9395e95fe1ef2cc8fbb2297",
+      "clauses_sha256": "02778bbcf4ed647b35c5898906d232bf4527b45da69a2ddbc15e88e178e5ccb8",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.srf_response.2024-10-24.json",
+      "content_sha256": "157c7a7200250353d68039d047464f996097397f9be40c43a440e25a0682a93b",
+      "clauses_sha256": "94e7e1ca6c16909937e698026f7f0a0cd326aca43a1227027ba95613200cab36",
+      "note": "Marked Verified in the confirmation workbook."
+    },
+    {
+      "manifest": "mas.trm.2021-01-18.json",
+      "content_sha256": "2b8959e883bd66cb17286bdfc3e04fc181a6cd0ad786c99d4998c2d6c3e0efcb",
+      "clauses_sha256": "62b42f33503d41f1830b133f86332ce3f8b976c89d93c205fbc2f93e8740ddb9",
+      "note": "Marked Verified in the confirmation workbook."
+    }
+  ],
+  "statement_reviews": [
+    {
+      "manifest": "abs.card_code.2020-07-02.json",
+      "statement_key": "abs.fault.term",
+      "revision": 1,
+      "text_sha256": "c8d1a3bc49820f563d5e4cc170045d89da3b3c0f778ddd33aa08fa88464c0838",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "abs.card_code.2020-07-02.json",
+      "statement_key": "abs.fault.undefined",
+      "revision": 1,
+      "text_sha256": "6e169ff0ca474ea548ee8995a2657757c65047e56a38b92dba50c91739c235b7",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "abs.card_code.2020-07-02.json",
+      "statement_key": "abs.fault.finder",
+      "revision": 1,
+      "text_sha256": "2253b6acb9a0caadfc30fc66305e020a87269ca415867a2727078cc6f22f5188",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "abs.card_code.2020-07-02.json",
+      "statement_key": "abs.fault.effect",
+      "revision": 1,
+      "text_sha256": "364b99ab976220049234f4454d59e41dbb9a8e9cc8f5036a6ac44b2c973591ea",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "abs.card_code.2020-07-02.json",
+      "statement_key": "abs.fault.status",
+      "revision": 1,
+      "text_sha256": "b1f57eab9ea27d4689ee18667b62dac8e75953bee6e8f5ad3d3d4f37de070d5b",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "abs.card_code.2020-07-02.json",
+      "statement_key": "bridge.card_loss_sharing",
+      "revision": 1,
+      "text_sha256": "c7ce8154113fcfcf42f42a85f4a4610e698a476cd85d90f32891d66b4a6d33f3",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "eupg.section4.cards",
+      "revision": 1,
+      "text_sha256": "25599fdbceaba5f44501a2f18cd14baaa8052a04639ec66fb1495440c58c83d5",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "eupg.section8.charges",
+      "revision": 1,
+      "text_sha256": "5c995631384d0c7d276618138737e8e5d9442b4e1775ba7457d524f051dfb439",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "eupg.section8.credit_records",
+      "revision": 1,
+      "text_sha256": "0d2b40fc7b960e5ae443a201c108a9843c25b8cc8c2d35476cb65390ad8ad43b",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "eupg.section8.outofscope",
+      "revision": 1,
+      "text_sha256": "9d05b9461afae0c5c4ba16e3cfe7e1a93409bc7550dde06cff10d0438ace13dd",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "link.eupg_s4",
+      "revision": 1,
+      "text_sha256": "52355a3e687a80db57ceaa1a7a147307e5c2df7cb38070e4b3ee41b525d9b221",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.reply.20250107.2025-01-07.json",
+      "statement_key": "mas.reply.20250107.3ds",
+      "revision": 1,
+      "text_sha256": "c6cf63aaf025f7aac6df40ae29705417a425ead5369a33f0ff746579a80cb068",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.reply.20250107.2025-01-07.json",
+      "statement_key": "mas.reply.20250107.no3ds",
+      "revision": 1,
+      "text_sha256": "0fa999b146870c7f5f9d06246b0f0e10241dfacc3e77aca0482b30f5c0959c7e",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.reply.20260113.2026-01-13.json",
+      "statement_key": "mas.reply.20260113.wallet",
+      "revision": 1,
+      "text_sha256": "37fa72cc4b63060372145c8a8be56d35234c648c0449571f52988a4e88c724f3",
+      "outcome": "unchanged"
+    }
+  ],
+  "rule_reviews": [
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "rule_id": "srf.srf_scope",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "rule_id": "srf.credentials_given_directly",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "rule_id": "srf.private_person_impersonated",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "rule_id": "srf.protected_account",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.2024-12-16.json",
+      "rule_id": "srf.telco_not_assessed",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "rule_id": "srf.card_rules",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "rule_id": "srf.authorised_scam_excluded",
+      "outcome": "unchanged"
+    }
+  ],
+  "statements": [
+    {
+      "statement_key": "abs.fault.term",
+      "revision": 1,
+      "text_sha256": "c8d1a3bc49820f563d5e4cc170045d89da3b3c0f778ddd33aa08fa88464c0838",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "abs.fault.undefined",
+      "revision": 1,
+      "text_sha256": "6e169ff0ca474ea548ee8995a2657757c65047e56a38b92dba50c91739c235b7",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "abs.fault.finder",
+      "revision": 1,
+      "text_sha256": "2253b6acb9a0caadfc30fc66305e020a87269ca415867a2727078cc6f22f5188",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "abs.fault.effect",
+      "revision": 1,
+      "text_sha256": "364b99ab976220049234f4454d59e41dbb9a8e9cc8f5036a6ac44b2c973591ea",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "abs.fault.status",
+      "revision": 1,
+      "text_sha256": "b1f57eab9ea27d4689ee18667b62dac8e75953bee6e8f5ad3d3d4f37de070d5b",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "bridge.card_loss_sharing",
+      "revision": 1,
+      "text_sha256": "c7ce8154113fcfcf42f42a85f4a4610e698a476cd85d90f32891d66b4a6d33f3",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "eupg.section4.cards",
+      "revision": 1,
+      "text_sha256": "25599fdbceaba5f44501a2f18cd14baaa8052a04639ec66fb1495440c58c83d5",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "eupg.section8.charges",
+      "revision": 1,
+      "text_sha256": "5c995631384d0c7d276618138737e8e5d9442b4e1775ba7457d524f051dfb439",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "eupg.section8.credit_records",
+      "revision": 1,
+      "text_sha256": "0d2b40fc7b960e5ae443a201c108a9843c25b8cc8c2d35476cb65390ad8ad43b",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "eupg.section8.outofscope",
+      "revision": 1,
+      "text_sha256": "9d05b9461afae0c5c4ba16e3cfe7e1a93409bc7550dde06cff10d0438ace13dd",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "link.eupg_s4",
+      "revision": 1,
+      "text_sha256": "52355a3e687a80db57ceaa1a7a147307e5c2df7cb38070e4b3ee41b525d9b221",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "mas.reply.20250107.3ds",
+      "revision": 1,
+      "text_sha256": "c6cf63aaf025f7aac6df40ae29705417a425ead5369a33f0ff746579a80cb068",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "mas.reply.20250107.no3ds",
+      "revision": 1,
+      "text_sha256": "0fa999b146870c7f5f9d06246b0f0e10241dfacc3e77aca0482b30f5c0959c7e",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "mas.reply.20260113.wallet",
+      "revision": 1,
+      "text_sha256": "37fa72cc4b63060372145c8a8be56d35234c648c0449571f52988a4e88c724f3",
+      "clauses_as_of": "2026-11-25"
+    }
+  ]
+}

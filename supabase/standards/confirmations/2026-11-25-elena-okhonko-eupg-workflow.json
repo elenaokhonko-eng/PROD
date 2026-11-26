@@ -1,0 +1,179 @@
+{
+  "$comment": "Elena marked these versions 'Verified' and these statements 'Approve' in the confirmation workbook. A statement is recorded as approved only when every document it rests on is marked verified.",
+  "by": "Elena Okhonko",
+  "at": "2026-11-25T18:28:00+08:00",
+  "versions": [
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "content_sha256": "384e962f206cae51b4e7899a621f2f151f004a0c6e4be7e5bf10ca3853fa0fd7",
+      "clauses_sha256": "18940c35392b71ebf5e4899edc342d63c33ca8991d27b6f43df7515663c2e96d",
+      "note": "All 138 clauses read against the source."
+    },
+    {
+      "manifest": "mas.srf.workflow.2024-12-16.json",
+      "content_sha256": "8c7acb15687a24529e455c81371a021879ea8d6a394b0a35e07ff10dd7ccc6f0",
+      "clauses_sha256": "8021d0a8e4382da592243af3708954dfa868e618d6c02a097d1263a7718b9457",
+      "note": "All 8 clauses read against the source."
+    }
+  ],
+  "statement_reviews": [
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "srf.newdevice.bank",
+      "revision": 1,
+      "text_sha256": "b41776b1c700e73d0d7a2390bee1228b3ee625da80984cc75a0d1099615d8862",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "eupg.fault.term",
+      "revision": 1,
+      "text_sha256": "287e857cfe99a92381177bbc7ecda7dc39a56907c86a7aff603caf3c93d92063",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "eupg.fault.examples",
+      "revision": 1,
+      "text_sha256": "e2882cde427b265d4d658439eddeb5c4eb5a25058e30d0c58e70b98665f3298e",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "eupg.fault.level1",
+      "revision": 1,
+      "text_sha256": "800581e3c2f117ad72154d041276db8bcf58cfe5266099eaea791874655fd175",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "eupg.fault.level2",
+      "revision": 1,
+      "text_sha256": "f5f359b60b59a45df35f59ccceedf9286672a391e752237907758bc4027cc311",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "eupg.fault.institution",
+      "revision": 1,
+      "text_sha256": "46ea913429e35e020367909403519065c5b4153fda0a062b0b1242a7deabece9",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "eupg.fault.reasons",
+      "revision": 1,
+      "text_sha256": "878827f20ddc6d93e09af8835640de4b45cfee37744100c0782943018b5a0b12",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "eupg.fault.cards",
+      "revision": 1,
+      "text_sha256": "a87e71ecf8847bf1fb027629e205210bb0c7011441401441b4fad8067b33f280",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "eupg.highrisk.definition",
+      "revision": 1,
+      "text_sha256": "977b7c2e54de2b25076d9692eaaab5468aff5a26dd961fa2cf2a919ef44982a5",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "bridge.mas_requirement",
+      "revision": 1,
+      "text_sha256": "76d3437277d9ace2452ad0fe3c803ea2c1e107c380cface224a926c3695da3db",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.eupg.2024-12-16.json",
+      "statement_key": "bridge.mas_requirement.cards",
+      "revision": 1,
+      "text_sha256": "6b22412277acaa2e6f58a90a9e43195a9b8eaa718e0f543c7c1991d909890fd4",
+      "outcome": "unchanged"
+    },
+    {
+      "manifest": "mas.srf.workflow.2024-12-16.json",
+      "statement_key": "srf.fidrec.scope",
+      "revision": 1,
+      "text_sha256": "5953c6ad10262ac59c66113d8ca179d53c7cd9f32aed75879a64c5f3e30c3d0f",
+      "outcome": "unchanged"
+    }
+  ],
+  "statements": [
+    {
+      "statement_key": "srf.fidrec.scope",
+      "revision": 1,
+      "text_sha256": "5953c6ad10262ac59c66113d8ca179d53c7cd9f32aed75879a64c5f3e30c3d0f",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "srf.newdevice.bank",
+      "revision": 1,
+      "text_sha256": "b41776b1c700e73d0d7a2390bee1228b3ee625da80984cc75a0d1099615d8862",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "eupg.fault.term",
+      "revision": 1,
+      "text_sha256": "287e857cfe99a92381177bbc7ecda7dc39a56907c86a7aff603caf3c93d92063",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "eupg.fault.examples",
+      "revision": 1,
+      "text_sha256": "e2882cde427b265d4d658439eddeb5c4eb5a25058e30d0c58e70b98665f3298e",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "eupg.fault.level1",
+      "revision": 1,
+      "text_sha256": "800581e3c2f117ad72154d041276db8bcf58cfe5266099eaea791874655fd175",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "eupg.fault.level2",
+      "revision": 1,
+      "text_sha256": "f5f359b60b59a45df35f59ccceedf9286672a391e752237907758bc4027cc311",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "eupg.fault.institution",
+      "revision": 1,
+      "text_sha256": "46ea913429e35e020367909403519065c5b4153fda0a062b0b1242a7deabece9",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "eupg.fault.reasons",
+      "revision": 1,
+      "text_sha256": "878827f20ddc6d93e09af8835640de4b45cfee37744100c0782943018b5a0b12",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "eupg.fault.cards",
+      "revision": 1,
+      "text_sha256": "a87e71ecf8847bf1fb027629e205210bb0c7011441401441b4fad8067b33f280",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "eupg.highrisk.definition",
+      "revision": 1,
+      "text_sha256": "977b7c2e54de2b25076d9692eaaab5468aff5a26dd961fa2cf2a919ef44982a5",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "bridge.mas_requirement",
+      "revision": 1,
+      "text_sha256": "76d3437277d9ace2452ad0fe3c803ea2c1e107c380cface224a926c3695da3db",
+      "clauses_as_of": "2026-11-25"
+    },
+    {
+      "statement_key": "bridge.mas_requirement.cards",
+      "revision": 1,
+      "text_sha256": "6b22412277acaa2e6f58a90a9e43195a9b8eaa718e0f543c7c1991d909890fd4",
+      "clauses_as_of": "2026-11-25"
+    }
+  ]
+}

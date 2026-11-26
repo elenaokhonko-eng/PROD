@@ -14,6 +14,9 @@
   "version": {
     "version_label": "16 December 2024",
     "effective_from": "2024-12-16",
+    "effective_from_basis": "document",
+    "effective_from_basis_status": "proposed",
+    "effective_from_evidence": "Page 2 'Effective Date : 16 December 2024'; paragraph 1.5 (page 3) 'The revised Guidelines take effect from 16 December 2024'. The paragraphs from 16 June 2025 carry their own effective_from_override.",
     "issued_on": "2024-10-24",
     "retrieved_at": "2026-11-24T04:20:00Z",
     "source_url": "https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/pso/e-payments-user-protection-guidelines-with-effect-from-16-dec-2024/e-payments-user-protection-guidelines-with-effect-from-16-december-2024.pdf",
