@@ -80,10 +80,14 @@ export function PackFirstClient({ pack, available, priceLabel }: Props) {
           await new Promise((resolve) => setTimeout(resolve, ACCOUNT_LINK_RETRY_MS))
           response = await open()
         }
-        const data = (await response.json().catch(() => null)) as { case_id?: string; error?: string } | null
+        const data = (await response.json().catch(() => null)) as { case_id?: string; owned?: boolean; error?: string } | null
         if (!response.ok || !data?.case_id) {
           // A reached limit says so in the server's own words.
           setOpenError(response.status === 429 && data?.error ? data.error : OPEN_FAILED)
+          return
+        }
+        if (data.owned) {
+          router.replace('/app')
           return
         }
         setCaseId(data.case_id)

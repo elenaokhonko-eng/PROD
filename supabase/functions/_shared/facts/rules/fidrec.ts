@@ -35,10 +35,10 @@ export type FidrecAvailability =
   | { available: false; reason: "fidrec_too_early"; availableFrom: string | null }
   | { available: false; reason: "fidrec_window_expired"; deadline: string };
 
-// Elena, 27 Nov 2026: whenever the six months after a final reply have passed, the person is sent back to the bank for a
-// new one. "may": FIDReC decides whether a later letter is a final reply that counts. Wording awaiting Elena's yes.
-export const FINAL_REPLY_RENEW_NOTE =
-  "Please go back to your bank and ask it to confirm in writing: (a) whether its reply was its final reply; (b) whether it told you that you can take the dispute to FIDReC; (c) its final offer: no reimbursement (0%), part of the amount (for example 20–30% or 50%), or all of it (100%). A new letter or email with its final reply may start a new six-month window. Come back when you have the updated letter.";
+// Wording approved by Elena, 27 Nov 2026. Whenever the six months after a final reply have passed, the person is asked
+// to go back to the bank. FIDReC decides whether a letter is a final reply; nothing here promises a new period.
+export const FINAL_REPLY_ASK =
+  "You can ask your bank to confirm in writing: (a) whether its reply was its final reply; (b) whether you can take the dispute to FIDReC, and by when; (c) what it offers: nothing, part of the amount, or all of it. Whether a letter is a final reply is decided by FIDReC (Rule 13(2)). When you have the bank's letter, add it to your case.";
 
 /** Whether the six months after a dated final reply have passed (SGT date, YYYY-MM-DD). */
 export function finalReplyWindowClosed(reply: BankReply | null | undefined, today: string): boolean {

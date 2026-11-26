@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import { assessSrf, FINAL_REPLY_EXPIRED_NOTE, FINAL_REPLY_RENEW_NOTE, recommend, srfFactsFromSnapshot } from '../../lib/facts'
+import { assessSrf, FINAL_REPLY_ASK, FINAL_REPLY_EXPIRED_NOTE, recommend, srfFactsFromSnapshot } from '../../lib/facts'
 import { agreeWithGenerator } from '../../lib/billing/fidrec-offer-check'
 
 // Elena's decisions of 27 Nov 2026 on the Part B re-test. Synthetic facts only.
@@ -12,17 +12,31 @@ const reply = (date: string) => ({ status: 'final_reply' as const, date, outcome
 const sgd = (amount: number) => ({ amount, currency: 'SGD', amountSgd: amount })
 const confirmed = <T>(value: T) => ({ value, label: 'confirmed' as const })
 
-test('a closed window tells the person to go back to the bank, in the evaluation notes and on every blocked screen', () => {
-  assert.match(FINAL_REPLY_RENEW_NOTE, /confirm in writing: \(a\) whether its reply was its final reply; \(b\) whether it told you that you can take the dispute to FIDReC; \(c\) its final offer/)
-  assert.match(FINAL_REPLY_RENEW_NOTE, /may start a new six-month window\. Come back when you have the updated letter\.$/)
+// Wording approved by Elena, 27 Nov 2026 ("approved for both").
+const ASK = "You can ask your bank to confirm in writing: (a) whether its reply was its final reply; (b) whether you can take the dispute to FIDReC, and by when; (c) what it offers: nothing, part of the amount, or all of it. Whether a letter is a final reply is decided by FIDReC (Rule 13(2)). When you have the bank's letter, add it to your case."
+
+test('a closed window: the evaluation says it as one passage, and the offer and refusal screens ask the same', () => {
+  assert.equal(FINAL_REPLY_ASK, ASK)
+  assert.equal(
+    FINAL_REPLY_EXPIRED_NOTE,
+    "FIDReC's Terms of Reference say a final reply is a letter that expressly states it is the institution's final reply, tells you that you can contact FIDReC within six months, and gives FIDReC's contact details (Rule 13(2)). " + ASK,
+  )
   const notes = recommend(
     { reportedToBank: yes('2026-02-11'), writtenComplaint: no, bankReply: reply('2026-04-01'), fidrecFiled: null, totalLoss: sgd(3000), recovered: null, institutions: [] },
     { today, bankPackEnabled: true },
   ).notes
-  assert.equal(notes.indexOf(FINAL_REPLY_RENEW_NOTE), notes.indexOf(FINAL_REPLY_EXPIRED_NOTE) + 1)
-  for (const file of ['components/state-machine/transition/fidrec-offer.tsx', 'components/state-machine/facts/confirm-and-evaluate.tsx', 'components/state-machine/facts/next-steps.tsx']) {
-    assert.match(readFileSync(file, 'utf8'), /\$\{FINAL_REPLY_RENEW_NOTE\}/, file)
-  }
+  assert.deepEqual(notes.slice(notes.indexOf(FINAL_REPLY_EXPIRED_NOTE) - 1, notes.indexOf(FINAL_REPLY_EXPIRED_NOTE) + 1), [
+    'The final reply you told us about is dated 1 Apr 2026. Six months from that date ended on 1 Oct 2026 (Rule 13(1)(ii)).',
+    FINAL_REPLY_EXPIRED_NOTE,
+  ])
+  assert.equal(notes.filter((n) => n.includes('confirm in writing')).length, 1, 'said once')
+  const offer = readFileSync('components/state-machine/transition/fidrec-offer.tsx', 'utf8')
+  assert.ok(offer.includes('FIDReC takes complaints up to six months after the bank’s final reply, and that time has passed. ${FINAL_REPLY_ASK}`'))
+  const refusal = readFileSync('components/state-machine/facts/confirm-and-evaluate.tsx', 'utf8')
+  assert.ok(refusal.includes('more than six months have passed since your bank’s final reply. ${FINAL_REPLY_ASK}`'))
+  // The next-steps card sits on the same page as the passage, so it states only the fact.
+  const card = readFileSync('components/state-machine/facts/next-steps.tsx', 'utf8')
+  assert.ok(card.includes("return 'The six-month window to go to FIDReC after the final reply has passed.'"))
 })
 
 test('once the window has closed the rules paragraph no longer sends the person to FIDReC', () => {
@@ -49,4 +63,13 @@ test('the offer refuses what the generator would refuse on the confirmed facts',
   assert.deepEqual(agreeWithGenerator(ready, null, '2026-11-26T09:00:00Z', today), ready)
   const blocked = { ready: false as const, reason: 'complaint_not_raised' as const }
   assert.deepEqual(agreeWithGenerator(blocked, { facts: expired, confirmedAt: '2026-11-26T10:00:00Z' }, null, today), blocked)
+})
+
+// Pack first: the account's waiting case may already own the pack the button names.
+test('pressing a pack already bought for the waiting case goes to My cases, not to an error', () => {
+  const route = readFileSync('app/api/cases/pack-first/route.ts', 'utf8')
+  assert.match(route, /readiness\.reason === 'already_purchased'/)
+  assert.match(route, /case_id: caseId, owned/)
+  const client = readFileSync('app/(case)/app/pack/[pack]/_components/pack-first-client.tsx', 'utf8')
+  assert.match(client, /if \(data\.owned\) \{\s+router\.replace\('\/app'\)/)
 })

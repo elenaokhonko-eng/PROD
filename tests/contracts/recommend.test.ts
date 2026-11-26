@@ -134,7 +134,8 @@ test('a final reply more than six months old explains what a final reply is unde
   assert.ok(run({ reportedToBank: yes(), bankReply: reply('2026-04-01', null) }).notes.includes(FINAL_REPLY_EXPIRED_NOTE), 'also when not read as qualifying')
   assert.ok(!run({ reportedToBank: yes(), bankReply: reply('2026-10-01', 'yes') }).notes.includes(FINAL_REPLY_EXPIRED_NOTE), 'not within six months')
   assert.ok(!run({ reportedToBank: yes(), bankReply: reply('2026-05-30', 'yes') }).notes.includes(FINAL_REPLY_EXPIRED_NOTE), 'not on the last day')
-  assert.match(FINAL_REPLY_EXPIRED_NOTE, /^FIDReC's Terms of Reference say a final reply is a letter that expressly states it is the institution's final reply, tells you that you can contact FIDReC within six months, and gives FIDReC's contact details \(Rule 13\(2\)\)\. If the reply you received did not state these, you can ask your bank in writing to confirm whether it was its final reply\. Whether a document is a final reply is decided by FIDReC\.$/)
+  // Wording approved by Elena, 27 Nov 2026, in place of the 25 Nov paragraph.
+  assert.match(FINAL_REPLY_EXPIRED_NOTE, /^FIDReC's Terms of Reference say a final reply is a letter .*\(Rule 13\(2\)\)\. You can ask your bank to confirm in writing: .* When you have the bank's letter, add it to your case\.$/)
   // Signed-in only: the recommendation is served by a case-access route, and no public page imports it.
   assert.match(readFileSync('app/api/cases/[caseId]/recommendation/route.ts', 'utf8'), /await factsCaseAccess\(caseId\)/)
 })

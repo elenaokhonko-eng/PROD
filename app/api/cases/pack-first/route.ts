@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getCurrentUser } from '@/lib/auth'
-import { productSwitchedOn } from '@/lib/billing/product-readiness'
+import { loadProductReadiness, productSwitchedOn } from '@/lib/billing/product-readiness'
 import { PACK_PRODUCT } from '@/lib/journey/pack-case'
 import { linkNewAccount } from '@/lib/server/current-user'
 import { invalidFields, logRefusal } from '@/lib/server/refusal-log'
@@ -47,5 +47,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'pack_case_failed' }, { status: 500 })
   }
 
-  return NextResponse.json({ case_id: result.data as string })
+  const caseId = result.data as string
+  // The waiting case may already own this pack: the page then goes to My cases instead of asking Stripe again.
+  const readiness = await loadProductReadiness(service, caseId, productKey)
+  const owned = readiness.reason === 'already_purchased'
+  return NextResponse.json({ case_id: caseId, owned })
 }
