@@ -105,7 +105,8 @@ test('My cases always offers "Add a new case", and a case awaiting its story lea
   const page = read('app/(case)/app/page.tsx')
   assert.equal(page.match(/Add a new case<\/Link>|Add a new case\n\s*<\/Link>/g)?.length, 2, 'the header button and the empty list')
   assert.doesNotMatch(page, /Start a new case/)
-  assert.match(page, /isAwaitingStory\(caseItem\) \? '\/app\/case\/new' : `\/app\/case\/\$\{caseItem\.id\}\/dashboard`/)
+  // Elena, 27 Nov: with several cases, the pack being chosen travels in the address to the case picked.
+  assert.ok(page.includes("isAwaitingStory(caseItem) ? '/app/case/new' : `/app/case/${caseItem.id}/dashboard${wanted ? `?pack=${wanted}` : ''}`"))
 })
 
 test('the in-dashboard story page is the story box only, with "Submit the story"', () => {
@@ -116,7 +117,8 @@ test('the in-dashboard story page is the story box only, with "Submit the story"
   assert.match(capture, /inDashboard \? SUBMIT_CASE_STORY : SUBMIT_STORY\}/)
   assert.match(read('lib/harbor/cta.ts'), /SUBMIT_CASE_STORY = 'Submit the story'/)
   assert.match(capture, /\{inDashboard \? null : <p[^>]*>\{ACCOUNT_NOTICE\}<\/p>\}/)
-  assert.match(capture, /fill_pack_case: true/)
+  // Elena, 27 Nov: the server fills the waiting case for any story, so the client sends nothing extra.
+  assert.match(capture, /body: JSON\.stringify\(pending\)/)
   assert.match(capture, /router\.push\(`\/app\/case\/\$\{data\.case_id\}\/dashboard`\)/)
   // The public page is unchanged: it still goes to sign-up and then onboarding, and never opens a checkout.
   assert.match(capture, /router\.push\('\/sign-up\?redirect_url=\/onboarding'\)/)
@@ -129,7 +131,6 @@ test('the story fills the waiting pack case before any new case is created', () 
   const route = read('app/api/cases/bootstrap/route.ts')
   assert.ok(route.indexOf("rpc('fill_pack_case_v1'") > 0)
   assert.ok(route.indexOf("rpc('fill_pack_case_v1'") < route.indexOf("rpc('bootstrap_case_v1'"))
-  assert.match(route, /fill_pack_case: z\.boolean\(\)\.optional\(\)/)
 })
 
 test('the pack step: the server opens one empty case, refuses while the pack is off, and only the service role may', () => {
@@ -180,7 +181,8 @@ test('the FIDReC pack report page offers no Bank dispute pack, and shows both pa
   assert.doesNotMatch(reportPage, /BuyReportCTA|self_serve_report|NextSteps/)
   assert.match(reportPage, /data-pack-section="fidrec"/)
   assert.match(reportPage, /data-pack-section="bank"/)
-  assert.equal(dashboard.split('<BuyReportCTA').length - 1, 1, 'offered under the free evaluation only')
+  // Elena, 27 Nov: also on the case a pack button chose, only before that case's evaluation (data-asked-pack).
+  assert.equal(dashboard.split('<BuyReportCTA').length - 1, 2, 'under the free evaluation, and on the chosen case before it')
 })
 
 test('onboarding sends no signed-in person to the public home page', () => {

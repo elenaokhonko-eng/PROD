@@ -61,6 +61,7 @@ import {
 } from '@/lib/validation/gap-flow'
 import type { ValidationAnswerValue } from '@/lib/types/validation'
 import { noteProblem } from '@/lib/report-problem'
+import { parsePack } from '@/lib/journey/pack-case'
 
 type DashboardClientProps = {
   caseId: string
@@ -79,6 +80,9 @@ const GAP_SAVE_ERROR = "We couldn't save your answers. Please try again; if it k
 export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabels }: DashboardClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  // A pack button brought the person to this case (?pack=): the offer shows whatever step the case is on. Only the
+  // address says so, nothing is remembered, and nothing is bought until the button is pressed.
+  const askedPack = parsePack(searchParams.get('pack'))
   const { getToken } = useAuth()
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [checkoutProduct, setCheckoutProduct] = useState<ProductKey | null>(null)
@@ -509,6 +513,20 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto max-w-5xl px-4 py-8" data-harbor-node={node} data-harbor-ready={stateReady ? 'true' : 'false'}>
+        {askedPack && ['S1-Journey', 'S1-IntakeForm', 'S1-GapLoop', 'S1-EvidenceUpload', 'S1-Tier0DraftPending'].includes(node) ? (
+          <div className="mb-8" data-asked-pack={askedPack}>
+            {askedPack === 'fidrec' ? (
+              showFidrecOffer ? fidrecOffer : null
+            ) : reportCapability?.entitled !== true && reportCapability?.canCheckout === true ? (
+              <BuyReportCTA
+                priceLabel={priceLabels.report}
+                isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
+                errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
+                onClick={() => void handleCheckout('self_serve_report')}
+              />
+            ) : null}
+          </div>
+        ) : null}
         {eligibilityQuery.isError ? (
           <StateMachineErrorCard kind="internal" context="Case eligibility could not be loaded." />
         ) : isPaymentCancelled ? (

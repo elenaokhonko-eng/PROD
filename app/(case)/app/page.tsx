@@ -3,11 +3,15 @@ import { ArrowRight, FolderOpen, Plus } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { getCurrentUser } from '@/lib/auth'
-import { isAwaitingStory } from '@/lib/journey/pack-case'
+import { isAwaitingStory, myCasesNotice, parsePack } from '@/lib/journey/pack-case'
 import { linkNewAccount } from '@/lib/server/current-user'
 import { createUserClient } from '@/lib/supabase/server'
 
-export default async function CasesPage() {
+export default async function CasesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ checkout?: string; product?: string; pack?: string }>
+}) {
   // A new account that is not linked yet is linked here, not sent back to sign-in (smoke test, 12 Nov).
   const user = (await getCurrentUser()) ?? (await linkNewAccount())
   if (!user) redirect('/sign-in')
@@ -20,8 +24,17 @@ export default async function CasesPage() {
 
   if (error) throw new Error('The case list could not be loaded.')
 
+  const params = await searchParams
+  const wanted = parsePack(params.pack)
+  const notice = myCasesNotice(params, (cases ?? []).some(isAwaitingStory))
+
   return (
     <main className="gb-container py-8 sm:py-12">
+      {notice ? (
+        <p role="status" className="mb-6 rounded-lg border bg-muted/40 p-4 text-sm" data-my-cases-notice>
+          {notice}
+        </p>
+      ) : null}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="gb-eyebrow">Case workspace</p>
@@ -50,7 +63,7 @@ export default async function CasesPage() {
               <li key={caseItem.id}>
                 {/* CR-2: a case opened for a pack has no case page until its story is added. */}
                 <Link
-                  href={isAwaitingStory(caseItem) ? '/app/case/new' : `/app/case/${caseItem.id}/dashboard`}
+                  href={isAwaitingStory(caseItem) ? '/app/case/new' : `/app/case/${caseItem.id}/dashboard${wanted ? `?pack=${wanted}` : ''}`}
                   className="gb-card group flex min-h-40 flex-col p-5 outline-none transition-colors hover:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="flex items-start justify-between gap-4">
@@ -77,7 +90,7 @@ export default async function CasesPage() {
           <FolderOpen className="size-9 text-primary" aria-hidden="true" />
           <h2 id="empty-cases-title" className="mt-5 text-2xl font-semibold text-harbor-deep">No saved cases yet</h2>
           <p className="mt-3 leading-7 text-muted-foreground">
-            Start with your story. Nothing is submitted to another organisation by GuideBuoy.
+            Start with your story. GuideBuoy does not send anything to your bank or any other organisation.
           </p>
           <Button asChild className="mt-6 min-h-11">
             <Link href="/app/case/new">Add a new case</Link>

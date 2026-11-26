@@ -227,7 +227,7 @@ export function NarrativeCapture({ initialNarrative = '', variant = 'public' }: 
     const response = await fetch('/api/cases/bootstrap', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Idempotency-Key': await getOrCreateBootstrapIdempotencyKey(pending) },
-      body: JSON.stringify({ ...pending, fill_pack_case: true }),
+      body: JSON.stringify(pending),
     })
     const data = (await response.json().catch(() => null)) as { case_id?: string; error?: string } | null
     if (response.status === 429 && data?.error) {
