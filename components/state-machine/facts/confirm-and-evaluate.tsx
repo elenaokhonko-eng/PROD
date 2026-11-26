@@ -6,6 +6,7 @@
  * moves on to it by itself.
  */
 
+import { FINAL_REPLY_RENEW_NOTE } from '@/lib/facts'
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { qk } from '@/hooks/state-machine/query-keys'
@@ -45,8 +46,7 @@ const COPY: Record<GeneratedStage, { preparing: string; failed: string; failedRe
 const ROUTE_CLOSED: Record<string, string> = {
   fidrec_too_early:
     'Your confirmed facts show FIDReC can’t take the complaint yet: it opens four weeks after your written complaint to the bank. Check the dates in your facts, or come back then.',
-  fidrec_window_expired:
-    'Your confirmed facts show more than six months have passed since your bank’s final reply. Ask your bank to review your complaint again; a new final reply may start a new six-month window.',
+  fidrec_window_expired: `Your confirmed facts show more than six months have passed since your bank’s final reply. ${FINAL_REPLY_RENEW_NOTE}`,
   complaint_not_raised:
     'Your confirmed facts don’t show a written complaint to your bank yet. FIDReC needs one first: complain to your bank in writing, then come back.',
 }

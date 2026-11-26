@@ -20,6 +20,8 @@ import {
   type Transaction,
 } from "../keys.ts";
 import { formatMoney } from "../display.ts";
+import type { BankReply } from "../keys.ts";
+import { finalReplyWindowClosed } from "./fidrec.ts";
 
 export const SRF_EFFECTIVE_DATE = "2024-12-16";
 
@@ -54,6 +56,8 @@ export interface SrfFacts {
   transactions: Transaction[] | null;
   // Amounts lost by account or card (finding A4), used when no individual payments were confirmed.
   losses?: LossPortion[] | null;
+  // The six months after the bank's final reply have passed, so the text must not send the person to FIDReC.
+  fidrecWindowClosed?: boolean;
 }
 
 const ACCOUNT_INSTRUMENT: Record<string, Instrument> = {
@@ -232,7 +236,7 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
         }
       : {
           ...R.remedies,
-          text: "For losses outside the SRF that you did not authorise, the MAS E-Payments User Protection Guidelines (EUPG) set out how such losses are shared between you and your bank or e-wallet provider (card losses follow the card rules). Your bank assesses this; you can complain in writing and, if you disagree with the outcome, go to FIDReC. MAS and IMDA's Response to Consultation also states that scam victims can pursue civil claims against the relevant entities through the courts (paragraph 6.11(d)).",
+          text: "For losses outside the SRF that you did not authorise, the MAS E-Payments User Protection Guidelines (EUPG) set out how such losses are shared between you and your bank or e-wallet provider (card losses follow the card rules). Your bank assesses this; you can complain in writing" + (facts.fidrecWindowClosed ? "." : " and, if you disagree with the outcome, go to FIDReC.") + " MAS and IMDA's Response to Consultation also states that scam victims can pursue civil claims against the relevant entities through the courts (paragraph 6.11(d)).",
         };
 
   return { portions, telco, remedies };
@@ -241,12 +245,14 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
 // Confirmed snapshot facts to SRF inputs. Facts marked "not sure" or "not known" give no input.
 export function srfFactsFromSnapshot(
   facts: Partial<Record<string, { value: unknown; label: "confirmed" | "not_sure" | "claimant_only" | "not_known" }>>,
+  today: string = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10),
 ): SrfFacts {
   const value = <T>(key: string): T | null => {
     const fact = facts[key];
     return fact && (fact.label === "confirmed" || fact.label === "claimant_only") ? (fact.value as T) : null;
   };
   return {
+    fidrecWindowClosed: finalReplyWindowClosed(value<BankReply>("bank_reply"), today),
     scamTypes: value<ScamType[]>("scam_type"),
     channel: value<PhishingChannel>("phishing_channel"),
     credentials: value<CredentialsShared>("credentials_or_otp_shared"),

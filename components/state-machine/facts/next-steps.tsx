@@ -6,6 +6,7 @@
  * a buy button.
  */
 
+import { FINAL_REPLY_RENEW_NOTE } from '@/lib/facts'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -40,7 +41,7 @@ function ruleNote(state: ProductState | undefined): string | null {
   }
   if (state.state === 'not_offered') {
     if (state.reason === 'final_reply_received') return 'Not needed for your case: your bank has already sent its final reply.'
-    if (state.reason === 'fidrec_window_expired') return 'The six-month window to go to FIDReC after the final reply has passed.'
+    if (state.reason === 'fidrec_window_expired') return `The six-month window to go to FIDReC after the final reply has passed. ${FINAL_REPLY_RENEW_NOTE}`
     if (state.reason === 'complaint_not_raised') return 'For your case, this comes after you have complained to your bank.'
   }
   return null

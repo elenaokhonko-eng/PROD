@@ -2,7 +2,7 @@
 // may choose any other available stage. Follows the FIDReC Terms of Reference (rules/fidrec.ts).
 
 import type { BankReply, Institution, Money, ReportedEvent } from "./keys.ts";
-import { fidrecAvailability, type FidrecAvailability, FIDREC_RULES, finalReplyDeadline } from "./rules/fidrec.ts";
+import { fidrecAvailability, type FidrecAvailability, FIDREC_RULES, finalReplyDeadline, FINAL_REPLY_RENEW_NOTE } from "./rules/fidrec.ts";
 import { formatDate, formatMoney } from "./display.ts";
 import { addMonths } from "./normalise.ts";
 
@@ -159,6 +159,7 @@ export function recommend(facts: RecommendFacts, options: RecommendOptions): Rec
     const ended = addMonths(facts.bankReply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value);
     notes.push(`The final reply you told us about is dated ${formatDate(facts.bankReply.date)}. Six months from that date ended on ${formatDate(ended)} (Rule 13(1)(ii)).`);
     notes.push(FINAL_REPLY_EXPIRED_NOTE);
+    notes.push(FINAL_REPLY_RENEW_NOTE);
   }
   const cap = FIDREC_RULES.awardCapSgd.value;
   if (facts.totalLoss?.currency === "SGD" && facts.totalLoss.amount > cap) {

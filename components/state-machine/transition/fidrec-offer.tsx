@@ -10,6 +10,7 @@
  */
 
 import { useRef, useState } from 'react'
+import { FINAL_REPLY_RENEW_NOTE } from '@/lib/facts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tier2PackPanel } from '@/components/state-machine/layer3/tier2-pack-panel'
@@ -65,8 +66,7 @@ const ROUTE_OPTIONS: Array<{ value: FidrecRoute; label: string; dateLabel: strin
 export const FIDREC_REASON_TEXT: Partial<Record<ProductReadinessReason, string>> = {
   complaint_not_raised:
     'FIDReC needs your bank to have had the chance to answer first. Complain to your bank in writing; the bank pack can help you do that.',
-  fidrec_window_expired:
-    'FIDReC takes complaints up to six months after the bank’s final reply, and that time has passed. Ask your bank to review your complaint again; a new final reply may start a new six-month window.',
+  fidrec_window_expired: `FIDReC takes complaints up to six months after the bank’s final reply, and that time has passed. ${FINAL_REPLY_RENEW_NOTE}`,
 }
 
 function tooEarly(opensOn: string | null): string {

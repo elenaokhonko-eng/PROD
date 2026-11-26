@@ -64,6 +64,7 @@ confirmed_facts holds the facts the person confirmed, each with a status.
 - status "confirmed" or "claimant_only": state as fact, in the first person.
 - status "not_sure" or "not_known": say it is not confirmed; never state a value for it.
 Never state a date, amount, institution or reference that differs from confirmed_facts. primary_narrative is the person's own story: use it only for the order of events and context, never for a fact that confirmed_facts covers. If primary_narrative is null, write only from confirmed_facts. A fact listed in facts_not_confirmed, or missing from confirmed_facts, has no value in the complaint.
+This document is itself the written complaint: never say whether a written complaint has been sent.
 Never use the input's field names or internal names; describe the facts in ordinary words.
 
 OUTPUT
@@ -104,6 +105,7 @@ export function bankPackFallback(facts: SnapshotFacts): BankPackProse {
   const lines = (Object.keys(LETTER_LABELS) as FactKey[]).flatMap((key) => {
     const fact = facts[key];
     if (!fact) return [];
+    if (key === "written_complaint_sent" && (fact.value as ReportedEvent | null)?.value === "no") return [];
     const value = fact.label === "not_sure" || fact.label === "not_known" ? "not confirmed" : formatFactValue(key, fact.value);
     return [`- ${LETTER_LABELS[key]}: ${value}`];
   });
@@ -183,6 +185,11 @@ export interface BankPackReport {
   prose_source: "model" | "fallback";
 }
 
+// Elena, 27 Nov 2026: the bank pack is itself the written complaint, so a sentence saying none has been sent is taken
+// out, whoever wrote it.
+const NOT_YET_COMPLAINED = /[^.!?\n]*\b(?:have not|haven['’]t|did not|didn['’]t)\b[^.!?\n]*\bwritten complaint\b[^.!?\n]*[.!?][ \t]*/gi;
+export const withoutNotYetComplained = (text: string) => text.replace(NOT_YET_COMPLAINED, (match) => (match.startsWith(" ") ? " " : "")).trim();
+
 export function assembleBankPack(args: {
   prose: BankPackProse;
   source: "model" | "fallback";
@@ -195,6 +202,7 @@ export function assembleBankPack(args: {
   return {
     report_version: BANK_PACK_VERSION,
     ...args.prose,
+    executive_summary: withoutNotYetComplained(args.prose.executive_summary),
     timeline: withDisplayDates(bankPackTimeline(facts)),
     disputed_transactions: bankPackTransactions(facts),
     total_loss: loss ? formatMoney(loss) : null,
