@@ -25,7 +25,7 @@ const COPY: Record<GeneratedStage, { preparing: string; failed: string; failedRe
   free: {
     preparing: 'Preparing your free evaluation',
     failed: 'We couldn’t prepare your free evaluation',
-    failedReason: 'We couldn’t produce an evaluation that matches your facts exactly. We’ve been notified; please try again later.',
+    failedReason: 'We couldn’t complete your free evaluation this time. You can try again now. If it still doesn’t work, email info@guidebuoyai.sg.',
     problem: 'free_evaluation_failed',
   },
   bank: {

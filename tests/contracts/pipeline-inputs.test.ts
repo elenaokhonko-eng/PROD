@@ -41,6 +41,6 @@ test('the privacy export includes every fact reconciliation table', () => {
 test('fact extraction calls are bounded so the confirm screen cannot wait for minutes', () => {
   const runner = readFileSync('lib/server/facts/run-reconcile.ts', 'utf8')
   assert.match(runner, /const MODEL_TIMEOUT_MS = 30_000/)
-  assert.match(runner, /generateJson\(\{\s*prompt,\s*schemaName,\s*timeoutMs: MODEL_TIMEOUT_MS,\s*maxRetries: MODEL_RETRIES,\s*usage: \{ purpose: "fact_extraction", caseId, maxOutputTokens: OUTPUT_CAPS\.fact_extraction \},\s*\}\)/)
+  assert.match(runner, /generateJson\(\{\s*prompt,\s*schemaName,\s*timeoutMs: schemaName === "facts_document" \? DOCUMENT_TIMEOUT_MS : MODEL_TIMEOUT_MS,\s*maxRetries: MODEL_RETRIES,\s*usage: \{ purpose: "fact_extraction", caseId, maxOutputTokens: schemaName === "facts_document" \? DOCUMENT_OUTPUT_CAP : OUTPUT_CAPS\.fact_extraction \},\s*\}\)/)
   assert.match(readFileSync('lib/server/ai/generate-json.ts', 'utf8'), /timeout: timeoutMs/)
 })

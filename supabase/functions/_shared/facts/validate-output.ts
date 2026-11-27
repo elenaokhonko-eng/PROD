@@ -419,7 +419,7 @@ export interface ReferenceSources {
 
 // [the kind of document], as the complainant pack and the person's own letter name it.
 const REFERENCE_DOCUMENT_KINDS: Array<[RegExp, string, string]> = [
-  [/^BANK_(DISPUTED|SRF|EMAILS)|^TRANSACTIONS_DISPUTE|^bank_correspondence$/, "the institution’s letter", "your letter or email"],
+  [/^BANK_(DISPUTED|SRF|EMAILS)|^TRANSACTIONS_DISPUTE|^bank_correspondence$/, "the institution’s letter", "my bank’s letter or email"],
   [/^BANK_ACCOUNT_STATEMENT|^bank_statement$/, "the bank statement", "my bank statement"],
   [/^CREDIT_CARD_STATEMENT|^card_statement$/, "the card statement", "my card statement"],
   [/^POLICE_REPORT|^police_report$/, "the police report", "my police report"],

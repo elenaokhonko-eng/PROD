@@ -26,6 +26,8 @@ import {
   documentedFacts,
   type EvidenceFinding,
   evidenceIdFailures,
+  evidenceIndexWithReadingNotes,
+  listLengthFailures,
   factDates,
   fidrecPackChecks,
   fidrecPackFallback,
@@ -249,7 +251,7 @@ ${JSON.stringify(input, null, 2)}`;
         story: (storyRow?.story_text as string | null) ?? "",
         voice: "complainant",
       }),
-      extraChecks: (prose) => [...evidenceIdFailures(prose, evidenceIndex), ...dutyFailures(prose, clauses, facts, checks)],
+      extraChecks: (prose) => [...listLengthFailures(prose), ...evidenceIdFailures(prose, evidenceIndex), ...dutyFailures(prose, clauses, facts, checks)],
       generate: (previousFailures) =>
         chatJson(
           {
@@ -319,7 +321,7 @@ ${JSON.stringify(input, null, 2)}`;
         values: (f.values ?? []) as EvidenceFinding["values"],
         resolution: f.resolution as EvidenceFinding["resolution"],
       })),
-      evidenceIndex,
+      evidenceIndex: evidenceIndexWithReadingNotes(evidenceIndex, excerpts, caseDocuments),
       route,
       finalReplyUsed: Boolean(finalReplyText),
       clauses,

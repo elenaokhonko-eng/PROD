@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PAID_PACK_NOTICE } from '@/lib/legal/automated-output-notice'
 import type { FidrecPackJson } from '@/lib/types/report'
+import { APPROVED } from '@/lib/facts'
 
 export interface FidrecPackViewProps {
   pack: FidrecPackJson
@@ -41,8 +42,8 @@ export function FidrecPackView({ pack, createdAt, onDownload }: FidrecPackViewPr
       {pack.executive_summary ? <Section title="Executive summary"><Prose>{pack.executive_summary}</Prose></Section> : null}
       {pack.route ? <Section title="Filing with FIDReC"><Prose>{pack.route}</Prose></Section> : null}
 
-      {pack.timeline?.length ? (
-        <Section title="Chronology">
+      <Section title="Chronology">
+        {pack.timeline?.length ? (
           <ol className="space-y-2">
             {pack.timeline.map((item, i) => (
               <li key={i} className="flex gap-3 text-sm">
@@ -51,29 +52,36 @@ export function FidrecPackView({ pack, createdAt, onDownload }: FidrecPackViewPr
               </li>
             ))}
           </ol>
-        </Section>
-      ) : null}
+        ) : (
+          <p className="text-sm">{APPROVED.noDatedEvents}</p>
+        )}
+      </Section>
 
-      {pack.disputed_transactions?.length ? (
-        <Section title="Disputed transactions">
+      <Section title="Disputed transactions">
+        {pack.disputed_transactions?.length ? (
           <ul className="space-y-1 text-sm">
             {pack.disputed_transactions.map((row, i) => (
               <li key={i}>{Object.entries(row).map(([column, cell]) => `${column.replace(/_/g, ' ')}: ${String(cell)}`).join(' · ')}</li>
             ))}
           </ul>
-          {pack.total_loss ? <p className="mt-3 text-sm"><span className="font-medium">Amount lost: </span>{pack.total_loss}</p> : null}
-        </Section>
-      ) : null}
+        ) : (
+          <p className="text-sm">{APPROVED.noPayments}</p>
+        )}
+        {/* Item 18: the total shows whether or not a single payment is listed. */}
+        <p className="mt-3 text-sm">
+          {pack.total_loss ? <><span className="font-medium">Amount lost: </span>{pack.total_loss}</> : APPROVED.noTotal}
+        </p>
+      </Section>
 
       {pack.claimant_position ? <Section title="The complainant’s position"><Prose>{pack.claimant_position}</Prose></Section> : null}
       {pack.institution_position ? <Section title="The institution’s position"><Prose>{pack.institution_position}</Prose></Section> : null}
 
       <Arguments title="Points for the complainant" items={pack.arguments_for_claimant} />
-      <Arguments title="Points for the institution" items={pack.arguments_for_institution} />
+      <Arguments title="Points for the institution" items={pack.arguments_for_institution} none={APPROVED.noInstitutionPoint} />
 
-      {pack.institution_duties?.length || pack.duties_note ? (
         <Section title="The institution’s duties and what the records show">
           {pack.duties_note ? <p className="mb-3 text-sm" data-duties-note>{pack.duties_note}</p> : null}
+          {!pack.institution_duties?.length && !pack.duties_note ? <p className="text-sm">{APPROVED.noDutySetOut}</p> : null}
           <ul className="ml-4 list-disc space-y-2 text-sm">
             {(pack.institution_duties ?? []).map((duty, i) => (
               <li key={i}>
@@ -93,35 +101,44 @@ export function FidrecPackView({ pack, createdAt, onDownload }: FidrecPackViewPr
             </dl>
           ) : null}
         </Section>
-      ) : null}
 
-      {pack.evidence_index?.length ? (
-        <Section title="Evidence index">
+      <Section title="Evidence index">
+        {pack.evidence_index?.length ? (
           <ul className="space-y-1 text-sm">
             {pack.evidence_index.map((item) => (
               <li key={item.id}><span className="font-medium">{item.id}</span>: {item.document}</li>
             ))}
           </ul>
-        </Section>
-      ) : null}
+        ) : (
+          <p className="text-sm">{APPROVED.noDocuments}</p>
+        )}
+      </Section>
 
       {pack.rules_assessment ? <Section title="How the rules may apply"><Prose>{pack.rules_assessment}</Prose></Section> : null}
 
-      {pack.evidence_checklist?.length ? (
-        <Section title="Evidence checklist">
+      <Section title="Evidence checklist">
+        {pack.evidence_checklist?.length ? (
           <ul className="space-y-1 text-sm">
             {pack.evidence_checklist.map((item, i) => (
               <li key={i} className={item.present ? '' : 'text-muted-foreground'}>{item.present ? 'Shown' : 'Missing'}: {item.label}</li>
             ))}
           </ul>
-        </Section>
-      ) : null}
+        ) : (
+          <p className="text-sm">{APPROVED.noDocuments}</p>
+        )}
+      </Section>
     </div>
   )
 }
 
-function Arguments({ title, items }: { title: string; items?: Array<{ text: string; evidence_ids: string[] }> }) {
-  if (!items?.length) return null
+function Arguments({ title, items, none }: { title: string; items?: Array<{ text: string; evidence_ids: string[] }>; none?: string }) {
+  if (!items?.length) {
+    return none ? (
+      <Section title={title}>
+        <p className="text-sm">{none}</p>
+      </Section>
+    ) : null
+  }
   return (
     <Section title={title}>
       <ul className="ml-4 list-disc space-y-2 text-sm">

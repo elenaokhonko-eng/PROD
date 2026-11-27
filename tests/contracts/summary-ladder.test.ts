@@ -166,8 +166,9 @@ test('provider errors never carry the response text, and the review log holds ID
   const review = /const review = \{([\s\S]*?)\n    \};/.exec(fn)?.[1] ?? ''
   const fields = [...review.matchAll(/^\s+(\w+)[,:]/gm)].map((m) => m[1])
   assert.deepEqual(fields, ['case_id', 'fact_snapshot_id', 'source', 'fallback_reason', 'attempts', 'fired_checks', 'hard_checks', 'model', 'prompt_version', 'release'])
-  assert.doesNotMatch(fn, /output_validation_failed/, 'a checker rejection no longer fails the request')
-  assert.match(fn, /title: result\.source === "fallback" \? FALLBACK_TITLE : "Free evaluation summary"/)
+  // Elena, 27 Nov (item 9): the summary version is no longer delivered, so a failed evaluation says so.
+  assert.match(fn, /reason: "output_validation_failed"/)
+  assert.match(fn, /title: "Free evaluation summary"/)
   // 20 Nov 2026: gpt-4o-mini shuts down on 14 Jan 2027. gpt-6-luna has no dated snapshot yet, so the exact ID is pinned.
   assert.match(fn, /const TIER0_MODEL = \(Deno\.env\.get\("TIER0_MODEL"\) \?\? "gpt-6-luna"\)/, 'the model is pinned to an exact ID')
 })
