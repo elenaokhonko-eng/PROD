@@ -1,6 +1,6 @@
 # Part B release (#121): findings, fixes and final requirements
 
-Written 27 Nov 2026, 21:00 Singapore time, for Elena and the coding agent. Section 8 added at 22:15. It consolidates the Part B register, CR-2 and the decisions of 25 to 27 Nov. Where this file and an older one differ, this file is the requirement.
+Written 27 Nov 2026, 21:00 Singapore time, for Elena and the coding agent. Section 8 added at 22:15, section 9 at 23:45. It consolidates the Part B register, CR-2 and the decisions of 25 to 27 Nov. Where this file and an older one differ, this file is the requirement.
 
 No case data: IDs, counts and synthetic test names only.
 
@@ -282,7 +282,7 @@ Not scheduled: PB-14, R-11, R-12, an email alert to Elena when a paid pack fails
 
 ## 7. Open questions before production
 
-1. **Long documents.** Reading was raised from 15,000 to 100,000 characters, with a worst case the agent puts at about 3 minutes. A staging function was cut off at about 150 seconds on 25 Nov. Where does reading run, and what is its time limit? Not yet proved with the real AI: re-test step 3.1.
+1. **Long documents.** Answered in part on 27 Nov: the test showed documents of 5 pages or more lose almost all their text (section 9.1). The fix is section 9.2. Still open: where reading runs and its time limit, and the count of affected production documents.
 2. **The free evaluation now fails outright** where it used to give a summary version, including when the daily spending cap is reached. How often was the summary version used in the last 30 days, on staging and production? Counts only.
 3. **The upload box sentence** about how much of each document is read. Answered by Elena on 27 Nov: it comes out. Every document is read in full (section 8.1).
 4. **The rejected reference** in gate run 45867707804. The staging log query will show whether it was a notice name from the rule text or a number the AI made up. That part of the check is not to be changed until the log says.
@@ -347,3 +347,70 @@ Elena's own phrasing for the cap was "due to increased demand". The reviewer lef
 - No output contains a sentence saying a document was read in part.
 - Each failure in 8.3 shows its own message, and the cap case keeps the person's answers.
 - A document at the page limit is read in full by every step that uses it, shown by a fact taken from its last page.
+
+## 9. Reading documents in parts, payments shown as a table, and 150 payments (27 Nov, 23:45)
+
+Found by Elena's upload test on staging `b6be3f3` with five synthetic statements, and by the agent's measurements. Build together with section 8, then one gate series.
+
+### 9.1 The fault: long documents lose almost all their text and still say "ready"
+
+| Synthetic file | Text kept | Expected, about | Result |
+|---|---|---|---|
+| 1 page | 2,468 characters | 2,600 | Complete |
+| 3 pages | 7,300 | 7,600 | Complete |
+| 5 pages | 213 | 12,700 | Under 2% kept |
+| 10 pages | 272 | 25,400 | About 1% kept |
+| 15 pages | 272 | 38,000 | Under 1% kept |
+
+The AI abbreviated the text ("...") and the reading finished normally, so nothing flagged it. Later steps work only from the stored text. The agent reports that production runs the same instructions and the same answer cap, so real documents of 5 pages or more are probably affected there today. Not yet tested on production.
+
+### 9.2 Requirement: every document is read in parts and joined
+
+1. Each file is read in parts of up to 3 pages. Each part asks only for the text. The parts are joined in page order.
+2. A part that comes back abbreviated, shortened or empty is a failed reading. The document is not marked ready. The person sees: "We couldn't read this file, so it is not part of your case. Please upload it again, or upload a different document." (approved 27 Nov).
+3. A document is "ready" only when every page has been read. The stored record shows the number of pages read and the number in the file, and they must match.
+4. Facts are read in parts too, so a long list of payments cannot make the "Confirm your facts" step fail.
+5. The page limit per file in section 8.2 is the largest size that passes Elena's five-file test after this fix, and not above 15.
+6. The time limit of the place where reading runs is stated, and reading in parts stays inside it.
+
+**Before production, counts only:** the number of production documents whose stored text is far shorter than their page count suggests, and the number of cases they belong to. Elena decides what to do about those cases.
+
+### 9.3 Requirement: up to 150 payments
+
+A case with up to 150 payments goes through every step without failing: reading, confirming the facts, the free evaluation, the Bank dispute pack and the FIDReC pack. Every payment appears once in the payments table, with nothing dropped or merged, and the total equals the sum of the rows.
+
+Above 150 payments the person is told plainly and nothing is cut silently. Wording for Elena's approval: "This case has more than 150 payments. Please email info@guidebuoyai.sg so we can help you with it."
+
+### 9.4 Requirement: payments are shown as a table, never as a sentence
+
+**In the Bank dispute pack and the FIDReC pack.** Payments appear once, as a table with the columns Date, Amount, Paid to and Method, on screen and in the PDF, followed by the total. The table continues across pages in the PDF with its header repeated.
+
+**In the free evaluation** (summary, evidence checklist, facts confirmed) and on the "Confirm your facts" screen, payments are given as a count, a total and a date range. The full list is not printed in running text anywhere. Where the person needs to check individual payments, such as on the confirm screen, they are shown as a table.
+
+**Where a document and the confirmed facts differ**, the difference is stated in numbers and the table marks the rows. The list is never repeated in a sentence. This replaces the form of inventory item 6 for payments.
+
+**One output never contradicts itself about the total.** If a total is shown anywhere in an output, no sentence in that output says the total is not stated.
+
+**Example wording, for Elena's approval. Not to merge until she approves.**
+
+| Where | Example |
+|---|---|
+| Evidence checklist, payments shown by a document | "The payments you dispute: 120 payments, S$5,700 in total, 1 to 28 Oct 2026. Shown by your bank statement (uploaded)." |
+| Facts confirmed | "The payments you dispute: 120 payments, S$5,700 in total, 1 to 28 Oct 2026." |
+| A document shows fewer than were confirmed | "You confirmed 120 payments. Your bank statement (uploaded) shows 50 of them." |
+| A document shows payments that were not confirmed | "Your bank statement (uploaded) shows 8 payments that are not in your confirmed facts." |
+| FIDReC pack, the same two cases | "The complainant states 120 payments. The bank statement (E1) shows 50 of them." and "The bank statement (E1) shows 8 payments that are not in the confirmed facts." |
+| Summary, when no total is confirmed | "The total amount lost is not confirmed." (approved 27 Nov, inventory item 14) |
+| Table column for a marked row | "Not shown in a document" |
+
+### 9.5 Tests
+
+- Elena's five synthetic files (1, 3, 5, 10 and 15 pages) each keep their full text, checked by character count against the source and by a fact taken from the last page.
+- A part forced to come back abbreviated makes the reading fail with the approved message.
+- A synthetic statement with 150 payments: the count is 150 after reading, after confirming, and in each of the three outputs; the total equals the sum.
+- No output contains a list of payments in running text. A test checks that a case with 20 payments prints them only in a table.
+- An output that shows a total does not also say the total is not stated.
+
+### 9.6 Also seen in the same evaluation, to check
+
+- The scam type read "Phishing by SMS or messaging app" while the first contact read "Email". Confirm whether that came from the test answers or is a fault.
