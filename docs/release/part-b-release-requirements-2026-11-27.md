@@ -1,6 +1,6 @@
 # Part B release (#121): findings, fixes and final requirements
 
-Written 27 Nov 2026, 21:00 Singapore time, for Elena and the coding agent. Section 8 added at 22:15, section 9 at 23:45. It consolidates the Part B register, CR-2 and the decisions of 25 to 27 Nov. Where this file and an older one differ, this file is the requirement.
+Written 27 Nov 2026, 21:00 Singapore time, for Elena and the coding agent. Section 8 added at 22:15, section 9 at 23:45, section 10 at 01:00 on 28 Nov. It consolidates the Part B register, CR-2 and the decisions of 25 to 27 Nov. Where this file and an older one differ, this file is the requirement.
 
 No case data: IDs, counts and synthetic test names only.
 
@@ -151,7 +151,7 @@ A person is never charged on an empty case when they already have a real one.
 |---|---|
 | No case with a story | The pack-first flow |
 | Exactly one case with a story | That case, with the offer shown. Nothing is charged until they press it |
-| Several cases with a story | "My cases", no payment, to choose a case or add one |
+| Several cases with a story | "My cases", to choose a case or add one. Both lead to payment first (section 10.1) |
 | One case that already has a FIDReC report, and they press the bank pack | "My cases", to add a new case |
 
 A story told on the public home page fills a waiting empty case first. Backing out of Stripe reuses the same empty case.
@@ -414,3 +414,49 @@ Above 150 payments the person is told plainly and nothing is cut silently. Wordi
 ### 9.6 Also seen in the same evaluation, to check
 
 - The scam type read "Phishing by SMS or messaging app" while the first contact read "Email". Confirm whether that came from the test answers or is a fault.
+
+## 10. From Elena's test of staging `26ba685` (28 Nov, 01:00)
+
+### 10.1 A pack button always leads to payment, then to that pack's path
+
+**Found.** Signed in to an account with several cases, Elena pressed the FIDReC pack. She was sent to "My cases" (correct), added a new case, was never asked to pay, and ended with a free evaluation. Section 4.2 said "My cases, no payment, to choose a case or add one" and did not say what happens next. That was a gap in the requirement.
+
+**Requirement, decided by Elena.** A person who reaches "My cases" from a pack button has two options, and both lead to payment first:
+
+| The person chooses | Then |
+|---|---|
+| An existing case | The payment step for that pack on that case, then Stripe. After payment they return to that case, on that pack's path |
+| "Add a new case" | An empty case is opened for the pack, then the payment step and Stripe. After payment they continue on that pack's path in the new case |
+
+- The FIDReC pack's path starts with the timeline questionnaire ("Your timeline with your bank"), then the story if the case has none, then the documents.
+- The Bank dispute pack's path starts with the story if the case has none, then the documents.
+- The FIDReC payment step shows the approved statement (section 5.1) before Stripe.
+- The pack chosen is carried in the address of "My cases" and of the step that follows, not in the browser's memory. Leaving "My cases" any other way drops it.
+- If the chosen case already has that pack, the person goes to that case and is not asked to pay again.
+- A case never reaches a free evaluation as the result of pressing a pack button without the person having been offered the payment step.
+
+This replaces the "several cases" row of section 4.2. The "exactly one case" row stays: that case opens with the offer shown.
+
+**Tests.** Signed in with several cases, for each pack: choosing an existing case reaches Stripe and returns to that case on the pack's path; "Add a new case" reaches Stripe and continues on the pack's path; in neither does the person reach a free evaluation without passing the payment step.
+
+### 10.2 The bank field filled with scraps of the story
+
+**Found.** In a free evaluation from a case whose story was the example text, "Banks or payment providers involved" printed fragments of the story, split at commas, in place of a bank's name.
+
+**Requirement.** A fact that names a bank or payment provider holds names only. Text that is not a name is not stored there; the fact is then "not stated". A test covers a story that names no bank and a story that contains the example text.
+
+### 10.3 "Shown by your bank statement" when several documents were uploaded
+
+**Found.** One line said all 354 payments were "shown by your bank statement (uploaded)". The next said the statement shows 155.
+
+**Requirement.** The first line names only what the documents together show, and the count it gives is the count the documents show. Where more than one document is involved it says "your bank statements (uploaded)". The two lines never give different counts for the same documents.
+
+### 10.4 The date printed on an output
+
+**Found.** A free evaluation generated after midnight in Singapore on 28 Nov printed "Generated: 27 Nov 2026".
+
+**Requirement.** Every date the product prints or counts from uses Singapore time: the "Generated" date on all three outputs, FIDReC deadlines, the four-week date, and "today" in every check. A test generates an output just after midnight Singapore time.
+
+### 10.5 A case above the payment limit
+
+**Found.** The same case had 354 payments. Nothing said it was above 150. The approved message (section 9.3) is not built yet. Build it with this batch.
