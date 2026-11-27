@@ -1,7 +1,7 @@
 // The free-evaluation summary's input, prompt and checks, shared by bright-function and the corpus
 // (scripts/tier0-corpus) so the corpus measures exactly what production runs (hardening item 2, 8 Nov).
 
-import { formatFactValue } from "./display.ts";
+import { formatFactValue, summariseTransactions } from "./display.ts";
 import type { FactKey, Institution, Money, Transaction } from "./keys.ts";
 import type { SnapshotFacts, ValidateOptions } from "./validate-output.ts";
 
@@ -29,6 +29,15 @@ export const TIER0_CHECKS: ValidateOptions = {
   ],
   userFacing: { minWords: TIER0_MIN_WORDS, maxWords: TIER0_MAX_WORDS },
 };
+
+// A summary may not say no total is stated when the payments add up to one that is shown (Elena, 27 Nov 2026).
+const NO_TOTAL_SAID = /\b(?:not (?:state|record|show|give|mention|provide)s?|no)\b[^.]{0,20}\btotal\b/i;
+
+export function tier0Checks(facts: SnapshotFacts): ValidateOptions {
+  const paid = facts.transactions?.value as Transaction[] | null | undefined;
+  if (!paid?.length) return TIER0_CHECKS;
+  return { ...TIER0_CHECKS, forbidden: [...(TIER0_CHECKS.forbidden ?? []), { pattern: NO_TOTAL_SAID, detail: "the payments have a total; state payments_summary instead" }] };
+}
 
 export interface Tier0Finding {
   fact_key: string;
@@ -87,6 +96,8 @@ export function buildTier0Input(args: {
     facts_not_confirmed: Object.entries(facts)
       .filter(([, fact]) => fact!.label === "not_sure" || fact!.label === "not_known")
       .map(([key]) => key),
+    // The calculated number, total and dates of the confirmed payments.
+    payments_summary: transactions.length ? summariseTransactions(transactions) : null,
     primary_narrative: storyOverruled ? null : args.storyText,
     fidrec_check: args.fidrecCheck,
   };
@@ -125,6 +136,7 @@ start with "You told us that". facts_not_confirmed lists facts that are not conf
 Never state a date, amount, institution or yes/no fact that differs from confirmed_facts. primary_narrative is the
 user's own story: use it only for the order of events and context, never for a fact that confirmed_facts covers.
 If primary_narrative is null, the user corrected their story; write only from confirmed_facts.
+Never list the payments one by one: payments_summary gives their number, total and dates; state those. When payments_summary is present, never say that no total is stated.
 A fact listed in facts_not_confirmed, or missing from confirmed_facts, has no value in the summary even when
 primary_narrative mentions one: do not state that amount, date, institution or reference.
 Write neutrally: do not overstate or understate.

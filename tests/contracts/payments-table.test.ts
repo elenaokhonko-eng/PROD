@@ -17,16 +17,16 @@ const finding = (values: unknown[][]) => [{
 }]
 
 test('a list of payments is summed up as a count and a total', () => {
-  assert.equal(summariseTransactions(all), '3 payments, S$5,030.75 in total')
-  assert.equal(summariseTransactions([pay(1, 10)]), '1 payment, S$10 in total')
-  assert.equal(summariseTransactions([pay(1, 10), { ...pay(2, 5), amount: { amount: 5, currency: 'USD', amountSgd: null } }]), '2 payments, S$10 and USD 5 in total')
+  assert.equal(summariseTransactions(all), '3 payments, S$5,030.75 in total, 1 to 3 Oct 2026')
+  assert.equal(summariseTransactions([pay(1, 10)]), '1 payment, S$10 in total, 1 Oct 2026')
+  assert.equal(summariseTransactions([pay(1, 10), { ...pay(2, 5), amount: { amount: 5, currency: 'USD', amountSgd: null } }]), '2 payments, S$10 and USD 5 in total, 1 to 2 Oct 2026')
 })
 
 test('the facts and evidence lists never spell out each payment', () => {
   const facts = { transactions: confirmed(all) }
   const shown = evidenceLists(facts, finding([all]) as never).shown
-  assert.deepEqual(shown, ['The payments you dispute: 3 payments, S$5,030.75 in total. Shown by your bank statement (uploaded).'])
-  assert.equal(factsYouConfirmed(facts)[0].text, '3 payments, S$5,030.75 in total')
+  assert.deepEqual(shown, ['The payments you dispute: 3 payments, S$5,030.75 in total, 1 to 3 Oct 2026. Shown by your bank statement (uploaded).'])
+  assert.equal(factsYouConfirmed(facts)[0].text, '3 payments, S$5,030.75 in total, 1 to 3 Oct 2026')
   // The model still receives every payment.
   assert.match(formatFactValue('transactions', all), /Sample Shop 1.*Sample Shop 3/)
 })
@@ -36,7 +36,7 @@ test('a statement showing some of the confirmed payments does not contradict the
   const part = evidenceLists(facts, finding([all, all.slice(0, 2)]) as never).shown
   assert.ok(!part.some((s) => s.startsWith('You confirmed')), part.join(' | '))
   const differs = evidenceLists(facts, finding([all, [pay(9, 99)]]) as never).shown
-  assert.ok(differs.includes('You confirmed 3 payments, S$5,030.75 in total. Your bank statement (uploaded) shows 1 payment, S$99 in total.'), differs.join(' | '))
+  assert.ok(differs.includes('You confirmed 3 payments, S$5,030.75 in total, 1 to 3 Oct 2026. Your bank statement (uploaded) shows 1 payment, S$99 in total, 9 Oct 2026.'), differs.join(' | '))
 })
 
 test('the table has every payment, and survives being stored', () => {

@@ -120,7 +120,21 @@ export function summariseTransactions(list: readonly Transaction[]): string {
   for (const t of list) totals.set(t.amount.currency, (totals.get(t.amount.currency) ?? 0) + t.amount.amount);
   const total = [...totals].map(([currency, amount]) =>
     formatMoney({ amount: Math.round(amount * 100) / 100, currency, amountSgd: currency === "SGD" ? amount : null })).join(" and ");
-  return `${list.length} payment${list.length === 1 ? "" : "s"}, ${total} in total`;
+  const period = paymentPeriod(list);
+  return `${list.length} payment${list.length === 1 ? "" : "s"}, ${total} in total${period ? `, ${period}` : ""}`;
+}
+
+// "1 to 28 Oct 2026": for money drained quickly, the period matters most (Elena, 27 Nov 2026).
+function paymentPeriod(list: readonly Transaction[]): string | null {
+  const dates = list.map((t) => t.date).filter((d): d is string => Boolean(d)).sort();
+  if (!dates.length) return null;
+  const first = formatDate(dates[0])!;
+  const last = formatDate(dates[dates.length - 1])!;
+  if (first === last) return first;
+  const [fromDay, fromMonth, fromYear] = first.split(" ");
+  const [, toMonth, toYear] = last.split(" ");
+  const from = fromYear !== toYear ? first : fromMonth !== toMonth ? `${fromDay} ${fromMonth}` : fromDay;
+  return `${from} to ${last}`;
 }
 
 /** A fact as a person reads it in a summary. The model, and the table, get every payment. */

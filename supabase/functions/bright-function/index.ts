@@ -20,7 +20,7 @@ import {
   ProviderFailure,
   buildTier0Input,
   documentedFacts,
-  TIER0_CHECKS,
+  tier0Checks,
   tier0System,
   reportItNowText,
   paymentsTable,
@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
     const fidrecCheck = await checkFidrecSubscription(supabase, institutions[0]?.name ?? null);
     // Input, prompt and checks are shared with the corpus (scripts/tier0-corpus), so it measures exactly this.
     const input = buildTier0Input({ facts, findings: findings ?? [], storyText: storyRow?.story_text ?? null, fidrecCheck });
-    const checks = { ...TIER0_CHECKS, documented: documentedFacts(findings ?? []) };
+    const checks = { ...tier0Checks(facts), documented: documentedFacts(findings ?? []) };
     // The evidence checklist shown is the server's (C2); the model writes only the summary. A checker rejection or a
     // provider failure ends in the summary version, never in "failed" (summary-ladder.ts).
     const user = `INPUT JSON:

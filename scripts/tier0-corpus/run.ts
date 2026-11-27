@@ -26,7 +26,7 @@ import {
   produceSummary,
   reconcile,
   type Resolution,
-  TIER0_CHECKS,
+  tier0Checks,
   TIER0_DEFAULT_MODEL,
   tier0System,
   validateOutput,
@@ -176,7 +176,7 @@ async function runOne(story: CorpusStory, run: number): Promise<RunRecord> {
     fidrecCheck: null,
   })
   const user = `INPUT JSON:\n${JSON.stringify(input, null, 2)}`
-  const checks = { ...TIER0_CHECKS, documented: documentedFacts(findings.map((f) => ({ fact_key: f.factKey, finding_type: f.findingType, values: f.values, resolution: f.resolution }))) }
+  const checks = { ...tier0Checks(facts), documented: documentedFacts(findings.map((f) => ({ fact_key: f.factKey, finding_type: f.findingType, values: f.values, resolution: f.resolution }))) }
   const apiKey = process.env.GuideBuoy_EdgeFunction || process.env.OPENAI_API_KEY || ''
   const details: Array<Array<{ check: string; detail: string }>> = []
   const t1 = Date.now()

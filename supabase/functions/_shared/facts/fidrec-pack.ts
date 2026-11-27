@@ -14,7 +14,7 @@ import { appliesToCase, appliesToLabel, instrumentsOf } from "./rules/instrument
 import { type FidrecPackCheck, fidrecPackCheck, FIDREC_RULES } from "./rules/fidrec.ts";
 import { FINAL_REPLY_EXPIRED_NOTE } from "./recommend.ts";
 import { assessSrf, type SrfAssessment, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
-import { bankPackTransactions, withDisplayDates } from "./bank-pack.ts";
+import { bankPackTransactions, paymentTimelineItem, withDisplayDates } from "./bank-pack.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
 import { addMonths, normaliseDate } from "./normalise.ts";
 import {
@@ -487,6 +487,7 @@ evidence_index lists the documents, each with an ID (E1, E2, …); documents giv
 
 INSTITUTION DUTIES
 regulatory_clauses lists clauses (R1, R2, …) from the SRF Guidelines, the E-Payments User Protection Guidelines, the ABS Code and MAS notices on technology risk and cyber hygiene. In institution_duties, set out each duty these clauses give the institution that is relevant to what happened, and what the evidence shows about it: for example a cooling-off period before high-risk activities after a digital token is activated, alerts, fraud surveillance, transaction limits, blocking, or handling of the report. Each clause's applies_to names the payments it covers: set a clause only against those payments. Cite the clause IDs and the evidence IDs for each. Only use clauses from regulatory_clauses; do not cite any other rule. Describe; do not conclude: never say the institution is liable or must refund. A duty may be met on paper under one framework and not under another: say so where the evidence shows it. For card payments, set out the issuer's duties from the ABS Code of Practice for credit cards where it is in regulatory_clauses. Do not say what card scheme rules (Visa, Mastercard, American Express) allow or require of the issuer: GuideBuoy adds that separately. If regulatory_clauses is empty, return an empty list.
+Never list the payments one by one: payments_summary gives their number, total and dates, and the table shows each. When payments_summary is present, never say that no total is stated.
 Never use the input's field names or internal names; describe the facts in ordinary words.
 
 OUTPUT
@@ -579,9 +580,8 @@ const EVENTS: Array<[FactKey, string]> = [
 /** Chronology from the confirmed facts, in the third person. Dated items first. */
 export function fidrecChronology(facts: SnapshotFacts): Array<{ date?: string; event: string }> {
   const items: Array<{ date?: string; event: string }> = [];
-  for (const t of confirmedValue<Transaction[]>(facts, "transactions") ?? []) {
-    items.push({ ...(t.date ? { date: t.date } : {}), event: `Payment of ${formatMoney(t.amount)}${t.payee ? ` to ${t.payee}` : ""}` });
-  }
+  const payments = paymentTimelineItem(confirmedValue<Transaction[]>(facts, "transactions") ?? []);
+  if (payments) items.push(payments.item);
   const discovered = confirmedValue<string>(facts, "date_discovered");
   if (discovered) items.push({ date: discovered, event: "The complainant found out about the scam" });
   for (const [key, event] of EVENTS) {
@@ -595,7 +595,7 @@ export function fidrecChronology(facts: SnapshotFacts): Array<{ date?: string; e
   items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
   // Item 21.
   if (reply && (reply.status === "none" || reply.status === "not_final")) items.push({ event: APPROVED.noFinalReply });
-  return items;
+  return items.map((item) => (item === payments?.summed ? { event: item.event } : item));
 }
 
 /** The confirmed final reply the FIDReC deadline counts from, and the bank letter that states it, by evidence ID. */

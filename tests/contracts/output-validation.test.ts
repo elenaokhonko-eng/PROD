@@ -79,7 +79,7 @@ test('"Facts you confirmed" is rendered from the snapshot with qualifiers', () =
   assert.equal(byKey.total_loss, 'S$3,000')
   assert.equal(byKey.amount_recovered_or_offered, 'Not known')
   assert.equal(byKey.reported_to_police, 'Yes, 4 Oct 2026 (no supporting document provided)')
-  assert.match(byKey.transactions, /^\d+ payments?, S\$[\d,.]+ in total$/)
+  assert.match(byKey.transactions, /^\d+ payments?, S\$[\d,.]+ in total(, .*\d{4})?$/)
 })
 
 test('mentioning a police report without saying one was filed needs no qualifier (staging run, 5 Nov)', () => {

@@ -5,7 +5,7 @@
 // regenerated once, and otherwise replaced by fixed wording, never "failed". Shared by run_bank_pack_v1 and its tests.
 
 import { bankReplySentence } from "./approved-wording.ts";
-import { formatDate, formatFactValue, formatMoney, transactionRows } from "./display.ts";
+import { formatDate, formatFactValue, formatMoney, summariseTransactions, transactionRows } from "./display.ts";
 import { type EvidenceFinding, evidenceLists } from "./free-sections.ts";
 import type { BankReply, FactKey, Money, ReportedEvent, Transaction } from "./keys.ts";
 import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
@@ -73,6 +73,7 @@ confirmed_facts holds the facts the person confirmed, each with a status.
 - status "not_sure" or "not_known": say it is not confirmed; never state a value for it.
 Never state a date, amount, institution or reference that differs from confirmed_facts. primary_narrative is the person's own story: use it only for the order of events and context, never for a fact that confirmed_facts covers. If primary_narrative is null, write only from confirmed_facts. A fact listed in facts_not_confirmed, or missing from confirmed_facts, has no value in the complaint.
 This document is itself the written complaint: never say whether a written complaint has been sent.
+Never list the payments one by one: payments_summary gives their number, total and dates, and the table shows each. When payments_summary is present, never say that no total is stated.
 Never use the input's field names or internal names; describe the facts in ordinary words.
 
 OUTPUT
@@ -142,11 +143,22 @@ function confirmedValue<T>(facts: SnapshotFacts, key: FactKey): T | null {
 }
 
 /** Timeline from the confirmed facts: each payment, when the person found out, and who they told. Dated items first. */
+/** A single payment as a line of its own; several as their count, total and dates, which the line states itself. */
+export function paymentTimelineItem(list: readonly Transaction[]) {
+  if (!list.length) return null;
+  if (list.length === 1) {
+    const [t] = list;
+    return { item: { ...(t.date ? { date: t.date } : {}), event: `Payment of ${formatMoney(t.amount)}${t.payee ? ` to ${t.payee}` : ""}` }, summed: null };
+  }
+  const first = list.map((t) => t.date).filter((d): d is string => Boolean(d)).sort()[0];
+  const item: { date?: string; event: string } = { ...(first ? { date: first } : {}), event: summariseTransactions(list) };
+  return { item, summed: item };
+}
+
 export function bankPackTimeline(facts: SnapshotFacts): Array<{ date?: string; event: string }> {
   const items: Array<{ date?: string; event: string }> = [];
-  for (const t of confirmedValue<Transaction[]>(facts, "transactions") ?? []) {
-    items.push({ ...(t.date ? { date: t.date } : {}), event: `Payment of ${formatMoney(t.amount)}${t.payee ? ` to ${t.payee}` : ""}` });
-  }
+  const payments = paymentTimelineItem(confirmedValue<Transaction[]>(facts, "transactions") ?? []);
+  if (payments) items.push(payments.item);
   const discovered = confirmedValue<string>(facts, "date_discovered");
   if (discovered) items.push({ date: discovered, event: "I found out about the scam" });
   for (const [key, event] of REPORTED_EVENTS) {
@@ -160,7 +172,7 @@ export function bankPackTimeline(facts: SnapshotFacts): Array<{ date?: string; e
     : null;
   if (replyItem) items.push(replyItem);
   items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
-  return items.map((item) => (item === replyItem ? { event: item.event } : item));
+  return items.map((item) => (item === replyItem || item === payments?.summed ? { event: item.event } : item));
 }
 
 // Part B walk-through (25 Nov). PB-10: dates read "3 Oct 2026", as everywhere else in the packs. PB-11: the payments
