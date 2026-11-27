@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import { amountMismatch, linesFromPieces } from '../../supabase/functions/_shared/pdf-text'
+import { amountMismatch, linesFromPieces, ownTextCoversPages } from '../../supabase/functions/_shared/pdf-text'
 
 // Requirements 9.2 and the 28 Nov brief: text taken from the PDF itself, checked against the AI reading. Synthetic.
 
@@ -17,6 +17,14 @@ test('columns stored one after another are put back on their rows', () => {
   assert.equal(text, '01 Oct Sample Shop A 10.00\n02 Oct Sample Shop B 20.00')
 })
 
+test('the file’s own text is used only when every page holds text, so a scanned page is never dropped', () => {
+  const typed = 'word '.repeat(60)
+  assert.equal(ownTextCoversPages([typed, typed, typed]), true)
+  assert.equal(ownTextCoversPages([typed, typed, typed, '']), false, 'one scanned page: the AI reading stands')
+  assert.equal(ownTextCoversPages([typed, '  Page 2 of 2  ']), false, 'a page with only a footer')
+  assert.equal(ownTextCoversPages([]), false)
+})
+
 test('the two readings must hold the same amounts the same number of times', () => {
   assert.deepEqual(amountMismatch('a 1,200.00 b 10.25 c 10.25', 'x 1200.00 y 10.25 z 10.25'), { missing: 0, added: 0 })
   assert.deepEqual(amountMismatch('10.25\n10.25\n99.00', '10.25\n...'), { missing: 2, added: 0 })
@@ -28,6 +36,6 @@ test('the reading step uses the file’s own text when there is enough, and fail
   const fn = readFileSync('supabase/functions/evidence_processed_v2/index.ts', 'utf8')
   assert.match(fn, /amountMismatch\(/)
   assert.match(fn, /document_readings_differ/)
-  assert.match(fn, /MIN_TEXT_PER_PAGE/)
+  assert.match(fn, /ownTextCoversPages\(pages\)/)
   assert.match(fn, /npm:unpdf@/)
 })

@@ -4,7 +4,7 @@ import { assertReadToTheEnd } from "../_shared/gemini-finish.ts";
 import { assertCompleteText, partPageRanges } from "../_shared/read-parts.ts";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { getDocumentProxy } from "npm:unpdf@1.9.1";
-import { amountMismatch, linesFromPieces, MIN_TEXT_PER_PAGE } from "../_shared/pdf-text.ts";
+import { amountMismatch, linesFromPieces, ownTextCoversPages } from "../_shared/pdf-text.ts";
 import {
   backoffMs,
   dailyBreaker,
@@ -403,8 +403,7 @@ async function textFromPdf(bytes: Uint8Array): Promise<string | null> {
         .map((item) => ({ str: item.str!, x: item.transform![4], y: item.transform![5] }));
       pages.push(linesFromPieces(pieces));
     }
-    const text = pages.join("\n");
-    return text.replace(/\s/g, "").length >= MIN_TEXT_PER_PAGE * pdf.numPages ? text : null;
+    return ownTextCoversPages(pages) ? pages.join("\n") : null;
   } catch (error) {
     console.warn(`[evidence_processed_v2] direct text not available: ${safeErrorText(error)}`);
     return null;

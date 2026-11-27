@@ -21,8 +21,16 @@ export function linesFromPieces(pieces: readonly TextPiece[]): string {
   return rows.map((row) => row.pieces.sort((a, b) => a.x - b.x).map((p) => p.str.trim()).join(" ")).join("\n");
 }
 
-/** Below this many characters a page on average, the file is treated as a scan and read by the AI alone. */
-export const MIN_TEXT_PER_PAGE = 100;
+/** A page with fewer characters than this may be a scan. */
+const MIN_TEXT_PER_PAGE = 100;
+
+/**
+ * Whether the file's own text can stand for the whole file: every page holds text. One page without it, and the file
+ * is read by the AI alone, so a scanned page among typed ones is never dropped.
+ */
+export function ownTextCoversPages(pages: readonly string[]): boolean {
+  return pages.length > 0 && pages.every((page) => page.replace(/\s/g, "").length >= MIN_TEXT_PER_PAGE);
+}
 
 const AMOUNT = /(?<![\d.,])(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2}(?![\d])/g;
 
