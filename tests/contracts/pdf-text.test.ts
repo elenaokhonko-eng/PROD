@@ -13,7 +13,8 @@ test('columns stored one after another are put back on their rows', () => {
     piece('Sample Shop A', 120, 700.6), piece('Sample Shop B', 120, 686),
     piece('10.00', 420, 700), piece('20.00', 420, 685.4),
   ])
-  assert.equal(text, '01 Oct  Sample Shop A  10.00\n02 Oct  Sample Shop B  20.00')
+  // One space between columns: anything wider only uses up the pack's reading limit.
+  assert.equal(text, '01 Oct Sample Shop A 10.00\n02 Oct Sample Shop B 20.00')
 })
 
 test('the two readings must hold the same amounts the same number of times', () => {

@@ -18,7 +18,7 @@ export function linesFromPieces(pieces: readonly TextPiece[]): string {
     if (row && Math.abs(row.y - piece.y) <= SAME_LINE) row.pieces.push(piece);
     else rows.push({ y: piece.y, pieces: [piece] });
   }
-  return rows.map((row) => row.pieces.sort((a, b) => a.x - b.x).map((p) => p.str.trim()).join("  ")).join("\n");
+  return rows.map((row) => row.pieces.sort((a, b) => a.x - b.x).map((p) => p.str.trim()).join(" ")).join("\n");
 }
 
 /** Below this many characters a page on average, the file is treated as a scan and read by the AI alone. */
