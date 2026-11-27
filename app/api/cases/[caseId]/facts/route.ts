@@ -34,6 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
       return NextResponse.json({ error: "Reading did not finish in time", reason: "reading_timed_out" }, { status: 503 })
     }
     if (error instanceof FactsUnavailableError) {
+      await recordFault(createServiceClient(), "service_failed", caseId)
       return NextResponse.json({ error: "Facts are not available right now", reason: "facts_unavailable" }, { status: 503 })
     }
     throw error

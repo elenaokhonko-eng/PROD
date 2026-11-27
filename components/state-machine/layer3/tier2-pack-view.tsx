@@ -73,7 +73,7 @@ export function Tier2PackView({
           <div className="flex-1">
             <CardTitle>FIDReC Tier 2 pack is ready</CardTitle>
             <CardDescription>
-              Generated {pack.generated_at ? new Date(pack.generated_at).toLocaleString() : 'just now'} ·{' '}
+              Generated {pack.generated_at ? new Date(pack.generated_at).toLocaleString(undefined, { timeZone: 'Asia/Singapore' }) : 'just now'} ·{' '}
               {pack.pack_version}
             </CardDescription>
           </div>
@@ -127,7 +127,7 @@ export function Tier2PackView({
                 <li key={index} className="flex gap-3 text-sm">
                   <span className="w-28 shrink-0 text-muted-foreground">
                     {event.event_datetime
-                      ? new Date(event.event_datetime).toLocaleDateString()
+                      ? new Date(event.event_datetime).toLocaleDateString(undefined, { timeZone: 'Asia/Singapore' })
                       : 'Unknown date'}
                   </span>
                   <span className="flex-1">{event.event_text}</span>

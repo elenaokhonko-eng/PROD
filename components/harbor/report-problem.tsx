@@ -28,7 +28,7 @@ export function ReportProblem() {
 
   useEffect(() => {
     if (open) {
-      setTime(new Date().toLocaleString('en-SG'))
+      setTime(new Date().toLocaleString('en-SG', { timeZone: 'Asia/Singapore' }))
       setCopied(false)
       setStatus((s) => (s === 'sent' ? 'idle' : s))
     }

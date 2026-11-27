@@ -35,3 +35,17 @@ test('8.3: each fault is named, in the approved words, and logged without case c
   const log = read('lib/server/fault-log.ts')
   assert.match(log, /event_data: \{ fault, case_id: caseId \}/)
 })
+
+test('a failure of the reading service is logged as its own fault', () => {
+  const route = readFileSync('app/api/cases/[caseId]/facts/route.ts', 'utf8')
+  assert.match(route, /instanceof FactsUnavailableError\) \{\s+await recordFault\(createServiceClient\(\), "service_failed", caseId\)/)
+})
+
+test('no screen or file prints a date in the machine’s own time zone', () => {
+  for (const file of [
+    'components/state-machine/layer3/tier2-pack-view.tsx',
+    'components/harbor/report-problem.tsx',
+    'lib/server/fidrec/build-case-pack-markdown.ts',
+    'lib/server/fidrec/build-case-pack-pdf.ts',
+  ]) assert.doesNotMatch(readFileSync(file, 'utf8'), /\.toLocale(Date|Time)?String\(\s*(\)|['"]en-SG['"]\))/, file)
+})

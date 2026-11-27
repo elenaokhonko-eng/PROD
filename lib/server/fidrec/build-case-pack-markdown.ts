@@ -7,7 +7,7 @@ export function buildCasePackMarkdown(pack: FidrecSubmissionPack): string {
   lines.push(`# FIDReC Case Pack`)
   lines.push(``)
   lines.push(`**Case ID:** ${pack.case_id}`)
-  lines.push(`**Generated:** ${pack.generated_at ? new Date(pack.generated_at).toLocaleString() : "n/a"}`)
+  lines.push(`**Generated:** ${pack.generated_at ? new Date(pack.generated_at).toLocaleString(undefined, { timeZone: 'Asia/Singapore' }) : "n/a"}`)
   lines.push(`**Version:** ${pack.pack_version}`)
   lines.push(``)
   lines.push(AUTOMATED_OUTPUT_NOTICE)
@@ -23,7 +23,7 @@ export function buildCasePackMarkdown(pack: FidrecSubmissionPack): string {
     lines.push(``)
     for (const event of pack.chronology_of_events) {
       const date = event.event_datetime
-        ? new Date(event.event_datetime).toLocaleString()
+        ? new Date(event.event_datetime).toLocaleString(undefined, { timeZone: 'Asia/Singapore' })
         : "Unknown date"
       lines.push(`- **${date}** — ${event.event_text}`)
       if (event.supporting_evidence && event.supporting_evidence.length > 0) {
