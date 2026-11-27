@@ -1,13 +1,14 @@
 // Free-evaluation sections written by the server from the confirmed facts, never by the model (stage 1 demo
 // review, findings C2 and C4).
 
-import type { FactKey, ReportedEvent } from "./keys.ts";
+import type { FactKey, ReportedEvent, Transaction } from "./keys.ts";
 import { FACT_LABELS } from "./keys.ts";
-import { displayFactValue } from "./display.ts";
+import { displayFactValue, documentedPayments, paymentsByDocument } from "./display.ts";
+import { matchTransactions } from "./reconcile.ts";
 import type { FindingValue } from "./reconcile.ts";
 import type { FactLabel, Resolution } from "./snapshot.ts";
 import { type EvidenceItem, isEvidenceItem } from "../evidence-minimums.ts";
-import { APPROVED, contradictionSentence, noDocumentSentence } from "./approved-wording.ts";
+import { APPROVED, contradictionSentence, noDocumentSentence, notConfirmedSentence, shownSomeSentence } from "./approved-wording.ts";
 
 export interface EvidenceFinding {
   factKey: FactKey;
@@ -111,15 +112,6 @@ export function evidenceListsText(facts: Facts, findings: readonly EvidenceFindi
   ].join("\n");
 }
 
-function isPartOf(some: unknown, all: unknown[]): boolean {
-  const id = (t: unknown) => {
-    const row = t as { date?: string | null; amount?: { amount?: number; currency?: string } };
-    return `${row.date}|${row.amount?.amount}|${row.amount?.currency}`;
-  };
-  const known = new Set(all.map(id));
-  return Array.isArray(some) && some.every((t) => known.has(id(t)));
-}
-
 // A document that shows another value than the one the person confirmed is described, not hidden (item 6).
 function contradictions(
   finding: EvidenceFinding,
@@ -134,8 +126,6 @@ function contradictions(
   for (const other of finding.values.filter((v) => !chosen.includes(v))) {
     const text = displayFactValue(key, other.value);
     if (text === confirmed) continue;
-    // A statement showing some of the confirmed payments is part of them, not a different account of them.
-    if (key === "transactions" && chosen.length && isPartOf(other.value, chosen.flatMap((v) => v.value as unknown[]))) continue;
     for (const source of other.sources.filter((s) => s.sourceType === "document")) {
       const name = documentNames([{ ...other, sources: [source] }])[0];
       const documentId = typeof source.sourceRef.documentId === "string" ? source.sourceRef.documentId : "";
@@ -144,6 +134,47 @@ function contradictions(
     }
   }
   return [...new Set(out)];
+}
+
+// Payments are compared in numbers, across every document together, so no two lines can disagree (9.4, 10.3).
+const STATEMENT_KINDS: Record<string, string> = { bank_statement: "bank statement", card_statement: "card statement", police_report: "police report", bank_correspondence: "bank letter" };
+
+function paymentDocuments(
+  documents: ReadonlyArray<{ documentId: string; documentType: string }>,
+  voice: "you" | "complainant",
+  evidenceId: (documentId: string) => string | null,
+): { named: string; plural: boolean } {
+  const kinds = [...new Set(documents.map((d) => d.documentType))];
+  const kind = (type: string) => STATEMENT_KINDS[type] ?? "document";
+  const plural = documents.length > 1;
+  const noun = kinds.length === 1 ? `${kind(kinds[0])}${plural ? "s" : ""}` : "documents";
+  if (voice === "you") return { named: `Your ${noun} (uploaded)`, plural };
+  const ids = documents.map((d) => evidenceId(d.documentId)).filter(Boolean);
+  return { named: `The ${noun}${ids.length ? ` (${ids.join(", ")})` : ""}`, plural };
+}
+
+function paymentLines(
+  confirmed: Transaction[] | null,
+  findings: readonly EvidenceFinding[],
+  voice: "you" | "complainant",
+  evidenceId: (documentId: string) => string | null,
+): { shown: string[]; missing: string[] } {
+  const list = confirmed ?? [];
+  const label = FACT_LABELS.transactions;
+  if (!list.length) return { shown: [], missing: [] };
+  const value = displayFactValue("transactions", list);
+  const byDocument = paymentsByDocument(findings);
+  const together = documentedPayments(byDocument.map((d) => d.payments));
+  const noDocument = `${label}: ${value}. No document yet; for example ${PROOF.transactions}.`;
+  if (!together.length) return { shown: [], missing: [noDocument] };
+  const { named, plural } = paymentDocuments(byDocument, voice, evidenceId);
+  const match = matchTransactions(list, together);
+  const matched = match.pairs.length;
+  const extra = match.unmatchedB.length ? [notConfirmedSentence(voice, named, plural, match.unmatchedB.length)] : [];
+  if (!matched) return { shown: extra, missing: [noDocument] };
+  const shownBy = `Shown by ${named[0].toLowerCase()}${named.slice(1)}.`;
+  const first = matched === list.length ? `${label}: ${value}. ${shownBy}` : shownSomeSentence(voice, list.length, named, plural, matched);
+  return { shown: [first, ...extra], missing: [] };
 }
 
 // The same two lists as items, for the paid packs' evidence checklist.
@@ -164,6 +195,12 @@ export function evidenceLists(
       continue;
     }
     const finding = findings.find((f) => f.factKey === key);
+    if (key === "transactions") {
+      const lines = paymentLines(fact.value as Transaction[], findings, voice, evidenceId);
+      shown.push(...lines.shown);
+      missing.push(...lines.missing);
+      continue;
+    }
     const documents = finding ? documentNames(chosenValues(finding)) : [];
     const value = displayFactValue(key, fact.value);
     if (documents.length) shown.push(`${label}: ${value}. Shown by ${documents.join(", ")}.`);

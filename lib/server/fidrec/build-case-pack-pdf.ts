@@ -132,7 +132,7 @@ export class PdfBuilder {
     if (!rows.length) return
     const columns = Object.keys(rows[0])
     // The last two columns hold names and descriptions; dates and amounts need less.
-    const shares = columns.length === 4 ? [0.17, 0.18, 0.4, 0.25] : columns.map(() => 1 / columns.length)
+    const shares = columns.length === 4 ? [0.17, 0.18, 0.4, 0.25] : columns.length === 5 ? [0.15, 0.15, 0.33, 0.22, 0.15] : columns.map(() => 1 / columns.length)
     const widths = shares.map((share) => share * TEXT_WIDTH)
     const draw = async (cells: string[], weight: FontWeight) => {
       const wrapped = await Promise.all(cells.map((cell, i) => wrapLine(cell, this.measure(size, weight), widths[i] - 6)))

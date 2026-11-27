@@ -16,6 +16,9 @@ export const APPROVED = {
   // The free evaluation (items 9, 11).
   evaluationCap: "We can’t prepare more evaluations today. Your answers are saved; please try again tomorrow.",
   bothTold: "You have told your bank and the police.",
+  // Payments (requirements 9.3, 9.4; approved 27 and 28 Nov 2026).
+  tooManyPayments: "This case has more than 150 payments. Please email info@guidebuoyai.sg so we can help you with it.",
+  notShownMark: "Not shown in a document",
   // Uploads (item 19).
   unreadableFile: "We couldn’t read this file, so it is not part of your case. Please upload it again, or upload a different document.",
 } as const;
@@ -30,3 +33,13 @@ export const noDocumentSentence = (fact: string, value: string) => `${fact}: ${v
 // Item 15.
 export const bankReplySentence = (final: boolean, date: string | null) =>
   `My bank ${final ? "gave its final reply" : "replied"}${date ? ` on ${date}` : ""}.`;
+
+// 9.4: how the documents' payments compare with the confirmed ones, in numbers. The plural forms ("statements … show",
+// "1 payment that is") are variations of the approved sentences.
+const many = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+export const shownSomeSentence = (voice: "you" | "complainant", confirmed: number, documents: string, plural: boolean, matched: number) =>
+  `${voice === "you" ? "You confirmed" : "The complainant states"} ${many(confirmed, "payment")}. ${documents} ${plural ? "show" : "shows"} ${matched} of them.`;
+
+export const notConfirmedSentence = (voice: "you" | "complainant", documents: string, plural: boolean, count: number) =>
+  `${documents} ${plural ? "show" : "shows"} ${many(count, "payment")} that ${count === 1 ? "is" : "are"} not in ${voice === "you" ? "your" : "the"} confirmed facts.`;

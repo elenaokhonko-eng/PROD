@@ -35,7 +35,11 @@ export interface SnapshotFact {
 export type SnapshotBlock =
   | { reason: "open_finding"; factKey: FactKey; findingId: string }
   | { reason: "total_differs_from_transactions"; factKey: "total_loss"; total: number; sum: number }
-  | { reason: "inconsistent_facts"; factKey: FactKey; relatedFactKey: FactKey };
+  | { reason: "inconsistent_facts"; factKey: FactKey; relatedFactKey: FactKey }
+  | { reason: "too_many_payments"; factKey: "transactions" };
+
+// Requirements 9.3: up to this many go through every step; above it the person is told and nothing is cut.
+export const MAX_PAYMENTS = 150;
 
 export interface SnapshotResult {
   facts: Partial<Record<FactKey, SnapshotFact>>;
@@ -128,6 +132,9 @@ export function buildSnapshot(findings: readonly CurrentFinding[], stage: Stage)
   if (reply?.status && reply.status !== "none" && reply.status !== "not_final" && reported?.value !== "yes") {
     blocks.push({ reason: "inconsistent_facts", factKey: "reported_to_bank", relatedFactKey: "bank_reply" });
   }
+
+  const paid = facts.transactions?.value as Transaction[] | null | undefined;
+  if (paid && paid.length > MAX_PAYMENTS) blocks.push({ reason: "too_many_payments", factKey: "transactions" });
 
   return { facts, blocks };
 }

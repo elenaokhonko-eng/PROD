@@ -5,7 +5,7 @@
 // regenerated once, and otherwise replaced by fixed wording, never "failed". Shared by run_bank_pack_v1 and its tests.
 
 import { bankReplySentence } from "./approved-wording.ts";
-import { formatDate, formatFactValue, formatMoney, summariseTransactions, transactionRows } from "./display.ts";
+import { formatDate, formatFactValue, formatMoney, paymentsByDocument, summariseTransactions, transactionRows } from "./display.ts";
 import { type EvidenceFinding, evidenceLists } from "./free-sections.ts";
 import type { BankReply, FactKey, Money, ReportedEvent, Transaction } from "./keys.ts";
 import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
@@ -181,8 +181,8 @@ export function withDisplayDates(items: Array<{ date?: string; event: string }>)
   return items.map((item) => (item.date ? { ...item, date: formatDate(item.date) ?? item.date } : item));
 }
 
-export function bankPackTransactions(facts: SnapshotFacts): Array<Record<string, string>> {
-  return transactionRows(confirmedValue<Transaction[]>(facts, "transactions") ?? []);
+export function bankPackTransactions(facts: SnapshotFacts, findings: readonly EvidenceFinding[] = []): Array<Record<string, string>> {
+  return transactionRows(confirmedValue<Transaction[]>(facts, "transactions") ?? [], paymentsByDocument(findings).map((d) => d.payments));
 }
 
 export interface BankPackReport {
@@ -213,7 +213,7 @@ export function assembleBankPack(args: {
     report_version: BANK_PACK_VERSION,
     ...args.prose,
     timeline: withDisplayDates(bankPackTimeline(facts)),
-    disputed_transactions: bankPackTransactions(facts),
+    disputed_transactions: bankPackTransactions(facts, args.findings),
     total_loss: loss ? formatMoney(loss) : null,
     evidence_checklist: [
       ...shown.map((label) => ({ label, present: true })),

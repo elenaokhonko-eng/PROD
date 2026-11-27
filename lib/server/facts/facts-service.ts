@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import {
+  APPROVED,
   buildSnapshot,
   type CurrentFinding,
   type FactKey,
@@ -63,6 +64,9 @@ function consistencyMessages(blocks: readonly SnapshotBlock[]): FactsView["consi
         message: `The amount you lost (S$${block.total.toLocaleString("en-SG")}) doesn’t match the payments you confirmed (S$${block.sum.toLocaleString("en-SG")} in total). Please check one of them.`,
         factKeys: ["total_loss", "transactions"],
       }]
+    }
+    if (block.reason === "too_many_payments") {
+      return [{ message: APPROVED.tooManyPayments, factKeys: ["transactions"] }]
     }
     return []
   })

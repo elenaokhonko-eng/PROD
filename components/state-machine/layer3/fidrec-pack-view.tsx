@@ -21,7 +21,7 @@ export interface FidrecPackViewProps {
 
 export function FidrecPackView({ pack, createdAt, onDownload }: FidrecPackViewProps) {
   const generated = createdAt
-    ? new Date(createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+    ? new Date(createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Singapore' })
     : null
   return (
     <div className="space-y-4" data-fidrec-pack>

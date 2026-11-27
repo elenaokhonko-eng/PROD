@@ -1,4 +1,4 @@
-import { parsePaymentsTable } from "@/lib/facts"
+import { formatSingaporeDate, parsePaymentsTable } from "@/lib/facts"
 import { AUTOMATED_OUTPUT_NOTICE } from "@/lib/legal/automated-output-notice"
 import { PdfBuilder } from "@/lib/server/fidrec/build-case-pack-pdf"
 import type { CaseNarrativeRow } from "@/lib/types/narratives"
@@ -17,7 +17,7 @@ export async function buildFreeEvaluationPdf(rows: readonly Pick<CaseNarrativeRo
   const generated = rows.map((r) => r.created_at).sort().at(-1)
 
   await builder.addHeading("GuideBuoy free evaluation")
-  await builder.addParagraph(`Generated: ${generated ? new Date(generated).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" }) : "n/a"}`)
+  await builder.addParagraph(`Generated: ${generated ? formatSingaporeDate(generated) : "n/a"}`)
   await builder.addParagraph(AUTOMATED_OUTPUT_NOTICE)
 
   for (const type of ORDER) {

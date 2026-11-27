@@ -40,6 +40,7 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
     ? new Date(report.created_at).toLocaleString(undefined, {
         dateStyle: 'medium',
         timeStyle: 'short',
+        timeZone: 'Asia/Singapore',
       })
     : null
 

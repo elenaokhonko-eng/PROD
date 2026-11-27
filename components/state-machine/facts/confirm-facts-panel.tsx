@@ -137,7 +137,7 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
         <CardHeader>
           <CardTitle>Your facts haven’t changed</CardTitle>
           <CardDescription>
-            Nothing has changed since you confirmed your facts on {new Date(view.latestSnapshot.createdAt).toLocaleDateString('en-SG')}.
+            Nothing has changed since you confirmed your facts on {new Date(view.latestSnapshot.createdAt).toLocaleDateString('en-SG', { dateStyle: 'medium', timeZone: 'Asia/Singapore' })}.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">

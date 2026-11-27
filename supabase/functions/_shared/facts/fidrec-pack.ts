@@ -728,7 +728,7 @@ export function assembleFidrecPack(args: {
       .filter((c) => args.prose.institution_duties.some((d) => d.clause_ids.includes(c.id)))
       .map((c) => ({ id: c.id, source: c.source, clause_ref: c.clause_ref, title: c.title })),
     timeline: withDisplayDates(fidrecChronology(facts)),
-    disputed_transactions: bankPackTransactions(facts),
+    disputed_transactions: bankPackTransactions(facts, args.findings),
     total_loss: loss ? formatMoney(loss) : null,
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label })),
     evidence_checklist: [...shown.map((label) => ({ label, present: true })), ...missing.map((label) => ({ label, present: false }))],

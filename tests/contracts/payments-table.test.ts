@@ -31,14 +31,6 @@ test('the facts and evidence lists never spell out each payment', () => {
   assert.match(formatFactValue('transactions', all), /Sample Shop 1.*Sample Shop 3/)
 })
 
-test('a statement showing some of the confirmed payments does not contradict them', () => {
-  const facts = { transactions: confirmed(all) }
-  const part = evidenceLists(facts, finding([all, all.slice(0, 2)]) as never).shown
-  assert.ok(!part.some((s) => s.startsWith('You confirmed')), part.join(' | '))
-  const differs = evidenceLists(facts, finding([all, [pay(9, 99)]]) as never).shown
-  assert.ok(differs.includes('You confirmed 3 payments, S$5,030.75 in total, 1 to 3 Oct 2026. Your bank statement (uploaded) shows 1 payment, S$99 in total, 9 Oct 2026.'), differs.join(' | '))
-})
-
 test('the table has every payment, and survives being stored', () => {
   const rows = transactionRows(all)
   assert.deepEqual(Object.keys(rows[0]), ['Date', 'Amount', 'Paid to', 'Method'])

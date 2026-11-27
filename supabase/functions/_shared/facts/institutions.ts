@@ -56,6 +56,15 @@ export function normaliseInstitution(input: unknown): Institution | null {
   return alias ? { name: alias.name, type: alias.type } : { name: text, type: "other" };
 }
 
+// A part of free text counts as a name only if it is a known one, or reads like one: a few capitalised words naming a
+// kind of financial firm. Anything else is a scrap of a sentence (Elena's test, 28 Nov 2026) and is not stored. A name
+// typed on the confirm screen is the person's own and is kept as typed (normaliseInstitution).
+const FIRM_WORD = /\b(?:bank|banking|pay|wallet|finance|financial|capital|credit|insurance|securities|trust|remit|money)\b/i;
+const looksLikeName = (name: string) => {
+  const words = name.split(/\s+/);
+  return words.length <= 5 && FIRM_WORD.test(name) && words.every((w) => /^(?:[A-Z0-9(]|of$|and$|the$|&$)/.test(w));
+};
+
 // Every distinct institution named in a free-text answer such as "DBS and GrabPay" or "OCBC / Singtel".
 export function institutionsIn(text: unknown): Institution[] {
   if (typeof text !== "string" || !text.trim()) return [];
@@ -64,7 +73,8 @@ export function institutionsIn(text: unknown): Institution[] {
   const shortened = text.replace(/industrial and commercial bank of china/gi, "ICBC");
   for (const part of shortened.split(/\s*(?:,|\/|&|\band\b|;|\+)\s*/i)) {
     const institution = normaliseInstitution(part);
-    if (institution) found.set(institution.name.toLowerCase(), institution);
+    const known = institution && (institution.type !== "other" || looksLikeName(institution.name));
+    if (institution && known) found.set(institution.name.toLowerCase(), institution);
   }
   return [...found.values()];
 }

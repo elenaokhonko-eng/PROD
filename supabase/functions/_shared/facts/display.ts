@@ -21,7 +21,9 @@ import {
   type Transaction,
 } from "./keys.ts";
 import { FACT_LABELS } from "./keys.ts";
+import { APPROVED } from "./approved-wording.ts";
 import { normaliseInstitution } from "./institutions.ts";
+import { matchTransactions } from "./reconcile.ts";
 import { normaliseDate, normaliseMoney, normaliseYesNo } from "./normalise.ts";
 import { DATE_PATTERN } from "./validate-output.ts";
 
@@ -80,6 +82,11 @@ const REPLY_TEXT: Record<BankReply["status"], string> = {
   final_reply: "Final reply",
   not_final: "No final reply yet",
 };
+
+/** A moment as its Singapore date, "28 Nov 2026" (requirements 10.4). */
+export function formatSingaporeDate(iso: string): string {
+  return formatDate(new Date(Date.parse(iso) + 8 * 3_600_000).toISOString().slice(0, 10))!;
+}
 
 export function formatDate(iso: string | null): string | null {
   if (!iso) return null;
@@ -151,20 +158,56 @@ const METHOD_LABELS: Record<Instrument, string> = {
   other: "Other payment",
 };
 
-export function transactionRows(list: readonly Transaction[]): Array<Record<string, string>> {
-  return list.map((t) => ({
+/** The documents' payments together: one that two documents both show is one payment. */
+export function documentedPayments(lists: ReadonlyArray<readonly Transaction[]>): Transaction[] {
+  const all: Transaction[] = [];
+  for (const list of lists) {
+    const { unmatchedA } = matchTransactions(list, all);
+    all.push(...unmatchedA.sort((a, b) => a - b).map((i) => list[i]));
+  }
+  return all;
+}
+
+/** The table's rows. Rows no document shows are marked, when a document lists payments at all (9.4). */
+export function transactionRows(list: readonly Transaction[], documents: ReadonlyArray<readonly Transaction[]> = []): Array<Record<string, string>> {
+  const shown = documentedPayments(documents);
+  const unshown = new Set(shown.length ? matchTransactions(list, shown).unmatchedA : []);
+  return list.map((t, i) => ({
     Date: formatDate(t.date) ?? "Not known",
     Amount: formatMoney(t.amount),
     "Paid to": t.payee ?? "Not known",
     Method: t.channel ?? (t.instrument ? METHOD_LABELS[t.instrument] : null) ?? "Not known",
+    ...(unshown.size ? { [APPROVED.notShownMark]: unshown.has(i) ? "✓" : "" } : {}),
   }));
 }
 
+type PaymentFinding = {
+  factKey?: string;
+  fact_key?: string;
+  values: unknown;
+};
+
+/** What each document lists as payments, from the findings: one list per document. */
+export function paymentsByDocument(findings: readonly PaymentFinding[]): Array<{ documentId: string; documentType: string; payments: Transaction[] }> {
+  const finding = findings.find((f) => (f.factKey ?? f.fact_key) === "transactions");
+  const byDocument = new Map<string, { documentId: string; documentType: string; payments: Transaction[] }>();
+  for (const value of (finding?.values ?? []) as Array<{ value: unknown; sources?: Array<{ sourceType?: string; sourceRef?: Record<string, unknown> }> }>) {
+    for (const source of value.sources ?? []) {
+      if (source.sourceType !== "document") continue;
+      const documentId = String(source.sourceRef?.documentId ?? "");
+      const entry = byDocument.get(documentId) ?? { documentId, documentType: String(source.sourceRef?.documentType ?? ""), payments: [] };
+      entry.payments.push(...((value.value ?? []) as Transaction[]));
+      byDocument.set(documentId, entry);
+    }
+  }
+  return [...byDocument.values()];
+}
+
 /** The free evaluation's payments table as stored, and read back. Null when no payment is confirmed. */
-export function paymentsTable(facts: Partial<Record<FactKey, { value: unknown; label: string }>>): string | null {
+export function paymentsTable(facts: Partial<Record<FactKey, { value: unknown; label: string }>>, findings: readonly PaymentFinding[] = []): string | null {
   const fact = facts.transactions;
   if (!fact || (fact.label !== "confirmed" && fact.label !== "claimant_only") || !Array.isArray(fact.value) || !fact.value.length) return null;
-  return JSON.stringify(transactionRows(fact.value as Transaction[]));
+  return JSON.stringify(transactionRows(fact.value as Transaction[], paymentsByDocument(findings).map((d) => d.payments)));
 }
 
 export function parsePaymentsTable(text: string): Array<Record<string, string>> | null {

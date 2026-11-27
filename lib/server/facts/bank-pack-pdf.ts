@@ -1,4 +1,4 @@
-import { APPROVED } from "@/lib/facts"
+import { APPROVED, formatSingaporeDate } from "@/lib/facts"
 import { PAID_PACK_NOTICE } from "@/lib/legal/automated-output-notice"
 import { PdfBuilder } from "@/lib/server/fidrec/build-case-pack-pdf"
 import type { ReportJson } from "@/lib/types/report"
@@ -13,7 +13,7 @@ export async function buildBankPackPdf(report: ReportJson, createdAt: string | n
 
   await builder.addHeading(report.title ?? "Your bank dispute pack")
   await builder.addParagraph(
-    `Generated: ${createdAt ? new Date(createdAt).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" }) : "n/a"}`,
+    `Generated: ${createdAt ? formatSingaporeDate(createdAt) : "n/a"}`,
   )
   await builder.addParagraph(PAID_PACK_NOTICE)
 

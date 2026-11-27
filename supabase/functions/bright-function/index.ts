@@ -271,7 +271,7 @@ ${JSON.stringify(input, null, 2)}`;
     });
 
     // The confirmed payments as a table (Elena, 27 Nov 2026); the other sections give their number and total.
-    const payments = paymentsTable(facts);
+    const payments = paymentsTable(facts, findings ?? []);
     if (payments) {
       await upsertNarrative({
         supabase,
