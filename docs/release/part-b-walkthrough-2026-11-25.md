@@ -403,3 +403,9 @@ and this commit only.
 
 **Watch:** check this test in every gate run on the update branch (`feat/fidrec-update`). A repeat there is not covered
 by the waiver. No retry is added to the test.
+
+### CR-2 (Elena, 26 Nov, amended 27 Nov): one flow inside "My cases"
+
+The full change request, with the wording Elena approved on 27 Nov, is in
+[cr-2-one-dashboard-flow.md](cr-2-one-dashboard-flow.md). It replaces PB-18 and PB-19 (#118). Build from that file;
+it is the copy to read, and it is updated when Elena changes a decision.
