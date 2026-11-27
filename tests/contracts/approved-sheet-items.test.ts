@@ -40,7 +40,8 @@ test('item 8 and 9: the free evaluation is never delivered as a summary version,
   const screen = read('components/state-machine/facts/confirm-and-evaluate.tsx')
   assert.ok(screen.includes('We couldn’t complete your free evaluation this time. You can try again now. If it still doesn’t work, email info@guidebuoyai.sg.'))
   assert.doesNotMatch(screen, /notified/)
-  assert.equal(APPROVED.evaluationCap, 'We can’t prepare more evaluations today. Your answers are saved; please try again tomorrow.')
+  // Replaced by the wording approved with section 8.3 (limits-and-faults.test.ts).
+  assert.match(APPROVED.evaluationCap, /come back tomorrow/)
   const fn = read('supabase/functions/bright-function/index.ts')
   const refusal = fn.indexOf('if (result.source === "fallback") {')
   assert.ok(refusal > 0 && refusal < fn.indexOf('await upsertNarrative('), 'refused before anything is saved')

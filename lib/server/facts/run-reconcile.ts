@@ -45,6 +45,8 @@ export type ExtractJson = (prompt: string, schemaName: string) => Promise<unknow
 export class FactsUnavailableError extends Error {}
 /** Today's model budget is used up (cost-controls spec §5 B4): the story is kept and checked once it reopens. */
 export class FactsPausedError extends FactsUnavailableError {}
+/** A reading did not finish in time (requirements 8.3). */
+export class FactsTimedOutError extends FactsUnavailableError {}
 export class FactsInProgressError extends Error {}
 
 interface Source {
@@ -395,6 +397,7 @@ export async function ensureReconciled(
       .update({ status: "failed", error_code: "reconcile_failed", completed_at: new Date().toISOString() })
       .eq("id", runId)
     if (error instanceof ModelBudgetExceeded) throw new FactsPausedError("Daily model budget reached")
+    if (error instanceof Error && /timed out|timeout/i.test(error.message)) throw new FactsTimedOutError("Fact reading timed out")
     throw error instanceof FactsUnavailableError ? error : new FactsUnavailableError("Fact reconciliation failed")
   }
 }

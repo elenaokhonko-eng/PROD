@@ -14,7 +14,8 @@ export const APPROVED = {
   noDutySetOut: "No duty could be set out from the matched rule clauses and the documents.",
   noFinalReply: "No final reply from the institution had been received when the facts were confirmed.",
   // The free evaluation (items 9, 11).
-  evaluationCap: "We can’t prepare more evaluations today. Your answers are saved; please try again tomorrow.",
+  evaluationCap: "We’ve reached today’s limit for free evaluations. Your answers are saved. Please come back tomorrow.",
+  readingTimedOut: "Reading your documents took too long and did not finish. Please try again now.",
   bothTold: "You have told your bank and the police.",
   // Payments (requirements 9.3, 9.4; approved 27 and 28 Nov 2026).
   tooManyPayments: "This case has more than 150 payments. Please email info@guidebuoyai.sg so we can help you with it.",

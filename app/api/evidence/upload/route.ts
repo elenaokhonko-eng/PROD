@@ -6,7 +6,8 @@ import { getCurrentUser } from "@/lib/auth"
 import { getProfileCaseEditAccess } from "@/lib/case-documents/register-from-evidence-v1"
 import { createServiceClient } from "@/lib/supabase/service"
 import { isAllowedMime } from "@/lib/types/documents"
-import { MAX_PDF_PAGES, MAX_UPLOAD_BYTES, pdfPageCount, UPLOAD_TOO_LARGE_MESSAGE, UPLOAD_TOO_MANY_PAGES_MESSAGE } from "@/lib/server/upload-limits"
+import { documentLimit, MAX_PDF_PAGES, MAX_UPLOAD_BYTES, pdfPageCount, tooManyDocumentsMessage, UPLOAD_TOO_LARGE_MESSAGE, UPLOAD_TOO_MANY_PAGES_MESSAGE } from "@/lib/server/upload-limits"
+import { recordFault } from "@/lib/server/fault-log"
 import { safeErrorText } from "@/lib/server/safe-error"
 import { HOURLY_LIMIT_MESSAGE, limitResponse, overIpModelLimit, overUploadLimit } from "@/lib/server/usage-limits"
 
@@ -153,6 +154,7 @@ export async function POST(request: Request) {
     if (file.type === "application/pdf") {
       const pages = await pdfPageCount(new Uint8Array(await file.arrayBuffer()))
       if (pages !== null && pages > MAX_PDF_PAGES) {
+        await recordFault(createServiceClient(), "too_long", caseId)
         return NextResponse.json({ error: UPLOAD_TOO_MANY_PAGES_MESSAGE }, { status: 413 })
       }
     }
@@ -171,6 +173,22 @@ export async function POST(request: Request) {
     if (caseAccess === "forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
+    // Requirements 8.2: how many documents the case may hold, before anything is stored or read.
+    const [{ data: entitlement, error: entitlementError }, { count, error: countError }] = await Promise.all([
+      supabaseService.rpc("get_effective_entitlement", { p_case_id: caseId }),
+      // A file that could not be read is not part of the case, so it does not count.
+      supabaseService.from("case_documents").select("id", { count: "exact", head: true }).eq("case_id", caseId).neq("processing_status", "failed"),
+    ])
+    if (entitlementError || countError) {
+      console.error("[evidence/upload] Document limit not checked:", safeErrorText(entitlementError ?? countError))
+      return NextResponse.json({ error: "Failed to upload file" }, { status: 503 })
+    }
+    const limit = documentLimit((entitlement as { features?: Record<string, unknown> } | null)?.features ?? {})
+    if ((count ?? 0) >= limit.max) {
+      await recordFault(supabaseService, "too_many", caseId)
+      return NextResponse.json({ error: tooManyDocumentsMessage(limit) }, { status: 409 })
+    }
+
     // Before the usage limits: a refused repeat is not read by a model, so it does not count.
     const existing = await duplicateOf(supabaseService, caseId, file)
     if (existing) return NextResponse.json({ error: DUPLICATE_UPLOAD_MESSAGE }, { status: 409 })

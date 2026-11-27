@@ -2,7 +2,8 @@ import { NextResponse } from "next/server"
 
 import { factsCaseAccess } from "@/lib/server/facts/case-access"
 import { loadFactsView, parseStage } from "@/lib/server/facts/facts-service"
-import { FactsInProgressError, FactsPausedError, FactsUnavailableError } from "@/lib/server/facts/run-reconcile"
+import { FactsInProgressError, FactsPausedError, FactsTimedOutError, FactsUnavailableError } from "@/lib/server/facts/run-reconcile"
+import { recordFault } from "@/lib/server/fault-log"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const dynamic = "force-dynamic"
@@ -25,7 +26,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
       return NextResponse.json({ reason: "facts_in_progress" }, { status: 202, headers: { "Cache-Control": "no-store" } })
     }
     if (error instanceof FactsPausedError) {
+      await recordFault(createServiceClient(), "cap", caseId)
       return NextResponse.json({ error: "Checking is paused until tomorrow", reason: "daily_limit" }, { status: 503 })
+    }
+    if (error instanceof FactsTimedOutError) {
+      await recordFault(createServiceClient(), "timed_out", caseId)
+      return NextResponse.json({ error: "Reading did not finish in time", reason: "reading_timed_out" }, { status: 503 })
     }
     if (error instanceof FactsUnavailableError) {
       return NextResponse.json({ error: "Facts are not available right now", reason: "facts_unavailable" }, { status: 503 })

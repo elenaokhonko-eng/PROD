@@ -3,10 +3,25 @@ import { PDFDocument } from "pdf-lib"
 // Upload limits (Elena, 9 Nov): every page of an upload is read by a model, so size and page count bound the spend per
 // document. Types stay PDF, PNG and JPEG (lib/types/documents.ts), each checked by its file signature.
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024
-export const MAX_PDF_PAGES = 30
+export const MAX_PDF_PAGES = 15
 
 export const UPLOAD_TOO_LARGE_MESSAGE = "This file is larger than 15 MB. Please upload a smaller copy, or the pages that matter."
-export const UPLOAD_TOO_MANY_PAGES_MESSAGE = `This PDF has more than ${MAX_PDF_PAGES} pages. Please upload only the pages that matter.`
+// Requirements 8.2 and 8.3 (wording approved by Elena).
+export const UPLOAD_TOO_MANY_PAGES_MESSAGE = `This file has more than ${MAX_PDF_PAGES} pages. Please upload only the pages that matter, as a separate file.`
+
+export interface DocumentLimit {
+  max: number
+  of: "evaluation" | "pack"
+}
+
+/** How many documents a case may hold. FIDReC is 15 until its writing step is proven with more. */
+export function documentLimit(features: Record<string, unknown>): DocumentLimit {
+  return features.allow_escalation_pack === true || features.allow_self_serve_report === true
+    ? { max: 15, of: "pack" }
+    : { max: 10, of: "evaluation" }
+}
+
+export const tooManyDocumentsMessage = (limit: DocumentLimit) => `You can add up to ${limit.max} documents for this ${limit.of}.`
 
 /** Page count of a PDF, or null when it cannot be read (the upload is then not refused on pages). */
 export async function pdfPageCount(bytes: Uint8Array): Promise<number | null> {

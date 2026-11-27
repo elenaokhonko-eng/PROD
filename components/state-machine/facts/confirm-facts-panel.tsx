@@ -8,7 +8,7 @@
  * answered; the server enforces the same rule when the facts are frozen.
  */
 
-import { transactionRows, type Transaction } from '@/lib/facts'
+import { APPROVED, transactionRows, type Transaction } from '@/lib/facts'
 import { PaymentsTable } from '@/components/state-machine/facts/payments-table'
 import { useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -78,14 +78,19 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
   if (facts.isError) {
     // The daily model budget is used up (cost-controls spec §5 B4): say so calmly; nothing is lost.
     const paused = facts.error instanceof FactsRequestError && facts.error.reason === 'daily_limit'
+    const timedOut = facts.error instanceof FactsRequestError && facts.error.reason === 'reading_timed_out'
     return (
       <Card role="alert">
         <CardHeader>
           <CardTitle>{paused ? 'We’ve paused new checks for today' : 'We couldn’t check your facts just now'}</CardTitle>
           <CardDescription>
             {paused
-              ? 'Your story and documents are saved. Please come back tomorrow, or email info@guidebuoyai.sg and we’ll let you know when it’s ready.'
-              : 'Nothing has been lost. Please try again in a moment.'}
+              ? stage === 'free'
+                ? APPROVED.evaluationCap
+                : 'Your story and documents are saved. Please come back tomorrow, or email info@guidebuoyai.sg and we’ll let you know when it’s ready.'
+              : timedOut
+                ? APPROVED.readingTimedOut
+                : 'Nothing has been lost. Please try again in a moment.'}
           </CardDescription>
         </CardHeader>
         <CardContent>

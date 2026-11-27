@@ -19,7 +19,7 @@ test('only PDF, PNG and JPEG are accepted', () => {
 
 test('size and page caps', async () => {
   assert.equal(MAX_UPLOAD_BYTES, 15 * 1024 * 1024)
-  assert.equal(MAX_PDF_PAGES, 30)
+  assert.equal(MAX_PDF_PAGES, 15)
   assert.equal(await pdfPageCount(await pdfWithPages(3)), 3)
   assert.equal(await pdfPageCount(await pdfWithPages(31)), 31)
   assert.equal(await pdfPageCount(new TextEncoder().encode('%PDF-1.4 not really a pdf')), null, 'unreadable: not refused on pages')
