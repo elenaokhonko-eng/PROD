@@ -142,6 +142,18 @@ class Seeder {
     return caseId
   }
 
+  // CR-2: the timeline questionnaire after buying, answered: a written complaint 40 days ago with no answer.
+  async fidrecTimelineAnswered(caseId: string) {
+    await this.client.query(
+      `insert into case_responses (case_id, question_key, response_value, response_type) values
+         ($1, 'fidrec_timeline', 'answered', 'text'),
+         ($1, 'journey_written_complaint', 'yes', 'text'),
+         ($1, 'journey_written_complaint_date', to_char((now() at time zone 'Asia/Singapore')::date - 40, 'YYYY-MM-DD'), 'date'),
+         ($1, 'journey_bank_reply_status', 'none', 'text')`,
+      [caseId],
+    )
+  }
+
   // The FIDReC route answer (stage2-plan §3a): a written complaint 40 days ago with no reply, so the pack is for sale.
   async fidrecRouteOpen(caseId: string) {
     await this.client.query(
@@ -398,7 +410,10 @@ async function main() {
       await seeder.caseEntitlement(id, 'self_serve_report')
       await seeder.completedReport(id, userA)
     })
-    await add('layer3Tier2', (id) => seeder.caseEntitlement(id, 'escalation_pack'))
+    await add('layer3Tier2', async (id) => {
+      await seeder.caseEntitlement(id, 'escalation_pack')
+      await seeder.fidrecTimelineAnswered(id)
+    })
     await add('layer3FidrecReady', async (id) => {
       await seeder.caseEntitlement(id, 'escalation_pack')
       await seeder.fidrecPack(id, userA)

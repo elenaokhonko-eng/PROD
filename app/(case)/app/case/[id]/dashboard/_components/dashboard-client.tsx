@@ -19,7 +19,7 @@ import { ReportDrafting } from '@/components/state-machine/layer2/report-draftin
 import { ReportFailed } from '@/components/state-machine/layer2/report-failed'
 import { ReportView } from '@/components/state-machine/layer2/report-view'
 import { StateMachineErrorCard } from '@/components/state-machine/error-card'
-import { type StateMachineNode, useStateMachine } from '@/hooks/state-machine/use-state-machine'
+import { useStateMachine } from '@/hooks/state-machine/use-state-machine'
 import { useCaseFacts } from '@/hooks/state-machine/facts/use-case-facts'
 import { useCaseEligibility } from '@/hooks/state-machine/layer1/use-case-eligibility'
 import { useValidationRun } from '@/hooks/state-machine/layer1/use-validation-run'
@@ -29,15 +29,16 @@ import { UploadRefusedError, UsageLimitError, useUploadEvidence } from '@/hooks/
 import { useDeleteEvidence } from '@/hooks/state-machine/layer1/use-delete-evidence'
 import { EVIDENCE_SKIPPED_KEY, useEvidenceSkipped } from '@/hooks/state-machine/facts/use-evidence-skipped'
 import { useCaseDocumentsRealtime } from '@/hooks/state-machine/layer1/use-case-documents-realtime'
-import { PackEvidenceChecklist } from '@/components/state-machine/facts/pack-evidence'
+import { documentsBeingRead, PACK_NAMES, PackEvidenceChecklist } from '@/components/state-machine/facts/pack-evidence'
 import { checkPackEvidence, type EvidenceItem, type PackProduct } from '@/lib/billing/evidence-minimums'
 import { useTier0Draft } from '@/hooks/state-machine/layer1/use-tier0-draft'
 import { useQueryClient } from '@tanstack/react-query'
 import { useJourneyAnswered } from '@/hooks/state-machine/facts/use-journey-answered'
+import { useFidrecTimeline } from '@/hooks/state-machine/facts/use-fidrec-timeline'
 import { qk } from '@/hooks/state-machine/query-keys'
 import { ConfirmAndEvaluate } from '@/components/state-machine/facts/confirm-and-evaluate'
 import { JourneyQuestions } from '@/components/state-machine/facts/journey-questions'
-import { NextSteps } from '@/components/state-machine/facts/next-steps'
+import { NextSteps, RecommendationNotes } from '@/components/state-machine/facts/next-steps'
 import { EvidenceUploadPanel } from '@/components/state-machine/layer1/evidence-upload-panel'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { useAutoRefireExtract } from '@/hooks/state-machine/layer1/use-auto-refire-extract'
@@ -45,7 +46,9 @@ import { useCreateCheckoutSession, type ProductKey } from '@/hooks/state-machine
 import { usePaymentStatus } from '@/hooks/state-machine/transition/use-payment-status'
 import { useDecisionRunRealtime } from '@/hooks/state-machine/layer2/use-decision-run-realtime'
 import { useReportRealtime } from '@/hooks/state-machine/layer2/use-report-realtime'
-import { clearPackIntent, type PackIntent, readPackIntent } from '@/lib/journey/pack-intent'
+import { FidrecTimelineForm, FidrecWaiting } from '@/components/state-machine/facts/fidrec-timeline'
+import { fidrecTimelineCheck, singaporeToday, type FidrecTimeline } from '@/lib/journey/fidrec-timeline'
+import { saveFidrecTimeline } from '@/lib/journey/save-fidrec-timeline'
 import { useJobStatus } from '@/hooks/state-machine/layer2/use-job-status'
 import { FidrecPackView } from '@/components/state-machine/layer3/fidrec-pack-view'
 import { FidrecOffer } from '@/components/state-machine/transition/fidrec-offer'
@@ -60,6 +63,7 @@ import {
 } from '@/lib/validation/gap-flow'
 import type { ValidationAnswerValue } from '@/lib/types/validation'
 import { noteProblem } from '@/lib/report-problem'
+import { parsePack } from '@/lib/journey/pack-case'
 
 type DashboardClientProps = {
   caseId: string
@@ -75,12 +79,12 @@ type DashboardClientProps = {
 
 const GAP_SAVE_ERROR = "We couldn't save your answers. Please try again; if it keeps happening, email info@guidebuoyai.sg."
 
-// Steps before the free evaluation exists, where a pack chosen before sign-in is offered at the top.
-const BEFORE_FREE_EVALUATION = new Set<StateMachineNode>(['S1-Journey', 'S1-IntakeForm', 'S1-GapLoop', 'S1-EvidenceUpload', 'S1-Tier0DraftPending'])
-
 export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabels }: DashboardClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  // A pack button brought the person to this case (?pack=): the offer shows whatever step the case is on. Only the
+  // address says so, nothing is remembered, and nothing is bought until the button is pressed.
+  const askedPack = parsePack(searchParams.get('pack'))
   const { getToken } = useAuth()
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [checkoutProduct, setCheckoutProduct] = useState<ProductKey | null>(null)
@@ -100,6 +104,9 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const intakeCompletionQuery = useIntakeCompletion(caseId)
   const journeyQuery = useJourneyAnswered(caseId)
   const evidenceSkippedQuery = useEvidenceSkipped(caseId)
+  const fidrecTimelineQuery = useFidrecTimeline(caseId)
+  const [editingTimeline, setEditingTimeline] = useState(false)
+  const fidrecCheck = fidrecTimelineQuery.data ? fidrecTimelineCheck(fidrecTimelineQuery.data, singaporeToday()) : null
   const [skippingEvidence, setSkippingEvidence] = useState(false)
   const queryClient = useQueryClient()
   const [journeySaving, setJourneySaving] = useState(false)
@@ -169,6 +176,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     journeyAnswered: journeyQuery.isError ? true : journeyQuery.data ?? null,
     evidenceSkipped: evidenceSkippedQuery.data === true,
     confirmStepShown,
+    fidrecWaiting: fidrecCheck?.available === false,
   })
   useEffect(() => {
     if (node === 'S1-Tier0DraftPending') setConfirmStepShown(true)
@@ -228,15 +236,6 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   const evaluationOutOfDateHref =
     freeFactsView?.latestSnapshot && !freeFactsView.latestSnapshot.unchanged ? `/app/case/${caseId}/facts?stage=free` : null
   const reportCapability = capabilityBilling?.capabilities.report
-  // The pack chosen before sign-in (?intent=bank): offered at the top while the case is still before its free
-  // evaluation, since the bank pack needs only the story (stage2-plan §3a, milestone 4).
-  const [packIntent, setPackIntent] = useState<PackIntent | null>(null)
-  useEffect(() => setPackIntent(readPackIntent()), [])
-  const showBankIntent =
-    packIntent === 'bank' &&
-    reportCapability?.entitled !== true &&
-    reportCapability?.canCheckout === true &&
-    BEFORE_FREE_EVALUATION.has(node)
   const fidrecCapability = capabilityBilling?.capabilities.fidrecPack
   const returnedProductIsEntitled =
     paymentReturnProduct === 'fidrec_tier2_pack'
@@ -339,6 +338,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     await documentsQuery.refetch()
   }
 
+  const filesUploading = uploadEvidence.isPending ? Math.max(1, uploadEvidence.variables?.files.length ?? 0) : 0
+
   function packEvidenceChecklist(product: PackProduct) {
     return (
       <PackEvidenceChecklist
@@ -346,6 +347,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
         check={packEvidence[product]}
         documents={documentsQuery.data ?? []}
         isUploading={uploadEvidence.isPending}
+        uploadingCount={filesUploading}
         onUpload={handleUpload}
         onIdentify={handleIdentifyDocument}
       />
@@ -380,10 +382,18 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     return false
   }
 
-  async function handleCheckout(productKey: ProductKey) {
-    if ((productKey === 'self_serve_report' && packIntent === 'bank') || (productKey === 'fidrec_tier2_pack' && packIntent === 'fidrec')) {
-      clearPackIntent()
+  // Back from Stripe, the browser can restore this page as it was left, on "Redirecting to secure payment".
+  useEffect(() => {
+    const restore = (event: PageTransitionEvent) => {
+      if (!event.persisted) return
+      setCheckoutRedirecting(false)
+      setCheckoutProduct(null)
     }
+    window.addEventListener('pageshow', restore)
+    return () => window.removeEventListener('pageshow', restore)
+  }, [])
+
+  async function handleCheckout(productKey: ProductKey) {
     setCheckoutError(null)
     setCheckoutProduct(productKey)
     if (!canStartCheckout(productKey)) {
@@ -408,58 +418,86 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
 
   const fidrecReport = fidrecReportQuery.data?.status === 'COMPLETED' ? fidrecReportQuery.data : null
 
-  // The route question saves fidrec_route and its date; readiness is then read again (get_case_product_readiness_v1).
-  async function saveFidrecRoute(answers: Record<string, string>) {
-    // The route answer is the person's latest word on their bank's reply or written complaint, so the matching journey
-    // answers follow it; otherwise an older "no reply yet" contradicts it on the confirm screen and the confirmed
-    // facts can close the route after payment (decision 7).
-    const mirrored: Record<string, string> =
-      answers.fidrec_route === 'final_reply'
-        ? { journey_bank_reply_status: 'final_reply', journey_bank_reply_date: answers.fidrec_final_reply_date }
-        : answers.fidrec_route === 'no_reply'
-          ? { journey_written_complaint: 'yes', journey_written_complaint_date: answers.fidrec_complaint_date }
-          : {}
-    const all = { ...answers, ...mirrored }
-    const types = Object.fromEntries(Object.keys(all).map((key) => [key, key.endsWith('_date') ? 'date' : 'text']))
-    await saveResponses(all, types)
-    await paymentStatusQuery.refetch()
+  async function saveTimeline(timeline: FidrecTimeline) {
+    await saveFidrecTimeline(caseId, timeline, getToken)
+    await Promise.all([
+      fidrecTimelineQuery.refetch(),
+      queryClient.invalidateQueries({ queryKey: qk.case.facts(caseId, 'fidrec') }),
+    ])
+    setEditingTimeline(false)
   }
 
   const fidrecOffer = (
     <FidrecOffer
       priceLabel={priceLabels.tier2}
       canCheckout={fidrecCapability?.canCheckout === true}
-      reason={fidrecCapability?.reason ?? null}
-      opensOn={fidrecCapability?.opensOn ?? null}
       checkoutInProgress={fidrecCapability?.checkoutInProgress === true}
       isStartingCheckout={createCheckout.isPending && checkoutProduct === 'fidrec_tier2_pack'}
       errorMessage={checkoutProduct === 'fidrec_tier2_pack' ? checkoutError : null}
       onBuy={() => void handleCheckout('fidrec_tier2_pack')}
-      onSaveRoute={saveFidrecRoute}
     />
   )
+  // CR-2: the bought FIDReC pack, while its timeline stops it being generated.
+  const timelineForm = <FidrecTimelineForm initial={fidrecTimelineQuery.data ?? null} onSave={saveTimeline} />
+  const waitingPanel =
+    fidrecCapability?.entitled === true && !fidrecReport && fidrecCheck?.available === false ? (
+      editingTimeline ? (
+        timelineForm
+      ) : (
+        <section className="space-y-3" aria-label={PACK_NAMES.fidrec}>
+          <p className="text-sm font-semibold text-primary">{PACK_NAMES.fidrec}</p>
+          <FidrecWaiting check={fidrecCheck} onChange={() => setEditingTimeline(true)} />
+          {fidrecCheck.reason === 'complaint_not_raised' && reportCapability?.entitled !== true && reportCapability?.canCheckout === true ? (
+            <BuyReportCTA
+              priceLabel={priceLabels.report}
+              isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
+              errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
+              onClick={() => void handleCheckout('self_serve_report')}
+            />
+          ) : null}
+        </section>
+      )
+    ) : null
   // Offered wherever packs can be bought, once paid stages are on and the case doesn't own it.
   const showFidrecOffer = fidrecCapability?.entitled !== true && capabilityBilling?.access.paidStagesEnabled === true
-
   const renderLayer3 = () => (
     <div className="space-y-6">
+      {waitingPanel}
+      {/* Part B walk-through (25 Nov, PB-5): each pack's title is written from the case, so with both bought the page
+          read as one report shown twice. Each pack is labelled with its name, and a rule separates them. */}
       {fidrecReport ? (
-        <FidrecPackView
-          pack={(fidrecReport.report_json ?? {}) as FidrecPackJson}
-          createdAt={fidrecReport.created_at}
-          onDownload={() => window.location.assign(`/api/cases/${caseId}/fidrec-pack/pdf`)}
-        />
+        <section className="space-y-3" aria-labelledby="pack-label-fidrec" data-pack-section="fidrec">
+          <p id="pack-label-fidrec" className="text-sm font-semibold text-primary">
+            {PACK_NAMES.fidrec}
+          </p>
+          <FidrecPackView
+            pack={(fidrecReport.report_json ?? {}) as FidrecPackJson}
+            createdAt={fidrecReport.created_at}
+            onDownload={() => window.location.assign(`/api/cases/${caseId}/fidrec-pack/pdf`)}
+          />
+        </section>
       ) : null}
       {reportQuery.data?.status === 'COMPLETED' ? (
-        <ReportView
-          report={reportQuery.data}
-          decision={decisionQuery.data}
-          onDownload={
-            reportQuery.data.report_type === 'bank_pack_v1'
-              ? () => window.location.assign(`/api/cases/${caseId}/bank-pack/pdf`)
-              : undefined
-          }
-        />
+        <section
+          className={fidrecReport ? 'space-y-3 border-t pt-8' : 'space-y-3'}
+          aria-labelledby={reportQuery.data.report_type === 'bank_pack_v1' ? 'pack-label-bank' : undefined}
+          data-pack-section="bank"
+        >
+          {reportQuery.data.report_type === 'bank_pack_v1' ? (
+            <p id="pack-label-bank" className="text-sm font-semibold text-primary">
+              {PACK_NAMES.bank}
+            </p>
+          ) : null}
+          <ReportView
+            report={reportQuery.data}
+            decision={decisionQuery.data}
+            onDownload={
+              reportQuery.data.report_type === 'bank_pack_v1'
+                ? () => window.location.assign(`/api/cases/${caseId}/bank-pack/pdf`)
+                : undefined
+            }
+          />
+        </section>
       ) : null}
       <div className="rounded-lg border bg-muted/40 p-4 text-sm">
         <p className="font-medium">Case reference</p>
@@ -471,7 +509,8 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
         ) : null}
         {initialCaseSnapshot.claimAmount != null ? (
           <p className="text-muted-foreground">
-            Reported loss: SGD {initialCaseSnapshot.claimAmount.toLocaleString()}
+            {/* PB-11 (Part B walk-through, 25 Nov): "S$2,400", as in the packs, not "SGD 2,400". */}
+            Reported loss: S${initialCaseSnapshot.claimAmount.toLocaleString('en-SG')}
           </p>
         ) : null}
       </div>
@@ -480,12 +519,10 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
 
       <section className="rounded-xl border border-dashed bg-muted/30 p-5" aria-labelledby="consultation-status">
         <h2 id="consultation-status" className="font-semibold">Human consultation</h2>
+        {/* PB-6 (Elena, 25 Nov): the line says how to book, with no greyed button under it. */}
         <p className="mt-2 text-sm text-muted-foreground">
           Human consultation: S$99 for 30 minutes. Email info@guidebuoyai.sg to book.
         </p>
-        <button type="button" className="mt-4 min-h-11 rounded-full border px-4 text-sm font-semibold" disabled>
-          Consultation unavailable
-        </button>
       </section>
     </div>
   )
@@ -493,19 +530,18 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto max-w-5xl px-4 py-8" data-harbor-node={node} data-harbor-ready={stateReady ? 'true' : 'false'}>
-        {packIntent === 'fidrec' && showFidrecOffer && BEFORE_FREE_EVALUATION.has(node) ? (
-          <div className="mb-8" data-pack-intent="fidrec">
-            {fidrecOffer}
-          </div>
-        ) : null}
-        {showBankIntent ? (
-          <div className="mb-8" data-pack-intent="bank">
-            <BuyReportCTA
-              priceLabel={priceLabels.report}
-              isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
-              errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
-              onClick={() => void handleCheckout('self_serve_report')}
-            />
+        {askedPack && ['S1-Journey', 'S1-IntakeForm', 'S1-GapLoop', 'S1-EvidenceUpload', 'S1-Tier0DraftPending'].includes(node) ? (
+          <div className="mb-8" data-asked-pack={askedPack}>
+            {askedPack === 'fidrec' ? (
+              showFidrecOffer ? fidrecOffer : null
+            ) : reportCapability?.entitled !== true && reportCapability?.canCheckout === true ? (
+              <BuyReportCTA
+                priceLabel={priceLabels.report}
+                isStartingCheckout={createCheckout.isPending && checkoutProduct === 'self_serve_report'}
+                errorMessage={checkoutProduct === 'self_serve_report' ? checkoutError : null}
+                onClick={() => void handleCheckout('self_serve_report')}
+              />
+            ) : null}
           </div>
         ) : null}
         {eligibilityQuery.isError ? (
@@ -523,6 +559,16 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
                 : undefined
             }
           />
+        ) : hasInvalidPaymentReturn ? (
+          <StateMachineErrorCard
+            kind="internal"
+            context="Invalid payment return product"
+            onRetry={() => router.replace(`/app/case/${caseId}/dashboard`)}
+          />
+        ) : isAwaitingPaymentConfirmation ? (
+          // PB-19 (Part B walk-through, 25 Nov): checked before the free evaluation's steps, which showed for a moment
+          // after paying until the purchase was visible.
+          <PaymentSuccessLanding isConfirming />
         ) : node === 'S1-IntakeForm' && journeyQuery.isPending ? (
           <StateMachineLoading title="Loading your case" />
         ) : node === 'S1-Journey' ? (
@@ -614,6 +660,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               factsHref,
               footerSlot: (
                 <div className="pt-4">
+                  <RecommendationNotes caseId={caseId} />
                   <BuyReportCTA
                     priceLabel={priceLabels.report}
                     disabled={reportCapability?.canCheckout !== true}
@@ -627,14 +674,6 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               ),
             }}
           />
-        ) : hasInvalidPaymentReturn ? (
-          <StateMachineErrorCard
-            kind="internal"
-            context="Invalid payment return product"
-            onRetry={() => router.replace(`/app/case/${caseId}/dashboard`)}
-          />
-        ) : isAwaitingPaymentConfirmation ? (
-          <PaymentSuccessLanding isConfirming />
         ) : node === 'T-EligibilityGate' ? (
           <>
             <EligibilityGate
@@ -659,8 +698,29 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
           </>
         ) : node === 'T-CheckoutRedirect' ? (
           <CheckoutRedirect />
+        ) : node === 'L3-ConfirmFidrecFacts' && fidrecTimelineQuery.isPending ? (
+          <StateMachineLoading title="Loading your case" />
+        ) : node === 'L3-ConfirmFidrecFacts' && (!fidrecTimelineQuery.data || (editingTimeline && fidrecCheck?.available)) ? (
+          // CR-2: the questionnaire is the first step of a bought FIDReC pack.
+          timelineForm
+        ) : node === 'L3-ConfirmFidrecFacts' && fidrecCheck?.available === false ? (
+          <div className="space-y-8">
+            {waitingPanel}
+            <EvidenceUploadPanel
+              documents={documentsQuery.data ?? []}
+              isUploading={uploadEvidence.isPending}
+              activeBatchFileCount={uploadEvidence.isPending ? uploadEvidence.variables?.files.length ?? 0 : 0}
+              errorMessage={uploadErrorMessage}
+              onUpload={handleUpload}
+              onDelete={handleDelete}
+              deletingId={deletingDocumentId}
+            />
+          </div>
         ) : node === 'L3-ConfirmFidrecFacts' ? (
           <div className="space-y-8">
+            <button type="button" className="min-h-11 text-sm underline" onClick={() => setEditingTimeline(true)}>
+              Change my answers
+            </button>
             <p className="rounded-lg border bg-muted/40 p-4 text-sm">
               If your bank has sent its final reply, upload the letter below before you confirm: the FIDReC pack uses it
               for the bank’s position.
@@ -670,6 +730,9 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
               caseId={caseId}
               stage="fidrec"
               evidenceReady={packEvidence.fidrec.ready}
+              missingEvidence={packEvidence.fidrec.missing}
+              documentsUploading={filesUploading}
+              documentsReading={documentsBeingRead(documentsQuery.data ?? [])}
               readyDocumentsKey={(documentsQuery.data ?? []).filter((d) => d.processing_status === 'ready').map((d) => d.id).sort().join(',')}
             />
             <EvidenceUploadPanel
@@ -685,11 +748,15 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
         ) : node === 'L2-ConfirmBankFacts' ? (
           // Stage 2: after payment, confirm the bank facts and add evidence; the bank pack is generated from them.
           <div className="space-y-8">
+            {waitingPanel}
             {packEvidenceChecklist('bank')}
             <ConfirmAndEvaluate
               caseId={caseId}
               stage="bank"
               evidenceReady={packEvidence.bank.ready}
+              missingEvidence={packEvidence.bank.missing}
+              documentsUploading={filesUploading}
+              documentsReading={documentsBeingRead(documentsQuery.data ?? [])}
               readyDocumentsKey={(documentsQuery.data ?? []).filter((d) => d.processing_status === 'ready').map((d) => d.id).sort().join(',')}
             />
             <EvidenceUploadPanel

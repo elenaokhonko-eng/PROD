@@ -5,16 +5,18 @@
 // regenerates once, and otherwise uses fixed wording. Shared by run_fidrec_pack_v1 and its tests.
 
 import { EVIDENCE_RULES, type EvidenceItem, isEvidenceItem } from "../evidence-minimums.ts";
-import { formatMoney } from "./display.ts";
+import { APPROVED } from "./approved-wording.ts";
+import { formatDate, formatMoney } from "./display.ts";
 import { DOCUMENT_CONFIDENCE_THRESHOLD } from "./extraction.ts";
-import { DOCUMENT_LABELS, type EvidenceFinding, evidenceLists } from "./free-sections.ts";
+import { COMPLAINANT_ITEM_LABELS, DOCUMENT_LABELS, documentsShowing, type EvidenceFinding, evidenceLists } from "./free-sections.ts";
 import type { BankReply, FactKey, Instrument, Money, ReportedEvent, Transaction } from "./keys.ts";
 import { appliesToCase, appliesToLabel, instrumentsOf } from "./rules/instrument-scope.ts";
-import { type FidrecAvailability, fidrecAvailability, FIDREC_RULES } from "./rules/fidrec.ts";
-import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
-import { bankPackTransactions } from "./bank-pack.ts";
+import { type FidrecPackCheck, fidrecPackCheck, FIDREC_RULES } from "./rules/fidrec.ts";
+import { FINAL_REPLY_EXPIRED_NOTE } from "./recommend.ts";
+import { assessSrf, type SrfAssessment, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
+import { bankPackTransactions, withDisplayDates } from "./bank-pack.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
-import { normaliseDate } from "./normalise.ts";
+import { addMonths, normaliseDate } from "./normalise.ts";
 import {
   DATE_PATTERN,
   MONEY_PATTERN,
@@ -72,7 +74,7 @@ function parseDuties(value: unknown): FidrecDuty[] {
   if (!Array.isArray(value)) return [];
   const ids = (v: unknown) =>
     Array.isArray(v) ? [...new Set(v.filter((id): id is string => typeof id === "string").map((id) => id.trim().toUpperCase()))] : [];
-  return value.slice(0, 10).flatMap((item) => {
+  return value.flatMap((item) => {
     const row = (item ?? {}) as Record<string, unknown>;
     const text = typeof row.text === "string" ? row.text.trim() : "";
     return text ? [{ text, clause_ids: ids(row.clause_ids), evidence_ids: ids(row.evidence_ids) }] : [];
@@ -82,7 +84,7 @@ function parseDuties(value: unknown): FidrecDuty[] {
 function parseArguments(value: unknown): FidrecArgument[] | null {
   if (!Array.isArray(value)) return null;
   const out: FidrecArgument[] = [];
-  for (const item of value.slice(0, 12)) {
+  for (const item of value) {
     const row = (item ?? {}) as Record<string, unknown>;
     const text = typeof row.text === "string" ? row.text.trim() : "";
     if (!text) continue;
@@ -131,6 +133,22 @@ export const fidrecPackTexts = (prose: FidrecPackProse) => [
   ...prose.arguments_for_claimant.map((a) => a.text),
   ...prose.arguments_for_institution.map((a) => a.text),
 ];
+
+export const MAX_ARGUMENTS_PER_SIDE = 12;
+export const MAX_DUTIES = 10;
+
+/** Item 20: a longer list is rewritten by the AI, never cut. */
+export function listLengthFailures(prose: FidrecPackProse): OutputFailure[] {
+  const failures: OutputFailure[] = [];
+  for (const [name, list, max] of [
+    ["points for the complainant", prose.arguments_for_claimant, MAX_ARGUMENTS_PER_SIDE],
+    ["points for the institution", prose.arguments_for_institution, MAX_ARGUMENTS_PER_SIDE],
+    ["institution duties", prose.institution_duties, MAX_DUTIES],
+  ] as const) {
+    if (list.length > max) failures.push({ check: "length", detail: `${list.length} ${name}; write at most ${max}, keeping everything that matters` });
+  }
+  return failures;
+}
 
 /** Every argument cites at least one evidence ID, and only IDs from the index (design: arguments tied to evidence). */
 export function evidenceIdFailures(prose: FidrecPackProse, index: readonly EvidenceIndexEntry[]): OutputFailure[] {
@@ -300,13 +318,8 @@ export interface CaseDocument {
   text: string | null;
 }
 
-// A document counted only because the customer said what it is: the pack says so, not what the pipeline read it as.
-const COMPLAINANT_ITEM_LABELS: Record<EvidenceItem, string> = {
-  payment_proof: "a document identified by the complainant as proof of the disputed payments",
-  police_report: "a document identified by the complainant as a police report",
-  bank_reply_or_complaint: "a document identified by the complainant as the bank's written reply or the written complaint",
-  scam_message: "a document identified by the complainant as the scam message",
-};
+// A document counted only because the customer said what it is: the pack says so, not what the pipeline read it as
+// (COMPLAINANT_ITEM_LABELS, shared with the evidence lists in free-sections.ts).
 
 function complainantLabel(document: CaseDocument): string | null {
   const item = document.complainantItem;
@@ -329,7 +342,11 @@ export function buildEvidenceIndex(findings: readonly Tier0Finding[], documents:
         let entry = byDocument.get(documentId);
         if (!entry) {
           const type = String(source.sourceRef?.documentType ?? "");
-          entry = { id: `E${byDocument.size + 1}`, documentId, label: DOCUMENT_LABELS[type] ?? "an uploaded document", facts: [] };
+          const marked = source.sourceRef?.complainantItem;
+          const label = source.sourceRef?.typeFromMark === true && isEvidenceItem(marked)
+            ? COMPLAINANT_ITEM_LABELS[marked]
+            : DOCUMENT_LABELS[type] ?? "an uploaded document";
+          entry = { id: `E${byDocument.size + 1}`, documentId, label, facts: [] };
           byDocument.set(documentId, entry);
         }
         const key = finding.fact_key as FactKey;
@@ -362,6 +379,21 @@ export function documentExcerpts(index: readonly EvidenceIndexEntry[], documents
     const excerpt = text.slice(0, Math.min(DOCUMENT_EXCERPT_MAX_CHARS, budget));
     budget -= excerpt.length;
     return [{ id: entry.id, document: entry.label, excerpt }];
+  });
+}
+
+/** Item 20: the evidence index says which documents were read only in part, or not at all. */
+export function evidenceIndexWithReadingNotes(
+  index: readonly EvidenceIndexEntry[],
+  excerpts: ReadonlyArray<{ id: string; excerpt: string }>,
+  documents: readonly CaseDocument[],
+): EvidenceIndexEntry[] {
+  return index.map((entry) => {
+    const text = documents.find((d) => d.id === entry.documentId)?.text?.trim();
+    if (!text) return entry;
+    const read = excerpts.find((e) => e.id === entry.id)?.excerpt.length ?? 0;
+    if (read >= text.length) return entry;
+    return { ...entry, label: `${entry.label}. ${read ? APPROVED.partlyRead : APPROVED.notRead}` };
   });
 }
 
@@ -412,11 +444,10 @@ function confirmedValue<T>(facts: SnapshotFacts, key: FactKey): T | null {
   return fact && (fact.label === "confirmed" || fact.label === "claimant_only") ? (fact.value as T) : null;
 }
 
-/** Whether FIDReC can be approached today on the confirmed facts (rules/fidrec.ts F2, F3). */
-export function fidrecRouteFromFacts(facts: SnapshotFacts, today: string): FidrecAvailability {
-  return fidrecAvailability(
+/** Whether the bought pack can be generated on the confirmed facts (rules/fidrec.ts fidrecPackCheck). */
+export function fidrecRouteFromFacts(facts: SnapshotFacts, today: string): FidrecPackCheck {
+  return fidrecPackCheck(
     {
-      reportedToBank: confirmedValue<ReportedEvent>(facts, "reported_to_bank"),
       writtenComplaint: confirmedValue<ReportedEvent>(facts, "written_complaint_sent"),
       bankReply: confirmedValue<BankReply>(facts, "bank_reply"),
     },
@@ -568,20 +599,76 @@ export function fidrecChronology(facts: SnapshotFacts): Array<{ date?: string; e
     if (reported?.value === "yes") items.push({ ...(reported.date ? { date: reported.date } : {}), event });
   }
   const reply = confirmedValue<BankReply>(facts, "bank_reply");
-  if (reply && reply.status !== "none") {
+  if (reply && reply.status !== "none" && reply.status !== "not_final") {
     items.push({ ...(reply.date ? { date: reply.date } : {}), event: reply.status === "final_reply" ? "The institution gave its final reply" : "The institution replied" });
   }
-  return items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
+  items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
+  // Item 21.
+  if (reply && (reply.status === "none" || reply.status === "not_final")) items.push({ event: APPROVED.noFinalReply });
+  return items;
+}
+
+/** The confirmed final reply the FIDReC deadline counts from, and the bank letter that states it, by evidence ID. */
+export interface FinalReplyBasis {
+  date: string;
+  /** The E-number of the bank letter read as this final reply; null when only the person's answers state it. */
+  letterEvidenceId: string | null;
+}
+
+export function finalReplyBasis(
+  facts: SnapshotFacts,
+  findings: readonly EvidenceFinding[],
+  evidenceIndex: readonly EvidenceIndexEntry[] = [],
+): FinalReplyBasis | null {
+  const reply = confirmedValue<BankReply>(facts, "bank_reply");
+  if (!reply || reply.status !== "final_reply" || !reply.date) return null;
+  const letter = documentsShowing("bank_reply", findings).find((d) => d.documentType === "bank_correspondence" && d.documentId);
+  const entry = letter ? evidenceIndex.find((e) => e.documentId === letter.documentId) : undefined;
+  return { date: reply.date, letterEvidenceId: entry?.id ?? null };
 }
 
 /** How and when FIDReC can be approached, with the fee: fixed wording from the Terms of Reference (rules/fidrec.ts). */
-export function fidrecRouteText(route: FidrecAvailability): string {
+export function fidrecRouteText(route: FidrecPackCheck, finalReply: FinalReplyBasis | null = null, today?: string): string {
   const fee = `If the case goes to adjudication, FIDReC charges individuals a S$${FIDREC_RULES.adjudicationFeeSgd.individual} case fee.`;
-  if (route.available && route.route === "final_reply") {
-    return `The institution gave its final reply. FIDReC must receive the complaint by ${route.deadline} (six months after the final reply). ${fee}`;
+  // Part B walk-through (25 Nov). PB-24: a confirmed final reply read from a letter carries no "qualifies" answer, so
+  // the route fell back to "the complaint is not resolved" and the deadline a customer acts on was left out; it is now
+  // counted from any confirmed final reply. PB-13 (wording chosen by Elena, 25 Nov): the line says whose date it is
+  // and how the deadline was counted.
+  if (finalReply) {
+    const deadline = addMonths(finalReply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value);
+    // The pack does not decide whether the reply "qualifies" under FIDReC's rules; it says whose date it is.
+    const dated = finalReply.letterEvidenceId
+      ? `The institution's letter dated ${formatDate(finalReply.date)} says it is its final reply (${finalReply.letterEvidenceId}).`
+      : `You told us the final reply is dated ${formatDate(finalReply.date)}.`;
+    // CR-2 (27 Nov): after the six months, both dates, the rules and the passage on what a final reply is, each once.
+    if (today && deadline < today) {
+      const first = finalReply.letterEvidenceId
+        ? dated
+        : `The final reply you told us about is dated ${formatDate(finalReply.date)}.`;
+      return `${first} Six months from that date ended on ${formatDate(deadline)} (Rule 13(1)(ii); Rule 5(vi)). ${FINAL_REPLY_EXPIRED_NOTE} ${fee}`;
+    }
+    return `${dated} Counted from that date, FIDReC must receive the complaint by ${formatDate(deadline)} (six months after the final reply). ${fee}`;
   }
+  if (route.available && route.route === "final_reply") {
+    return `The institution gave its final reply. FIDReC must receive the complaint by ${formatDate(route.deadline)} (six months after the final reply). ${fee}`;
+  }
+  if (route.available && route.route === "answered") return `The institution has answered the complaint and the matter is not resolved (Rule 13(1)(i)). ${fee}`;
   if (route.available) return `The complainant complained in writing more than four weeks ago and the complaint is not resolved. ${fee}`;
   return fee;
+}
+
+// PB-23 (Part B walk-through, 25 Nov; wording chosen by Elena): an investment scam met the SRF's phishing duties
+// before reading, under "How the rules may apply", that the SRF does not cover it. "Likely not covered by the SRF" is
+// that section's own label, so both say it the same way.
+export const SRF_DUTIES_NOTE =
+  "This payment is likely not covered by the SRF (see 'How the rules may apply'). The duties below are listed because FIDReC can consider how the institution handled the case.";
+
+// Item 16 (wording approved by Elena, 27 Nov 2026): the duties section is there even when no clause applies.
+export const NO_CLAUSE_MATCHED_NOTE = APPROVED.noClauseMatched;
+
+export function srfDutiesNote(assessment: SrfAssessment): string | null {
+  const portions = assessment.portions;
+  return portions.length > 0 && portions.every((p) => p.assessment === "likely_out_of_scope") ? SRF_DUTIES_NOTE : null;
 }
 
 export interface FidrecPackReport {
@@ -593,6 +680,8 @@ export interface FidrecPackReport {
   arguments_for_claimant: FidrecArgument[];
   arguments_for_institution: FidrecArgument[];
   institution_duties: FidrecDuty[];
+  /** Server-written, above the duties when every payment is likely outside the SRF (PB-23); null otherwise. */
+  duties_note: string | null;
   /** The clauses the duties cite, with their source documents. */
   regulatory_sources: Array<{ id: string; source: string; clause_ref: string | null; title: string | null }>;
   timeline: Array<{ date?: string; event: string }>;
@@ -607,32 +696,55 @@ export interface FidrecPackReport {
   prose_source: "model" | "fallback";
 }
 
+// PB-12 (Part B walk-through, 25 Nov): points ended "(E1). (E1)": the model's own citation, then the IDs the page adds.
+// A closing citation is dropped from the text when every ID in it is added anyway; any other citation stays.
+const TRAILING_CITATION = /\s*\(([ER]\d+(?:\s*[,;]\s*[ER]\d+)*)\)(\.?)\s*$/;
+
+export function withoutTrailingCitation<T extends { text: string; evidence_ids: string[]; clause_ids?: string[] }>(item: T): T {
+  const match = TRAILING_CITATION.exec(item.text);
+  if (!match) return item;
+  const added = new Set([...item.evidence_ids, ...(item.clause_ids ?? [])]);
+  if (!match[1].split(/\s*[,;]\s*/).every((id) => added.has(id))) return item;
+  return { ...item, text: `${item.text.slice(0, match.index)}${match[2] ? "." : ""}` };
+}
+
 export function assembleFidrecPack(args: {
   prose: FidrecPackProse;
   source: "model" | "fallback";
   facts: SnapshotFacts;
   findings: readonly EvidenceFinding[];
   evidenceIndex: readonly EvidenceIndexEntry[];
-  route: FidrecAvailability;
+  route: FidrecPackCheck;
   finalReplyUsed: boolean;
   clauses?: readonly RegulatoryClause[];
+  /** Singapore date (YYYY-MM-DD), to say whether the six months after the final reply have passed. */
+  today?: string;
 }): FidrecPackReport {
   const { facts } = args;
-  const { shown, missing } = evidenceLists(facts, args.findings);
+  // Item 6 in the third person, with the evidence number.
+  const { shown, missing } = evidenceLists(facts, args.findings, {
+    voice: "complainant",
+    evidenceId: (documentId) => args.evidenceIndex.find((e) => e.documentId === documentId)?.id ?? null,
+  });
   const loss = confirmedValue<Money>(facts, "total_loss");
+  const srf = assessSrf(srfFactsFromSnapshot(facts));
   return {
     report_version: FIDREC_PACK_VERSION,
     ...args.prose,
+    arguments_for_claimant: args.prose.arguments_for_claimant.map(withoutTrailingCitation),
+    arguments_for_institution: args.prose.arguments_for_institution.map(withoutTrailingCitation),
+    institution_duties: args.prose.institution_duties.map(withoutTrailingCitation),
     regulatory_sources: (args.clauses ?? [])
       .filter((c) => args.prose.institution_duties.some((d) => d.clause_ids.includes(c.id)))
       .map((c) => ({ id: c.id, source: c.source, clause_ref: c.clause_ref, title: c.title })),
-    timeline: fidrecChronology(facts),
+    timeline: withDisplayDates(fidrecChronology(facts)),
     disputed_transactions: bankPackTransactions(facts),
     total_loss: loss ? formatMoney(loss) : null,
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label })),
     evidence_checklist: [...shown.map((label) => ({ label, present: true })), ...missing.map((label) => ({ label, present: false }))],
-    route: fidrecRouteText(args.route),
-    rules_assessment: srfAssessmentText(assessSrf(srfFactsFromSnapshot(facts))),
+    duties_note: args.clauses && !args.clauses.length ? NO_CLAUSE_MATCHED_NOTE : srfDutiesNote(srf),
+    route: fidrecRouteText(args.route, finalReplyBasis(facts, args.findings, args.evidenceIndex), args.today),
+    rules_assessment: srfAssessmentText(srf),
     final_reply_used: args.finalReplyUsed,
     prose_source: args.source,
   };

@@ -6,13 +6,15 @@
  * moves on to it by itself.
  */
 
+import { FIDREC_NOT_COMPLAINED, fidrecWaitingText } from '@/lib/journey/fidrec-timeline'
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { qk } from '@/hooks/state-machine/query-keys'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmFactsPanel } from '@/components/state-machine/facts/confirm-facts-panel'
-import { PACK_NAMES } from '@/components/state-machine/facts/pack-evidence'
+import { addMissingEvidenceText, DocumentsReadingNote, PACK_NAMES } from '@/components/state-machine/facts/pack-evidence'
+import type { EvidenceItem } from '@/lib/billing/evidence-minimums'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { FactsRequestError } from '@/hooks/state-machine/facts/use-case-facts'
 import { type GeneratedStage, useGenerateStage } from '@/hooks/state-machine/facts/use-generate-free-evaluation'
@@ -23,31 +25,33 @@ const COPY: Record<GeneratedStage, { preparing: string; failed: string; failedRe
   free: {
     preparing: 'Preparing your free evaluation',
     failed: 'We couldn’t prepare your free evaluation',
-    failedReason: 'We couldn’t produce an evaluation that matches your facts exactly. We’ve been notified; please try again later.',
+    failedReason: 'We couldn’t complete your free evaluation this time. You can try again now. If it still doesn’t work, email info@guidebuoyai.sg.',
     problem: 'free_evaluation_failed',
   },
   bank: {
     preparing: 'Preparing your bank dispute pack',
     failed: 'We couldn’t prepare your bank dispute pack',
-    failedReason: 'We couldn’t produce a bank dispute pack that matches your facts exactly. We’ve been notified; please try again later.',
+    // Wording approved by Elena, 27 Nov 2026 (both pack messages): nothing notifies anyone, so neither says so.
+    failedReason: 'We couldn’t complete your Bank dispute pack this time. You can try again now. If it still doesn’t work, email info@guidebuoyai.sg.',
     problem: 'bank_pack_failed',
   },
   fidrec: {
     preparing: 'Preparing your FIDReC pack',
     failed: 'We couldn’t prepare your FIDReC pack',
-    failedReason: 'We couldn’t produce a FIDReC pack that matches your facts exactly. We’ve been notified; please try again later.',
+    failedReason: 'We couldn’t complete your FIDReC pack this time. You can try again now. If it still doesn’t work, email info@guidebuoyai.sg.',
     problem: 'fidrec_pack_failed',
   },
 }
 
-// Decision 7: the confirmed facts don't open a route to FIDReC today, so nothing is generated (and nothing charged again).
-const ROUTE_CLOSED: Record<string, string> = {
-  fidrec_too_early:
-    'Your confirmed facts show FIDReC can’t take the complaint yet: it opens four weeks after your written complaint to the bank. Check the dates in your facts, or come back then.',
-  fidrec_window_expired:
-    'Your confirmed facts show more than six months have passed since your bank’s final reply. Ask your bank to review your complaint again; a new final reply may start a new six-month window.',
-  complaint_not_raised:
-    'Your confirmed facts don’t show a written complaint to your bank yet. FIDReC needs one first: complain to your bank in writing, then come back.',
+// CR-2 (27 Nov): the confirmed facts show the bank has not had its chance yet, so nothing is generated (and nothing
+// charged again). The two messages are Elena's approved wording.
+function routeClosed(reason: string, error: unknown): string | null {
+  if (reason === 'complaint_not_raised') return FIDREC_NOT_COMPLAINED
+  if (reason !== 'fidrec_too_early') return null
+  const details = error instanceof FactsRequestError ? error.details : null
+  return details?.complaintDate && details.opensOn
+    ? fidrecWaitingText(details.complaintDate, details.opensOn)
+    : 'Your confirmed facts show FIDReC can’t take the complaint yet: it opens four weeks after your written complaint to the bank. Check the dates in your facts, or come back then.'
 }
 
 export function ConfirmAndEvaluate({
@@ -55,12 +59,20 @@ export function ConfirmAndEvaluate({
   readyDocumentsKey,
   stage = 'free',
   evidenceReady,
+  missingEvidence,
+  documentsUploading = 0,
+  documentsReading = 0,
 }: {
   caseId: string
   readyDocumentsKey: string
   stage?: GeneratedStage
   /** Paid packs only: whether the documents the pack needs are in (evidence-minimums.ts). Undefined: no check. */
   evidenceReady?: boolean
+  /** Paid packs only: the required items still missing, named after confirming (PB-3). */
+  missingEvidence?: readonly EvidenceItem[]
+  /** Files in the upload under way, and documents uploaded but not yet read. */
+  documentsUploading?: number
+  documentsReading?: number
 }) {
   const generate = useGenerateStage(caseId, stage)
   const copy = COPY[stage]
@@ -73,7 +85,15 @@ export function ConfirmAndEvaluate({
     if (lastDocumentsKey.current === readyDocumentsKey) return
     lastDocumentsKey.current = readyDocumentsKey
     void queryClient.invalidateQueries({ queryKey: qk.case.facts(caseId, stage) })
-  }, [caseId, queryClient, readyDocumentsKey, stage])
+    // Part B walk-through (25 Nov, PB-2): facts confirmed before this document was read no longer match it, and the
+    // server refuses them (facts_unconfirmed). Go back to the facts by themselves, so one press confirms them with it.
+    if (snapshotId && !generate.isPending && !generate.isSuccess) {
+      generate.reset()
+      setSnapshotId(null)
+    }
+  }, [caseId, generate, queryClient, readyDocumentsKey, snapshotId, stage])
+
+  const documentsInFlight = documentsUploading + documentsReading
 
   if (generate.isPending) {
     return (
@@ -95,11 +115,14 @@ export function ConfirmAndEvaluate({
           <CardDescription>
             {evidenceReady
               ? `Your documents are in. You can generate your ${PACK_NAMES[stage]} now.`
-              : `When the documents listed above are added, you can generate your ${PACK_NAMES[stage]}.`}
+              : missingEvidence?.length
+                ? addMissingEvidenceText(stage, missingEvidence)
+                : `When the documents listed above are added, you can generate your ${PACK_NAMES[stage]}.`}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button disabled={!evidenceReady} onClick={() => generate.mutate(snapshotId)}>
+        <CardContent className="space-y-3">
+          <DocumentsReadingNote uploadingCount={documentsUploading} readingCount={documentsReading} />
+          <Button disabled={!evidenceReady || documentsInFlight > 0} onClick={() => generate.mutate(snapshotId)}>
             Generate your {PACK_NAMES[stage]}
           </Button>
         </CardContent>
@@ -109,6 +132,7 @@ export function ConfirmAndEvaluate({
 
   if (snapshotId && generate.isError) {
     const reason = failedReason
+    const closed = reason ? routeClosed(reason, generate.error) : null
     const checks = generate.error instanceof FactsRequestError ? generate.error.checks : []
     return (
       <Card role="alert">
@@ -117,8 +141,8 @@ export function ConfirmAndEvaluate({
           <CardDescription>
             {reason === 'facts_unconfirmed'
               ? 'Your facts changed since you confirmed them. Please check them again.'
-              : reason && ROUTE_CLOSED[reason]
-                ? ROUTE_CLOSED[reason]
+              : closed
+                ? closed
                 : reason === 'usage_limit'
                 ? generate.error.message
                 : reason === 'output_validation_failed'
@@ -127,7 +151,7 @@ export function ConfirmAndEvaluate({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
-          {reason === 'facts_unconfirmed' || (reason && ROUTE_CLOSED[reason]) ? (
+          {reason === 'facts_unconfirmed' || closed ? (
             <Button onClick={() => { generate.reset(); setSnapshotId(null) }}>Check my facts again</Button>
           ) : (
             <Button onClick={() => generate.mutate(snapshotId)}>Try again</Button>

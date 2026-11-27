@@ -17,13 +17,19 @@ import {
   sha256Hex,
 } from "@/lib/facts"
 import { generateJson, getOpenAiModel } from "@/lib/server/ai/generate-json"
+import { isEvidenceItem } from "@/lib/billing/evidence-minimums"
 import { ModelBudgetExceeded, OUTPUT_CAPS } from "@/lib/server/model-usage"
 import { logger } from "@/lib/logger"
 
 const log = logger.withContext({ module: "facts-reconcile" })
 
 const STORY_LIMIT = 20_000
-const DOCUMENT_LIMIT = 15_000
+// "All transactions must be pulled" (Elena, 27 Nov 2026): the whole of a long statement is read, and the answer has
+// room for every payment (about 100 tokens each). An answer that is still cut off fails the check rather than losing
+// payments quietly.
+const DOCUMENT_LIMIT = 100_000
+const DOCUMENT_OUTPUT_CAP = 8_192
+const DOCUMENT_TIMEOUT_MS = 90_000
 const MODEL_CONCURRENCY = 4
 // The confirm screen waits on this run, so each model call is bounded: 30 s and one retry, about two minutes at worst.
 const MODEL_TIMEOUT_MS = 30_000
@@ -78,7 +84,7 @@ async function loadSources(service: SupabaseClient, caseId: string) {
       .order("revision", { ascending: false }).limit(1).maybeSingle(),
     service.from("case_response_revisions").select("id, question_key, response_value, created_at").eq("case_id", caseId)
       .order("created_at", { ascending: true }),
-    service.from("case_documents").select("id, original_filename, processing_status, content_latest_id").eq("case_id", caseId),
+    service.from("case_documents").select("id, original_filename, processing_status, content_latest_id, complainant_item").eq("case_id", caseId),
     service.from("case_document_extractions").select("id, document_id, extracted_text, created_at").eq("case_id", caseId)
       .order("created_at", { ascending: false }),
   ])
@@ -129,7 +135,10 @@ async function loadSources(service: SupabaseClient, caseId: string) {
     const extraction = latestExtraction.get(doc.id as string)
     const text = parsed || extraction?.text
     if (!text) continue
-    const sourceKey = parsed ? `document:content:${contentId}` : `document:${extraction!.id}`
+    // PB-22 (Part B walk-through, 25 Nov): a document the person marked ("This is my police report") is read as that
+    // kind of document. The mark is part of the source key, so marking it reads it again and the facts are checked.
+    const complainantItem = isEvidenceItem(doc.complainant_item) ? doc.complainant_item : null
+    const sourceKey = `${parsed ? `document:content:${contentId}` : `document:${extraction!.id}`}${complainantItem ? `:marked:${complainantItem}` : ""}`
     sources.push({
       sourceKey,
       sourceType: "document",
@@ -138,6 +147,7 @@ async function loadSources(service: SupabaseClient, caseId: string) {
         sourceKey,
         documentId: doc.id,
         documentName: doc.original_filename,
+        ...(complainantItem ? { complainantItem } : {}),
       },
     })
   }
@@ -238,9 +248,9 @@ export async function ensureReconciled(
     generateJson({
       prompt,
       schemaName,
-      timeoutMs: MODEL_TIMEOUT_MS,
+      timeoutMs: schemaName === "facts_document" ? DOCUMENT_TIMEOUT_MS : MODEL_TIMEOUT_MS,
       maxRetries: MODEL_RETRIES,
-      usage: { purpose: "fact_extraction", caseId, maxOutputTokens: OUTPUT_CAPS.fact_extraction },
+      usage: { purpose: "fact_extraction", caseId, maxOutputTokens: schemaName === "facts_document" ? DOCUMENT_OUTPUT_CAP : OUTPUT_CAPS.fact_extraction },
     }),
 ): Promise<ReconcileResult> {
   await assertNoRunningRun(service, caseId)

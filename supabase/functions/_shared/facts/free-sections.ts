@@ -6,6 +6,8 @@ import { FACT_LABELS } from "./keys.ts";
 import { formatFactValue } from "./display.ts";
 import type { FindingValue } from "./reconcile.ts";
 import type { FactLabel, Resolution } from "./snapshot.ts";
+import { type EvidenceItem, isEvidenceItem } from "../evidence-minimums.ts";
+import { APPROVED, contradictionSentence, noDocumentSentence } from "./approved-wording.ts";
 
 export interface EvidenceFinding {
   factKey: FactKey;
@@ -51,11 +53,37 @@ export const DOCUMENT_LABELS: Record<string, string> = {
   scam_message: "the scam message (uploaded)",
 };
 
+// A document counted only because the person said what it is: every label says so, never what the pipeline read it as
+// (PB-22, review condition of 25 Nov: nothing has verified what it is).
+export const COMPLAINANT_ITEM_LABELS: Record<EvidenceItem, string> = {
+  payment_proof: "a document identified by the complainant as proof of the disputed payments",
+  police_report: "a document identified by the complainant as a police report",
+  bank_reply_or_complaint: "a document identified by the complainant as the bank's written reply or the written complaint",
+  scam_message: "a document identified by the complainant as the scam message",
+};
+
 function documentNames(values: FindingValue[]): string[] {
   const names = values.flatMap((v) => v.sources)
     .filter((s) => s.sourceType === "document")
-    .map((s) => DOCUMENT_LABELS[String(s.sourceRef.documentType)] ?? "an uploaded document");
+    .map((s) => {
+      const marked = s.sourceRef.complainantItem;
+      if (s.sourceRef.typeFromMark === true && isEvidenceItem(marked)) return COMPLAINANT_ITEM_LABELS[marked];
+      return DOCUMENT_LABELS[String(s.sourceRef.documentType)] ?? "an uploaded document";
+    });
   return [...new Set(names)];
+}
+
+/** The documents behind the value the person confirmed for a fact: their ids and the kind each was read as. */
+export function documentsShowing(key: FactKey, findings: readonly EvidenceFinding[]): Array<{ documentId: string | null; documentType: string }> {
+  const finding = findings.find((f) => f.factKey === key);
+  if (!finding) return [];
+  return chosenValues(finding)
+    .flatMap((v) => v.sources)
+    .filter((s) => s.sourceType === "document")
+    .map((s) => ({
+      documentId: typeof s.sourceRef.documentId === "string" ? s.sourceRef.documentId : null,
+      documentType: String(s.sourceRef.documentType ?? ""),
+    }));
 }
 
 // "No" (not told, no complaint) or "no reply yet" needs no document.
@@ -63,7 +91,7 @@ function claimsSomething(key: FactKey, value: unknown): boolean {
   if (key === "reported_to_bank" || key === "reported_to_police" || key === "written_complaint_sent") {
     return (value as ReportedEvent | null)?.value === "yes";
   }
-  if (key === "bank_reply") return (value as { status?: string } | null)?.status !== "none";
+  if (key === "bank_reply") return !["none", "not_final"].includes(String((value as { status?: string } | null)?.status));
   return true;
 }
 
@@ -83,8 +111,37 @@ export function evidenceListsText(facts: Facts, findings: readonly EvidenceFindi
   ].join("\n");
 }
 
+// A document that shows another value than the one the person confirmed is described, not hidden (item 6).
+function contradictions(
+  finding: EvidenceFinding,
+  key: FactKey,
+  confirmed: string,
+  voice: "you" | "complainant",
+  evidenceId: (documentId: string) => string | null,
+): string[] {
+  if (!finding.resolution || finding.resolution.kind === "agreed" || finding.resolution.kind === "acknowledged") return [];
+  const chosen = chosenValues(finding);
+  const out: string[] = [];
+  for (const other of finding.values.filter((v) => !chosen.includes(v))) {
+    const text = formatFactValue(key, other.value);
+    if (text === confirmed) continue;
+    for (const source of other.sources.filter((s) => s.sourceType === "document")) {
+      const name = documentNames([{ ...other, sources: [source] }])[0];
+      const documentId = typeof source.sourceRef.documentId === "string" ? source.sourceRef.documentId : "";
+      const id = evidenceId(documentId);
+      out.push(contradictionSentence(voice, confirmed, `${name[0].toUpperCase()}${name.slice(1)}${id ? ` (${id})` : ""}`, text));
+    }
+  }
+  return [...new Set(out)];
+}
+
 // The same two lists as items, for the paid packs' evidence checklist.
-export function evidenceLists(facts: Facts, findings: readonly EvidenceFinding[]): { shown: string[]; missing: string[] } {
+export function evidenceLists(
+  facts: Facts,
+  findings: readonly EvidenceFinding[],
+  options: { voice?: "you" | "complainant"; evidenceId?: (documentId: string) => string | null } = {},
+): { shown: string[]; missing: string[] } {
+  const { voice = "you", evidenceId = () => null } = options;
   const shown: string[] = [];
   const missing: string[] = [];
   for (const key of Object.keys(FACT_LABELS) as FactKey[]) {
@@ -99,18 +156,21 @@ export function evidenceLists(facts: Facts, findings: readonly EvidenceFinding[]
     const documents = finding ? documentNames(chosenValues(finding)) : [];
     const value = formatFactValue(key, fact.value);
     if (documents.length) shown.push(`${label}: ${value}. Shown by ${documents.join(", ")}.`);
-    else if (PROOF[key] && claimsSomething(key, fact.value)) missing.push(`${label}: ${value}. No document yet; for example ${PROOF[key]}.`);
+    else if (claimsSomething(key, fact.value)) {
+      missing.push(PROOF[key] ? `${label}: ${value}. No document yet; for example ${PROOF[key]}.` : noDocumentSentence(label, value));
+    }
+    if (finding) shown.push(...contradictions(finding, key, value, voice, evidenceId));
   }
   return { shown, missing };
 }
 
 // "Report it now" (C4): shown when the bank or the police have not been told. Generic and sourced; no bank's phone
 // number is listed, so none can be out of date.
-export function reportItNowText(facts: Facts): string | null {
+export function reportItNowText(facts: Facts): string {
   const told = (key: FactKey) => (facts[key]?.value as ReportedEvent | null | undefined)?.value === "yes";
   const bank = told("reported_to_bank");
   const police = told("reported_to_police");
-  if (bank && police) return null;
+  if (bank && police) return APPROVED.bothTold;
   const lines = ["If you haven't yet, these steps are worth doing today:"];
   if (!bank) {
     lines.push("- Call your bank's 24-hour fraud hotline. The number is on the back of your card and on your bank's official website. Ask them to freeze your accounts and cards, and write down the case reference they give you.");

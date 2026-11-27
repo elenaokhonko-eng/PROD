@@ -16,3 +16,4 @@ export * from "./rules/srf.ts";
 export * from "./rules/instrument-scope.ts";
 export * from "./bank-pack.ts";
 export * from "./fidrec-pack.ts";
+export * from "./approved-wording.ts";

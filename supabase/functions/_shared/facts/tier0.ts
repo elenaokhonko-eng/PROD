@@ -17,10 +17,16 @@ export const SRF_VERDICT = /\bSRF\b|shared responsibility|\bIMDA\b|\btelcos?\b|m
 
 // The SRF section is the server's (rules/srf.ts), so any SRF or telco verdict from the model fails, as does "the
 // user" instead of "you"; internal wording and a summary far too short or long are style violations.
+// Context the person did not give ("at home", "with family"): rewritten by the AI, never deleted (item 10).
+const ADDED_CONTEXT = /\b(?:while )?at home\b|\bhaving dinner\b|\bwith (?:(?:my|his|her|their) )?family\b|\bwatching tv\b/i;
+
 export const TIER0_CHECKS: ValidateOptions = {
   extraDates: TIER0_EXTRA_DATES,
   secondPerson: true,
-  forbidden: [{ pattern: SRF_VERDICT, detail: "the SRF assessment is written by the server" }],
+  forbidden: [
+    { pattern: SRF_VERDICT, detail: "the SRF assessment is written by the server" },
+    { pattern: ADDED_CONTEXT, detail: "do not say where you were or who you were with; rewrite without it" },
+  ],
   userFacing: { minWords: TIER0_MIN_WORDS, maxWords: TIER0_MAX_WORDS },
 };
 

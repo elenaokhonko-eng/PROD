@@ -2,8 +2,9 @@
 // may choose any other available stage. Follows the FIDReC Terms of Reference (rules/fidrec.ts).
 
 import type { BankReply, Institution, Money, ReportedEvent } from "./keys.ts";
-import { fidrecAvailability, type FidrecAvailability, FIDREC_RULES } from "./rules/fidrec.ts";
-import { formatMoney } from "./display.ts";
+import { fidrecAvailability, type FidrecAvailability, FIDREC_RULES, finalReplyDeadline, FINAL_REPLY_ASK } from "./rules/fidrec.ts";
+import { formatDate, formatMoney } from "./display.ts";
+import { addMonths } from "./normalise.ts";
 
 export type JourneyPosition =
   | "not_told"
@@ -58,13 +59,17 @@ function position(facts: RecommendFacts, fidrec: FidrecAvailability): JourneyPos
   if (reply?.outcome === "full_offer" || fullyRecovered) return "resolved";
   if (facts.fidrecFiled?.value === "yes") return "fidrec_filed";
   if (reply?.status === "final_reply") {
-    if (reply.qualifies === "yes" && reply.date) return fidrec.available ? "final_reply_in_window" : "final_reply_expired";
+    if (finalReplyDeadline(reply)) return fidrec.available ? "final_reply_in_window" : "final_reply_expired";
     return "final_reply_not_qualifying";
   }
   if (facts.writtenComplaint?.value === "yes") return fidrec.available ? "complaint_four_weeks" : "complaint_recent";
   if (facts.reportedToBank?.value === "yes") return "told_no_complaint";
   return "not_told";
 }
+
+export const FINAL_REPLY_EXPIRED_NOTE =
+  "FIDReC's Terms of Reference say a final reply is a letter that expressly states it is the institution's final reply, tells you that you can contact FIDReC within six months, and gives FIDReC's contact details (Rule 13(2)). " +
+  FINAL_REPLY_ASK;
 
 export function recommend(facts: RecommendFacts, options: RecommendOptions): Recommendation {
   const fidrec = fidrecAvailability(
@@ -142,6 +147,20 @@ export function recommend(facts: RecommendFacts, options: RecommendOptions): Rec
     : null;
 
   const notes: string[] = [];
+  // Rules review, 25 Nov (wording approved by Elena): the four-week route is not the only one before a final reply.
+  // The 28-day check itself is unchanged.
+  if (fidrecReason === "fidrec_too_early" && "availableFrom" in fidrec && fidrec.availableFrom) {
+    notes.push("FIDReC's rules also allow filing earlier if the institution has already answered and the matter is not resolved (Rule 13(1)(i)).");
+  }
+  // Rules review, 25 Nov (row 22, wording approved by Elena): when the six months after a final reply have passed, what
+  // makes a letter a final reply under FIDReC's rules, and how to ask the bank. FIDReC decides; the free evaluation
+  // does not. Shown in the signed-in free evaluation only (this module is not used by public pages).
+  if (finalReplyReceived && facts.bankReply?.date && addMonths(facts.bankReply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value) < options.today) {
+    // The date fact first, then the Rule 13(2) passage (wording approved by Elena, 27 Nov).
+    const ended = addMonths(facts.bankReply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value);
+    notes.push(`The final reply you told us about is dated ${formatDate(facts.bankReply.date)}. Six months from that date ended on ${formatDate(ended)} (Rule 13(1)(ii)).`);
+    notes.push(FINAL_REPLY_EXPIRED_NOTE);
+  }
   const cap = FIDREC_RULES.awardCapSgd.value;
   if (facts.totalLoss?.currency === "SGD" && facts.totalLoss.amount > cap) {
     notes.push(`FIDReC awards are capped at ${formatMoney({ amount: cap, currency: "SGD", amountSgd: cap })} per claim. A larger claim goes to adjudication only if you limit your claim or your bank agrees.`);

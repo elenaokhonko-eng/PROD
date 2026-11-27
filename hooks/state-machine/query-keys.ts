@@ -31,6 +31,7 @@ export const qk = {
     facts: (caseId: string, stage: string) => ['case', caseId, 'facts', stage] as const,
     journey: (caseId: string) => ['case', caseId, 'journey'] as const,
     evidenceSkipped: (caseId: string) => ['case', caseId, 'evidence-skipped'] as const,
+    fidrecTimeline: (caseId: string) => ['case', caseId, 'fidrec-timeline'] as const,
     recommendation: (caseId: string) => ['case', caseId, 'recommendation'] as const,
   },
   entitlement: (caseId: string) => ['entitlement', caseId] as const,

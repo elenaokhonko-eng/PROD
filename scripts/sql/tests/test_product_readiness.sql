@@ -1,5 +1,5 @@
 /**
- * Stage 2 buying rules (migration 20261120120000; docs/release/stage2-plan.md §3a). Synthetic rows only. Rolls back.
+ * Stage 2 buying rules (migrations 20261120120000, 20261128120000; docs/release/stage2-plan.md §3a). Synthetic rows only. Rolls back.
  *
  *   psql "$LOCAL_OR_STAGING_DB_URL" -v ON_ERROR_STOP=1 -f scripts/sql/tests/test_product_readiness.sql
  *
@@ -27,47 +27,16 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION pg_temp.answer(p_key text, p_value text, p_offset integer)
-RETURNS void LANGUAGE sql AS $$
-  INSERT INTO public.case_responses (case_id, question_key, response_value, created_at)
-  VALUES ('00000000-0000-4000-8000-00000000c002', p_key, p_value, now() + make_interval(secs => p_offset));
-$$;
-
 DO $$
 DECLARE
   c_empty constant uuid := '00000000-0000-4000-8000-00000000c001';
   c_case constant uuid := '00000000-0000-4000-8000-00000000c002';
-  v_today date := (now() AT TIME ZONE 'Asia/Singapore')::date;
 BEGIN
   PERFORM pg_temp.check_readiness(c_empty, 'self_serve_report', '{"ready": false, "reason": "story_missing"}', 'no story');
   PERFORM pg_temp.check_readiness(c_case, 'self_serve_report', '{"ready": true, "reason": null}', 'bank pack needs only a story');
   PERFORM pg_temp.check_readiness(c_case, 'human_consult_30m', '{"ready": false, "reason": "product_not_available"}', 'unknown product');
-  PERFORM pg_temp.check_readiness(c_case, 'fidrec_tier2_pack', '{"ready": false, "reason": "complaint_not_raised"}', 'route unanswered');
-
-  PERFORM pg_temp.answer('fidrec_route', 'not_complained', 1);
-  PERFORM pg_temp.check_readiness(c_case, 'fidrec_tier2_pack', '{"ready": false, "reason": "complaint_not_raised"}', 'not complained');
-
-  PERFORM pg_temp.answer('fidrec_route', 'no_reply', 2);
-  PERFORM pg_temp.answer('fidrec_complaint_date', to_char(v_today - 10, 'YYYY-MM-DD'), 2);
-  PERFORM pg_temp.check_readiness(c_case, 'fidrec_tier2_pack',
-    jsonb_build_object('ready', false, 'reason', 'fidrec_too_early', 'opens_on', to_char(v_today + 18, 'YYYY-MM-DD')),
-    'complaint 10 days ago');
-
-  PERFORM pg_temp.answer('fidrec_complaint_date', to_char(v_today - 28, 'YYYY-MM-DD'), 3);
-  PERFORM pg_temp.check_readiness(c_case, 'fidrec_tier2_pack', '{"ready": true, "reason": null}', 'complaint 28 days ago');
-
-  PERFORM pg_temp.answer('fidrec_complaint_date', to_char(v_today + 3, 'YYYY-MM-DD'), 4);
-  PERFORM pg_temp.check_readiness(c_case, 'fidrec_tier2_pack', '{"ready": false, "reason": "complaint_not_raised"}', 'future date');
-
-  PERFORM pg_temp.answer('fidrec_route', 'final_reply', 5);
-  PERFORM pg_temp.answer('fidrec_final_reply_date', 'not a date', 5);
-  PERFORM pg_temp.check_readiness(c_case, 'fidrec_tier2_pack', '{"ready": false, "reason": "complaint_not_raised"}', 'unreadable date');
-
-  PERFORM pg_temp.answer('fidrec_final_reply_date', to_char(v_today - 200, 'YYYY-MM-DD'), 6);
-  PERFORM pg_temp.check_readiness(c_case, 'fidrec_tier2_pack', '{"ready": false, "reason": "fidrec_window_expired"}', 'final reply 200 days ago');
-
-  PERFORM pg_temp.answer('fidrec_final_reply_date', to_char(v_today - 30, 'YYYY-MM-DD'), 7);
-  PERFORM pg_temp.check_readiness(c_case, 'fidrec_tier2_pack', '{"ready": true, "reason": null}', 'final reply 30 days ago');
+  PERFORM pg_temp.check_readiness(c_case, 'fidrec_tier2_pack', '{"ready": true, "reason": null}', 'sold upfront, no question first');
+  PERFORM pg_temp.check_readiness(c_empty, 'fidrec_tier2_pack', '{"ready": false, "reason": "story_missing"}', 'FIDReC with no story');
 
   -- Checkout refuses with the readiness reason.
   BEGIN

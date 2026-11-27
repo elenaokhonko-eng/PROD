@@ -56,17 +56,17 @@ test('§E3: pack links and buttons follow the paid-stages switch', () => {
   ])
   const on = routeStops(true).flatMap((s) => s.links)
   assert.deepEqual(on.filter((l) => l.label.endsWith('pack')).map((l) => l.href), [
-    '/sign-in?intent=bank',
-    '/sign-in?intent=fidrec',
-    '/sign-in?intent=fidrec',
+    '/start-pack/bank',
+    '/start-pack/fidrec',
+    '/start-pack/fidrec',
   ])
 
   // Off (Elena, 17 Nov): no button and no sign-up on a paid card; the free card keeps the one start label.
   assert.deepEqual(packCards(false).map((c) => c.action), [{ label: START_EVALUATION, href: STORY_ANCHOR }, null, null])
   assert.deepEqual(packCards(true).map((c) => c.action), [
     { label: START_EVALUATION, href: STORY_ANCHOR },
-    { label: PACK_ACTION.bank, href: '/sign-in?intent=bank' },
-    { label: PACK_ACTION.fidrec, href: '/sign-in?intent=fidrec' },
+    { label: PACK_ACTION.bank, href: '/start-pack/bank' },
+    { label: PACK_ACTION.fidrec, href: '/start-pack/fidrec' },
   ])
   assert.deepEqual(PACK_ACTION, { bank: 'Prepare my bank complaint', fidrec: 'Prepare my FIDReC case' })
   assert.equal(COMING_SHORTLY, 'Coming shortly')

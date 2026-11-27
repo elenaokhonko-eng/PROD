@@ -2,8 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { bankPackEnabled, paidStagesEnabled } from "@/lib/billing/paid-stages"
 
 // Whether a case may buy a pack (Elena, 13 Nov 2026; docs/release/stage2-plan.md §3a). The packs are sold on their
-// own: the bank pack needs only a story; the FIDReC pack also needs the route answer (a final reply no more than 6
-// months old, or a written complaint with no reply after 4 weeks). The database decides
+// own, and both need only a story (or a case opened for the pack): since CR-2 (27 Nov 2026) the FIDReC pack is sold
+// upfront, and its timeline is checked after payment (lib/journey/fidrec-timeline.ts). The database decides
 // (get_case_product_readiness_v1, also enforced inside reserve_checkout_purchase_v1). The capabilities API (buy
 // buttons) and checkout share this check. The on/off switches (PAID_STAGES_ENABLED, BANK_PACK_ENABLED) are applied
 // separately, so with paid stages off a case still reads as ready and shows "coming shortly", not a blocked screen.

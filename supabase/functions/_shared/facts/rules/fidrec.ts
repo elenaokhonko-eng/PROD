@@ -35,9 +35,56 @@ export type FidrecAvailability =
   | { available: false; reason: "fidrec_too_early"; availableFrom: string | null }
   | { available: false; reason: "fidrec_window_expired"; deadline: string };
 
+// Wording approved by Elena, 27 Nov 2026. Whenever the six months after a final reply have passed, the person is asked
+// to go back to the bank. FIDReC decides whether a letter is a final reply; nothing here promises a new period.
+export const FINAL_REPLY_ASK =
+  "You can ask your bank to confirm in writing: (a) whether its reply was its final reply; (b) whether you can take the dispute to FIDReC, and by when; (c) what it offers: nothing, part of the amount, or all of it. Whether a letter is a final reply is decided by FIDReC (Rule 13(2)). When you have the bank's letter, add it to your case.";
+
+/** Whether the six months after a dated final reply have passed (SGT date, YYYY-MM-DD). */
+export function finalReplyWindowClosed(reply: BankReply | null | undefined, today: string): boolean {
+  return Boolean(reply?.status === "final_reply" && reply.date && addMonths(reply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value) < today);
+}
+
 export function finalReplyDeadline(reply: BankReply | null): string | null {
-  if (!reply || reply.status !== "final_reply" || reply.qualifies !== "yes" || !reply.date) return null;
+  if (!reply || reply.status !== "final_reply" || !reply.date) return null;
+  // Elena, 26 Nov 2026: a final reply read from a letter carries no answer on whether it qualifies, and nothing saying
+  // it does not is enough to open the route (Rule 13(2) is FIDReC's call). Before this, a paid pack was refused.
+  if (reply.qualifies === "no" || reply.qualifies === "unsure") return null;
   return addMonths(reply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value);
+}
+
+// CR-2 as amended 27 Nov 2026: the one check for a bought FIDReC pack, shared by the questionnaire after payment, the
+// "can generate" decision and the generator. The pack is blocked only while the bank has not had its chance: no written
+// complaint yet, or one under four weeks old with no answer. A final reply more than six months old still generates
+// (the pack states both dates; FIDReC decides). The free evaluation's advice keeps fidrecAvailability below.
+export type FidrecPackCheck =
+  | { available: true; route: "final_reply"; deadline: string; daysLeft: number; deadlineSoon: boolean }
+  | { available: true; route: "answered"; deadline: null }
+  | { available: true; route: "four_weeks"; deadline: null }
+  | { available: false; reason: "complaint_not_raised" }
+  | { available: false; reason: "fidrec_too_early"; availableFrom: string | null; complaintDate: string | null };
+
+export function fidrecPackCheck(
+  facts: { writtenComplaint: ReportedEvent | null; bankReply: BankReply | null },
+  today: string,
+): FidrecPackCheck {
+  const reply = facts.bankReply;
+  const complaint = facts.writtenComplaint;
+  const finalDeadline = finalReplyDeadline(reply);
+  if (finalDeadline) {
+    const daysLeft = daysBetween(today, finalDeadline);
+    return { available: true, route: "final_reply", deadline: finalDeadline, daysLeft, deadlineSoon: daysLeft >= 0 && daysLeft <= 30 };
+  }
+  // An acknowledgement, or a letter saying the bank is still looking into it, is not an answer (Rule 13(1)(i) needs an
+  // attempt to resolve the matter that has not). A final reply is, with or without a written complaint recorded.
+  if (reply?.status === "final_reply" || (reply?.status === "answered" && complaint?.value !== "no")) {
+    return { available: true, route: "answered", deadline: null };
+  }
+  if (complaint?.value !== "yes") return { available: false, reason: "complaint_not_raised" };
+  if (!complaint.date) return { available: false, reason: "fidrec_too_early", availableFrom: null, complaintDate: null };
+  const availableFrom = addDays(complaint.date, FIDREC_RULES.earliestFilingDaysAfterComplaint.value);
+  if (daysBetween(availableFrom, today) >= 0) return { available: true, route: "four_weeks", deadline: null };
+  return { available: false, reason: "fidrec_too_early", availableFrom, complaintDate: complaint.date };
 }
 
 // Whether the user can take the dispute to FIDReC today, by the Terms of Reference routes F2 and F3.

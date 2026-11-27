@@ -61,6 +61,8 @@ export interface StateMachineInput {
    * it instead of switching to the questions mid-action (G3b re-check, 11 Nov); the confirm step checks the facts.
    */
   confirmStepShown?: boolean
+  /** CR-2: the bought FIDReC pack can't be generated on the saved timeline yet, so a bank pack isn't held behind it. */
+  fidrecWaiting?: boolean
 }
 
 /**
@@ -93,6 +95,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
     journeyAnswered = null,
     evidenceSkipped = false,
     confirmStepShown = false,
+    fidrecWaiting = false,
   } = input
 
   if (isContactSubmitted) return 'L3-Confirmed'
@@ -102,7 +105,8 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   // then the pack; the bank pack follows. Pay first, then confirm (Elena, 13 Nov 2026).
   const fidrecOwned = fidrecPackOwned ?? entitlementPlan === 'escalation_pack'
   const bankOwned = bankPackOwned === true || (bankPackOwned === null && entitlementPlan === 'self_serve_report')
-  if (fidrecOwned) {
+  // CR-2: a waiting FIDReC pack lets the bank pack through: it prepares the complaint the FIDReC pack waits for.
+  if (fidrecOwned && !(fidrecWaiting && bankOwned && fidrecReport?.status !== 'COMPLETED')) {
     if (fidrecReport?.status !== 'COMPLETED') return 'L3-ConfirmFidrecFacts'
     if (bankOwned && report?.status !== 'COMPLETED') return 'L2-ConfirmBankFacts'
     return 'L3-Tier2Ready'

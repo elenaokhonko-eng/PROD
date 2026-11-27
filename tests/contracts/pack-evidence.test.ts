@@ -111,7 +111,8 @@ test('the generate screen reads the same check and waits for the documents', () 
   assert.match(dashboard, /stage="fidrec"\s+evidenceReady=\{packEvidence\.fidrec\.ready\}/)
   const confirm = readFileSync('components/state-machine/facts/confirm-and-evaluate.tsx', 'utf8')
   assert.match(confirm, /if \(evidenceReady !== false\) generate\.mutate\(id\)/)
-  assert.match(confirm, /<Button disabled=\{!evidenceReady\}/)
+  // PB-2 (25 Nov): also disabled while a document uploads or is read.
+  assert.match(confirm, /<Button disabled=\{!evidenceReady \|\| documentsInFlight > 0\}/)
 })
 
 test('only the case owner can mark a document, and only as a known item', () => {
@@ -119,4 +120,22 @@ test('only the case owner can mark a document, and only as a known item', () => 
   assert.match(route, /if \(item !== null && !isEvidenceItem\(item\)\)/)
   assert.match(route, /if \(!access\.isOwner\)/)
   assert.match(route, /\.eq\('id', documentId\)\s+\.eq\('case_id', caseId\)/)
+})
+
+// Part B walk-through (25 Nov, PB-5): with both packs bought, the case page read as one report shown twice.
+test('each pack on the case page is labelled with its name, and the two are separated', () => {
+  const dashboard = readFileSync('app/(case)/app/case/[id]/dashboard/_components/dashboard-client.tsx', 'utf8')
+  assert.match(dashboard, /<p id="pack-label-fidrec"[^>]*>\s*\{PACK_NAMES\.fidrec\}\s*<\/p>\s*<FidrecPackView/)
+  assert.match(dashboard, /<p id="pack-label-bank"[^>]*>\s*\{PACK_NAMES\.bank\}\s*<\/p>/)
+  assert.match(dashboard, /className=\{fidrecReport \? 'space-y-3 border-t pt-8' : 'space-y-3'\}/)
+  const names = readFileSync('components/state-machine/facts/pack-evidence.tsx', 'utf8')
+  assert.match(names, /PACK_NAMES: Record<PackProduct, string> = \{ bank: 'Bank dispute pack', fidrec: 'FIDReC pack' \}/)
+})
+
+// PB-22 (Part B walk-through, 25 Nov): marking a document reads it again as that kind (facts-extraction.test.ts).
+test('the fact reading gets the mark, and marking changes the source so it is read again', () => {
+  const runner = readFileSync('lib/server/facts/run-reconcile.ts', 'utf8')
+  assert.match(runner, /select\("id, original_filename, processing_status, content_latest_id, complainant_item"\)/)
+  assert.match(runner, /\$\{complainantItem \? `:marked:\$\{complainantItem\}` : ""\}/)
+  assert.match(runner, /\.\.\.\(complainantItem \? \{ complainantItem \} : \{\}\)/)
 })

@@ -3,7 +3,8 @@
 //
 // Sources: G = MAS/IMDA Guidelines on Shared Responsibility Framework (issued 24 Oct 2024, effective 16 Dec 2024);
 // R = MAS/IMDA Response to Consultation (24 Oct 2024); CP = Consultation Paper (25 Oct 2023);
-// E = MAS E-Payments User Protection Guidelines (from 16 Dec 2024).
+// E = MAS E-Payments User Protection Guidelines (from 16 Dec 2024); W = MAS SRF workflow (how claims are handled,
+// including FIDReC's assessment).
 
 import {
   type CredentialsShared,
@@ -19,6 +20,8 @@ import {
   type Transaction,
 } from "../keys.ts";
 import { formatMoney } from "../display.ts";
+import type { BankReply } from "../keys.ts";
+import { finalReplyWindowClosed } from "./fidrec.ts";
 
 export const SRF_EFFECTIVE_DATE = "2024-12-16";
 
@@ -53,6 +56,8 @@ export interface SrfFacts {
   transactions: Transaction[] | null;
   // Amounts lost by account or card (finding A4), used when no individual payments were confirmed.
   losses?: LossPortion[] | null;
+  // The six months after the bank's final reply have passed, so the text must not send the person to FIDReC.
+  fidrecWindowClosed?: boolean;
 }
 
 const ACCOUNT_INSTRUMENT: Record<string, Instrument> = {
@@ -81,16 +86,18 @@ const R = {
   card: { code: "sg_card_excluded", cite: "G fn 1; R para 8.3(d)" },
   // Cards (Elena, 8 Nov): the ABS card code and the card scheme's chargeback; the EUPG excludes cards from its
   // loss-sharing rules and keeps only some issuer duties for them.
-  cardRules: { code: "card_rules", cite: "ABS Code of Practice for Banks – Credit Cards (rev. 2 July 2020) 5(a), 5(e), 6(a); EUPG (16 Dec 2024) 1.2 fn 3, 5.1; 4.2–4.6, 4.10–4.12, 4.14–4.16" },
+  cardRules: { code: "card_rules", cite: "ABS Code of Practice for Banks – Credit Cards (rev. 2 July 2020) 5(a), 5(e), 6(a); EUPG (16 Dec 2024) 1.2 fn 3, 5.1; 4.2–4.6, 4.10–4.12, 4.14–4.16; mas.reply.20250107/3(a).3ds" },
   malware: { code: "malware_excluded", cite: "R para 3.4; CP para 4.4(c)" },
   nonDigital: { code: "non_digital_excluded", cite: "R para 3.5; CP para 4.4(b)" },
   givenDirectly: { code: "credentials_given_directly", cite: "G §2.1 limb (c); CP para 4.4(b)" },
   authorised: { code: "authorised_scam_excluded", cite: "CP para 4.4(a); E fn 4(a)" },
   privatePerson: { code: "private_person_impersonated", cite: "G §2.1 (legitimate business or government entity)" },
   beforeEffective: { code: "before_effective_date", cite: "G cover (effective 16 Dec 2024); no source states pre-commencement treatment" },
-  telcoSms: { code: "telco_sms", cite: "G paras 6.2-6.5, 7.11; G §2.1 (SMS); R fn 2" },
+  telcoSms: { code: "telco_sms", cite: "G paras 6.2-6.5, 7.7, 7.7.1, 7.11; G §2.1 (SMS); R fn 2" },
   telcoOtt: { code: "telco_not_assessed", cite: "G §2.1 (SMS excludes OTT messages)" },
   remedies: { code: "other_remedies", cite: "G paras 6.8, 7.11; E paras 5.2-5.6; R para 6.11(d)" },
+  // Rules review of 25 Nov (row 8, wording chosen by Elena): payments the account user knew of and consented to.
+  remediesAuthorised: { code: "other_remedies", cite: "E para 5.3; W (mas.srf.workflow/recourse.fidrec); R para 6.11(d)" },
 };
 
 const AUTHORISED_TYPES: ScamType[] = ["investment", "job", "romance", "ecommerce"];
@@ -185,7 +192,7 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
         },
         {
           ...R.cardRules,
-          text: "Card losses are covered by the ABS Code of Practice for Banks – Credit Cards. Before you tell your card issuer, your liability for unauthorised charges is capped at S$100, unless you acted fraudulently or with gross negligence, or did not tell the issuer as soon as reasonably practicable (5(a)). If your card details were used without the card being stolen, and you did not act fraudulently or with gross negligence, you are not liable (6(a)). The cap also applies to debit cards that work like credit cards (5(e)). If you approved a payment yourself, for example with a one-time password or an in-app confirmation sent to you for that payment, the issuer may treat it as negligence and the cap may not apply.",
+          text: "Card losses are covered by the ABS Code of Practice for Banks – Credit Cards. Before you tell your card issuer, your liability for unauthorised charges is capped at S$100, unless you acted fraudulently or with gross negligence, or did not tell the issuer as soon as reasonably practicable (5(a)). If your card details were used without the card being stolen, and you did not act fraudulently or with gross negligence, you are not liable (6(a)). The cap also applies to debit cards that work like credit cards (5(e)). In a written reply to Parliament on 7 January 2025, MAS stated that the S$100 limit will not apply to a cardholder who unwittingly authenticates a 3DS transaction that turns out to be fraudulent, 'as that would be considered negligent'. 3DS is the step where you approve a card payment with a one-time password or in your banking app.",
         },
         {
           ...R.cardRules,
@@ -208,26 +215,28 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
   if (srfInScope && facts.channel === "sms") {
     telco = {
       ...R.telcoSms,
-      text: "Because the scam message came by SMS, your mobile operator may be responsible if your bank met all its duties and the operator did not meet its own. Your bank assesses this; disagreements about the operator go to IMDA in writing, not to FIDReC.",
+      // Rules review of 25 Nov (row 6, wording chosen by Elena): the bank passes the claim on and the operator investigates
+      // its own duties (G 7.7, 7.7.1, 7.11); the earlier "your bank assesses this … not to FIDReC" had no such source.
+      text: "Because the scam message came by SMS, your mobile operator may be responsible if your bank met all its duties and the operator did not meet its own. The SRF applies to four mobile network operators only: Singtel, M1, StarHub and SIMBA. It does not apply to other mobile providers. Your bank is your point of contact and passes the claim to the operator, which investigates its own duties. If you disagree with the operator's assessment, you can write to IMDA.",
     };
   } else if (srfInScope && facts.channel === "messaging_app") {
     telco = { ...R.telcoOtt, text: "Messages through WhatsApp or similar apps are not SMS, so the mobile operator's SRF duties do not apply." };
   }
 
-  // Losses outside the SRF (C3): payments made knowingly have no liability framework; unauthorised ones fall under
-  // the EUPG.
+  // Losses outside the SRF (C3): payments the account user knew of follow EUPG 5.3, with FIDReC's wider assessment;
+  // unauthorised ones fall under the EUPG's loss-sharing rules.
   const anyNotInScope = portions.some((p) => p.assessment !== "likely_in_scope");
   const authorised = (facts.scamTypes ?? []).some((t) => AUTHORISED_TYPES.includes(t));
   const remedies = !anyNotInScope
     ? null
     : authorised
       ? {
-          ...R.remedies,
-          text: "Payments you made knowingly, for example in an investment, job, romance or shopping scam, are not covered by a liability framework. You can still complain to your bank in writing, and FIDReC can consider whether your bank handled your case properly.",
+          ...R.remediesAuthorised,
+          text: "Under the EUPG, the account holder is liable for payments an account user knew of and consented to, up to the agreed limits (paragraph 5.3). You can complain to your bank in writing. MAS's workflow for the SRF states that FIDReC's assessment includes obligations outside the SRF, for example under statute, common law or the EUPG. MAS and IMDA's Response to Consultation also states that scam victims can pursue civil claims against the relevant entities through the courts (paragraph 6.11(d)).",
         }
       : {
           ...R.remedies,
-          text: "For losses outside the SRF that you did not authorise, the MAS E-Payments User Protection Guidelines (EUPG) set out how such losses are shared between you and your bank or e-wallet provider (card losses follow the card rules). Your bank assesses this; you can complain in writing and, if you disagree with the outcome, go to FIDReC.",
+          text: "For losses outside the SRF that you did not authorise, the MAS E-Payments User Protection Guidelines (EUPG) set out how such losses are shared between you and your bank or e-wallet provider (card losses follow the card rules). Your bank assesses this; you can complain in writing" + (facts.fidrecWindowClosed ? "." : " and, if you disagree with the outcome, go to FIDReC.") + " MAS and IMDA's Response to Consultation also states that scam victims can pursue civil claims against the relevant entities through the courts (paragraph 6.11(d)).",
         };
 
   return { portions, telco, remedies };
@@ -236,12 +245,14 @@ export function assessSrf(facts: SrfFacts): SrfAssessment {
 // Confirmed snapshot facts to SRF inputs. Facts marked "not sure" or "not known" give no input.
 export function srfFactsFromSnapshot(
   facts: Partial<Record<string, { value: unknown; label: "confirmed" | "not_sure" | "claimant_only" | "not_known" }>>,
+  today: string = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10),
 ): SrfFacts {
   const value = <T>(key: string): T | null => {
     const fact = facts[key];
     return fact && (fact.label === "confirmed" || fact.label === "claimant_only") ? (fact.value as T) : null;
   };
   return {
+    fidrecWindowClosed: finalReplyWindowClosed(value<BankReply>("bank_reply"), today),
     scamTypes: value<ScamType[]>("scam_type"),
     channel: value<PhishingChannel>("phishing_channel"),
     credentials: value<CredentialsShared>("credentials_or_otp_shared"),

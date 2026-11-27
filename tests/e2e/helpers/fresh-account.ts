@@ -11,8 +11,8 @@ export const stepTimeoutMs = 8 * 60_000
 
 export type ServiceClient = ReturnType<typeof createServiceClientFromEnvironment>
 
-// Creates the Clerk test user, waits for its free profile, signs in and turns the story into a case.
-export async function startFreshCase(page: Page, supabase: ServiceClient, narrative: string) {
+// Creates the Clerk test user, waits for its free profile and signs in. No case yet.
+export async function createLinkedAccount(page: Page, supabase: ServiceClient) {
   expect(clerkSecretKey.startsWith('sk_test_'), 'HARBOR_CLERK_DEV_SECRET_KEY must be the Clerk Development key').toBe(true)
   // A random part too: concurrent journeys (load test) start in the same millisecond.
   const email = `harbor.release.fresh.${Date.now()}.${Math.random().toString(36).slice(2, 8)}+clerk_test@example.com`
@@ -35,6 +35,12 @@ export async function startFreshCase(page: Page, supabase: ServiceClient, narrat
   expect(accountEntitlement).toEqual({ plan: 'free', features: {} })
 
   await signIn(page, clerkUserId)
+  return { clerkUserId, email, profileId: profileId! }
+}
+
+// The same, then turns the story into a case.
+export async function startFreshCase(page: Page, supabase: ServiceClient, narrative: string) {
+  const { clerkUserId, email } = await createLinkedAccount(page, supabase)
 
   // The marketing page leaves the story in session storage; /onboarding turns it into the case.
   await page.evaluate((story) => sessionStorage.setItem('gb_pending_narrative', JSON.stringify({ narrative: story })), narrative)

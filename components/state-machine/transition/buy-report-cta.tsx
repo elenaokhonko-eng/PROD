@@ -41,8 +41,10 @@ export function BuyReportCTA({
         <div className="flex-1">
           <CardTitle>Get your Bank dispute pack</CardTitle>
           <CardDescription>
+            {/* PB-4 (Elena, 25 Nov): the pack sets payments against the EUPG too, not only the SRF. */}
             A structured complaint report organised against Singapore&apos;s Shared Responsibility
-            Framework, ready for you to review before sending.
+            Framework (SRF) and the MAS E-Payments User Protection Guidelines (EUPG), ready for you to review before
+            sending.
           </CardDescription>
         </div>
       </CardHeader>

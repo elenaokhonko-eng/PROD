@@ -56,7 +56,9 @@ export function PackComparison({ headingLevel = 'h2' }: { headingLevel?: 'h2' | 
             )}
             {card.action ? (
               <div className="mt-auto pt-7">
-                <Button asChild variant={card.paid ? 'outline' : 'default'} className="w-full text-base font-semibold">
+                {/* PB-16 (Elena, 25 Nov): a pack's button appears only when the packs are live, and then every button
+                    is filled, to show it works. */}
+                <Button asChild variant="default" className="w-full text-base font-semibold">
                   <Link href={card.action.href}>{card.action.label}</Link>
                 </Button>
               </div>

@@ -4,9 +4,10 @@
 // prose goes through the same ladder as the free evaluation (summary-ladder.ts produceChecked): checked, repaired,
 // regenerated once, and otherwise replaced by fixed wording, never "failed". Shared by run_bank_pack_v1 and its tests.
 
-import { formatFactValue, formatMoney } from "./display.ts";
+import { bankReplySentence } from "./approved-wording.ts";
+import { formatDate, formatFactValue, formatMoney } from "./display.ts";
 import { type EvidenceFinding, evidenceLists } from "./free-sections.ts";
-import type { FactKey, Money, ReportedEvent, Transaction } from "./keys.ts";
+import type { BankReply, FactKey, Instrument, Money, ReportedEvent, Transaction } from "./keys.ts";
 import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
 import type { SnapshotFacts, ValidateOptions } from "./validate-output.ts";
@@ -15,10 +16,17 @@ export const BANK_PACK_VERSION = "bank_pack_v1";
 export const BANK_PACK_MIN_WORDS = 120;
 export const BANK_PACK_MAX_WORDS = 900;
 
+// The bank pack is itself the written complaint. A sentence saying none has been sent is rewritten by the AI, never
+// removed (Elena, 27 Nov 2026).
+const NOT_YET_COMPLAINED = /\b(?:have not|haven['’]t|did not|didn['’]t)\b[^.!?\n]*\bwritten complaint\b/i;
+
 export const BANK_PACK_CHECKS: ValidateOptions = {
   extraDates: TIER0_EXTRA_DATES,
   firstPerson: true,
-  forbidden: [{ pattern: SRF_VERDICT, detail: "the rules section is written by the server" }],
+  forbidden: [
+    { pattern: SRF_VERDICT, detail: "the rules section is written by the server" },
+    { pattern: NOT_YET_COMPLAINED, detail: "this document is itself the written complaint; rewrite without saying whether one was sent" },
+  ],
   userFacing: { minWords: BANK_PACK_MIN_WORDS, maxWords: BANK_PACK_MAX_WORDS },
 };
 
@@ -64,6 +72,7 @@ confirmed_facts holds the facts the person confirmed, each with a status.
 - status "confirmed" or "claimant_only": state as fact, in the first person.
 - status "not_sure" or "not_known": say it is not confirmed; never state a value for it.
 Never state a date, amount, institution or reference that differs from confirmed_facts. primary_narrative is the person's own story: use it only for the order of events and context, never for a fact that confirmed_facts covers. If primary_narrative is null, write only from confirmed_facts. A fact listed in facts_not_confirmed, or missing from confirmed_facts, has no value in the complaint.
+This document is itself the written complaint: never say whether a written complaint has been sent.
 Never use the input's field names or internal names; describe the facts in ordinary words.
 
 OUTPUT
@@ -104,6 +113,7 @@ export function bankPackFallback(facts: SnapshotFacts): BankPackProse {
   const lines = (Object.keys(LETTER_LABELS) as FactKey[]).flatMap((key) => {
     const fact = facts[key];
     if (!fact) return [];
+    if (key === "written_complaint_sent" && (fact.value as ReportedEvent | null)?.value === "no") return [];
     const value = fact.label === "not_sure" || fact.label === "not_known" ? "not confirmed" : formatFactValue(key, fact.value);
     return [`- ${LETTER_LABELS[key]}: ${value}`];
   });
@@ -143,15 +153,35 @@ export function bankPackTimeline(facts: SnapshotFacts): Array<{ date?: string; e
     const reported = confirmedValue<ReportedEvent>(facts, key);
     if (reported?.value === "yes") items.push({ ...(reported.date ? { date: reported.date } : {}), event });
   }
-  return items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
+  // Item 15: the bank's reply, sorted by its date, which the sentence itself states.
+  const reply = confirmedValue<BankReply>(facts, "bank_reply");
+  const replyItem = reply && reply.status !== "none" && reply.status !== "not_final"
+    ? { ...(reply.date ? { date: reply.date } : {}), event: bankReplySentence(reply.status === "final_reply", formatDate(reply.date)) }
+    : null;
+  if (replyItem) items.push(replyItem);
+  items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
+  return items.map((item) => (item === replyItem ? { event: item.event } : item));
+}
+
+// Part B walk-through (25 Nov). PB-10: dates read "3 Oct 2026", as everywhere else in the packs. PB-11: the payments
+// table shows words, not system values ("method: account_transfer", lower-case column names).
+const METHOD_LABELS: Record<Instrument, string> = {
+  account_transfer: "Bank account payment",
+  sg_card: "Card payment",
+  ewallet: "E-wallet payment",
+  other: "Other payment",
+};
+
+export function withDisplayDates(items: Array<{ date?: string; event: string }>): Array<{ date?: string; event: string }> {
+  return items.map((item) => (item.date ? { ...item, date: formatDate(item.date) ?? item.date } : item));
 }
 
 export function bankPackTransactions(facts: SnapshotFacts): Array<Record<string, string>> {
   return (confirmedValue<Transaction[]>(facts, "transactions") ?? []).map((t) => ({
-    date: t.date ?? "Not known",
-    amount: formatMoney(t.amount),
-    paid_to: t.payee ?? "Not known",
-    method: t.channel ?? t.instrument ?? "Not known",
+    Date: formatDate(t.date) ?? "Not known",
+    Amount: formatMoney(t.amount),
+    "Paid to": t.payee ?? "Not known",
+    Method: t.channel ?? (t.instrument ? METHOD_LABELS[t.instrument] : null) ?? "Not known",
   }));
 }
 
@@ -182,7 +212,7 @@ export function assembleBankPack(args: {
   return {
     report_version: BANK_PACK_VERSION,
     ...args.prose,
-    timeline: bankPackTimeline(facts),
+    timeline: withDisplayDates(bankPackTimeline(facts)),
     disputed_transactions: bankPackTransactions(facts),
     total_loss: loss ? formatMoney(loss) : null,
     evidence_checklist: [

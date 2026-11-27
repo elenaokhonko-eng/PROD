@@ -125,7 +125,7 @@ export function buildSnapshot(findings: readonly CurrentFinding[], stage: Stage)
     ? (facts.bank_reply.value as { status?: string } | null)
     : null;
   const reported = facts.reported_to_bank?.value as { value?: string } | null | undefined;
-  if (reply?.status && reply.status !== "none" && reported?.value !== "yes") {
+  if (reply?.status && reply.status !== "none" && reply.status !== "not_final" && reported?.value !== "yes") {
     blocks.push({ reason: "inconsistent_facts", factKey: "reported_to_bank", relatedFactKey: "bank_reply" });
   }
 

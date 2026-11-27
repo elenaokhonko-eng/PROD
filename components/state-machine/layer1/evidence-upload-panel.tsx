@@ -1,5 +1,7 @@
 'use client'
 
+import { APPROVED } from '@/lib/facts'
+
 /**
  * Layer 1 evidence upload panel. State Machine nodes `GL-Uploading` /
  * `GL-Processing`.
@@ -89,7 +91,7 @@ export function EvidenceUploadPanel({
         <CardTitle>Upload supporting evidence</CardTitle>
         <CardDescription>
           Bank or card statements, letters from your bank, a police report, or screenshots of the scam messages. PDF,
-          PNG or JPEG, up to 15 MB and 30 pages each.
+          PNG or JPEG, up to 15 MB and 30 pages each. {APPROVED.readingLimits}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -233,7 +235,7 @@ function DocumentRow({
         </p>
         {doc.processing_error ? (
           <p className="mt-1 text-xs text-destructive">
-            This file could not be processed. Replace it or try again.
+            {APPROVED.unreadableFile}
           </p>
         ) : null}
       </div>

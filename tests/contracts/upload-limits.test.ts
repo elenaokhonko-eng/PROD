@@ -31,3 +31,18 @@ test('the upload route enforces the caps after the signature check', () => {
   assert.match(route, /pages > MAX_PDF_PAGES/)
   assert.ok(route.indexOf('hasValidFileSignature(file)') < route.indexOf('pdfPageCount('))
 })
+
+// Part B walk-through, 25 Nov (PB-20): the same file uploaded twice was kept twice.
+test('an upload whose bytes match a document already in the case is refused before it is stored or counted', () => {
+  const route = readFileSync('app/api/evidence/upload/route.ts', 'utf8')
+  assert.ok(route.includes('const DUPLICATE_UPLOAD_MESSAGE = "You have already added this file to your case."'))
+  assert.ok(route.includes('error: DUPLICATE_UPLOAD_MESSAGE }, { status: 409 }'))
+  assert.match(route, /\.from\("evidence"\)\s*\.select\("filename, file_path"\)\s*\.eq\("case_id", caseId\)\s*\.eq\("file_size", file\.size\)/)
+  assert.match(route, /sha256Of\(await stored\.arrayBuffer\(\)\) === hash/)
+  const check = route.indexOf('await duplicateOf(supabaseService, caseId, file)')
+  assert.ok(check > 0 && check < route.indexOf('overUploadLimit(user.supabaseUuid)'), 'before the usage limits')
+  assert.ok(check < route.indexOf('.storage.from(STORAGE_BUCKET).upload('), 'before the file is stored')
+  assert.match(route, /status: 409/)
+  const hook = readFileSync('hooks/state-machine/layer1/use-upload-evidence.ts', 'utf8')
+  assert.match(hook, /uploadResponse\.status === 409\) && uploadJson\?\.error\) \{\s*throw new UploadRefusedError/)
+})

@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { CaseDecisionRunRow } from '@/lib/types/decision'
 import { PAID_PACK_NOTICE } from '@/lib/legal/automated-output-notice'
 import type { ReportJson, ReportRow } from '@/lib/types/report'
+import { APPROVED } from '@/lib/facts'
 
 export interface ReportViewProps {
   report: ReportRow
@@ -27,6 +28,14 @@ export interface ReportViewProps {
 
 export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps) {
   const json: ReportJson = report.report_json ?? {}
+  // Items 14 and 18: a bank pack's section is there even when nothing is confirmed for it.
+  const bankPack = report.report_type === 'bank_pack_v1'
+  const empty = (title: string, sentence: string) =>
+    bankPack ? (
+      <Section title={title}>
+        <p className="text-sm">{sentence}</p>
+      </Section>
+    ) : null
   const createdAt = report.created_at
     ? new Date(report.created_at).toLocaleString(undefined, {
         dateStyle: 'medium',
@@ -78,12 +87,12 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
             ))}
           </ol>
         </Section>
-      ) : null}
+      ) : empty('Timeline', APPROVED.noDatedEvents)}
 
       {Array.isArray(json.disputed_transactions) && json.disputed_transactions.length > 0 ? (
         <Section title="Disputed transactions">
           <div className="grid gap-3 md:hidden">
-            {json.disputed_transactions.slice(0, 5).map((row, rowIndex) => (
+            {json.disputed_transactions.map((row, rowIndex) => (
               <dl key={rowIndex} className="rounded-control border bg-background p-4 text-sm">
                 {Object.entries(row).map(([column, cell]) => (
                   <div key={column} className="grid gap-1 border-b py-2 first:pt-0 last:border-0 last:pb-0">
@@ -106,7 +115,7 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
                 </tr>
               </thead>
               <tbody>
-                {json.disputed_transactions.slice(0, 5).map((row, rowIndex) => (
+                {json.disputed_transactions.map((row, rowIndex) => (
                   <tr key={rowIndex} className="border-b last:border-0">
                     {Object.values(row).map((cell, cellIndex) => (
                       <td key={cellIndex} className="max-w-72 break-words py-2 pr-4 align-top">
@@ -118,19 +127,16 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
               </tbody>
             </table>
           </div>
-          {json.disputed_transactions.length > 5 ? (
-            <p className="mt-3 text-xs text-muted-foreground">
-              Showing first 5 of {json.disputed_transactions.length} transactions.
-            </p>
-          ) : null}
         </Section>
-      ) : null}
+      ) : empty('Disputed transactions', APPROVED.noPayments)}
 
       {typeof json.total_loss === 'string' && json.total_loss ? (
         <p className="text-sm">
           <span className="font-medium">Amount lost: </span>
           {json.total_loss}
         </p>
+      ) : bankPack ? (
+        <p className="text-sm">{APPROVED.noTotal}</p>
       ) : null}
 
       {typeof json.rules_assessment === 'string' && json.rules_assessment ? (
@@ -160,7 +166,7 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
             ))}
           </ul>
         </Section>
-      ) : null}
+      ) : empty('Evidence checklist', APPROVED.noDocuments)}
 
       {Array.isArray(json.disclaimers) && json.disclaimers.length > 0 ? (
         <Section title="Disclaimers">

@@ -87,6 +87,25 @@ export function institutionsMentioned(text: string): Institution[] {
   return [...found.values()];
 }
 
+// A document's heading: its first line, cut where the first date or amount begins, so transaction lines (a transfer to
+// another bank, an e-wallet top-up) are never read as the issuer (Part B walk-through review, 25 Nov).
+const HEADING_ENDS = /\d{1,2}\s+[a-z]{3,9}\s+\d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4}|S\$|SGD|US\$|\$\s?\d/i;
+const HEADING_MAX = 120;
+
+/** The known bank or provider named in a document's heading, with its words as printed; null when it names none. */
+export function issuerInHeading(text: string): { institution: Institution; quote: string } | null {
+  const firstLine = text.trim().split(/\r?\n/, 1)[0] ?? "";
+  const end = firstLine.search(HEADING_ENDS);
+  const heading = (end >= 0 ? firstLine.slice(0, end) : firstLine).slice(0, HEADING_MAX);
+  let first: { index: number; alias: Alias; quote: string } | null = null;
+  for (const alias of ALIASES) {
+    const match = alias.pattern.exec(heading);
+    // The earliest name wins; on a tie the alias listed first (DBS PayLah! before DBS).
+    if (match && (!first || match.index < first.index)) first = { index: match.index, alias, quote: match[0] };
+  }
+  return first ? { institution: { name: first.alias.name, type: first.alias.type }, quote: first.quote } : null;
+}
+
 export function sameInstitutionSet(a: readonly Institution[], b: readonly Institution[]): boolean {
   const key = (list: readonly Institution[]) => [...new Set(list.map((i) => i.name.toLowerCase()))].sort().join("|");
   return key(a) === key(b);

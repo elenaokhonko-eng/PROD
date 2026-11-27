@@ -70,6 +70,9 @@ function sameLoss(a: TotalLoss, b: TotalLoss): boolean {
 }
 
 function sameBankReply(a: BankReply, b: BankReply): boolean {
+  // "No final reply yet" (the FIDReC route answer) agrees with any reply that is not final and conflicts only with a
+  // final reply, so a final-reply letter is put to the person on the confirm screen (PB-24).
+  if (a.status === "not_final" || b.status === "not_final") return a.status !== "final_reply" && b.status !== "final_reply";
   return a.status === b.status && sameDate(a.date, b.date) && (!a.outcome || !b.outcome || a.outcome === b.outcome);
 }
 
@@ -176,6 +179,9 @@ function merge(key: FactKey, a: unknown, b: unknown): unknown {
   if (key === "bank_reply") {
     const x = a as BankReply;
     const y = b as BankReply;
+    // The more specific reply wins over "no final reply yet".
+    if (x.status === "not_final") return y;
+    if (y.status === "not_final") return x;
     return {
       status: x.status,
       date: x.date ?? y.date,
@@ -276,7 +282,7 @@ function reconcileTransactions(candidates: readonly FactCandidate[]): { findingT
 // Dependency rules (Elena, 2026-11-05): a reply from the bank means the bank was told, and a final reply needs a
 // report or written complaint. Each reply candidate therefore implies "reported to the bank: yes" from the same
 // source, so a "No" elsewhere becomes an ordinary conflict for the user to settle.
-const REPLY_STATUSES: ReadonlySet<string> = new Set(["acknowledged", "interim", "final_reply"]);
+const REPLY_STATUSES: ReadonlySet<string> = new Set(["acknowledged", "interim", "answered", "final_reply"]);
 
 // A reference given with "told the bank" or "police report" becomes a candidate for its own fact, from the same
 // source (finding A2).
