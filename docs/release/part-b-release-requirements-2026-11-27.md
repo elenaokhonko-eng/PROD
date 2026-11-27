@@ -1,6 +1,6 @@
 # Part B release (#121): findings, fixes and final requirements
 
-Written 27 Nov 2026, 21:00 Singapore time, for Elena and the coding agent. It consolidates the Part B register, CR-2 and the decisions of 25 to 27 Nov. Where this file and an older one differ, this file is the requirement.
+Written 27 Nov 2026, 21:00 Singapore time, for Elena and the coding agent. Section 8 added at 22:15. It consolidates the Part B register, CR-2 and the decisions of 25 to 27 Nov. Where this file and an older one differ, this file is the requirement.
 
 No case data: IDs, counts and synthetic test names only.
 
@@ -284,5 +284,66 @@ Not scheduled: PB-14, R-11, R-12, an email alert to Elena when a paid pack fails
 
 1. **Long documents.** Reading was raised from 15,000 to 100,000 characters, with a worst case the agent puts at about 3 minutes. A staging function was cut off at about 150 seconds on 25 Nov. Where does reading run, and what is its time limit? Not yet proved with the real AI: re-test step 3.1.
 2. **The free evaluation now fails outright** where it used to give a summary version, including when the daily spending cap is reached. How often was the summary version used in the last 30 days, on staging and production? Counts only.
-3. **The upload box sentence** about how much of each document is read when a FIDReC pack is written. Which wording is live on staging, and has Elena approved it?
+3. **The upload box sentence** about how much of each document is read. Answered by Elena on 27 Nov: it comes out. Every document is read in full (section 8.1).
 4. **The rejected reference** in gate run 45867707804. The staging log query will show whether it was a notice name from the rule text or a number the AI made up. That part of the check is not to be changed until the log says.
+
+## 8. Three changes decided by Elena on 27 Nov, 21:05 (to build before the next gate series)
+
+These change the build on staging (`b6be3f3`), so they make a new commit and the three gate runs start again after them.
+
+### 8.1 Every document is read in full
+
+**Rule.** Every document a person uploads is read in full, at every step that uses it. The product never reads only part of a document, and never tells a customer that it did.
+
+**Remove:**
+- the upload box sentence about how much of each document is read when a FIDReC pack is written;
+- the sentence "Only part of this document was read when this pack was written." (inventory item 20), because the situation it describes must no longer occur.
+
+**Consequence for the agent to report before building.** Today the step that writes the FIDReC pack reads about 4,000 characters of each document and 24,000 in total. Under this rule it must read all of each document, or be written from what was already read document by document. Report, with measurements on synthetic documents and counts only:
+1. how many documents of 15 pages that step can read in full in one pack today;
+2. how long it takes and what it costs per pack at that number;
+3. where each reading step runs and its time limit (a staging function was cut off at about 150 seconds on 25 Nov).
+
+A limit in 8.2 may not be higher than the number that can be read in full.
+
+### 8.2 Limits on uploads
+
+Limits are enforced at upload, before anything is stored or read. The same limits are checked on the server.
+
+| | Documents | Pages per document |
+|---|---|---|
+| Free evaluation | 10 | 15 |
+| Bank dispute pack | 15 | 15 |
+| FIDReC pack | Elena's target is 50. For this release: the number proved in 8.1, and not above it | 15 |
+
+- The existing limits of 15 MB per file and the file types (PDF, PNG, JPEG) stay.
+- The page limit replaces today's 30 pages.
+- An image counts as one page.
+- A document already in a case when the limit changes is kept. The limit applies to new uploads.
+- **For Elena to confirm:** the FIDReC number for this release, once the agent has reported 8.1.
+
+### 8.3 Failure messages name the fault
+
+**Rule.** When something fails, the person is told what failed, in plain words, and what to do next. A technical fault asks them to try again now. The daily cap asks them to come back tomorrow. No message mentions cost or spending.
+
+**Wording proposed by the reviewer on 27 Nov. Not yet approved by Elena. Do not merge until she approves.**
+
+| Situation | Proposed wording |
+|---|---|
+| A file over the page limit, at upload | "This file has more than 15 pages. Please upload only the pages that matter, as a separate file." |
+| Too many files | "You can add up to [number] documents for this [evaluation / pack]." |
+| Reading did not finish in time | "Reading your documents took too long and did not finish. Please try again now." |
+| The AI service failed or its checks failed twice | The approved failure message for that output (section 5.9) |
+| The daily cap is reached (free evaluation) | "We've reached today's limit for free evaluations. Your answers are saved. Please come back tomorrow." |
+
+Elena's own phrasing for the cap was "due to increased demand". The reviewer left it out because the cap can be reached on a quiet day, when that would be untrue. Elena decides.
+
+- The daily cap message replaces the generic failure message in that case only. The person's answers and documents are kept.
+- The log records which fault it was (too long, timed out, service failed, cap), with no case content, so the count in section 7, question 2 can be answered.
+
+### 8.4 Tests
+
+- Upload: a file of 16 pages is refused with the message; a file of 15 is accepted; the document count limit is enforced for each of the three outputs, on the screen and on the server.
+- No output contains a sentence saying a document was read in part.
+- Each failure in 8.3 shows its own message, and the cap case keeps the person's answers.
+- A document at the page limit is read in full by every step that uses it, shown by a fact taken from its last page.
