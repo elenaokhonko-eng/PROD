@@ -17,8 +17,8 @@ test('only a reading that finished counts', () => {
 
 test('the reading step checks it before the answer is used, and the screen says the file could not be read', () => {
   const fn = readFileSync('supabase/functions/evidence_processed_v2/index.ts', 'utf8')
-  const run = fn.slice(fn.indexOf('async function runGemini('), fn.indexOf('// -------------------- Core Worker'))
-  assert.ok(run.indexOf('assertReadToTheEnd(j)') > 0 && run.indexOf('assertReadToTheEnd(j)') < run.indexOf('safeParseGeminiJson('))
+  const part = fn.slice(fn.indexOf('async function readPart('), fn.indexOf('async function filesOfParts('))
+  assert.ok(part.indexOf('assertReadToTheEnd(j)') > 0 && part.indexOf('assertReadToTheEnd(j)') < part.indexOf('JSON.parse('))
   const panel = readFileSync('components/state-machine/layer1/evidence-upload-panel.tsx', 'utf8')
   assert.match(panel, /doc\.processing_error \?[\s\S]{0,120}APPROVED\.unreadableFile/)
 })

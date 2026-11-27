@@ -1,6 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { safeErrorText } from "../_shared/safe-error.ts";
 import { assertReadToTheEnd } from "../_shared/gemini-finish.ts";
+import { assertCompleteText, partPageRanges } from "../_shared/read-parts.ts";
+import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import {
   backoffMs,
   dailyBreaker,
@@ -333,10 +335,64 @@ async function geminiGenerateContentWithRetry(args: {
   throw new Error("Gemini failed after retries");
 }
 
-async function runGemini(args) {
-  const { geminiKey, model, mime_type, base64, declared_document_type, file_name } = args;
+// Each part's text, exactly: the instruction that was missing when long files were abbreviated.
+const TRANSCRIBE = `Transcribe every line of every page you are given as "raw_text", in reading order, preserving numbers exactly.
+Never abbreviate, summarise or skip lines, and never write dots or a note in place of text, however long or repetitive it is.`;
+
+type ReadArgs = {
+  geminiKey: string;
+  model: string;
+  bytes: Uint8Array;
+  mime_type: string;
+  declared_document_type: string | null;
+  file_name: string;
+  onAttempt: (attempt: GeminiAttempt) => Promise<void> | void;
+};
+
+async function readPart(args: ReadArgs, endpoint: string, prompt: string, base64: string) {
+  const requestBody = JSON.stringify({
+    contents: [{ role: "user", parts: [{ text: prompt }, { inline_data: { mime_type: args.mime_type, data: base64 } }] }],
+    generationConfig: {
+      temperature: 0.1,
+      response_mime_type: "application/json",
+      // Output and thinking caps (§5 B5): thinking tokens are billed as output.
+      max_output_tokens: OUTPUT_CAPS.evidence,
+      thinking_config: { thinking_budget: GEMINI_THINKING_BUDGET.evidence },
+    },
+  });
+  const j = await geminiGenerateContentWithRetry({ endpoint, requestBody, onAttempt: args.onAttempt });
+  assertReadToTheEnd(j);
+  const rawOutput = String(j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
+  let parsed;
+  try {
+    parsed = JSON.parse(extractFirstJsonObject(rawOutput) ?? rawOutput);
+  } catch {
+    // Half an answer is not a reading.
+    throw new Error("document_part_unreadable");
+  }
+  const text = typeof parsed?.raw_text === "string" ? parsed.raw_text : "";
+  assertCompleteText(text);
+  return { parsed, text };
+}
+
+// A PDF cut into files of up to three pages; an image is one page.
+async function filesOfParts(bytes: Uint8Array, mime_type: string) {
+  if (mime_type !== "application/pdf") return { pageCount: 1, parts: [{ pages: 1, bytes }] };
+  const source = await PDFDocument.load(bytes);
+  const pageCount = source.getPageCount();
+  const parts: Array<{ pages: number; bytes: Uint8Array }> = [];
+  for (const pages of partPageRanges(pageCount)) {
+    const part = await PDFDocument.create();
+    for (const page of await part.copyPages(source, pages)) part.addPage(page);
+    parts.push({ pages: pages.length, bytes: await part.save() });
+  }
+  return { pageCount, parts };
+}
+
+async function runGemini(args: ReadArgs) {
+  const { geminiKey, model, bytes, mime_type, declared_document_type, file_name } = args;
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
-  const geminiPrompt = `
+  const classifyPrompt = `
 You are an evidence classifier for a financial scam dispute case.
 
 Classify this document into EXACTLY ONE of the following evidence types:
@@ -346,61 +402,42 @@ Definitions:
 ${evidenceDefinitionsBlock()}
 
 Your job:
-1) Extract readable text as "raw_text" (preserve numbers exactly).
+1) ${TRANSCRIBE}
 2) Choose EXACTLY ONE predicted_document_type from the list above.
 3) Provide confidence score 0..1.
 4) Provide 3-6 evidence_spans short quotes that justify the predicted type (include page if you can infer, else null).
-5) If transaction-like entries exist, extract them into "transactions".
 
 Return STRICT JSON only (no markdown, no commentary):
 {
   "predicted_document_type": "TYPE_FROM_LIST",
   "confidence": 0.0,
-  "evidence_spans": [{"quote":"...", "page": 1}],
-  "raw_text": "...",
-  "transactions": [{"date":"YYYY-MM-DD or null","merchant":"string or null","amount":123.45,"currency":"SGD|AUD|USD|... or null","status":"string or null"}],
+  "evidence_spans": [{"quote":"<short quote>", "page": 1}],
+  "raw_text": "<every line of these pages>",
   "notes": "optional"
 }
 
 Declared document_type from UI (may be wrong): ${(declared_document_type ?? "UNKNOWN").toString()}
 File name: ${file_name}
 `.trim();
-  const requestBody = JSON.stringify({
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            text: geminiPrompt,
-          },
-          {
-            inline_data: {
-              mime_type,
-              data: base64,
-            },
-          },
-        ],
-      },
-    ],
-    generationConfig: {
-      temperature: 0.1,
-      response_mime_type: "application/json",
-      // Output and thinking caps (§5 B5): thinking tokens are billed as output.
-      max_output_tokens: OUTPUT_CAPS.evidence,
-      thinking_config: { thinking_budget: GEMINI_THINKING_BUDGET.evidence },
-    },
-  });
+  const textPrompt = `These are later pages of a longer document.
+${TRANSCRIBE}
+Return STRICT JSON only: {"raw_text": "<every line of these pages>"}`;
 
-  const j = await geminiGenerateContentWithRetry({ endpoint, requestBody, onAttempt: args.onAttempt });
-  assertReadToTheEnd(j);
-  const rawOutput = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
-  const parsed = safeParseGeminiJson(String(rawOutput));
-  const rawText = String(parsed.raw_text ?? rawOutput);
-  return {
-    parsed,
-    rawText,
-    rawOutput: String(rawOutput)
-  };
+  const { pageCount, parts } = await filesOfParts(bytes, mime_type);
+  const results: Array<{ parsed: Record<string, unknown>; text: string; pages: number }> = new Array(parts.length);
+  // Three at a time: a 30-page file is ten parts, inside the worker's two minutes.
+  for (let start = 0; start < parts.length; start += 3) {
+    await Promise.all(parts.slice(start, start + 3).map(async (part, i) => {
+      const index = start + i;
+      results[index] = { ...(await readPart(args, endpoint, index === 0 ? classifyPrompt : textPrompt, toBase64(part.bytes))), pages: part.pages };
+    }));
+  }
+  const pagesRead = results.reduce((sum, r) => sum + r.pages, 0);
+  // Ready only when every page has been read.
+  if (pagesRead !== pageCount) throw new Error("document_pages_missing");
+  const rawText = results.map((r) => r.text).join("\n");
+  const parsed = { ...results[0].parsed, raw_text: rawText, page_count: pageCount, pages_read: pagesRead };
+  return { parsed, rawText, rawOutput: rawText };
 }
 // -------------------- Core Worker --------------------
 async function processOneDocument(args) {
@@ -415,8 +452,8 @@ async function processOneDocument(args) {
     force
   } = args;
   const model = DEFAULT_EVIDENCE_GEMINI_MODEL;
-  const prompt_version = "sota_v3_evidence_index_exact";
-  const pipeline_version = "fanout_v3_evidence_index_exact";
+  const prompt_version = "parts_v4_text_only";
+  const pipeline_version = "parts_v4";
   try {
     const begin = await supabase.rpc("begin_evidence_processing_v1", {
       p_job_id: job_id,
@@ -480,7 +517,7 @@ async function processOneDocument(args) {
         geminiKey,
         model,
         mime_type: mime_used,
-        base64: toBase64(bytes),
+        bytes,
         declared_document_type: doc.document_type ?? null,
         file_name: fileName,
         onAttempt: (a: GeminiAttempt) =>

@@ -91,7 +91,7 @@ export function EvidenceUploadPanel({
         <CardTitle>Upload supporting evidence</CardTitle>
         <CardDescription>
           Bank or card statements, letters from your bank, a police report, or screenshots of the scam messages. PDF,
-          PNG or JPEG, up to 15 MB and 30 pages each. {APPROVED.readingLimits}
+          PNG or JPEG, up to 15 MB and 30 pages each.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

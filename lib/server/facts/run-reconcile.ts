@@ -23,11 +23,14 @@ import { logger } from "@/lib/logger"
 
 const log = logger.withContext({ module: "facts-reconcile" })
 
+import { mergeDocumentParts, splitIntoParts } from "./document-parts"
+
 const STORY_LIMIT = 20_000
 // "All transactions must be pulled" (Elena, 27 Nov 2026): the whole of a long statement is read, and the answer has
 // room for every payment (about 100 tokens each). An answer that is still cut off fails the check rather than losing
 // payments quietly.
-const DOCUMENT_LIMIT = 100_000
+// About two pages: even a page full of payments fits the answer.
+const DOCUMENT_PART_CHARS = 5_000
 const DOCUMENT_OUTPUT_CAP = 8_192
 const DOCUMENT_TIMEOUT_MS = 90_000
 const MODEL_CONCURRENCY = 4
@@ -142,7 +145,7 @@ async function loadSources(service: SupabaseClient, caseId: string) {
     sources.push({
       sourceKey,
       sourceType: "document",
-      text: text.slice(0, DOCUMENT_LIMIT),
+      text,
       sourceRef: {
         sourceKey,
         documentId: doc.id,
@@ -304,8 +307,16 @@ export async function ensureReconciled(
     const extracted = await inBatches(sources, MODEL_CONCURRENCY, async (source) => {
       const cached = reusable.get(source.sourceKey)
       if (cached) return cached
-      const raw = await extractJson(buildFactExtractionPrompt(source.sourceType, source.text), `facts_${source.sourceType}`)
-      const parsed = parseFactExtraction(raw, source.text, { sourceType: source.sourceType, sourceRef: source.sourceRef })
+      const read = async (text: string, documentType?: unknown) => {
+        const raw = (await extractJson(buildFactExtractionPrompt(source.sourceType, text), `facts_${source.sourceType}`)) as Record<string, unknown>
+        // The first part says what kind of document it is; later pages are read as that kind.
+        const kind = documentType ?? raw?.document_type
+        return { kind, candidates: parseFactExtraction({ ...raw, document_type: kind }, text, { sourceType: source.sourceType, sourceRef: source.sourceRef }) }
+      }
+      const parts = source.sourceType === "document" ? splitIntoParts(source.text, DOCUMENT_PART_CHARS) : [source.text]
+      const first = await read(parts[0])
+      const rest = await inBatches(parts.slice(1), MODEL_CONCURRENCY, (part) => read(part, first.kind))
+      const parsed = mergeDocumentParts([first.candidates, ...rest.map((r) => r.candidates)])
       // A source with no facts records a marker so it is not sent to the model again.
       return parsed.length ? parsed : [{ factKey: SCANNED_MARKER, value: {}, sourceType: source.sourceType, sourceRef: source.sourceRef } as unknown as FactCandidate]
     })

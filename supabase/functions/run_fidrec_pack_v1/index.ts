@@ -26,7 +26,7 @@ import {
   documentedFacts,
   type EvidenceFinding,
   evidenceIdFailures,
-  evidenceIndexWithReadingNotes,
+  allDocumentsRead,
   listLengthFailures,
   factDates,
   fidrecPackChecks,
@@ -195,6 +195,11 @@ Deno.serve(async (req) => {
 
     const evidenceIndex = buildEvidenceIndex(findings ?? [], caseDocuments);
     const excerpts = documentExcerpts(evidenceIndex, caseDocuments);
+    // Requirements 8.1: never written from part of the documents.
+    if (!allDocumentsRead(evidenceIndex, excerpts, caseDocuments)) {
+      console.warn(`FIDReC pack not completed: documents_too_long ${case_id}`);
+      return json({ ok: false, reason: "output_validation_failed", error: "The FIDReC pack could not be completed", fault: "documents_too_long", checks: [] }, 422);
+    }
 
     const usageEnv = usageEnvironment(Deno.env.toObject());
     const usageClient = supabase as unknown as UsageClient;
@@ -263,6 +268,8 @@ ${JSON.stringify(input, null, 2)}`;
             system: fidrecPackSystem(previousFailures),
             user,
             deadline,
+            // Whole documents take longer to read than excerpts did.
+            callTimeoutMs: 90_000,
             onCall: (call) =>
               recordModelUsage(usageClient, usageEnv, {
                 ...meter,
@@ -321,7 +328,7 @@ ${JSON.stringify(input, null, 2)}`;
         values: (f.values ?? []) as EvidenceFinding["values"],
         resolution: f.resolution as EvidenceFinding["resolution"],
       })),
-      evidenceIndex: evidenceIndexWithReadingNotes(evidenceIndex, excerpts, caseDocuments),
+      evidenceIndex,
       route,
       finalReplyUsed: Boolean(finalReplyText),
       clauses,

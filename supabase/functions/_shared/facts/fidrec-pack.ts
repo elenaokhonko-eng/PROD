@@ -31,7 +31,6 @@ export const FIDREC_PACK_VERSION = "fidrec_pack_v1";
 export const FIDREC_PACK_MIN_WORDS = 250;
 export const FIDREC_PACK_MAX_WORDS = 1_600;
 // The letter text the model may quote is capped: the institution's position needs the reasons, not the whole file.
-export const FINAL_REPLY_MAX_CHARS = 12_000;
 
 // Amounts FIDReC's rules put in the text (the S$50 fee, the S$150,000 award cap).
 const RULE_AMOUNTS = [FIDREC_RULES.adjudicationFeeSgd.individual, FIDREC_RULES.awardCapSgd.value];
@@ -367,34 +366,25 @@ export function buildEvidenceIndex(findings: readonly Tier0Finding[], documents:
   return [...byDocument.values()];
 }
 
-export const DOCUMENT_EXCERPT_MAX_CHARS = 4_000;
-export const DOCUMENTS_TOTAL_MAX_CHARS = 24_000;
+// Requirements 8.1: every document is read in full. This is the most all of them together may hold; beyond it the pack
+// is not written from part of them. The size that works in time is still to be measured with the real model.
+export const DOCUMENTS_TOTAL_MAX_CHARS = 400_000;
 
-/** The documents' own words for the model, capped per document and in total; the index order decides what fits. */
+/** The documents' own words for the model, each whole; a document that would not fit is left out, never shortened. */
 export function documentExcerpts(index: readonly EvidenceIndexEntry[], documents: readonly CaseDocument[]) {
   let budget = DOCUMENTS_TOTAL_MAX_CHARS;
   return index.flatMap((entry) => {
     const text = documents.find((d) => d.id === entry.documentId)?.text?.trim();
-    if (!text || budget <= 0) return [];
-    const excerpt = text.slice(0, Math.min(DOCUMENT_EXCERPT_MAX_CHARS, budget));
+    if (!text || text.length > budget) return [];
+    const excerpt = text;
     budget -= excerpt.length;
     return [{ id: entry.id, document: entry.label, excerpt }];
   });
 }
 
-/** Item 20: the evidence index says which documents were read only in part, or not at all. */
-export function evidenceIndexWithReadingNotes(
-  index: readonly EvidenceIndexEntry[],
-  excerpts: ReadonlyArray<{ id: string; excerpt: string }>,
-  documents: readonly CaseDocument[],
-): EvidenceIndexEntry[] {
-  return index.map((entry) => {
-    const text = documents.find((d) => d.id === entry.documentId)?.text?.trim();
-    if (!text) return entry;
-    const read = excerpts.find((e) => e.id === entry.id)?.excerpt.length ?? 0;
-    if (read >= text.length) return entry;
-    return { ...entry, label: `${entry.label}. ${read ? APPROVED.partlyRead : APPROVED.notRead}` };
-  });
+/** Whether every document with text went to the model whole. */
+export function allDocumentsRead(index: readonly EvidenceIndexEntry[], excerpts: ReadonlyArray<{ id: string }>, documents: readonly CaseDocument[]): boolean {
+  return index.every((entry) => !documents.find((d) => d.id === entry.documentId)?.text?.trim() || excerpts.some((e) => e.id === entry.id));
 }
 
 export interface DocumentQuotables {
@@ -470,7 +460,7 @@ export function buildFidrecPackInput(args: {
   return {
     ...input,
     // The institution's own words, from a qualifying final-reply letter only; null when there is none.
-    final_reply_letter: args.finalReplyText ? args.finalReplyText.slice(0, FINAL_REPLY_MAX_CHARS) : null,
+    final_reply_letter: args.finalReplyText ?? null,
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label, supports: e.facts })),
     documents: args.documents ?? [],
     allowed_dates: [...new Set(args.allowedDates ?? [])].sort(),

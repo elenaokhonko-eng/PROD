@@ -225,7 +225,7 @@ const clauses = numberClauses([
   { clause_ref: '7', title: 'Access control', text_content: 'A financial institution shall implement controls to detect unauthorised access.', source: 'MAS Notice FSM-N06 (2024)' },
 ])
 
-test('every ready document is evidence, after those behind the facts; the model gets capped excerpts', () => {
+test('every ready document is evidence, after those behind the facts; the model gets each one whole', () => {
   const index = buildEvidenceIndex(findings, [{ id: 'doc-letter', evidenceType: null, text: 'x' }, accessLog])
   assert.deepEqual(index.map((e) => [e.id, e.label]), [
     ['E1', 'a letter or email from your bank (uploaded)'],
@@ -233,7 +233,7 @@ test('every ready document is evidence, after those behind the facts; the model 
     ['E3', 'the bank’s login, device and IP records (uploaded)'.replace('’', "'")],
   ])
   const excerpts = documentExcerpts(index, [accessLog, { id: 'doc-letter', evidenceType: null, text: 'y'.repeat(9_000) }])
-  assert.equal(excerpts.find((e) => e.id === 'E1')?.excerpt.length, 4_000, 'capped per document')
+  assert.equal(excerpts.find((e) => e.id === 'E1')?.excerpt.length, 9_000, 'whole')
   assert.equal(excerpts.find((e) => e.id === 'E3')?.excerpt, accessLog.text)
 })
 

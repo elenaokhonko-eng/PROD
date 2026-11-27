@@ -4,10 +4,7 @@ import test from 'node:test'
 import {
   APPROVED,
   bankPackTimeline,
-  buildEvidenceIndex,
   describeReferenceSource,
-  documentExcerpts,
-  evidenceIndexWithReadingNotes,
   evidenceLists,
   fidrecChronology,
   parseFidrecPackProse,
@@ -88,15 +85,9 @@ test('item 19: an unreadable file is refused with a request to upload it again',
   const panel = read('components/state-machine/layer1/evidence-upload-panel.tsx')
   assert.ok(panel.includes('APPROVED.unreadableFile'))
   assert.doesNotMatch(panel, /could not be processed/)
-  assert.ok(panel.includes('APPROVED.readingLimits'), 'item 20: the limits are said where files are uploaded')
 })
 
-test('item 20: a document read only in part says so, and a long list is rewritten, not cut', () => {
-  const documents = [{ id: 'a', evidenceType: null, text: 'x'.repeat(5_000) }, { id: 'b', evidenceType: null, text: 'short' }]
-  const index = buildEvidenceIndex([], documents)
-  const noted = evidenceIndexWithReadingNotes(index, documentExcerpts(index, documents), documents)
-  assert.ok(noted[0].label.endsWith(`. ${APPROVED.partlyRead}`), noted[0].label)
-  assert.ok(!noted[1].label.includes('read when'))
+test('item 20: a long list is rewritten, not cut', () => {
   const argument = { text: 'p', evidence_ids: [] }
   const prose = parseFidrecPackProse({
     title: 't', executive_summary: 'e', claimant_position: 'c', institution_position: 'i',
@@ -119,7 +110,7 @@ test('the bank pack names the institution’s letter in the customer’s voice',
 
 test('every payment is read: the reading step has room for a long statement', () => {
   const reconcile = read('lib/server/facts/run-reconcile.ts')
-  assert.match(reconcile, /const DOCUMENT_LIMIT = 100_000/)
+  assert.match(reconcile, /const DOCUMENT_PART_CHARS = 5_000/)
   assert.match(reconcile, /const DOCUMENT_OUTPUT_CAP = 8_192/)
   assert.match(reconcile, /maxOutputTokens: schemaName === "facts_document" \? DOCUMENT_OUTPUT_CAP : OUTPUT_CAPS\.fact_extraction/)
 })
