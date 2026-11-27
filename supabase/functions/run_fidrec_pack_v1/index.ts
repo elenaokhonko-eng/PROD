@@ -22,6 +22,7 @@ import {
   caseInstruments,
   routeClauses,
   chatJson,
+  describeReferenceSource,
   documentedFacts,
   type EvidenceFinding,
   evidenceIdFailures,
@@ -197,7 +198,8 @@ Deno.serve(async (req) => {
     const usageClient = supabase as unknown as UsageClient;
     const meter = { caller: "edge" as const, purpose: "fidrec_pack", provider: "openai" as const, caseId: case_id };
 
-    // The duties section's clauses. Retrieval failing leaves the section empty rather than failing the pack.
+    // The duties section's clauses. If they cannot be looked up, no pack is delivered without its duties section
+    // (item 16, Elena, 27 Nov 2026): nothing is generated or saved, and the person can try again.
     let clauses: ReturnType<typeof numberClauses> = [];
     try {
       clauses = await retrieveClauses(regulatoryQuery(facts), caseInstruments(facts), (call) =>
@@ -205,6 +207,12 @@ Deno.serve(async (req) => {
       );
     } catch (error) {
       console.warn(`FIDReC pack clause retrieval failed: ${safeErrorText(error)}`);
+      const { error: logErr } = await supabase.from("analytics_events").insert({
+        event_name: "fidrec_pack_rules_unavailable",
+        event_data: { case_id, fact_snapshot_id, release: typeof body.release === "string" ? body.release.slice(0, 40) : null },
+      });
+      if (logErr) console.error(`FIDReC pack review log failed: ${logErr.code ?? "unknown"}`);
+      return json({ ok: false, reason: "output_validation_failed", error: "The FIDReC pack could not be completed", checks: [] }, 422);
     }
 
     const quotables = documentQuotables(excerpts);
@@ -233,6 +241,14 @@ ${JSON.stringify(input, null, 2)}`;
       mapText: mapFidrecPackProse,
       texts: fidrecPackTexts,
       fallback: fidrecPackFallback,
+      describeReference: (ref) => describeReferenceSource(ref, {
+        documents: evidenceIndex.map((e) => {
+          const document = caseDocuments.find((d) => d.id === e.documentId);
+          return { id: e.id, label: e.label, type: document?.evidenceType ?? null, text: document?.text ?? null };
+        }),
+        story: (storyRow?.story_text as string | null) ?? "",
+        voice: "complainant",
+      }),
       extraChecks: (prose) => [...evidenceIdFailures(prose, evidenceIndex), ...dutyFailures(prose, clauses, facts, checks)],
       generate: (previousFailures) =>
         chatJson(

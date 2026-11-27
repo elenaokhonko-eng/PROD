@@ -34,8 +34,3 @@ test('the FIDReC pack is never delivered in its fixed wording', () => {
   assert.match(screen, /generate\.mutate\(snapshotId\)\}>Try again/)
 })
 
-test('the FIDReC failure message says what the person can do, in the approved words', () => {
-  const screen = readFileSync('components/state-machine/facts/confirm-and-evaluate.tsx', 'utf8')
-  assert.ok(screen.includes('We couldn’t complete your FIDReC pack this time. You can try again now. If it still doesn’t work, email info@guidebuoyai.sg and we will refund you.'))
-  assert.ok(!screen.includes('We couldn’t produce a FIDReC pack that matches your facts exactly'))
-})

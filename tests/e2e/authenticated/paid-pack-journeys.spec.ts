@@ -43,7 +43,7 @@ test.describe('paid pack journeys', () => {
     await expect(page.locator('[data-fidrec-waiting="complaint_not_raised"]')).toContainText('Your FIDReC pack waits for you.', { timeout: 60_000 })
     await expect(page.getByRole('button', { name: /Get Bank dispute pack/ })).toBeVisible()
     await change.click()
-    await answerTimeline(page, { complaintDaysAgo: 3, reply: null })
+    await answerTimeline(page, { complaintDaysAgo: 3, reply: 'looking' })
     await expect(page.locator('[data-fidrec-waiting="fidrec_too_early"]')).toContainText('so the four weeks end on', { timeout: 60_000 })
     await expect(page.getByRole('button', { name: /Get Bank dispute pack/ })).toHaveCount(0)
     await change.click()

@@ -628,6 +628,9 @@ export function fidrecRouteText(route: FidrecPackCheck, finalReply: FinalReplyBa
 export const SRF_DUTIES_NOTE =
   "This payment is likely not covered by the SRF (see 'How the rules may apply'). The duties below are listed because FIDReC can consider how the institution handled the case.";
 
+// Item 16 (wording approved by Elena, 27 Nov 2026): the duties section is there even when no clause applies.
+export const NO_CLAUSE_MATCHED_NOTE = "No rule clause was matched to the payments in this case.";
+
 export function srfDutiesNote(assessment: SrfAssessment): string | null {
   const portions = assessment.portions;
   return portions.length > 0 && portions.every((p) => p.assessment === "likely_out_of_scope") ? SRF_DUTIES_NOTE : null;
@@ -700,7 +703,7 @@ export function assembleFidrecPack(args: {
     total_loss: loss ? formatMoney(loss) : null,
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label })),
     evidence_checklist: [...shown.map((label) => ({ label, present: true })), ...missing.map((label) => ({ label, present: false }))],
-    duties_note: srfDutiesNote(srf),
+    duties_note: args.clauses && !args.clauses.length ? NO_CLAUSE_MATCHED_NOTE : srfDutiesNote(srf),
     route: fidrecRouteText(args.route, finalReplyBasis(facts, args.findings, args.evidenceIndex), args.today),
     rules_assessment: srfAssessmentText(srf),
     final_reply_used: args.finalReplyUsed,

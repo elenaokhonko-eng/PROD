@@ -12,6 +12,14 @@ import type { FidrecPackCheck } from '@/lib/facts'
 import { FIDREC_NOT_COMPLAINED, fidrecWaitingText, singaporeToday, type FidrecTimeline } from '@/lib/journey/fidrec-timeline'
 
 type Choice = boolean | null
+type Answered = FidrecTimeline['answered']
+
+// Wording approved by Elena, 27 Nov 2026: only the first opens the route before four weeks.
+const ANSWERED_OPTIONS = [
+  ['answer', 'Yes, it gave its answer'],
+  ['looking', 'It said it is still looking into it'],
+  ['no', 'No, not yet'],
+] as const
 
 function YesNo({ legend, name, value, no = 'No', onChange }: {
   legend: string
@@ -54,7 +62,7 @@ const isDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && value <= 
 export function FidrecTimelineForm({ initial, onSave }: { initial: FidrecTimeline | null; onSave: (timeline: FidrecTimeline) => Promise<void> }) {
   const [complained, setComplained] = useState<Choice>(initial?.complained ?? null)
   const [complaintDate, setComplaintDate] = useState(initial?.complaintDate ?? '')
-  const [answered, setAnswered] = useState<Choice>(initial?.answered ?? null)
+  const [answered, setAnswered] = useState<Answered>(initial?.answered ?? null)
   const [final, setFinal] = useState<Choice>(initial?.final ?? null)
   const [replyDate, setReplyDate] = useState(initial?.replyDate ?? '')
   const [saving, setSaving] = useState(false)
@@ -63,7 +71,8 @@ export function FidrecTimelineForm({ initial, onSave }: { initial: FidrecTimelin
   async function save() {
     const complete =
       complained === false ||
-      (complained === true && isDate(complaintDate) && (answered === false || (answered === true && final !== null && isDate(replyDate))))
+      (complained === true && isDate(complaintDate) &&
+        (answered === 'no' || answered === 'looking' || (answered === 'answer' && final !== null && isDate(replyDate))))
     if (!complete || complained === null) {
       setError('Please answer each question and enter the date.')
       return
@@ -71,7 +80,7 @@ export function FidrecTimelineForm({ initial, onSave }: { initial: FidrecTimelin
     setSaving(true)
     setError(null)
     try {
-      const replied = complained && answered === true
+      const replied = complained && answered === 'answer'
       await onSave({
         complained,
         complaintDate: complained ? complaintDate : null,
@@ -104,10 +113,18 @@ export function FidrecTimelineForm({ initial, onSave }: { initial: FidrecTimelin
           {complained ? (
             <>
               <DateField label="Date of your written complaint" name="complaint-date" value={complaintDate} onChange={setComplaintDate} />
-              <YesNo legend="Has your bank answered your complaint?" name="answered" value={answered} no="No, not yet" onChange={setAnswered} />
+              <fieldset className="space-y-2" data-timeline-question="answered">
+                <legend className="mb-2 text-sm font-medium">Has your bank answered your complaint?</legend>
+                {ANSWERED_OPTIONS.map(([value, label]) => (
+                  <label key={value} className="flex min-h-11 items-center gap-3 rounded-control border px-3 text-sm">
+                    <input type="radio" name="answered" value={value} checked={answered === value} onChange={() => setAnswered(value)} />
+                    {label}
+                  </label>
+                ))}
+              </fieldset>
             </>
           ) : null}
-          {complained && answered ? (
+          {complained && answered === 'answer' ? (
             <>
               <YesNo legend="Does the reply say it is your bank’s final reply?" name="final" value={final} onChange={setFinal} />
               <DateField label={final ? 'Date of the final reply' : 'Date of the bank’s answer'} name="reply-date" value={replyDate} onChange={setReplyDate} />

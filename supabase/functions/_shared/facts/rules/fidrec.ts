@@ -75,8 +75,9 @@ export function fidrecPackCheck(
     const daysLeft = daysBetween(today, finalDeadline);
     return { available: true, route: "final_reply", deadline: finalDeadline, daysLeft, deadlineSoon: daysLeft >= 0 && daysLeft <= 30 };
   }
-  // An acknowledgement is not an answer. A final reply is, with or without a written complaint recorded.
-  if (reply?.status === "final_reply" || (reply?.status === "interim" && complaint?.value !== "no")) {
+  // An acknowledgement, or a letter saying the bank is still looking into it, is not an answer (Rule 13(1)(i) needs an
+  // attempt to resolve the matter that has not). A final reply is, with or without a written complaint recorded.
+  if (reply?.status === "final_reply" || (reply?.status === "answered" && complaint?.value !== "no")) {
     return { available: true, route: "answered", deadline: null };
   }
   if (complaint?.value !== "yes") return { available: false, reason: "complaint_not_raised" };

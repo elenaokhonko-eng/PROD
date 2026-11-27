@@ -64,7 +64,7 @@ const CHANNELS: Record<string, PhishingChannel> = {
   other: "other",
 };
 
-const REPLY_STATUSES: ReadonlySet<BankReplyStatus> = new Set(["none", "acknowledged", "interim", "final_reply"]);
+const REPLY_STATUSES: ReadonlySet<BankReplyStatus> = new Set(["none", "acknowledged", "interim", "answered", "final_reply"]);
 const REPLY_OUTCOMES: ReadonlySet<BankReplyOutcome> = new Set(["rejected", "partial_offer", "full_offer", "other"]);
 
 function text(value: string | null | undefined): string | null {

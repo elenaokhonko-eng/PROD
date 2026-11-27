@@ -31,14 +31,14 @@ const COPY: Record<GeneratedStage, { preparing: string; failed: string; failedRe
   bank: {
     preparing: 'Preparing your bank dispute pack',
     failed: 'We couldn’t prepare your bank dispute pack',
-    failedReason: 'We couldn’t produce a bank dispute pack that matches your facts exactly. We’ve been notified; please try again later.',
+    // Wording approved by Elena, 27 Nov 2026 (both pack messages): nothing notifies anyone, so neither says so.
+    failedReason: 'We couldn’t complete your Bank dispute pack this time. You can try again now. If it still doesn’t work, email info@guidebuoyai.sg.',
     problem: 'bank_pack_failed',
   },
   fidrec: {
     preparing: 'Preparing your FIDReC pack',
     failed: 'We couldn’t prepare your FIDReC pack',
-    // Wording chosen by Elena, 27 Nov 2026: nothing notifies anyone, so it does not say so.
-    failedReason: 'We couldn’t complete your FIDReC pack this time. You can try again now. If it still doesn’t work, email info@guidebuoyai.sg and we will refund you.',
+    failedReason: 'We couldn’t complete your FIDReC pack this time. You can try again now. If it still doesn’t work, email info@guidebuoyai.sg.',
     problem: 'fidrec_pack_failed',
   },
 }

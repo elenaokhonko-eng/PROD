@@ -17,6 +17,7 @@ import {
   type OutputCheck,
   type OutputFailure,
   qualifyUnsupportedStatements,
+  replaceReference,
   type SnapshotFacts,
   validateOutput,
   type ValidateOptions,
@@ -85,10 +86,12 @@ export interface CheckedLadderInput<T> {
   sanitize?: (text: string) => string;
   /** Checks on the structure the text checks can't see (the FIDReC pack's evidence IDs); failing ones regenerate too. */
   extraChecks?: (output: T) => OutputFailure[];
+  /** Where a reference the check refuses comes from, in approved words; null if it has no source. */
+  describeReference?: (reference: string) => string | null;
 }
 
 export async function produceChecked<T>(input: CheckedLadderInput<T>): Promise<CheckedResult<T>> {
-  const { facts, options, generate, mapText, texts, sanitize = (s) => s, extraChecks = () => [] } = input;
+  const { facts, options, generate, mapText, texts, sanitize = (s) => s, extraChecks = () => [], describeReference = () => null } = input;
   const check = (output: T) => [...validateOutput(texts(output), facts, options), ...extraChecks(output)];
   const firedChecks: OutputCheck[][] = [];
   let previous: string | null = null;
@@ -113,16 +116,21 @@ export async function produceChecked<T>(input: CheckedLadderInput<T>): Promise<C
     }
     let failures = check(output);
     firedChecks.push(failures.map((f) => f.check));
+    for (const f of failures) if (f.check === "reference") rejected.add(f.detail);
     if (failures.length) {
       const found = failures;
-      output = mapText(output, (text) => repair(text, found, facts, options));
+      const described = found.flatMap((f) => {
+        const description = f.check === "reference" ? describeReference(f.detail) : null;
+        return description ? [{ reference: f.detail, description }] : [];
+      });
+      output = mapText(output, (text) =>
+        described.reduce((out, d) => replaceReference(out, d.reference, d.description), repair(text, found, facts, options)));
       failures = check(output);
     }
     if (!failures.length) {
       return { output: mapText(output, harmoniseDates), source: "model", attempts: attempt, fallbackReason: null, firedChecks, hardChecks: [], rejectedReferences: [...rejected] };
     }
     lastFailures = failures;
-    for (const f of failures) if (f.check === "reference") rejected.add(f.detail);
     previous = describeFailures(failures);
   }
   return fallback(2, "checks", [...new Set(lastFailures.map((f) => f.check).filter(isHardCheck))]);

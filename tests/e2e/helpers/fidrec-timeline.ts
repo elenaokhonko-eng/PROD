@@ -7,8 +7,8 @@ export const daysAgo = (days: number) => new Date(Date.now() + 8 * 3_600_000 - d
 export interface TimelineAnswer {
   /** Null: not complained in writing yet. */
   complaintDaysAgo: number | null
-  /** Null: no answer from the bank. */
-  reply?: { daysAgo: number; final: boolean } | null
+  /** Null: no answer from the bank. "looking": it says it is still looking into it. */
+  reply?: { daysAgo: number; final: boolean } | 'looking' | null
 }
 
 export const FINAL_REPLY_TEN_DAYS_AGO: TimelineAnswer = { complaintDaysAgo: 60, reply: { daysAgo: 10, final: true } }
@@ -16,12 +16,12 @@ export const FINAL_REPLY_TEN_DAYS_AGO: TimelineAnswer = { complaintDaysAgo: 60, 
 export async function answerTimeline(page: Page, answer: TimelineAnswer): Promise<void> {
   const form: Locator = page.locator('[data-fidrec-timeline]')
   await expect(form).toBeVisible({ timeout: 120_000 })
-  const choose = (question: string, value: 'yes' | 'no') => form.locator(`input[name="${question}"][value="${value}"]`).check()
+  const choose = (question: string, value: 'yes' | 'no' | 'answer' | 'looking') => form.locator(`input[name="${question}"][value="${value}"]`).check()
   await choose('complained', answer.complaintDaysAgo === null ? 'no' : 'yes')
   if (answer.complaintDaysAgo !== null) {
     await form.locator('input[name="complaint-date"]').fill(daysAgo(answer.complaintDaysAgo))
-    await choose('answered', answer.reply ? 'yes' : 'no')
-    if (answer.reply) {
+    await choose('answered', answer.reply === 'looking' ? 'looking' : answer.reply ? 'answer' : 'no')
+    if (answer.reply && answer.reply !== 'looking') {
       await choose('final', answer.reply.final ? 'yes' : 'no')
       await form.locator('input[name="reply-date"]').fill(daysAgo(answer.reply.daysAgo))
     }

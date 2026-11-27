@@ -15,10 +15,11 @@ export const fidrecWaitingText = (complaintDate: string, endsOn: string) =>
 export interface FidrecTimeline {
   complained: boolean
   complaintDate: string | null
-  /** Null when there is no written complaint. */
-  answered: boolean | null
+  /** Null when there is no written complaint. "looking": the bank says it is still looking into it. */
+  answered: 'answer' | 'looking' | 'no' | null
+  /** The answer's date; null unless the bank gave its answer. */
   replyDate: string | null
-  /** Whether the reply says it is final; null when there is no reply. */
+  /** Whether the answer says it is final; null unless the bank gave its answer. */
   final: boolean | null
 }
 
@@ -31,14 +32,16 @@ type Row = { question_key: string; response_value: string; response_type: 'text'
  * not ask (the reply's outcome, whether a final reply qualifies) is left as it is while that reply stands.
  */
 export function fidrecTimelineResponses(t: FidrecTimeline): Row[] {
-  const answered = t.complained && t.answered === true
+  const answered = t.complained && t.answered === 'answer'
+  const replied = t.complained && (t.answered === 'answer' || t.answered === 'looking')
+  const status = answered ? (t.final ? 'final_reply' : 'answered') : t.answered === 'looking' ? 'interim' : 'none'
   const values: Record<string, string> = {
     [FIDREC_TIMELINE_KEY]: 'answered',
     journey_written_complaint: t.complained ? 'yes' : 'no',
     journey_written_complaint_date: t.complained ? t.complaintDate ?? '' : '',
-    journey_bank_reply_status: !t.complained ? '' : answered ? (t.final ? 'final_reply' : 'interim') : 'none',
+    journey_bank_reply_status: t.complained ? status : '',
     journey_bank_reply_date: answered ? t.replyDate ?? '' : '',
-    ...(answered ? {} : { journey_bank_reply_outcome: '' }),
+    ...(replied ? {} : { journey_bank_reply_outcome: '' }),
     ...(answered && t.final ? {} : { journey_final_reply_qualifies: '' }),
     // The earlier route question's answer (before 27 Nov) is withdrawn.
     fidrec_route: '',
@@ -63,13 +66,13 @@ export function readFidrecTimeline(rows: ReadonlyArray<{ question_key: string; r
   if (value(FIDREC_TIMELINE_KEY) !== 'answered') return null
   const complained = value('journey_written_complaint') === 'yes'
   const status = value('journey_bank_reply_status')
-  const answered = complained ? status === 'interim' || status === 'final_reply' : null
+  const answered = !complained ? null : status === 'answered' || status === 'final_reply' ? 'answer' : status === 'interim' ? 'looking' : 'no'
   return {
     complained,
     complaintDate: complained ? value('journey_written_complaint_date') : null,
     answered,
-    replyDate: answered ? value('journey_bank_reply_date') : null,
-    final: answered ? status === 'final_reply' : null,
+    replyDate: answered === 'answer' ? value('journey_bank_reply_date') : null,
+    final: answered === 'answer' ? status === 'final_reply' : null,
   }
 }
 

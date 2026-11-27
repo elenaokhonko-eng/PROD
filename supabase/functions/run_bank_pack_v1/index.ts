@@ -17,6 +17,7 @@ import {
   bankPackTexts,
   buildBankPackInput,
   chatJson,
+  describeReferenceSource,
   documentedFacts,
   type EvidenceFinding,
   mapBankPackProse,
@@ -114,6 +115,31 @@ Deno.serve(async (req) => {
       .is("invalidated_at", null);
     if (findingsErr) return json({ ok: false, error: "findings_unavailable", code: findingsErr.code ?? null }, 500);
 
+    // The documents' words, so a reference the check will not print can be described by where it comes from.
+    const { data: documentRows, error: documentsErr } = await supabase
+      .from("case_documents")
+      .select("id, verified_document_type, content_latest_id")
+      .eq("case_id", case_id)
+      .eq("processing_status", "ready")
+      .order("upload_date", { ascending: true });
+    if (documentsErr) return json({ ok: false, error: "documents_unavailable", code: documentsErr.code ?? null }, 500);
+    const contentIds = (documentRows ?? []).map((d) => d.content_latest_id).filter((id): id is string => Boolean(id));
+    const { data: contents, error: contentsErr } = contentIds.length
+      ? await supabase.from("case_documents_content").select("id, text_content").in("id", contentIds)
+      : { data: [] as Array<{ id: string; text_content: string | null }>, error: null };
+    if (contentsErr) return json({ ok: false, error: "documents_unavailable", code: contentsErr.code ?? null }, 500);
+    const contentText = new Map((contents ?? []).map((c) => [c.id as string, (c.text_content as string | null) ?? null]));
+    const referenceSources = {
+      documents: (documentRows ?? []).map((d) => ({
+        id: d.id as string,
+        label: "",
+        type: (d.verified_document_type as string | null) ?? null,
+        text: d.content_latest_id ? contentText.get(d.content_latest_id as string) ?? null : null,
+      })),
+      story: (storyRow?.story_text as string | null) ?? "",
+      voice: "first_person" as const,
+    };
+
     const input = buildBankPackInput({ facts, findings: findings ?? [], storyText: storyRow?.story_text ?? null });
     const checks = { ...BANK_PACK_CHECKS, documented: documentedFacts(findings ?? []) };
     const user = `INPUT JSON:
@@ -129,6 +155,7 @@ ${JSON.stringify(input, null, 2)}`;
       mapText: mapBankPackProse,
       texts: bankPackTexts,
       fallback: bankPackFallback,
+      describeReference: (ref) => describeReferenceSource(ref, referenceSources),
       generate: (previousFailures) =>
         chatJson(
           {
@@ -166,12 +193,18 @@ ${JSON.stringify(input, null, 2)}`;
       model: BANK_PACK_MODEL,
       release: typeof body.release === "string" ? body.release.slice(0, 40) : null,
     };
-    if (result.source === "fallback") console.warn(`Bank pack fixed wording used: ${JSON.stringify(review)}`);
+    if (result.source === "fallback") console.warn(`Bank pack not completed: ${JSON.stringify(review)}`);
     const { error: reviewErr } = await supabase.from("analytics_events").insert({
       event_name: result.source === "fallback" ? "bank_pack_fixed_wording" : "bank_pack_generated",
       event_data: review,
     });
     if (reviewErr) console.error(`Bank pack review log failed: ${reviewErr.code ?? "unknown"}`);
+
+    // "A pack is never reduced" (Elena, 27 Nov 2026): the fixed wording leaves out the account of what happened, so it
+    // is never delivered. Nothing is committed: the person is told it could not be completed and can generate again.
+    if (result.source === "fallback") {
+      return json({ ok: false, reason: "output_validation_failed", error: "The bank pack could not be completed", checks: result.hardChecks.map((check) => ({ check })) }, 422);
+    }
 
     const report = assembleBankPack({
       prose: result.output,

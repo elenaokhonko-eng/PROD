@@ -26,17 +26,17 @@ const today = '2026-11-27'
 const SITUATIONS: Array<{ name: string; answers: FidrecTimeline; expected: Record<string, unknown> }> = [
   {
     name: 'the bank has answered and the matter is not resolved',
-    answers: { complained: true, complaintDate: '2026-11-20', answered: true, replyDate: '2026-11-24', final: false },
+    answers: { complained: true, complaintDate: '2026-11-20', answered: 'answer', replyDate: '2026-11-24', final: false },
     expected: { available: true, route: 'answered' },
   },
   {
     name: 'four weeks have passed since the written complaint',
-    answers: { complained: true, complaintDate: '2026-10-30', answered: false, replyDate: null, final: null },
+    answers: { complained: true, complaintDate: '2026-10-30', answered: 'no', replyDate: null, final: null },
     expected: { available: true, route: 'four_weeks' },
   },
   {
     name: 'complained, no answer yet, under four weeks',
-    answers: { complained: true, complaintDate: '2026-11-14', answered: false, replyDate: null, final: null },
+    answers: { complained: true, complaintDate: '2026-11-14', answered: 'no', replyDate: null, final: null },
     expected: { available: false, reason: 'fidrec_too_early', complaintDate: '2026-11-14', availableFrom: '2026-12-12' },
   },
   {
@@ -46,7 +46,7 @@ const SITUATIONS: Array<{ name: string; answers: FidrecTimeline; expected: Recor
   },
   {
     name: 'a final reply more than six months old',
-    answers: { complained: true, complaintDate: '2026-02-01', answered: true, replyDate: '2026-04-01', final: true },
+    answers: { complained: true, complaintDate: '2026-02-01', answered: 'answer', replyDate: '2026-04-01', final: true },
     expected: { available: true, route: 'final_reply', deadline: '2026-10-01' },
   },
 ]
