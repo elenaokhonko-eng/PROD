@@ -42,9 +42,9 @@ select is(
   'the pack case can buy the bank pack before any story'
 );
 select is(
-  public.get_case_product_readiness_v1((select id from opened), 'fidrec_tier2_pack') ->> 'reason',
-  'complaint_not_raised',
-  'the FIDReC route question still comes before payment'
+  public.get_case_product_readiness_v1((select id from opened), 'fidrec_tier2_pack') ->> 'ready',
+  'true',
+  'and the FIDReC pack, sold upfront with no question first'
 );
 select lives_ok(
   $$select * from public.reserve_checkout_purchase_v1((select id from opened), 'self_serve_report', '30000000-0000-4000-8000-000000000003')$$,

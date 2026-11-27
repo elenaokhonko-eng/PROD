@@ -120,11 +120,11 @@ test('the final reply letter is used only when read as a bank letter with confid
   assert.equal(qualifyingFinalReplyDocumentId(statement), null)
 })
 
-test('decision 7: the route comes from the confirmed facts; past six months after the final reply, nothing is generated', () => {
+test('decision 7 as amended by CR-2: the route comes from the confirmed facts, and a late final reply still generates', () => {
   assert.deepEqual(route, { available: true, route: 'final_reply', deadline: '2027-03-01', daysLeft: 137, deadlineSoon: false })
-  assert.equal(fidrecRouteFromFacts(facts, '2027-03-02').available, false)
+  assert.equal(fidrecRouteFromFacts(facts, '2027-03-02').available, true)
   const early: SnapshotFacts = { ...facts, bank_reply: { value: { status: 'none', date: null, outcome: null, qualifies: null, reference: null }, label: 'confirmed' } }
-  assert.deepEqual(fidrecRouteFromFacts(early, '2026-08-20'), { available: false, reason: 'fidrec_too_early', availableFrom: '2026-09-02' })
+  assert.deepEqual(fidrecRouteFromFacts(early, '2026-08-20'), { available: false, reason: 'fidrec_too_early', availableFrom: '2026-09-02', complaintDate: '2026-08-05' })
   const fn = readFileSync('supabase/functions/run_fidrec_pack_v1/index.ts', 'utf8')
   assert.ok(fn.indexOf('if (!route.available)') < fn.indexOf('chatJson('), 'refused before any model call')
 })
@@ -366,7 +366,8 @@ test('the filing section counts the deadline from a confirmed final reply, whoev
   assert.doesNotMatch(report.route, /not resolved|qualif/)
 
   const late = assembleFidrecPack({ prose: GOOD, source: 'model', facts: caseB, findings: letter as never, evidenceIndex: index, route: caseBRoute, finalReplyUsed: true, today: '2027-06-01' })
-  assert.ok(late.route.includes('Counted from that date, FIDReC had to receive the complaint by 10 May 2027 (six months after the final reply).'))
+  // CR-2 (27 Nov): after the six months the pack states both dates, the rules and the passage on what a final reply is.
+  assert.ok(late.route.startsWith("The institution's letter dated 10 Nov 2026 says it is its final reply (E1). Six months from that date ended on 10 May 2027 (Rule 13(1)(ii); Rule 5(vi)). FIDReC's Terms of Reference say a final reply is"), late.route)
 
   const noFinalReply: SnapshotFacts = { ...facts, bank_reply: { value: { ...finalReply, status: 'acknowledged', date: null }, label: 'confirmed' } }
   const fourWeeks = assembleFidrecPack({ prose: GOOD, source: 'model', facts: noFinalReply, findings: [], evidenceIndex: index, route: fidrecRouteFromFacts(noFinalReply, '2026-11-25'), finalReplyUsed: false })

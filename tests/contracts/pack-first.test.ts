@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import test from 'node:test'
 import { safeNextPath, signedUpRedirect } from '../../lib/analytics/google-tag'
 import { packCards, packHref, routeStops } from '../../lib/harbor/packs'
-import { fidrecRouteResponses } from '../../lib/journey/fidrec-route-answers'
 import { isAwaitingStory, packEntryDestination, parsePack, storylessCaseDestination } from '../../lib/journey/pack-case'
 
 // CR-2 (Elena, 26 Nov 2026): after sign-in everything happens inside My cases (/app); nothing about "this person wanted
@@ -110,7 +109,7 @@ test('My cases always offers "Add a new case", and a case awaiting its story lea
 })
 
 test('the in-dashboard story page is the story box only, with "Submit the story"', () => {
-  const page = read('app/(case)/app/case/new/page.tsx')
+  const page = read('app/(case)/app/case/new/page.tsx') + read('app/(case)/app/case/new/_components/new-case-steps.tsx')
   assert.match(page, /<NarrativeCapture variant="case" \/>/)
   assert.doesNotMatch(page, /href=|TrustRow|PackComparison|RouteStrip|\/router/)
   const capture = read('components/landing/narrative-capture.tsx')
@@ -151,7 +150,7 @@ test('the pack step: the server opens one empty case, refuses while the pack is 
   assert.doesNotMatch(migration, /open_pack_case_v1\(uuid, boolean\) TO (authenticated|anon)/)
 })
 
-test('the pack step goes straight to Stripe for the bank pack and asks the FIDReC route question first', () => {
+test('the pack step goes straight to Stripe for the bank pack; the FIDReC pack’s payment step asks no question', () => {
   const client = read('app/(case)/app/pack/[pack]/_components/pack-first-client.tsx')
   assert.match(client, /'self_serve_report'/)
   assert.match(client, /<FidrecOffer/)
@@ -181,8 +180,9 @@ test('the FIDReC pack report page offers no Bank dispute pack, and shows both pa
   assert.doesNotMatch(reportPage, /BuyReportCTA|self_serve_report|NextSteps/)
   assert.match(reportPage, /data-pack-section="fidrec"/)
   assert.match(reportPage, /data-pack-section="bank"/)
-  // Elena, 27 Nov: also on the case a pack button chose, only before that case's evaluation (data-asked-pack).
-  assert.equal(dashboard.split('<BuyReportCTA').length - 1, 2, 'under the free evaluation, and on the chosen case before it')
+  // Elena, 27 Nov: also on the case a pack button chose, only before that case's evaluation (data-asked-pack), and
+  // (CR-2 amended) beside a bought FIDReC pack that waits because the bank has not had a written complaint.
+  assert.equal(dashboard.split('<BuyReportCTA').length - 1, 3)
 })
 
 test('onboarding sends no signed-in person to the public home page', () => {
@@ -191,16 +191,3 @@ test('onboarding sends no signed-in person to the public home page', () => {
   assert.match(onboarding, /<Link href="\/app">My cases<\/Link>/)
 })
 
-test('a saved FIDReC route answer is mirrored into the journey answers', () => {
-  assert.deepEqual(fidrecRouteResponses({ fidrec_route: 'final_reply', fidrec_final_reply_date: '2026-11-10' }), [
-    { question_key: 'fidrec_route', response_value: 'final_reply', response_type: 'text' },
-    { question_key: 'fidrec_final_reply_date', response_value: '2026-11-10', response_type: 'date' },
-    { question_key: 'journey_bank_reply_status', response_value: 'final_reply', response_type: 'text' },
-    { question_key: 'journey_bank_reply_date', response_value: '2026-11-10', response_type: 'date' },
-  ])
-  assert.deepEqual(
-    fidrecRouteResponses({ fidrec_route: 'no_reply', fidrec_complaint_date: '2026-10-01' }).map((r) => r.question_key),
-    ['fidrec_route', 'fidrec_complaint_date', 'journey_written_complaint', 'journey_written_complaint_date'],
-  )
-  assert.deepEqual(fidrecRouteResponses({ fidrec_route: 'not_complained' }).map((r) => r.question_key), ['fidrec_route'])
-})

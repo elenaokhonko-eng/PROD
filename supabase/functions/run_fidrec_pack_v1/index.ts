@@ -43,8 +43,8 @@ import {
 // milestone 3; design C4). Called by the case owner through /api/edge/fidrec-pack, like run_bank_pack_v1. The model
 // writes the summary, each side's position and arguments tied to evidence IDs; the rest comes from the confirmed
 // "fidrec" snapshot (_shared/facts/fidrec-pack.ts). Exempt from the daily model cap (Elena, 13 Nov); metered.
-// Decision 7: if the confirmed facts show FIDReC can't be approached today (too early, or the six months after the
-// final reply have passed), nothing is generated; a new qualifying final reply unlocks it.
+// CR-2 (27 Nov): nothing is generated while there is no written complaint, or one under four weeks old with no answer
+// (rules/fidrec.ts fidrecPackCheck). A final reply older than six months still generates; the pack states both dates.
 
 const PROJECT_URL = Deno.env.get("GUIDEBUOY_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("GUIDEBUOY_SERVICE_ROLE_KEY");
@@ -107,15 +107,14 @@ Deno.serve(async (req) => {
     }
     const facts = snapshot.facts as SnapshotFacts;
 
-    // Decision 7: no generation while the confirmed facts don't open a route to FIDReC.
+    // Decision 7, as amended by CR-2 (27 Nov): nothing is generated while the bank has not had its chance to answer.
     const today = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10);
     const route = fidrecRouteFromFacts(facts, today);
     if (!route.available) {
       return json({
         ok: false,
         reason: route.reason,
-        ...(route.reason === "fidrec_too_early" ? { opensOn: route.availableFrom } : {}),
-        ...(route.reason === "fidrec_window_expired" ? { deadline: route.deadline } : {}),
+        ...(route.reason === "fidrec_too_early" ? { opensOn: route.availableFrom, complaintDate: route.complaintDate } : {}),
         error: "FIDReC can't take this complaint on the confirmed facts yet",
       }, 409);
     }

@@ -14,6 +14,8 @@ export class FactsRequestError extends Error {
     public readonly status: number,
     /** Names of the server checks that failed, for a problem report (never their text). */
     public readonly checks: string[] = [],
+    /** The FIDReC pack not ready yet: the written complaint's date and the day the four weeks end. */
+    public readonly details: { complaintDate?: string | null; opensOn?: string | null } | null = null,
   ) {
     super(message)
   }

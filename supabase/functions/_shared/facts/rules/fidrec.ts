@@ -53,6 +53,39 @@ export function finalReplyDeadline(reply: BankReply | null): string | null {
   return addMonths(reply.date, FIDREC_RULES.filingWindowMonthsAfterFinalReply.value);
 }
 
+// CR-2 as amended 27 Nov 2026: the one check for a bought FIDReC pack, shared by the questionnaire after payment, the
+// "can generate" decision and the generator. The pack is blocked only while the bank has not had its chance: no written
+// complaint yet, or one under four weeks old with no answer. A final reply more than six months old still generates
+// (the pack states both dates; FIDReC decides). The free evaluation's advice keeps fidrecAvailability below.
+export type FidrecPackCheck =
+  | { available: true; route: "final_reply"; deadline: string; daysLeft: number; deadlineSoon: boolean }
+  | { available: true; route: "answered"; deadline: null }
+  | { available: true; route: "four_weeks"; deadline: null }
+  | { available: false; reason: "complaint_not_raised" }
+  | { available: false; reason: "fidrec_too_early"; availableFrom: string | null; complaintDate: string | null };
+
+export function fidrecPackCheck(
+  facts: { writtenComplaint: ReportedEvent | null; bankReply: BankReply | null },
+  today: string,
+): FidrecPackCheck {
+  const reply = facts.bankReply;
+  const complaint = facts.writtenComplaint;
+  const finalDeadline = finalReplyDeadline(reply);
+  if (finalDeadline) {
+    const daysLeft = daysBetween(today, finalDeadline);
+    return { available: true, route: "final_reply", deadline: finalDeadline, daysLeft, deadlineSoon: daysLeft >= 0 && daysLeft <= 30 };
+  }
+  // An acknowledgement is not an answer. A final reply is, with or without a written complaint recorded.
+  if (reply?.status === "final_reply" || (reply?.status === "interim" && complaint?.value !== "no")) {
+    return { available: true, route: "answered", deadline: null };
+  }
+  if (complaint?.value !== "yes") return { available: false, reason: "complaint_not_raised" };
+  if (!complaint.date) return { available: false, reason: "fidrec_too_early", availableFrom: null, complaintDate: null };
+  const availableFrom = addDays(complaint.date, FIDREC_RULES.earliestFilingDaysAfterComplaint.value);
+  if (daysBetween(availableFrom, today) >= 0) return { available: true, route: "four_weeks", deadline: null };
+  return { available: false, reason: "fidrec_too_early", availableFrom, complaintDate: complaint.date };
+}
+
 // Whether the user can take the dispute to FIDReC today, by the Terms of Reference routes F2 and F3.
 export function fidrecAvailability(
   facts: { reportedToBank: ReportedEvent | null; writtenComplaint: ReportedEvent | null; bankReply: BankReply | null },

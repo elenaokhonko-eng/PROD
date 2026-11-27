@@ -10,6 +10,7 @@ import {
   syntheticNarrative,
 } from '../helpers/fresh-account'
 import { PAID_STAGES_DEFERRED, paidStagesEnabled } from '../helpers/paid-stages'
+import { answerTimeline, FINAL_REPLY_TEN_DAYS_AGO } from '../helpers/fidrec-timeline'
 
 // CR-2 (26 Nov 2026): pack first from the public pages into My cases, and nobody signed in is sent back to the public
 // home page. Fresh accounts, Stripe test mode, synthetic content only; each Clerk test user is deleted afterwards.
@@ -34,16 +35,6 @@ function watchHomeVisits(page: Page) {
   return visits
 }
 
-async function answerFinalReply(page: Page) {
-  const offer = page.locator('[data-fidrec-offer]')
-  await offer.getByText('Yes, my bank has given its final reply', { exact: true }).click()
-  await offer.locator('input[type="date"]').fill(new Date(Date.now() + 8 * 3_600_000 - 10 * 86_400_000).toISOString().slice(0, 10))
-  await offer.getByRole('button', { name: 'Save', exact: true }).click()
-  const buy = offer.getByRole('button', { name: /Prepare my FIDReC case/ })
-  await expect(buy).toBeEnabled({ timeout: 60_000 })
-  return buy
-}
-
 test.describe('pack first', () => {
   test.beforeEach(async ({}, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium-1440', 'Creates Clerk users and Stripe test payments once per release SHA.')
@@ -65,9 +56,11 @@ test.describe('pack first', () => {
           const homeVisits = watchHomeVisits(page)
           await page.goto(`/app/pack/${pack}`)
           if (pack === 'fidrec') {
-            // The route question comes before payment.
-            await expect(page.getByText('Before the FIDReC pack: where are you with your bank?')).toBeVisible({ timeout: 60_000 })
-            await (await answerFinalReply(page)).click()
+            // Sold upfront: the condition is stated, nothing is asked.
+            await expect(page.locator('[data-fidrec-before-payment]')).toBeVisible({ timeout: 60_000 })
+            const buy = page.getByRole('button', { name: /Prepare my FIDReC case/ })
+            await expect(buy).toBeEnabled({ timeout: 60_000 })
+            await buy.click()
           }
           await page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 })
           await payWithTestCard(page, email)
@@ -85,6 +78,8 @@ test.describe('pack first', () => {
 
           await page.getByRole('link', { name: 'Add a new case' }).first().click()
           await page.waitForURL((url) => url.pathname === '/app/case/new')
+          // CR-2 as amended: a FIDReC case starts with the timeline questionnaire, then the story.
+          if (pack === 'fidrec') await answerTimeline(page, FINAL_REPLY_TEN_DAYS_AGO)
           await page.locator('#story').fill(syntheticNarrative)
           await page.getByRole('button', { name: 'Submit the story' }).click()
           await page.waitForURL(new RegExp(`/app/case/${caseId}/dashboard$`), { timeout: 120_000 })

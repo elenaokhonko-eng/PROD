@@ -6,7 +6,7 @@
  * moves on to it by itself.
  */
 
-import { FINAL_REPLY_ASK } from '@/lib/facts'
+import { FIDREC_NOT_COMPLAINED, fidrecWaitingText } from '@/lib/journey/fidrec-timeline'
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { qk } from '@/hooks/state-machine/query-keys'
@@ -43,13 +43,15 @@ const COPY: Record<GeneratedStage, { preparing: string; failed: string; failedRe
   },
 }
 
-// Decision 7: the confirmed facts don't open a route to FIDReC today, so nothing is generated (and nothing charged again).
-const ROUTE_CLOSED: Record<string, string> = {
-  fidrec_too_early:
-    'Your confirmed facts show FIDReC can’t take the complaint yet: it opens four weeks after your written complaint to the bank. Check the dates in your facts, or come back then.',
-  fidrec_window_expired: `Your confirmed facts show more than six months have passed since your bank’s final reply. ${FINAL_REPLY_ASK}`,
-  complaint_not_raised:
-    'Your confirmed facts don’t show a written complaint to your bank yet. FIDReC needs one first: complain to your bank in writing, then come back.',
+// CR-2 (27 Nov): the confirmed facts show the bank has not had its chance yet, so nothing is generated (and nothing
+// charged again). The two messages are Elena's approved wording.
+function routeClosed(reason: string, error: unknown): string | null {
+  if (reason === 'complaint_not_raised') return FIDREC_NOT_COMPLAINED
+  if (reason !== 'fidrec_too_early') return null
+  const details = error instanceof FactsRequestError ? error.details : null
+  return details?.complaintDate && details.opensOn
+    ? fidrecWaitingText(details.complaintDate, details.opensOn)
+    : 'Your confirmed facts show FIDReC can’t take the complaint yet: it opens four weeks after your written complaint to the bank. Check the dates in your facts, or come back then.'
 }
 
 export function ConfirmAndEvaluate({
@@ -130,6 +132,7 @@ export function ConfirmAndEvaluate({
 
   if (snapshotId && generate.isError) {
     const reason = failedReason
+    const closed = reason ? routeClosed(reason, generate.error) : null
     const checks = generate.error instanceof FactsRequestError ? generate.error.checks : []
     return (
       <Card role="alert">
@@ -138,8 +141,8 @@ export function ConfirmAndEvaluate({
           <CardDescription>
             {reason === 'facts_unconfirmed'
               ? 'Your facts changed since you confirmed them. Please check them again.'
-              : reason && ROUTE_CLOSED[reason]
-                ? ROUTE_CLOSED[reason]
+              : closed
+                ? closed
                 : reason === 'usage_limit'
                 ? generate.error.message
                 : reason === 'output_validation_failed'
@@ -148,7 +151,7 @@ export function ConfirmAndEvaluate({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
-          {reason === 'facts_unconfirmed' || (reason && ROUTE_CLOSED[reason]) ? (
+          {reason === 'facts_unconfirmed' || closed ? (
             <Button onClick={() => { generate.reset(); setSnapshotId(null) }}>Check my facts again</Button>
           ) : (
             <Button onClick={() => generate.mutate(snapshotId)}>Try again</Button>
