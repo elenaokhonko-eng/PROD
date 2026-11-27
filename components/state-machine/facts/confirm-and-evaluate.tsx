@@ -37,7 +37,8 @@ const COPY: Record<GeneratedStage, { preparing: string; failed: string; failedRe
   fidrec: {
     preparing: 'Preparing your FIDReC pack',
     failed: 'We couldn’t prepare your FIDReC pack',
-    failedReason: 'We couldn’t produce a FIDReC pack that matches your facts exactly. We’ve been notified; please try again later.',
+    // Wording chosen by Elena, 27 Nov 2026: nothing notifies anyone, so it does not say so.
+    failedReason: 'We couldn’t complete your FIDReC pack this time. You can try again now. If it still doesn’t work, email info@guidebuoyai.sg and we will refund you.',
     problem: 'fidrec_pack_failed',
   },
 }
