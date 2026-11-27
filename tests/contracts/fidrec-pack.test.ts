@@ -140,7 +140,7 @@ test('a faithful pack is delivered as written, in the third person, with every a
 test('an unknown or missing evidence ID is regenerated with the problem fed back, then replaced by fixed wording', async () => {
   const unknownId = { ...GOOD, arguments_for_claimant: [{ text: GOOD.arguments_for_claimant[0].text, evidence_ids: ['E9'] }] }
   const noId = { ...GOOD, arguments_for_institution: [{ text: GOOD.arguments_for_institution[0].text, evidence_ids: [] }] }
-  assert.deepEqual(evidenceIdFailures(unknownId, index).map((f) => f.check), ['reference'])
+  assert.deepEqual(evidenceIdFailures(unknownId, index).map((f) => f.check), ['citation'])
   const model = scripted(unknownId, noId)
   const result = await ladder(model.generate)
   assert.equal(result.source, 'fallback')
@@ -257,7 +257,7 @@ test('duties cite retrieved clauses and evidence, may name the frameworks, but n
   const checks = fidrecPackChecks([])
   assert.deepEqual(dutyFailures({ ...GOOD, institution_duties: [duty] }, clauses, facts, checks), [])
   const unknownClause = dutyFailures({ ...GOOD, institution_duties: [{ ...duty, clause_ids: ['R9'] }] }, clauses, facts, checks)
-  assert.deepEqual(unknownClause.map((f) => f.check), ['reference'])
+  assert.deepEqual(unknownClause.map((f) => f.check), ['citation'])
   const conclusion = dutyFailures({ ...GOOD, institution_duties: [{ ...duty, text: 'The institution is liable and must refund the complainant.' }] }, clauses, facts, checks)
   assert.ok(conclusion.some((f) => f.check === 'forbidden'))
   // Outside the duties section the SRF assessment stays the server's.

@@ -307,16 +307,13 @@ export async function ensureReconciled(
     const extracted = await inBatches(sources, MODEL_CONCURRENCY, async (source) => {
       const cached = reusable.get(source.sourceKey)
       if (cached) return cached
-      const read = async (text: string, documentType?: unknown) => {
-        const raw = (await extractJson(buildFactExtractionPrompt(source.sourceType, text), `facts_${source.sourceType}`)) as Record<string, unknown>
-        // The first part says what kind of document it is; later pages are read as that kind.
-        const kind = documentType ?? raw?.document_type
-        return { kind, candidates: parseFactExtraction({ ...raw, document_type: kind }, text, { sourceType: source.sourceType, sourceRef: source.sourceRef }) }
-      }
       const parts = source.sourceType === "document" ? splitIntoParts(source.text, DOCUMENT_PART_CHARS) : [source.text]
-      const first = await read(parts[0])
-      const rest = await inBatches(parts.slice(1), MODEL_CONCURRENCY, (part) => read(part, first.kind))
-      const parsed = mergeDocumentParts([first.candidates, ...rest.map((r) => r.candidates)])
+      const answers = await inBatches(parts, MODEL_CONCURRENCY, async (part) =>
+        (await extractJson(buildFactExtractionPrompt(source.sourceType, part), `facts_${source.sourceType}`)) as Record<string, unknown>)
+      // The first part says what kind of document it is; later pages are read as that kind.
+      const kind = answers[0]?.document_type
+      const parsed = mergeDocumentParts(answers.map((raw, i) =>
+        parseFactExtraction({ ...raw, document_type: kind }, parts[i], { sourceType: source.sourceType, sourceRef: source.sourceRef })))
       // A source with no facts records a marker so it is not sent to the model again.
       return parsed.length ? parsed : [{ factKey: SCANNED_MARKER, value: {}, sourceType: source.sourceType, sourceRef: source.sourceRef } as unknown as FactCandidate]
     })

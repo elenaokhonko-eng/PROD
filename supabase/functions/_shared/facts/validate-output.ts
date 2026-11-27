@@ -17,7 +17,7 @@ export interface OutputFailure {
 
 // Hard rules protect the facts: a summary that breaks one after a retry is never shown. Soft rules are style: the
 // text is regenerated with the violation fed back (free-evaluation hardening, 8 Nov).
-export const HARD_CHECKS = ["amount", "date", "institution", "reference", "contradiction", "unqualified", "forbidden"] as const;
+export const HARD_CHECKS = ["amount", "date", "institution", "reference", "citation", "contradiction", "unqualified", "forbidden"] as const;
 export const SOFT_CHECKS = ["person", "internal", "length"] as const;
 export type OutputCheck = (typeof HARD_CHECKS)[number] | (typeof SOFT_CHECKS)[number];
 export const isHardCheck = (check: OutputCheck) => (HARD_CHECKS as readonly string[]).includes(check);
@@ -352,6 +352,9 @@ export function describeFailures(failures: readonly OutputFailure[]): string {
     .map((f) =>
       f.check === "reference"
         ? `- reference: your draft included a reference that is not in the confirmed facts (${f.detail}); rewrite without it`
+        : f.check === "citation"
+        // A missing or wrong citation is put right, not removed (28 Nov 2026).
+        ? `- citation: add or correct the citation, using only the IDs provided (${f.detail}); keep the point`
         : `- ${f.check}: ${f.detail}`
     )
     .join("\n");

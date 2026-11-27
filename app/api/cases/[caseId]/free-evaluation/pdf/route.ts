@@ -7,7 +7,7 @@ import { createUserClient } from "@/lib/supabase/server"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const FREE_SECTIONS = ["tier0_summary", "tier0_report_now", "tier0_evidence_checklist", "tier0_confirmed_facts", "tier0_srf_signal"]
+const FREE_SECTIONS = ["tier0_summary", "tier0_report_now", "tier0_evidence_checklist", "tier0_confirmed_facts", "tier0_transactions", "tier0_srf_signal"]
 
 // "Download your free evaluation (PDF)" (finding C5). Anyone who can view the case can download it; the sections
 // are read with the user's own client, so access is the same as on screen.

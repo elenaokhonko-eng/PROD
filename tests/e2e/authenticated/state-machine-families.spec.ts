@@ -8,6 +8,8 @@ import {
   type StateFixture,
 } from '../helpers/state-case-fixtures'
 import { expectNamedInteractiveControls, expectNoHorizontalOverflow, monitorClientErrors } from '../helpers/page-quality'
+import { createServiceClientFromEnvironment } from '../helpers/disposable-records'
+import { fidrecTimelineResponses } from '../../../lib/journey/fidrec-timeline'
 
 const fixtures = parseStateCaseFixtures(requireEnvironment('HARBOR_STATE_CASES_JSON'))
 
@@ -19,9 +21,22 @@ async function openDashboard(page: Page, path: string, mode: 'goto' | 'reload' =
   await expect(page.locator('main[data-harbor-ready="true"]')).toBeVisible()
 }
 
+// The bought FIDReC case needs its timeline answered to reach "Confirm your facts". The test writes the answers
+// itself (a written complaint 40 days ago, no answer yet), so it does not depend on rows added to staging by hand.
+async function answerTimelineFor(caseId: string) {
+  const supabase = createServiceClientFromEnvironment()
+  const date = new Date(Date.now() + 8 * 3_600_000 - 40 * 86_400_000).toISOString().slice(0, 10)
+  const rows = fidrecTimelineResponses({ complained: true, complaintDate: date, answered: 'no', replyDate: null, final: null })
+  const removed = await supabase.from('case_responses').delete().eq('case_id', caseId).in('question_key', rows.map((r) => r.question_key))
+  expect(removed.error, 'old answers removed').toBeNull()
+  const added = await supabase.from('case_responses').insert(rows.filter((r) => r.response_value).map((r) => ({ case_id: caseId, ...r })))
+  expect(added.error, 'timeline answers written').toBeNull()
+}
+
 for (const [family, fixture] of Object.entries(fixtures) as Array<[keyof StateCases, StateFixture]>) {
   test(`${family} fixture renders its contract state`, async ({ page }) => {
     const errors = monitorClientErrors(page)
+    if (family === 'layer3Tier2') await answerTimelineFor(fixture.caseId)
     await openDashboard(page, `/app/case/${fixture.caseId}/dashboard`)
 
     await expect(page).not.toHaveURL(/\/sign-in(?:[/?]|$)/)
