@@ -3,6 +3,8 @@ import { safeErrorText } from "../_shared/safe-error.ts";
 import { assertReadToTheEnd } from "../_shared/gemini-finish.ts";
 import { assertCompleteText, partPageRanges } from "../_shared/read-parts.ts";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
+import { getDocumentProxy } from "npm:unpdf@1.9.1";
+import { amountMismatch, linesFromPieces, MIN_TEXT_PER_PAGE } from "../_shared/pdf-text.ts";
 import {
   backoffMs,
   dailyBreaker,
@@ -389,6 +391,26 @@ async function filesOfParts(bytes: Uint8Array, mime_type: string) {
   return { pageCount, parts };
 }
 
+/** The PDF's own text, or null for a scan, an unreadable file or a library failure (the AI reading then stands alone). */
+async function textFromPdf(bytes: Uint8Array): Promise<string | null> {
+  try {
+    const pdf = await getDocumentProxy(bytes.slice());
+    const pages: string[] = [];
+    for (let n = 1; n <= pdf.numPages; n++) {
+      const content = await (await pdf.getPage(n)).getTextContent();
+      const pieces = (content.items as Array<{ str?: string; transform?: number[] }>)
+        .filter((item) => typeof item.str === "string" && item.transform)
+        .map((item) => ({ str: item.str!, x: item.transform![4], y: item.transform![5] }));
+      pages.push(linesFromPieces(pieces));
+    }
+    const text = pages.join("\n");
+    return text.replace(/\s/g, "").length >= MIN_TEXT_PER_PAGE * pdf.numPages ? text : null;
+  } catch (error) {
+    console.warn(`[evidence_processed_v2] direct text not available: ${safeErrorText(error)}`);
+    return null;
+  }
+}
+
 async function runGemini(args: ReadArgs) {
   const { geminiKey, model, bytes, mime_type, declared_document_type, file_name } = args;
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
@@ -435,8 +457,18 @@ Return STRICT JSON only: {"raw_text": "<every line of these pages>"}`;
   const pagesRead = results.reduce((sum, r) => sum + r.pages, 0);
   // Ready only when every page has been read.
   if (pagesRead !== pageCount) throw new Error("document_pages_missing");
-  const rawText = results.map((r) => r.text).join("\n");
-  const parsed = { ...results[0].parsed, raw_text: rawText, page_count: pageCount, pages_read: pagesRead };
+  const aiText = results.map((r) => r.text).join("\n");
+  // Where the PDF holds its text, that text is what is stored, and the AI reading must hold the same amounts.
+  const direct = mime_type === "application/pdf" ? await textFromPdf(bytes) : null;
+  if (direct) {
+    const differs = amountMismatch(direct, aiText);
+    if (differs.missing || differs.added) {
+      console.warn(`[evidence_processed_v2] readings differ: ${differs.missing} amounts missing, ${differs.added} added`);
+      throw new Error("document_readings_differ");
+    }
+  }
+  const rawText = direct ?? aiText;
+  const parsed = { ...results[0].parsed, raw_text: rawText, page_count: pageCount, pages_read: pagesRead, text_source: direct ? "pdf" : "model" };
   return { parsed, rawText, rawOutput: rawText };
 }
 // -------------------- Core Worker --------------------

@@ -52,3 +52,17 @@ export function mergeDocumentParts(parts: ReadonlyArray<readonly FactCandidate[]
   }
   return out
 }
+
+// A line holding both a date and a money amount: what a statement's payment line looks like.
+const DATE = /\b(?:\d{4}-\d{2}-\d{2}|\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*)\b/i
+const AMOUNT = /\d\.\d{2}(?!\d)/
+export const paymentRows = (text: string) => text.split("\n").filter((line) => DATE.test(line) && AMOUNT.test(line)).length
+
+/**
+ * A part with many payment lines that yields fewer than a quarter as many payments has lost them (Elena's test of
+ * 28 Nov: 59 lines, no payments, nothing said). A quarter, because deposits and balances are lines too.
+ */
+export const paymentsLost = (text: string, listed: number) => {
+  const rows = paymentRows(text)
+  return rows >= 10 && listed < rows / 4
+}

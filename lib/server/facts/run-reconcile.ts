@@ -23,7 +23,7 @@ import { logger } from "@/lib/logger"
 
 const log = logger.withContext({ module: "facts-reconcile" })
 
-import { mergeDocumentParts, splitIntoParts } from "./document-parts"
+import { mergeDocumentParts, paymentRows, paymentsLost, splitIntoParts } from "./document-parts"
 
 const STORY_LIMIT = 20_000
 // "All transactions must be pulled" (Elena, 27 Nov 2026): the whole of a long statement is read, and the answer has
@@ -314,8 +314,16 @@ export async function ensureReconciled(
         (await extractJson(buildFactExtractionPrompt(source.sourceType, part), `facts_${source.sourceType}`)) as Record<string, unknown>)
       // The first part says what kind of document it is; later pages are read as that kind.
       const kind = answers[0]?.document_type
-      const parsed = mergeDocumentParts(answers.map((raw, i) =>
-        parseFactExtraction({ ...raw, document_type: kind }, parts[i], { sourceType: source.sourceType, sourceRef: source.sourceRef })))
+      const parsed = mergeDocumentParts(answers.map((raw, i) => {
+        const candidates = parseFactExtraction({ ...raw, document_type: kind }, parts[i], { sourceType: source.sourceType, sourceRef: source.sourceRef })
+        if (source.sourceType === "document") {
+          const listed = (candidates.find((c) => c.factKey === "transactions")?.value as unknown[] | undefined)?.length ?? 0
+          // Counts only: enough to see where payments went missing, with nothing from the document.
+          console.log(`[facts] case ${caseId} part ${i + 1} of ${parts.length}: ${paymentRows(parts[i])} payment lines, ${listed} payments, ${((raw.transactions ?? []) as unknown[]).length} answered`)
+          if (paymentsLost(parts[i], listed)) throw new FactsUnavailableError("Payments missing from a part of a document")
+        }
+        return candidates
+      }))
       // A source with no facts records a marker so it is not sent to the model again.
       return parsed.length ? parsed : [{ factKey: SCANNED_MARKER, value: {}, sourceType: source.sourceType, sourceRef: source.sourceRef } as unknown as FactCandidate]
     })
