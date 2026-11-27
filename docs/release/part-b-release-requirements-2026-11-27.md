@@ -1,0 +1,288 @@
+# Part B release (#121): findings, fixes and final requirements
+
+Written 27 Nov 2026, 21:00 Singapore time, for Elena and the coding agent. It consolidates the Part B register, CR-2 and the decisions of 25 to 27 Nov. Where this file and an older one differ, this file is the requirement.
+
+No case data: IDs, counts and synthetic test names only.
+
+## 1. Where the release stands
+
+| Item | State |
+|---|---|
+| Branch and PR | `release/part-b-fixes`, draft PR #121 into `main`, head `b6be3f3`, no conflicts with main |
+| Size | 60 commits and 105 files ahead of main |
+| Staging | Web app, worker and three Edge functions on `b6be3f3` |
+| Database | Two new migrations applied to staging only |
+| Gate | Run 1 of 3 in progress on `b6be3f3` (run 45997584720): six jobs passed, signed-in job running |
+| Production | Untouched. Still on main at `0994bc5`. FIDReC packs are not on sale there |
+
+Gate history on this batch: nine manual runs since 25 Nov. Two passed in full (both on `9b8a813`). The others stopped on one machine fault, three test faults, two app faults in the FIDReC route question, one unexplained mobile Safari failure (KI-1, waived once), and one app fault in the FIDReC pack (section 3, G-3).
+
+## 2. What is left before production
+
+In order. Each step needs the one before it.
+
+1. Three gate runs in a row pass on one commit.
+2. Elena's re-test on the shorter sheet, starting with the long-document check (step 3.1). Check step D.8 by hand whatever the gate says.
+3. Elena merges #121 into main. The 12 separate draft PRs are closed unmerged.
+4. Before production, four open questions are answered (section 7).
+5. Elena approves both migrations for production. They are applied before the production deploy.
+6. Production deploy: web app, worker and the changed Edge functions.
+7. The free evaluation test set is re-run, because its checks changed.
+
+Production is a separate decision by Elena. Nothing in this file is that decision.
+
+## 3. Findings and fixes
+
+Status values: **In batch** means the fix is in #121. **Update** means it goes with `feat/fidrec-update`. "Reported" means the agent states it and it has not been re-checked by hand.
+
+### 3.1 First walk-through, 25 Nov (staging `0994bc5`)
+
+| ID | Finding | Fix | Status |
+|---|---|---|---|
+| PB-1 | A bank named on a statement did not count as shown | The issuing bank of a statement or letter counts as shown | In batch |
+| PB-2 | Confirming facts before the last document left the paid step silent, then refused the first press | A document read after confirming returns the person to their facts | In batch. Re-test step A.3 failed on 26 Nov and is not yet explained; check again |
+| PB-3 | The screen did not name what was missing | Wording approved by Elena | In batch |
+| PB-4 | The bank pack offer named only the SRF | Wording approved by Elena | In batch |
+| PB-5 | Two packs on one page looked like one report shown twice | Each pack is labelled | In batch. Step A.8 not yet tested |
+| PB-6 | "Consultation unavailable" under a line saying how to book | Button removed | In batch |
+| PB-7 | The FIDReC duties did not say whose rule each point is | Verified sources replace the old source store | Update |
+| PB-8 | A bank letter about a different payment counted as proof | Demote only when it names a different payment | Update |
+| PB-10 | Dates in machine format | Dates read "3 Oct 2026" | In batch |
+| PB-11 | System values in the text ("sg_card") | Written in words ("Card payment") | In batch |
+| PB-12 | Citations printed twice | Printed once | In batch |
+| PB-13 | Whose date the FIDReC deadline is counted from | The line names the letter and its evidence number, and "(six months after the final reply)" | In batch |
+| PB-14 | FIDReC PDF layout | Cosmetic | Not scheduled |
+| PB-16 | Paid pack buttons on the pricing page were outlined | Filled | In batch |
+| PB-17 | The FIDReC route question could not show its answer or be changed | Replaced by the timeline questionnaire (section 4.3) | In batch |
+| PB-18, PB-19 | The pricing button led to the story page; two question sets on one screen | Replaced by CR-2 (section 4.1). PR #118 is not used | In batch |
+| PB-20 | The same file could be uploaded twice | Refused: "You have already added this file to your case." | In batch |
+| PB-21 | A document matching no item was silent | Wording approved by Elena | In batch |
+| PB-22 | A document marked by hand as the police report was not used by the facts | Read as that kind and named "a document identified by the complainant as a police report" | In batch. Finding R-8 remains |
+| PB-23 | The FIDReC duties ignored the scam type | Note before the duties, wording chosen by Elena | In batch |
+| PB-24 | The "Filing with FIDReC" section ignored a confirmed final reply | Deadline from the confirmed final reply; a clash between an answer and a letter is put to the person | In batch |
+| PB-25 | An unsigned acknowledgement was filed as a letter from the bank | A bank letter must come from a bank | In batch |
+| PB-26 | Three card payments became one | A total is not a payment | In batch |
+
+### 3.2 Rules review, 25 Nov (wording against the source text)
+
+| ID | Finding | Fix | Status |
+|---|---|---|---|
+| Row 6 | The SMS line said the bank assesses the mobile operator's part | "Your bank is your point of contact and passes the claim to the operator, which investigates its own duties. If you disagree with the operator's assessment, you can write to IMDA." | In batch |
+| Rows 8, 11 | "Not covered by a liability framework" for payments made knowingly | "Under the EUPG, the account holder is liable for payments an account user knew of and consented to, up to the agreed limits (paragraph 5.3). You can complain to your bank in writing." | In batch |
+| Row 8 | The FIDReC sentence had no source | "MAS's workflow for the SRF states that FIDReC's assessment includes obligations outside the SRF, for example under statute, common law or the EUPG." | In batch |
+| Row 18 | The SMS line did not say which operators | "The SRF applies to four mobile network operators only: Singtel, M1, StarHub and SIMBA. It does not apply to other mobile providers." | In batch |
+| Row 19 | The court route was not mentioned | "MAS and IMDA's Response to Consultation also states that scam victims can pursue civil claims against the relevant entities through the courts (paragraph 6.11(d))." | In batch |
+| Row 20 | The card line's last sentence was not from the ABS code | MAS's written reply of 7 January 2025 on 3DS, quoted, with what 3DS is | In batch |
+| Row 21 | The pack did not know FIDReC's earlier route | Rule 13(1)(i) is part of the questionnaire's logic (section 4.3) | In batch |
+| Row 22 | Nothing was said to a person whose final reply is over six months old | Two-dates sentence and the Rule 13(2) passage (section 5) | In batch |
+| Row 27 | FIDReC Rule 5(iv), police investigation, was not mentioned | "Police investigation" section, CR-1 | Update (merged there as #123) |
+
+### 3.3 Gate runs, 25 to 27 Nov
+
+| ID | Finding | Fix | Status |
+|---|---|---|---|
+| G-1 | Route question: the form could show before the saved answer loaded, and a redraw lost the choice | Wait for the saved answer; keep the choice | In batch |
+| G-2 | Route question: a finishing save closed an answer the person had started changing | "Change my answer" is disabled while saving; a save resets only what it submitted | In batch, then replaced by the questionnaire |
+| G-3 | A paid FIDReC pack was delivered in a reduced form after two failed AI attempts | Never delivered or saved in reduced form (section 4.5) | In batch |
+| G-4 | A changed route answer left the earlier answer's dates in the facts | A changed answer clears what the earlier one filled in | In batch |
+| KI-1 | Story hand-over failed once on the mobile Safari profile (run 45691510299) | Not reproduced. Waived once by Elena after 4 of 4 clean tries on an iPhone. No retry added | Open, watched |
+
+### 3.4 Re-test, 26 Nov (staging `9b8a813`): 37 passed, 5 failed, 1 skipped
+
+| ID | Finding | Fix | Status |
+|---|---|---|---|
+| R-1 | S$188 paid, then the pack was refused, with no way to edit the facts | One shared check for the questionnaire and the generator; a final reply read from a letter counts | In batch |
+| R-2 | "Generate my free evaluation" opened a hanging Stripe page | CR-2 removes the carried pack choice; a test checks the button never opens Stripe | In batch. Not reproduced by hand |
+| R-3 | Pack buttons and "create your case" led a signed-in person to the public home page, in a loop for a new account | CR-2 (section 4.1) | In batch. Gate checks twelve buttons; step D.8 to be checked by hand |
+| R-4 | The Rule 13(1)(i) and 13(2) text never appeared | They show whether paid stages are on or off | In batch |
+| R-5 | The evaluation told a person to go to FIDReC after the six months had passed | That clause is dropped when the window has closed | In batch |
+| R-6 | A date showed as "2026-12-12" | "12 Dec 2026" | In batch |
+| R-7 | "They offered all of it back" as an answer option | Removed from the question; a letter saying so is still read | In batch |
+| R-8 | The FIDReC pack used the police report as evidence and also listed it as missing | Not fixed | Update |
+| R-9 | The bank pack said "I have not yet sent a written complaint" | The AI rewrites; no sentence is removed | In batch |
+| R-10 | Two FIDReC pack sources are not in the verified documents; the "Sources" line omits the ABS code, the MAS reply and the Response to Consultation | Verified sources | Update |
+| R-11 | A final reply showed "no supporting document" although a bank letter was uploaded | Not investigated | Open |
+| R-12 | No progress line during a 20 to 30 second upload; the "You chose…" note not seen | The note is removed by CR-2. The progress line sits above the fold | Open, low |
+
+### 3.5 Inventory under "a pack is never reduced", 27 Nov
+
+Twenty-one places where an output dropped, shortened or swapped content. The agent reports all are built in `3083f1a`. The ones a customer would notice most:
+
+| Item | Before | Now |
+|---|---|---|
+| 1 | Bank pack fell back to one line and a list of facts | Not delivered; the person can try again |
+| 9 | Free evaluation fell back to a "summary version" | Not delivered. See section 7, question 2 |
+| 12 | Only the first 5 payments shown on screen; document reading stopped at 15,000 characters | All payments shown; reading raised to 100,000 characters. See section 7, question 1 |
+| 16 | FIDReC pack delivered without its duties when the rule lookup failed | Not delivered if the lookup fails; says so if no clause applies |
+| 17, 18, 14 | Empty sections disappeared | Each section stays, with a plain sentence |
+| 19 | An unreadable document was left out of the evidence index | Listed as a document that could not be read |
+
+## 4. Final requirements
+
+### 4.1 One flow inside "My cases" (CR-2)
+
+After sign-in, everything happens inside the "My cases" dashboard. The public home page is for visitors who are not signed in.
+
+**Free evaluation first.**
+1. The visitor tells the story on the public home page and signs up.
+2. Free evaluation: story, questions, documents, results, report.
+3. Under the report: the Bank dispute pack, then the FIDReC pack.
+4. Choosing a pack goes straight to Stripe. After payment the person returns to that case.
+
+**Pack first.**
+1. A pack card on the home page or a button on the pricing page. Both lead the same way.
+2. Sign up.
+3. Straight to Stripe, for both packs. The FIDReC pack shows one statement and the buy button first (section 5.1).
+4. After payment: "My cases".
+5. "Add a new case" opens the in-dashboard story page. For a FIDReC pack, the timeline questionnaire comes first.
+6. "Submit the story" leads to the documents for the pack bought.
+
+**Screens.**
+- "My cases" always shows "Add a new case".
+- The in-dashboard story page is the story box only (type or speak), inside the dashboard frame, with the button "Submit the story".
+- A signed-in person is never sent to the public home page by a pack button, a "create your case" link or a return from Stripe.
+- The FIDReC pack's report page offers no Bank dispute pack. The packs stay independent. A person who bought both sees both.
+
+### 4.2 Pack buttons for a signed-in person
+
+A person is never charged on an empty case when they already have a real one.
+
+| The person has | A pack button leads to |
+|---|---|
+| No case with a story | The pack-first flow |
+| Exactly one case with a story | That case, with the offer shown. Nothing is charged until they press it |
+| Several cases with a story | "My cases", no payment, to choose a case or add one |
+| One case that already has a FIDReC report, and they press the bank pack | "My cases", to add a new case |
+
+A story told on the public home page fills a waiting empty case first. Backing out of Stripe reuses the same empty case.
+
+### 4.3 The FIDReC pack is sold upfront
+
+Purchase and generation are blocked as little as FIDReC's own rules allow. The worst case for a buyer is that the pack waits.
+
+- No question before payment. One statement is shown (section 5.1).
+- After payment the timeline questionnaire is the first step of the FIDReC case.
+- The questionnaire, the "can generate" decision and the generator use one shared check.
+- No screen offers a refund. The Terms apply to a customer who asks.
+- A FIDReC buyer who has not complained to the bank yet pays S$18 for the Bank dispute pack.
+- Nothing says or implies that a new letter from the bank restarts the six months.
+
+**Questionnaire, titled "Your timeline with your bank".**
+
+| Question | Answers |
+|---|---|
+| Have you complained to your bank in writing? | Yes / Not yet |
+| Date of your written complaint | a date |
+| Has your bank answered your complaint? | Yes, it gave its answer / It said it is still looking into it / No, not yet |
+| Does the reply say it is your bank's final reply? | Yes / No |
+| Date of the final reply, or date of the bank's answer | a date |
+
+**What each situation leads to.**
+
+| Situation | Rule | Result |
+|---|---|---|
+| The bank gave its answer and the matter is not resolved | 13(1)(i) | Generate |
+| Four weeks have passed since the written complaint | 13(1)(i), 4(1)(v) | Generate |
+| Complained; no answer, or "still looking into it"; under four weeks | 13(1)(i) | The pack waits and shows the date (section 5.2) |
+| Not complained to the bank in writing | 4(2) | The pack waits; the Bank dispute pack is offered at S$18 (section 5.3) |
+| A final reply more than six months old | 13(1)(ii), 5(vi), 13(2) | Generate. The pack states both dates and the rules (section 5.4) |
+
+### 4.4 Paying before a case exists
+
+An empty case is created before Stripe. The purchase attaches to it and "Add a new case" fills it. Only the server can create or mark such a case. Migrations `20261127120000_pack_first_cases` and `20261128120000_fidrec_sold_upfront`, both approved for staging only.
+
+After Stripe, "My cases" shows "Confirming your payment" until the purchase is recorded.
+
+### 4.5 A pack is never reduced
+
+1. Every section of the confirmed schema is always present in the free evaluation, the Bank dispute pack and the FIDReC pack.
+2. A conflict, a doubtful document or a detail a safety check will not print is described in neutral words, never dropped. The model is "a document identified by the complainant as a police report".
+3. Safety checks stay. A blocked reference is described by its source. One with no source is rewritten by the AI.
+4. No sentence is removed from what the AI wrote. The AI is asked to rewrite.
+5. A pack that cannot be completed is not delivered and not saved. The person is told and can try again.
+6. Every new sentence a customer reads needs Elena's approval before it merges.
+
+### 4.6 Gate rules (unchanged)
+
+- Three gate runs in a row pass on one commit before Elena's re-test.
+- No test gets a retry.
+- A dropped connection restarts the count once. Any other failure stops the series until the cause is known.
+- Staging is on the exact commit the gate tests.
+- Every deploy and every migration needs Elena's go in her own words. Production needs a separate one.
+
+## 5. Approved wording
+
+Approved by Elena on the dates shown. Use exactly as written.
+
+**5.1 Before Stripe, FIDReC pack (27 Nov).**
+"FIDReC takes a complaint after you have complained to your bank, and the bank has answered or four weeks have passed. If that is not yet your situation, your pack waits for you until it is."
+
+**5.2 Complained, no answer yet, under four weeks (27 Nov).**
+"FIDReC takes a complaint once your bank has answered and the matter is not resolved, or four weeks after your written complaint (Rule 13(1)(i)). Your written complaint is dated [date], so the four weeks end on [date]. You can wait for your bank's reply, or write to your bank now and ask for its answer. Your pack is ready to generate as soon as either happens."
+
+**5.3 Not complained to the bank yet (27 Nov).**
+"FIDReC sends back a dispute that was not first raised with the bank (Rule 4(2)). The Bank dispute pack prepares that written complaint from your facts. Send it to your bank, then come back here when your bank replies, or when its reply does not resolve the matter. Your FIDReC pack waits for you."
+
+**5.4 A final reply more than six months old (26 and 27 Nov).**
+"The final reply you told us about is dated [date]. Six months from that date ended on [date] (Rule 13(1)(ii); Rule 5(vi))."
+Where a bank letter shows the date, the first sentence is: "The institution's letter dated [date] says it is its final reply (E#)."
+Then, once: "FIDReC's Terms of Reference say a final reply is a letter that expressly states it is the institution's final reply, tells you that you can contact FIDReC within six months, and gives FIDReC's contact details (Rule 13(2)). If the reply you received did not state these, you can ask your bank in writing to confirm whether it was its final reply. Whether a document is a final reply is decided by FIDReC."
+
+**5.5 Asking the bank again (27 Nov).**
+"You can ask your bank to confirm in writing: (a) whether its reply was its final reply; (b) whether you can take the dispute to FIDReC, and by when; (c) what it offers: nothing, part of the amount, or all of it. Whether a later letter starts a new six-month period is decided by FIDReC (Rule 13(2)). When you have the bank's letter, add it to your case."
+
+**5.6 FIDReC pack, deadline (25 Nov).**
+"The institution's letter dated [date] says it is its final reply (E#). Counted from that date, FIDReC must receive the complaint by [date] (six months after the final reply)."
+From the person's own answers: "You told us the final reply is dated [date]. Counted from that date, FIDReC must receive the complaint by [date] (six months after the final reply)."
+
+**5.7 FIDReC pack, answered but not final (27 Nov).**
+"The institution has answered the complaint and the matter is not resolved (Rule 13(1)(i))."
+
+**5.8 FIDReC pack, before the duties (25 Nov).**
+"This payment is likely not covered by the SRF (see 'How the rules may apply'). The duties below are listed because FIDReC can consider how the institution handled the case."
+
+**5.9 Failure messages (27 Nov). No refund sentence.**
+- FIDReC pack: "We couldn't complete your FIDReC pack this time. You can try again now. If it still doesn't work, email info@guidebuoyai.sg."
+- Bank dispute pack: the same, naming the Bank dispute pack.
+- Free evaluation: "We couldn't complete your free evaluation this time. You can try again now. If it still doesn't work, email info@guidebuoyai.sg."
+
+**5.10 "My cases" messages (27 Nov).**
+- "Payment received for your [Bank dispute pack / FIDReC pack]. Add a new case to tell your story."
+- "Payment cancelled. You have not been charged."
+- "Choose the case your [pack name] is for, or add a new case."
+- Empty state: "Start with your story. GuideBuoy does not send anything to your bank or any other organisation."
+- No saved draft: "We couldn't find a story saved in this browser tab, so no case was started. Add a new case to write your story."
+
+**5.11 A reference a safety check will not print (27 Nov).**
+- FIDReC pack, from a document: "the reference shown in [the institution's letter / the bank statement / the card statement / the police report / the scam message / an uploaded document] (E#)"
+- FIDReC pack, from the story only: "a reference given in the complainant's account, with no supporting document"
+- Bank pack, from a document: "the reference shown in [my bank's letter or email / my bank statement / my card statement / my police report / the scam message / my uploaded document]"
+- Bank pack, from the story only: "a reference I gave in my account, with no supporting document"
+
+**5.12 Other sentences approved on 27 Nov.**
+- "No duty could be set out from the matched rule clauses and the documents."
+- "This document was not read when this pack was written."
+- "We couldn't read this file, so it is not part of your case. Please upload it again, or upload a different document."
+- "My bank replied."
+- Duplicate file: "You have already added this file to your case."
+
+The rule wording of section 3.2 is also approved and is not repeated here.
+
+## 6. Not in this release
+
+With `feat/fidrec-update`:
+- the "Police investigation" section (CR-1), with its optional police outcome document;
+- verified sources in the FIDReC pack, and a complete "Sources" line (R-10, PB-7);
+- the police report contradiction (R-8) and PB-8;
+- the new citations added to the clause-key lists, after main is merged in;
+- the standards confirmations (#115): 15 of 20 regulator documents are ready to verify; five wait for the rule wording of section 3.2 to reach that branch;
+- raising the amount of each document read when the FIDReC pack is written.
+
+Not scheduled: PB-14, R-11, R-12, an email alert to Elena when a paid pack fails, and the gate workflow follow-ups (a Windows fault skipping the staging jobs, stale version labels, cookie lines in test logs).
+
+## 7. Open questions before production
+
+1. **Long documents.** Reading was raised from 15,000 to 100,000 characters, with a worst case the agent puts at about 3 minutes. A staging function was cut off at about 150 seconds on 25 Nov. Where does reading run, and what is its time limit? Not yet proved with the real AI: re-test step 3.1.
+2. **The free evaluation now fails outright** where it used to give a summary version, including when the daily spending cap is reached. How often was the summary version used in the last 30 days, on staging and production? Counts only.
+3. **The upload box sentence** about how much of each document is read when a FIDReC pack is written. Which wording is live on staging, and has Elena approved it?
+4. **The rejected reference** in gate run 45867707804. The staging log query will show whether it was a notice name from the rule text or a number the AI made up. That part of the check is not to be changed until the log says.

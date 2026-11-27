@@ -1,5 +1,10 @@
 # CR-2: one flow inside "My cases" (replaces PB-18 and PB-19, PR #118)
 
+> **Read this first (27 Nov, 21:00):** the final, detailed requirements for the Part B release are in
+> [part-b-release-requirements-2026-11-27.md](part-b-release-requirements-2026-11-27.md). It includes everything
+> below plus later decisions: three answers to "Has your bank answered?", failure messages without a refund sentence,
+> the full "a pack is never reduced" rule, and all approved wording. Where the two differ, that file is the requirement.
+
 Decided by Elena on 26 Nov 2026, after the Part B re-test on staging `9b8a813`. **Amended 27 Nov 2026** (section "FIDReC pack: sold upfront, questionnaire after payment"). For the coding agent. Goes on main with the Part B batch; #118 is removed from the batch.
 
 ## Why

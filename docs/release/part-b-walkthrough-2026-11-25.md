@@ -409,3 +409,9 @@ by the waiver. No retry is added to the test.
 The full change request, with the wording Elena approved on 27 Nov, is in
 [cr-2-one-dashboard-flow.md](cr-2-one-dashboard-flow.md). It replaces PB-18 and PB-19 (#118). Build from that file;
 it is the copy to read, and it is updated when Elena changes a decision.
+
+## Consolidated requirements (27 Nov)
+
+All findings, fixes, final requirements and approved wording for the Part B release (#121) are in
+[part-b-release-requirements-2026-11-27.md](part-b-release-requirements-2026-11-27.md). That file is the requirement
+where it differs from an entry above.
