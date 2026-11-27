@@ -17,7 +17,7 @@ export interface OutputFailure {
 
 // Hard rules protect the facts: a summary that breaks one after a retry is never shown. Soft rules are style: the
 // text is regenerated with the violation fed back (free-evaluation hardening, 8 Nov).
-export const HARD_CHECKS = ["amount", "date", "institution", "reference", "citation", "contradiction", "unqualified", "forbidden"] as const;
+export const HARD_CHECKS = ["amount", "date", "institution", "reference", "citation_missing", "evidence_id_unknown", "clause_unknown", "contradiction", "unqualified", "forbidden"] as const;
 export const SOFT_CHECKS = ["person", "internal", "length"] as const;
 export type OutputCheck = (typeof HARD_CHECKS)[number] | (typeof SOFT_CHECKS)[number];
 export const isHardCheck = (check: OutputCheck) => (HARD_CHECKS as readonly string[]).includes(check);
@@ -346,17 +346,21 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
   return failures;
 }
 
+// A real reference number is rewritten out; a missing or wrong citation is put right, never removed (28 Nov 2026).
+const RETRY_INSTRUCTIONS: Partial<Record<OutputCheck, (detail: string) => string>> = {
+  reference: (detail) => `your draft included a reference that is not in the confirmed facts (${detail}); rewrite without it`,
+  citation_missing: (detail) => `add the missing citation, using only the IDs provided, and keep the point (${detail})`,
+  evidence_id_unknown: (detail) => `correct the evidence number to one in evidence_index, and keep the point (${detail})`,
+  clause_unknown: (detail) => `cite only clauses in regulatory_clauses; correct the citation and keep the point (${detail})`,
+};
+
 export function describeFailures(failures: readonly OutputFailure[]): string {
   // Elena, 27 Nov 2026: the retry is told what to do about a reference, not only which check failed.
   return failures
-    .map((f) =>
-      f.check === "reference"
-        ? `- reference: your draft included a reference that is not in the confirmed facts (${f.detail}); rewrite without it`
-        : f.check === "citation"
-        // A missing or wrong citation is put right, not removed (28 Nov 2026).
-        ? `- citation: add or correct the citation, using only the IDs provided (${f.detail}); keep the point`
-        : `- ${f.check}: ${f.detail}`
-    )
+    .map((f) => {
+      const instruction = RETRY_INSTRUCTIONS[f.check];
+      return instruction ? `- ${f.check}: ${instruction(f.detail)}` : `- ${f.check}: ${f.detail}`;
+    })
     .join("\n");
 }
 

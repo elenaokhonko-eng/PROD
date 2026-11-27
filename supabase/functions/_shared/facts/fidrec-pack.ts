@@ -155,9 +155,9 @@ export function evidenceIdFailures(prose: FidrecPackProse, index: readonly Evide
   const failures: OutputFailure[] = [];
   for (const argument of [...prose.arguments_for_claimant, ...prose.arguments_for_institution, ...prose.institution_duties]) {
     const unknown = argument.evidence_ids.filter((id) => !known.has(id));
-    if (unknown.length) failures.push({ check: "citation", detail: `evidence IDs not in the index: ${unknown.join(", ")}` });
+    if (unknown.length) failures.push({ check: "evidence_id_unknown", detail: `evidence IDs not in the index: ${unknown.join(", ")}` });
     if (known.size && !argument.evidence_ids.length) {
-      failures.push({ check: "citation", detail: `argument without evidence IDs: ${argument.text.slice(0, 120)}` });
+      failures.push({ check: "citation_missing", detail: `argument without evidence IDs: ${argument.text.slice(0, 120)}` });
     }
   }
   return failures;
@@ -177,8 +177,8 @@ export function dutyFailures(
   const failures: OutputFailure[] = [];
   for (const duty of prose.institution_duties) {
     const unknown = duty.clause_ids.filter((id) => !known.has(id));
-    if (unknown.length) failures.push({ check: "citation", detail: `clause IDs not provided: ${unknown.join(", ")}` });
-    if (!duty.clause_ids.length) failures.push({ check: "citation", detail: `duty without a clause: ${duty.text.slice(0, 120)}` });
+    if (unknown.length) failures.push({ check: "clause_unknown", detail: `clause IDs not provided: ${unknown.join(", ")}` });
+    if (!duty.clause_ids.length) failures.push({ check: "citation_missing", detail: `duty without a clause: ${duty.text.slice(0, 120)}` });
   }
   const texts = prose.institution_duties.map((d) => d.text);
   if (!texts.length) return failures;

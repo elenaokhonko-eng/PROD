@@ -15,22 +15,23 @@ const prose = (evidence: string[]) => ({
 
 test('a bad citation has its own name and its own instruction, never "rewrite without it"', async () => {
   const failures = [...evidenceIdFailures(prose(['E9']), index), ...evidenceIdFailures(prose([]), index), ...dutyFailures(prose(['E1']), [], {}, {})]
-  assert.ok(failures.length >= 3)
-  assert.deepEqual([...new Set(failures.map((f) => f.check))], ['citation'])
-  assert.ok(isHardCheck('citation'))
+  assert.deepEqual([...new Set(failures.map((f) => f.check))].sort(), ['citation_missing', 'clause_unknown', 'evidence_id_unknown'].filter((c) => failures.some((f) => f.check === c)))
+  assert.ok(failures.every((f) => ['citation_missing', 'clause_unknown', 'evidence_id_unknown'].includes(f.check)))
+  for (const f of failures) assert.ok(isHardCheck(f.check), f.check)
   const said = describeFailures(failures)
-  assert.match(said, /add or correct the citation/)
+  assert.match(said, /citation_missing: add the missing citation/)
+  assert.match(said, /evidence_id_unknown: correct the evidence number/)
   assert.doesNotMatch(said, /rewrite without it|reference that is not in the confirmed facts/)
   // The "reference shown in …" wording is for a real reference number only, and only that is logged as one.
   const described: string[] = []
   const result = await produceChecked<string>({
     facts: {}, options: {}, generate: async () => 'text', mapText: (s, fn) => fn(s), texts: (s) => [s], fallback: () => 'f',
-    extraChecks: () => [{ check: 'citation', detail: 'evidence IDs not in the index: E9' }],
+    extraChecks: () => [{ check: 'evidence_id_unknown', detail: 'evidence IDs not in the index: E9' }],
     describeReference: (ref) => { described.push(ref); return 'x' },
   })
   assert.deepEqual(described, [])
   assert.deepEqual(result.rejectedReferences, [])
-  assert.deepEqual(result.firedChecks, [['citation'], ['citation']])
+  assert.deepEqual(result.firedChecks, [['evidence_id_unknown'], ['evidence_id_unknown']])
 })
 
 test('the free evaluation PDF includes the payments table', () => {
