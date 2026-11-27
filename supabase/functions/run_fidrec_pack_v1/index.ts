@@ -34,6 +34,7 @@ import {
   mapFidrecPackProse,
   parseFidrecPackProse,
   produceChecked,
+  referenceKinds,
   qualifyingFinalReplyDocumentId,
   type SnapshotFacts,
 } from "../_shared/facts/index.ts";
@@ -274,13 +275,25 @@ ${JSON.stringify(input, null, 2)}`;
       duties: result.output.institution_duties.length,
       model: FIDREC_PACK_MODEL,
       release: typeof body.release === "string" ? body.release.slice(0, 40) : null,
+      // Where a rejected reference came from, never the reference itself.
+      reference_kinds: referenceKinds(result.rejectedReferences ?? [], {
+        documents: [...excerpts.map((e) => e.excerpt), finalReplyText ?? ""].join("\n"),
+        story: storyRow?.story_text ?? "",
+        ruleClauses: clauses.map((c) => `${c.source} ${c.clause_ref ?? ""} ${c.title ?? ""} ${c.text}`).join("\n"),
+      }),
     };
-    if (result.source === "fallback") console.warn(`FIDReC pack fixed wording used: ${JSON.stringify(review)}`);
+    if (result.source === "fallback") console.warn(`FIDReC pack not completed: ${JSON.stringify(review)}`);
     const { error: reviewErr } = await supabase.from("analytics_events").insert({
       event_name: result.source === "fallback" ? "fidrec_pack_fixed_wording" : "fidrec_pack_generated",
       event_data: review,
     });
     if (reviewErr) console.error(`FIDReC pack review log failed: ${reviewErr.code ?? "unknown"}`);
+
+    // Elena, 27 Nov 2026: the fixed wording has no arguments for either side, so it is never delivered as the pack.
+    // Nothing is committed: the person is told it could not be completed and can generate again.
+    if (result.source === "fallback") {
+      return json({ ok: false, reason: "output_validation_failed", error: "The FIDReC pack could not be completed", checks: result.hardChecks.map((check) => ({ check })) }, 422);
+    }
 
     const report = assembleFidrecPack({
       prose: result.output,

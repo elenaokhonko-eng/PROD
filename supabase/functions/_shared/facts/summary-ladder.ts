@@ -65,6 +65,8 @@ function repair(summary: string, failures: OutputFailure[], facts: SnapshotFacts
 /** The ladder's result for any model-written output: the free evaluation's summary, or a paid pack's prose fields. */
 export interface CheckedResult<T> extends Omit<SummaryResult, "summary"> {
   output: T;
+  /** The references any attempt was rejected for. Kept in memory for classifying; never logged as they are. */
+  rejectedReferences?: string[];
 }
 
 /**
@@ -91,6 +93,7 @@ export async function produceChecked<T>(input: CheckedLadderInput<T>): Promise<C
   const firedChecks: OutputCheck[][] = [];
   let previous: string | null = null;
   let lastFailures: OutputFailure[] = [];
+  const rejected = new Set<string>();
   const fallback = (attempts: number, reason: SummaryResult["fallbackReason"], hardChecks: OutputCheck[]): CheckedResult<T> => ({
     output: input.fallback(facts),
     source: "fallback",
@@ -98,6 +101,7 @@ export async function produceChecked<T>(input: CheckedLadderInput<T>): Promise<C
     fallbackReason: reason,
     firedChecks,
     hardChecks,
+    rejectedReferences: [...rejected],
   });
   for (let attempt = 1; attempt <= 2; attempt++) {
     let output: T;
@@ -115,9 +119,10 @@ export async function produceChecked<T>(input: CheckedLadderInput<T>): Promise<C
       failures = check(output);
     }
     if (!failures.length) {
-      return { output: mapText(output, harmoniseDates), source: "model", attempts: attempt, fallbackReason: null, firedChecks, hardChecks: [] };
+      return { output: mapText(output, harmoniseDates), source: "model", attempts: attempt, fallbackReason: null, firedChecks, hardChecks: [], rejectedReferences: [...rejected] };
     }
     lastFailures = failures;
+    for (const f of failures) if (f.check === "reference") rejected.add(f.detail);
     previous = describeFailures(failures);
   }
   return fallback(2, "checks", [...new Set(lastFailures.map((f) => f.check).filter(isHardCheck))]);

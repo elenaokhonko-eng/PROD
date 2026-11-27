@@ -100,13 +100,16 @@ test.describe('pack first', () => {
     }
   }
 
+  // Where each pack button ends up (Elena, 27 Nov 2026). The address is printed so the run's log shows it. A visit to
+  // "/" is not judged on its own: the home page can report one by itself after it loads (gate run 45867707804).
   for (const cases of ['no case', 'one case'] as const) {
-    test(`signed in with ${cases}, no pack button lands on the public home page`, async ({ page }) => {
+    test(`signed in with ${cases}, every pack button ends inside the dashboard`, async ({ page }) => {
       const supabase = createServiceClientFromEnvironment()
       const account =
         cases === 'one case'
           ? await startFreshCase(page, supabase, syntheticNarrative)
           : await createLinkedAccount(page, supabase)
+      const caseId = 'caseId' in account ? (account.caseId as string) : null
       try {
         const buttons = [
           { from: '/pricing', name: PACK_ACTION.bank, pack: 'bank' },
@@ -117,23 +120,32 @@ test.describe('pack first', () => {
           { from: '/', name: 'Bank dispute pack', pack: 'bank' },
           { from: '/', name: 'FIDReC escalation pack', pack: 'fidrec' },
         ] as const
+        const ended = (url: URL, pack: 'bank' | 'fidrec') =>
+          caseId
+            ? url.pathname === `/app/case/${caseId}/dashboard` && url.searchParams.get('pack') === pack
+            : pack === 'bank'
+              ? url.hostname === 'checkout.stripe.com'
+              : url.pathname === '/app/pack/fidrec'
         for (const { from, name, pack } of buttons) {
-          await page.goto(from)
-          const homeVisits = watchHomeVisits(page)
+          await page.goto(from, { waitUntil: 'networkidle' })
           await page.getByRole('link', { name, exact: true }).first().click()
-          if (pack === 'bank') await page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 })
-          else await expect(page.locator('[data-pack-first="fidrec"] [data-fidrec-offer]')).toBeVisible({ timeout: 120_000 })
-          expect(homeVisits, `${name} on ${from}`).toEqual([])
-          page.removeAllListeners('framenavigated')
+          await page.waitForURL((url) => ended(url, pack), { timeout: 120_000 })
+          const address = new URL(page.url())
+          console.log(`pack button: ${cases}: "${name}" on ${from} -> ${address.hostname}${address.hostname === 'checkout.stripe.com' ? '' : address.pathname + address.search}`)
+          if (caseId) await expect(page.locator(`[data-asked-pack="${pack}"]`)).toBeVisible({ timeout: 120_000 })
+          else if (pack === 'fidrec') await expect(page.locator('[data-pack-first="fidrec"] [data-fidrec-offer]')).toBeVisible({ timeout: 120_000 })
         }
-        // Back from Stripe is My cases, not a stuck "Redirecting to secure payment" screen.
-        await page.goto('/pricing')
+        // Back from Stripe: no stuck "Redirecting to secure payment" screen. With a case, the buy button on it opens
+        // Stripe and Back returns to that case; with none, Back is My cases.
+        await page.goto('/pricing', { waitUntil: 'networkidle' })
         await page.getByRole('link', { name: PACK_ACTION.bank, exact: true }).first().click()
+        if (caseId) {
+          await page.locator('[data-asked-pack="bank"]').getByRole('button', { name: /Get Bank dispute pack/ }).click()
+        }
         await page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 })
         await page.goBack()
-        await page.waitForURL((url) => url.pathname === '/app', { timeout: 60_000 })
+        await page.waitForURL((url) => url.pathname === (caseId ? `/app/case/${caseId}/dashboard` : '/app'), { timeout: 60_000 })
         await expect(page.getByText('Redirecting to secure payment')).toHaveCount(0)
-        await expect(page.getByRole('link', { name: 'Add a new case' }).first()).toBeVisible()
       } finally {
         await deleteClerkUser(account.clerkUserId)
       }

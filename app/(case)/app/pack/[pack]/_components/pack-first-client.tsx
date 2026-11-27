@@ -178,7 +178,7 @@ function FidrecStep({
     const response = await fetch(`/api/cases/${caseId}/responses`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ responses: fidrecRouteResponses(answers) }),
+      body: JSON.stringify({ responses: fidrecRouteResponses(answers, route.data ?? null) }),
     })
     if (!response.ok) throw new Error('Failed to save responses')
     await Promise.all([payment.refetch(), route.refetch()])

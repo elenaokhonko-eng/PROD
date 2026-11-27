@@ -347,7 +347,33 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
 }
 
 export function describeFailures(failures: readonly OutputFailure[]): string {
-  return failures.map((f) => `- ${f.check}: ${f.detail}`).join("\n");
+  // Elena, 27 Nov 2026: the retry is told what to do about a reference, not only which check failed.
+  return failures
+    .map((f) =>
+      f.check === "reference"
+        ? `- reference: your draft included a reference that is not in the confirmed facts (${f.detail}); rewrite without it`
+        : `- ${f.check}: ${f.detail}`
+    )
+    .join("\n");
+}
+
+export type ReferenceKind = "document" | "story" | "rule_clause" | "not_found";
+
+/**
+ * Where each rejected reference came from, for the review log (gate run 45867707804: the log named only the check).
+ * The kind is recorded, never the reference itself.
+ */
+export function referenceKinds(
+  rejected: readonly string[],
+  sources: { documents: string; story: string; ruleClauses: string },
+): ReferenceKind[] {
+  const holds = (text: string, ref: string) => normaliseRef(text).includes(ref);
+  return rejected.map((raw) => {
+    const ref = normaliseRef(raw);
+    if (holds(sources.documents, ref)) return "document";
+    if (holds(sources.story, ref)) return "story";
+    return holds(sources.ruleClauses, ref) ? "rule_clause" : "not_found";
+  });
 }
 
 // Fallback when the model keeps stating a fact the user marked "not sure", or kept without a document, as certain:

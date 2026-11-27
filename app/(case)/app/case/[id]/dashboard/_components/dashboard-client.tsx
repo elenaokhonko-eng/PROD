@@ -418,7 +418,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   // The route question saves fidrec_route and its date; readiness is then read again (get_case_product_readiness_v1).
   // The journey answers follow it (lib/journey/fidrec-route-answers.ts).
   async function saveFidrecRoute(answers: Record<string, string>) {
-    const rows = fidrecRouteResponses(answers)
+    const rows = fidrecRouteResponses(answers, fidrecRouteQuery.data ?? null)
     await saveResponses(
       Object.fromEntries(rows.map((row) => [row.question_key, row.response_value])),
       Object.fromEntries(rows.map((row) => [row.question_key, row.response_type])),
