@@ -43,10 +43,10 @@ export async function buildFidrecPackPdf(pack: FidrecPackJson, createdAt: string
     await builder.addSubHeading(title)
     for (const item of items) await builder.addBullet(item.evidence_ids.length ? `${item.text} (${item.evidence_ids.join(", ")})` : item.text)
   }
-  if (pack.institution_duties?.length) {
+  if (pack.institution_duties?.length || pack.duties_note) {
     await builder.addSubHeading("The institution’s duties and what the records show")
     if (pack.duties_note) await builder.addParagraph(pack.duties_note)
-    for (const duty of pack.institution_duties) {
+    for (const duty of pack.institution_duties ?? []) {
       await builder.addBullet(`${duty.text} (${[...duty.clause_ids, ...duty.evidence_ids].join(", ")})`)
     }
     for (const source of pack.regulatory_sources ?? []) {

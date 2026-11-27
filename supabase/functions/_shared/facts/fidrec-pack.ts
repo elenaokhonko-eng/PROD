@@ -10,7 +10,8 @@ import { DOCUMENT_CONFIDENCE_THRESHOLD } from "./extraction.ts";
 import { COMPLAINANT_ITEM_LABELS, DOCUMENT_LABELS, documentsShowing, type EvidenceFinding, evidenceLists } from "./free-sections.ts";
 import type { BankReply, FactKey, Instrument, Money, ReportedEvent, Transaction } from "./keys.ts";
 import { appliesToCase, appliesToLabel, instrumentsOf } from "./rules/instrument-scope.ts";
-import { type FidrecAvailability, fidrecAvailability, FIDREC_RULES } from "./rules/fidrec.ts";
+import { type FidrecPackCheck, fidrecPackCheck, FIDREC_RULES } from "./rules/fidrec.ts";
+import { FINAL_REPLY_EXPIRED_NOTE } from "./recommend.ts";
 import { assessSrf, type SrfAssessment, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
 import { bankPackTransactions, withDisplayDates } from "./bank-pack.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
@@ -411,11 +412,10 @@ function confirmedValue<T>(facts: SnapshotFacts, key: FactKey): T | null {
   return fact && (fact.label === "confirmed" || fact.label === "claimant_only") ? (fact.value as T) : null;
 }
 
-/** Whether FIDReC can be approached today on the confirmed facts (rules/fidrec.ts F2, F3). */
-export function fidrecRouteFromFacts(facts: SnapshotFacts, today: string): FidrecAvailability {
-  return fidrecAvailability(
+/** Whether the bought pack can be generated on the confirmed facts (rules/fidrec.ts fidrecPackCheck). */
+export function fidrecRouteFromFacts(facts: SnapshotFacts, today: string): FidrecPackCheck {
+  return fidrecPackCheck(
     {
-      reportedToBank: confirmedValue<ReportedEvent>(facts, "reported_to_bank"),
       writtenComplaint: confirmedValue<ReportedEvent>(facts, "written_complaint_sent"),
       bankReply: confirmedValue<BankReply>(facts, "bank_reply"),
     },
@@ -593,7 +593,7 @@ export function finalReplyBasis(
 }
 
 /** How and when FIDReC can be approached, with the fee: fixed wording from the Terms of Reference (rules/fidrec.ts). */
-export function fidrecRouteText(route: FidrecAvailability, finalReply: FinalReplyBasis | null = null, today?: string): string {
+export function fidrecRouteText(route: FidrecPackCheck, finalReply: FinalReplyBasis | null = null, today?: string): string {
   const fee = `If the case goes to adjudication, FIDReC charges individuals a S$${FIDREC_RULES.adjudicationFeeSgd.individual} case fee.`;
   // Part B walk-through (25 Nov). PB-24: a confirmed final reply read from a letter carries no "qualifies" answer, so
   // the route fell back to "the complaint is not resolved" and the deadline a customer acts on was left out; it is now
@@ -605,12 +605,19 @@ export function fidrecRouteText(route: FidrecAvailability, finalReply: FinalRepl
     const dated = finalReply.letterEvidenceId
       ? `The institution's letter dated ${formatDate(finalReply.date)} says it is its final reply (${finalReply.letterEvidenceId}).`
       : `You told us the final reply is dated ${formatDate(finalReply.date)}.`;
-    const by = today && deadline < today ? "FIDReC had to receive the complaint by" : "FIDReC must receive the complaint by";
-    return `${dated} Counted from that date, ${by} ${formatDate(deadline)} (six months after the final reply). ${fee}`;
+    // CR-2 (27 Nov): after the six months, both dates, the rules and the passage on what a final reply is, each once.
+    if (today && deadline < today) {
+      const first = finalReply.letterEvidenceId
+        ? dated
+        : `The final reply you told us about is dated ${formatDate(finalReply.date)}.`;
+      return `${first} Six months from that date ended on ${formatDate(deadline)} (Rule 13(1)(ii); Rule 5(vi)). ${FINAL_REPLY_EXPIRED_NOTE} ${fee}`;
+    }
+    return `${dated} Counted from that date, FIDReC must receive the complaint by ${formatDate(deadline)} (six months after the final reply). ${fee}`;
   }
   if (route.available && route.route === "final_reply") {
     return `The institution gave its final reply. FIDReC must receive the complaint by ${formatDate(route.deadline)} (six months after the final reply). ${fee}`;
   }
+  if (route.available && route.route === "answered") return `The institution has answered the complaint and the matter is not resolved (Rule 13(1)(i)). ${fee}`;
   if (route.available) return `The complainant complained in writing more than four weeks ago and the complaint is not resolved. ${fee}`;
   return fee;
 }
@@ -620,6 +627,9 @@ export function fidrecRouteText(route: FidrecAvailability, finalReply: FinalRepl
 // that section's own label, so both say it the same way.
 export const SRF_DUTIES_NOTE =
   "This payment is likely not covered by the SRF (see 'How the rules may apply'). The duties below are listed because FIDReC can consider how the institution handled the case.";
+
+// Item 16 (wording approved by Elena, 27 Nov 2026): the duties section is there even when no clause applies.
+export const NO_CLAUSE_MATCHED_NOTE = "No rule clause was matched to the payments in this case.";
 
 export function srfDutiesNote(assessment: SrfAssessment): string | null {
   const portions = assessment.portions;
@@ -669,7 +679,7 @@ export function assembleFidrecPack(args: {
   facts: SnapshotFacts;
   findings: readonly EvidenceFinding[];
   evidenceIndex: readonly EvidenceIndexEntry[];
-  route: FidrecAvailability;
+  route: FidrecPackCheck;
   finalReplyUsed: boolean;
   clauses?: readonly RegulatoryClause[];
   /** Singapore date (YYYY-MM-DD), to say whether the six months after the final reply have passed. */
@@ -693,7 +703,7 @@ export function assembleFidrecPack(args: {
     total_loss: loss ? formatMoney(loss) : null,
     evidence_index: args.evidenceIndex.map((e) => ({ id: e.id, document: e.label })),
     evidence_checklist: [...shown.map((label) => ({ label, present: true })), ...missing.map((label) => ({ label, present: false }))],
-    duties_note: srfDutiesNote(srf),
+    duties_note: args.clauses && !args.clauses.length ? NO_CLAUSE_MATCHED_NOTE : srfDutiesNote(srf),
     route: fidrecRouteText(args.route, finalReplyBasis(facts, args.findings, args.evidenceIndex), args.today),
     rules_assessment: srfAssessmentText(srf),
     final_reply_used: args.finalReplyUsed,

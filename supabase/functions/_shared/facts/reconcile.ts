@@ -282,7 +282,7 @@ function reconcileTransactions(candidates: readonly FactCandidate[]): { findingT
 // Dependency rules (Elena, 2026-11-05): a reply from the bank means the bank was told, and a final reply needs a
 // report or written complaint. Each reply candidate therefore implies "reported to the bank: yes" from the same
 // source, so a "No" elsewhere becomes an ordinary conflict for the user to settle.
-const REPLY_STATUSES: ReadonlySet<string> = new Set(["acknowledged", "interim", "final_reply"]);
+const REPLY_STATUSES: ReadonlySet<string> = new Set(["acknowledged", "interim", "answered", "final_reply"]);
 
 // A reference given with "told the bank" or "police report" becomes a candidate for its own fact, from the same
 // source (finding A2).

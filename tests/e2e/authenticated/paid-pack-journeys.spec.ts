@@ -12,6 +12,7 @@ import {
   syntheticNarrative,
 } from '../helpers/fresh-account'
 import { PAID_STAGES_DEFERRED, paidStagesEnabled } from '../helpers/paid-stages'
+import { answerTimeline, FINAL_REPLY_TEN_DAYS_AGO } from '../helpers/fidrec-timeline'
 
 // Stage 2 (Elena, 20 Nov 2026): each pack works on its own and after the free evaluation. Fresh accounts, Stripe test
 // mode, synthetic content only; each Clerk test user is deleted afterwards.
@@ -25,42 +26,29 @@ test.describe('paid pack journeys', () => {
     test.setTimeout(30 * 60_000)
   })
 
-  // Dates in Singapore time; a final reply ten days ago is one the FIDReC route accepts.
-  const daysAgo = (days: number) => new Date(Date.now() + 8 * 3_600_000 - days * 86_400_000).toISOString().slice(0, 10)
-  const tenDaysAgo = () => daysAgo(10)
-
-  // Part B walk-through (25 Nov, PB-17), steps 3.2–3.4: each closed route says why, offers no purchase, and the answer
-  // can be changed. Before the fix "not complained yet" showed nothing, and an answer could not be changed.
-  async function walkClosedFidrecRoutes(page: Page) {
+  // CR-2 as amended (27 Nov): sold upfront. The payment step states the condition and asks nothing.
+  async function fidrecBuyButton(page: Page) {
     const offer = page.locator('[data-fidrec-offer]').first()
+    await expect(offer.locator('[data-fidrec-before-payment]')).toContainText('your pack waits for you until it is', { timeout: 120_000 })
+    await expect(offer.locator('input[type="radio"]')).toHaveCount(0)
     const buy = offer.getByRole('button', { name: /Prepare my FIDReC case/ })
-    // A closed route offers no purchase: the panel's button reads "Not available yet" and is greyed (tier2-pack-panel.tsx).
-    const noPurchase = async () => {
-      await expect(offer.getByRole('button', { name: 'Not available yet' })).toBeDisabled()
-      await expect(buy).toHaveCount(0)
-    }
-    const change = offer.getByRole('button', { name: 'Change my answer' })
-    const answer = async (label: string, date: string | null) => {
-      await offer.getByText(label, { exact: true }).click()
-      if (date) await offer.locator('input[type="date"]').fill(date)
-      await offer.getByRole('button', { name: 'Save', exact: true }).click()
-    }
+    await expect(buy).toBeEnabled({ timeout: 60_000 })
+    return buy
+  }
 
-    await answer('I haven’t complained to my bank in writing yet', null)
-    await expect(offer.getByText(/FIDReC needs your bank to have had the chance to answer first/)).toBeVisible({ timeout: 60_000 })
-    await noPurchase()
-
+  // The two situations in which the pack waits, with their approved messages, then a changed answer that opens it.
+  async function walkWaitingAnswers(page: Page) {
+    const change = page.getByRole('button', { name: 'Change my answers' })
+    await answerTimeline(page, { complaintDaysAgo: null })
+    await expect(page.locator('[data-fidrec-waiting="complaint_not_raised"]')).toContainText('Your FIDReC pack waits for you.', { timeout: 60_000 })
+    await expect(page.getByRole('button', { name: /Get Bank dispute pack/ })).toBeVisible()
     await change.click()
-    await answer('I complained in writing and haven’t had a final reply', daysAgo(3))
-    await expect(offer.getByText(/four weeks after your written complaint to the bank\. You can get this pack from/)).toBeVisible({ timeout: 60_000 })
-    await noPurchase()
-
+    await answerTimeline(page, { complaintDaysAgo: 3, reply: 'looking' })
+    await expect(page.locator('[data-fidrec-waiting="fidrec_too_early"]')).toContainText('so the four weeks end on', { timeout: 60_000 })
+    await expect(page.getByRole('button', { name: /Get Bank dispute pack/ })).toHaveCount(0)
     await change.click()
-    await answer('Yes, my bank has given its final reply', daysAgo(215))
-    await expect(offer.getByText(/up to six months after the bank’s final reply, and that time has passed/)).toBeVisible({ timeout: 60_000 })
-    await noPurchase()
-
-    await change.click()
+    await answerTimeline(page, FINAL_REPLY_TEN_DAYS_AGO)
+    await expect(page.locator('[data-fidrec-waiting]')).toHaveCount(0)
   }
 
   // CR-2, pack first: the empty case the pack step created for this account.
@@ -70,23 +58,15 @@ test.describe('paid pack journeys', () => {
     return data![0].id as string
   }
 
-  // After payment: back in My cases, then "Add a new case" and the story, which leads to the pack's documents.
+  // After payment: back in My cases, then "Add a new case" (for FIDReC the questionnaire first) and the story, which
+  // leads to the pack's documents.
   async function addStoryAfterPaying(page: Page, caseId: string, pack: 'bank' | 'fidrec') {
     await page.getByRole('link', { name: 'Add a new case' }).first().click()
+    if (pack === 'fidrec') await answerTimeline(page, FINAL_REPLY_TEN_DAYS_AGO)
     await page.locator('#story').fill(syntheticNarrative)
     await page.getByRole('button', { name: 'Submit the story' }).click()
     await page.waitForURL(new RegExp(`/app/case/${caseId}/dashboard$`), { timeout: 120_000 })
     await expect(page.locator(`[data-pack-evidence="${pack}"]`)).toBeVisible({ timeout: 120_000 })
-  }
-
-  async function answerFidrecRoute(page: Page) {
-    const offer = page.locator('[data-fidrec-offer]').first()
-    await offer.getByText('Yes, my bank has given its final reply', { exact: true }).click()
-    await offer.locator('input[type="date"]').fill(tenDaysAgo())
-    await offer.getByRole('button', { name: 'Save', exact: true }).click()
-    const buy = offer.getByRole('button', { name: /Prepare my FIDReC case/ })
-    await expect(buy).toBeEnabled({ timeout: 60_000 })
-    return buy
   }
 
   // From inside a case, Stripe returns to that case; a case still waiting for its story returns to My cases.
@@ -145,7 +125,7 @@ test.describe('paid pack journeys', () => {
     const { clerkUserId, caseId, email } = await startFreshCase(page, supabase, syntheticNarrative)
     try {
       await completeFreeEvaluation(page, caseId, syntheticNarrative)
-      const buy = await answerFidrecRoute(page)
+      const buy = await fidrecBuyButton(page)
       // Back from Stripe: no stuck "Redirecting to secure payment" screen (CR-2).
       await buy.click()
       await page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 })
@@ -155,6 +135,7 @@ test.describe('paid pack journeys', () => {
       await page.locator('[data-fidrec-offer]').first().getByRole('button', { name: /Prepare my FIDReC case/ }).click()
       await payAndReturn(page, email, caseId, 'escalation_pack', 188)
 
+      await walkWaitingAnswers(page)
       await addPackEvidence(page, 'fidrec')
       await confirmFactsInDashboard(page, caseId, 'fidrec')
       await expect(page.getByText('Points for the institution', { exact: true })).toBeVisible({ timeout: 5 * 60_000 })
@@ -173,13 +154,8 @@ test.describe('paid pack journeys', () => {
     const { clerkUserId, email, profileId } = await createLinkedAccount(page, supabase)
     try {
       await page.goto('/app/pack/fidrec')
-      await expect(page.locator('[data-fidrec-offer]')).toBeVisible({ timeout: 120_000 })
+      const buy = await fidrecBuyButton(page)
       const caseId = await waitingCaseId(supabase, profileId)
-      await walkClosedFidrecRoutes(page)
-      const buy = await answerFidrecRoute(page)
-      // The open route keeps its answer on screen and can still be changed.
-      await expect(page.locator('[data-fidrec-offer] [data-fidrec-route-answer="final_reply"]').first()).toBeVisible()
-      await expect(page.locator('[data-fidrec-offer]').first().getByRole('button', { name: 'Change my answer' })).toBeVisible()
       await buy.click()
       await payAndReturn(page, email, caseId, 'escalation_pack', 188, 'my cases')
       await addStoryAfterPaying(page, caseId, 'fidrec')

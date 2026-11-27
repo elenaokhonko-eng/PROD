@@ -15,10 +15,17 @@ export const BANK_PACK_VERSION = "bank_pack_v1";
 export const BANK_PACK_MIN_WORDS = 120;
 export const BANK_PACK_MAX_WORDS = 900;
 
+// The bank pack is itself the written complaint. A sentence saying none has been sent is rewritten by the AI, never
+// removed (Elena, 27 Nov 2026).
+const NOT_YET_COMPLAINED = /\b(?:have not|haven['’]t|did not|didn['’]t)\b[^.!?\n]*\bwritten complaint\b/i;
+
 export const BANK_PACK_CHECKS: ValidateOptions = {
   extraDates: TIER0_EXTRA_DATES,
   firstPerson: true,
-  forbidden: [{ pattern: SRF_VERDICT, detail: "the rules section is written by the server" }],
+  forbidden: [
+    { pattern: SRF_VERDICT, detail: "the rules section is written by the server" },
+    { pattern: NOT_YET_COMPLAINED, detail: "this document is itself the written complaint; rewrite without saying whether one was sent" },
+  ],
   userFacing: { minWords: BANK_PACK_MIN_WORDS, maxWords: BANK_PACK_MAX_WORDS },
 };
 
@@ -185,11 +192,6 @@ export interface BankPackReport {
   prose_source: "model" | "fallback";
 }
 
-// Elena, 27 Nov 2026: the bank pack is itself the written complaint, so a sentence saying none has been sent is taken
-// out, whoever wrote it.
-const NOT_YET_COMPLAINED = /[^.!?\n]*\b(?:have not|haven['’]t|did not|didn['’]t)\b[^.!?\n]*\bwritten complaint\b[^.!?\n]*[.!?][ \t]*/gi;
-export const withoutNotYetComplained = (text: string) => text.replace(NOT_YET_COMPLAINED, (match) => (match.startsWith(" ") ? " " : "")).trim();
-
 export function assembleBankPack(args: {
   prose: BankPackProse;
   source: "model" | "fallback";
@@ -202,7 +204,6 @@ export function assembleBankPack(args: {
   return {
     report_version: BANK_PACK_VERSION,
     ...args.prose,
-    executive_summary: withoutNotYetComplained(args.prose.executive_summary),
     timeline: withDisplayDates(bankPackTimeline(facts)),
     disputed_transactions: bankPackTransactions(facts),
     total_loss: loss ? formatMoney(loss) : null,

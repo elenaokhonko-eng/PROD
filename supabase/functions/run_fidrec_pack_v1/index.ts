@@ -22,6 +22,7 @@ import {
   caseInstruments,
   routeClauses,
   chatJson,
+  describeReferenceSource,
   documentedFacts,
   type EvidenceFinding,
   evidenceIdFailures,
@@ -34,6 +35,7 @@ import {
   mapFidrecPackProse,
   parseFidrecPackProse,
   produceChecked,
+  referenceKinds,
   qualifyingFinalReplyDocumentId,
   type SnapshotFacts,
 } from "../_shared/facts/index.ts";
@@ -42,8 +44,8 @@ import {
 // milestone 3; design C4). Called by the case owner through /api/edge/fidrec-pack, like run_bank_pack_v1. The model
 // writes the summary, each side's position and arguments tied to evidence IDs; the rest comes from the confirmed
 // "fidrec" snapshot (_shared/facts/fidrec-pack.ts). Exempt from the daily model cap (Elena, 13 Nov); metered.
-// Decision 7: if the confirmed facts show FIDReC can't be approached today (too early, or the six months after the
-// final reply have passed), nothing is generated; a new qualifying final reply unlocks it.
+// CR-2 (27 Nov): nothing is generated while there is no written complaint, or one under four weeks old with no answer
+// (rules/fidrec.ts fidrecPackCheck). A final reply older than six months still generates; the pack states both dates.
 
 const PROJECT_URL = Deno.env.get("GUIDEBUOY_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("GUIDEBUOY_SERVICE_ROLE_KEY");
@@ -106,15 +108,14 @@ Deno.serve(async (req) => {
     }
     const facts = snapshot.facts as SnapshotFacts;
 
-    // Decision 7: no generation while the confirmed facts don't open a route to FIDReC.
+    // Decision 7, as amended by CR-2 (27 Nov): nothing is generated while the bank has not had its chance to answer.
     const today = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10);
     const route = fidrecRouteFromFacts(facts, today);
     if (!route.available) {
       return json({
         ok: false,
         reason: route.reason,
-        ...(route.reason === "fidrec_too_early" ? { opensOn: route.availableFrom } : {}),
-        ...(route.reason === "fidrec_window_expired" ? { deadline: route.deadline } : {}),
+        ...(route.reason === "fidrec_too_early" ? { opensOn: route.availableFrom, complaintDate: route.complaintDate } : {}),
         error: "FIDReC can't take this complaint on the confirmed facts yet",
       }, 409);
     }
@@ -197,7 +198,8 @@ Deno.serve(async (req) => {
     const usageClient = supabase as unknown as UsageClient;
     const meter = { caller: "edge" as const, purpose: "fidrec_pack", provider: "openai" as const, caseId: case_id };
 
-    // The duties section's clauses. Retrieval failing leaves the section empty rather than failing the pack.
+    // The duties section's clauses. If they cannot be looked up, no pack is delivered without its duties section
+    // (item 16, Elena, 27 Nov 2026): nothing is generated or saved, and the person can try again.
     let clauses: ReturnType<typeof numberClauses> = [];
     try {
       clauses = await retrieveClauses(regulatoryQuery(facts), caseInstruments(facts), (call) =>
@@ -205,6 +207,12 @@ Deno.serve(async (req) => {
       );
     } catch (error) {
       console.warn(`FIDReC pack clause retrieval failed: ${safeErrorText(error)}`);
+      const { error: logErr } = await supabase.from("analytics_events").insert({
+        event_name: "fidrec_pack_rules_unavailable",
+        event_data: { case_id, fact_snapshot_id, release: typeof body.release === "string" ? body.release.slice(0, 40) : null },
+      });
+      if (logErr) console.error(`FIDReC pack review log failed: ${logErr.code ?? "unknown"}`);
+      return json({ ok: false, reason: "output_validation_failed", error: "The FIDReC pack could not be completed", checks: [] }, 422);
     }
 
     const quotables = documentQuotables(excerpts);
@@ -233,6 +241,14 @@ ${JSON.stringify(input, null, 2)}`;
       mapText: mapFidrecPackProse,
       texts: fidrecPackTexts,
       fallback: fidrecPackFallback,
+      describeReference: (ref) => describeReferenceSource(ref, {
+        documents: evidenceIndex.map((e) => {
+          const document = caseDocuments.find((d) => d.id === e.documentId);
+          return { id: e.id, label: e.label, type: document?.evidenceType ?? null, text: document?.text ?? null };
+        }),
+        story: (storyRow?.story_text as string | null) ?? "",
+        voice: "complainant",
+      }),
       extraChecks: (prose) => [...evidenceIdFailures(prose, evidenceIndex), ...dutyFailures(prose, clauses, facts, checks)],
       generate: (previousFailures) =>
         chatJson(
@@ -274,13 +290,25 @@ ${JSON.stringify(input, null, 2)}`;
       duties: result.output.institution_duties.length,
       model: FIDREC_PACK_MODEL,
       release: typeof body.release === "string" ? body.release.slice(0, 40) : null,
+      // Where a rejected reference came from, never the reference itself.
+      reference_kinds: referenceKinds(result.rejectedReferences ?? [], {
+        documents: [...excerpts.map((e) => e.excerpt), finalReplyText ?? ""].join("\n"),
+        story: storyRow?.story_text ?? "",
+        ruleClauses: clauses.map((c) => `${c.source} ${c.clause_ref ?? ""} ${c.title ?? ""} ${c.text}`).join("\n"),
+      }),
     };
-    if (result.source === "fallback") console.warn(`FIDReC pack fixed wording used: ${JSON.stringify(review)}`);
+    if (result.source === "fallback") console.warn(`FIDReC pack not completed: ${JSON.stringify(review)}`);
     const { error: reviewErr } = await supabase.from("analytics_events").insert({
       event_name: result.source === "fallback" ? "fidrec_pack_fixed_wording" : "fidrec_pack_generated",
       event_data: review,
     });
     if (reviewErr) console.error(`FIDReC pack review log failed: ${reviewErr.code ?? "unknown"}`);
+
+    // Elena, 27 Nov 2026: the fixed wording has no arguments for either side, so it is never delivered as the pack.
+    // Nothing is committed: the person is told it could not be completed and can generate again.
+    if (result.source === "fallback") {
+      return json({ ok: false, reason: "output_validation_failed", error: "The FIDReC pack could not be completed", checks: result.hardChecks.map((check) => ({ check })) }, 422);
+    }
 
     const report = assembleFidrecPack({
       prose: result.output,

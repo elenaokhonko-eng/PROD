@@ -10,6 +10,7 @@ import {
   syntheticNarrative,
 } from '../helpers/fresh-account'
 import { PAID_STAGES_DEFERRED, paidStagesEnabled } from '../helpers/paid-stages'
+import { answerTimeline, FINAL_REPLY_TEN_DAYS_AGO } from '../helpers/fidrec-timeline'
 
 // CR-2 (26 Nov 2026): pack first from the public pages into My cases, and nobody signed in is sent back to the public
 // home page. Fresh accounts, Stripe test mode, synthetic content only; each Clerk test user is deleted afterwards.
@@ -34,16 +35,6 @@ function watchHomeVisits(page: Page) {
   return visits
 }
 
-async function answerFinalReply(page: Page) {
-  const offer = page.locator('[data-fidrec-offer]')
-  await offer.getByText('Yes, my bank has given its final reply', { exact: true }).click()
-  await offer.locator('input[type="date"]').fill(new Date(Date.now() + 8 * 3_600_000 - 10 * 86_400_000).toISOString().slice(0, 10))
-  await offer.getByRole('button', { name: 'Save', exact: true }).click()
-  const buy = offer.getByRole('button', { name: /Prepare my FIDReC case/ })
-  await expect(buy).toBeEnabled({ timeout: 60_000 })
-  return buy
-}
-
 test.describe('pack first', () => {
   test.beforeEach(async ({}, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium-1440', 'Creates Clerk users and Stripe test payments once per release SHA.')
@@ -65,9 +56,11 @@ test.describe('pack first', () => {
           const homeVisits = watchHomeVisits(page)
           await page.goto(`/app/pack/${pack}`)
           if (pack === 'fidrec') {
-            // The route question comes before payment.
-            await expect(page.getByText('Before the FIDReC pack: where are you with your bank?')).toBeVisible({ timeout: 60_000 })
-            await (await answerFinalReply(page)).click()
+            // Sold upfront: the condition is stated, nothing is asked.
+            await expect(page.locator('[data-fidrec-before-payment]')).toBeVisible({ timeout: 60_000 })
+            const buy = page.getByRole('button', { name: /Prepare my FIDReC case/ })
+            await expect(buy).toBeEnabled({ timeout: 60_000 })
+            await buy.click()
           }
           await page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 })
           await payWithTestCard(page, email)
@@ -85,6 +78,8 @@ test.describe('pack first', () => {
 
           await page.getByRole('link', { name: 'Add a new case' }).first().click()
           await page.waitForURL((url) => url.pathname === '/app/case/new')
+          // CR-2 as amended: a FIDReC case starts with the timeline questionnaire, then the story.
+          if (pack === 'fidrec') await answerTimeline(page, FINAL_REPLY_TEN_DAYS_AGO)
           await page.locator('#story').fill(syntheticNarrative)
           await page.getByRole('button', { name: 'Submit the story' }).click()
           await page.waitForURL(new RegExp(`/app/case/${caseId}/dashboard$`), { timeout: 120_000 })
@@ -100,13 +95,16 @@ test.describe('pack first', () => {
     }
   }
 
+  // Where each pack button ends up (Elena, 27 Nov 2026). The address is printed so the run's log shows it. A visit to
+  // "/" is not judged on its own: the home page can report one by itself after it loads (gate run 45867707804).
   for (const cases of ['no case', 'one case'] as const) {
-    test(`signed in with ${cases}, no pack button lands on the public home page`, async ({ page }) => {
+    test(`signed in with ${cases}, every pack button ends inside the dashboard`, async ({ page }) => {
       const supabase = createServiceClientFromEnvironment()
       const account =
         cases === 'one case'
           ? await startFreshCase(page, supabase, syntheticNarrative)
           : await createLinkedAccount(page, supabase)
+      const caseId = 'caseId' in account ? (account.caseId as string) : null
       try {
         const buttons = [
           { from: '/pricing', name: PACK_ACTION.bank, pack: 'bank' },
@@ -117,23 +115,32 @@ test.describe('pack first', () => {
           { from: '/', name: 'Bank dispute pack', pack: 'bank' },
           { from: '/', name: 'FIDReC escalation pack', pack: 'fidrec' },
         ] as const
+        const ended = (url: URL, pack: 'bank' | 'fidrec') =>
+          caseId
+            ? url.pathname === `/app/case/${caseId}/dashboard` && url.searchParams.get('pack') === pack
+            : pack === 'bank'
+              ? url.hostname === 'checkout.stripe.com'
+              : url.pathname === '/app/pack/fidrec'
         for (const { from, name, pack } of buttons) {
-          await page.goto(from)
-          const homeVisits = watchHomeVisits(page)
+          await page.goto(from, { waitUntil: 'networkidle' })
           await page.getByRole('link', { name, exact: true }).first().click()
-          if (pack === 'bank') await page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 })
-          else await expect(page.locator('[data-pack-first="fidrec"] [data-fidrec-offer]')).toBeVisible({ timeout: 120_000 })
-          expect(homeVisits, `${name} on ${from}`).toEqual([])
-          page.removeAllListeners('framenavigated')
+          await page.waitForURL((url) => ended(url, pack), { timeout: 120_000 })
+          const address = new URL(page.url())
+          console.log(`pack button: ${cases}: "${name}" on ${from} -> ${address.hostname}${address.hostname === 'checkout.stripe.com' ? '' : address.pathname + address.search}`)
+          if (caseId) await expect(page.locator(`[data-asked-pack="${pack}"]`)).toBeVisible({ timeout: 120_000 })
+          else if (pack === 'fidrec') await expect(page.locator('[data-pack-first="fidrec"] [data-fidrec-offer]')).toBeVisible({ timeout: 120_000 })
         }
-        // Back from Stripe is My cases, not a stuck "Redirecting to secure payment" screen.
-        await page.goto('/pricing')
+        // Back from Stripe: no stuck "Redirecting to secure payment" screen. With a case, the buy button on it opens
+        // Stripe and Back returns to that case; with none, Back is My cases.
+        await page.goto('/pricing', { waitUntil: 'networkidle' })
         await page.getByRole('link', { name: PACK_ACTION.bank, exact: true }).first().click()
+        if (caseId) {
+          await page.locator('[data-asked-pack="bank"]').getByRole('button', { name: /Get Bank dispute pack/ }).click()
+        }
         await page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 })
         await page.goBack()
-        await page.waitForURL((url) => url.pathname === '/app', { timeout: 60_000 })
+        await page.waitForURL((url) => url.pathname === (caseId ? `/app/case/${caseId}/dashboard` : '/app'), { timeout: 60_000 })
         await expect(page.getByText('Redirecting to secure payment')).toHaveCount(0)
-        await expect(page.getByRole('link', { name: 'Add a new case' }).first()).toBeVisible()
       } finally {
         await deleteClerkUser(account.clerkUserId)
       }

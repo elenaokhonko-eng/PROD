@@ -23,10 +23,10 @@ export function useGenerateStage(caseId: string, stage: GeneratedStage) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ case_id: caseId, fact_snapshot_id: snapshotId }),
       })
-      const json = (await response.json().catch(() => null)) as { error?: string; reason?: string; checks?: Array<{ check?: string }> } | null
+      const json = (await response.json().catch(() => null)) as { error?: string; reason?: string; checks?: Array<{ check?: string }>; complaintDate?: string | null; opensOn?: string | null } | null
       if (!response.ok) {
         const checks = [...new Set((json?.checks ?? []).map((c) => c.check).filter((c): c is string => typeof c === 'string'))]
-        throw new FactsRequestError(json?.error ?? ROUTES[stage].failure, json?.reason ?? null, response.status, checks)
+        throw new FactsRequestError(json?.error ?? ROUTES[stage].failure, json?.reason ?? null, response.status, checks, { complaintDate: json?.complaintDate, opensOn: json?.opensOn })
       }
     },
     onSuccess: async () => {

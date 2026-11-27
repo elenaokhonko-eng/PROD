@@ -75,6 +75,7 @@ const REPLY_TEXT: Record<BankReply["status"], string> = {
   none: "No reply yet",
   acknowledged: "Acknowledged only",
   interim: "Interim reply",
+  answered: "Gave its answer",
   final_reply: "Final reply",
   not_final: "No final reply yet",
 };
@@ -215,7 +216,7 @@ export function validateFactValue(key: FactKey, input: unknown): unknown | null 
     }
     case "bank_reply": {
       const status = record.status;
-      if (status !== "none" && status !== "acknowledged" && status !== "interim" && status !== "final_reply") return null;
+      if (status !== "none" && status !== "acknowledged" && status !== "interim" && status !== "answered" && status !== "final_reply") return null;
       const date = record.date ? plausibleDate(record.date) : null;
       if (record.date && !date) return null;
       const outcome = ["rejected", "partial_offer", "full_offer", "other"].includes(record.outcome as string) ? record.outcome : null;

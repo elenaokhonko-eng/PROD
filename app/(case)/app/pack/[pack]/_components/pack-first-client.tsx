@@ -8,12 +8,10 @@ import { Button } from '@/components/ui/button'
 import { PACK_NAMES } from '@/components/state-machine/facts/pack-evidence'
 import { StateMachineLoading } from '@/components/state-machine/loading-state'
 import { CheckoutRedirect } from '@/components/state-machine/transition/checkout-redirect'
-import { EMPTY_FIDREC_ROUTE_DRAFT, FidrecOffer, type FidrecRouteDraft } from '@/components/state-machine/transition/fidrec-offer'
-import { useFidrecRoute } from '@/hooks/state-machine/facts/use-fidrec-route'
+import { FidrecOffer } from '@/components/state-machine/transition/fidrec-offer'
 import { useCreateCheckoutSession, type ProductKey } from '@/hooks/state-machine/transition/use-create-checkout-session'
 import { usePaymentStatus } from '@/hooks/state-machine/transition/use-payment-status'
 import type { PaidPack } from '@/lib/harbor/packs'
-import { fidrecRouteResponses } from '@/lib/journey/fidrec-route-answers'
 
 const OPEN_FAILED = 'We couldn’t open the payment step. Please try again; if it keeps happening, email info@guidebuoyai.sg.'
 // Just after sign-up the account can take a few seconds to be linked, so "not signed in" is retried quietly first.
@@ -138,7 +136,7 @@ export function PackFirstClient({ pack, available, priceLabel }: Props) {
   )
 }
 
-/** The route question and the FIDReC pack's buy button, as on a case page, for the case created for this pack. */
+/** The FIDReC pack's payment step, as on a case page, for the case created for this pack. */
 function FidrecStep({
   caseId,
   priceLabel,
@@ -153,10 +151,7 @@ function FidrecStep({
   buy: (productKey: ProductKey, id?: string) => Promise<void>
 }) {
   const router = useRouter()
-  const { getToken } = useAuth()
   const payment = usePaymentStatus(caseId)
-  const route = useFidrecRoute(caseId)
-  const [draft, setDraft] = useState<FidrecRouteDraft>(EMPTY_FIDREC_ROUTE_DRAFT)
   const capability = payment.data?.capabilityBilling.capabilities.fidrecPack
   const owned = capability?.entitled === true
   const reconciling = capability?.reconciliationRequired === true
@@ -172,18 +167,6 @@ function FidrecStep({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reconciling, caseId])
 
-  async function saveRoute(answers: Record<string, string>) {
-    const token = await getToken({ template: 'supabase' })
-    if (!token) throw new Error('Missing Supabase token')
-    const response = await fetch(`/api/cases/${caseId}/responses`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ responses: fidrecRouteResponses(answers) }),
-    })
-    if (!response.ok) throw new Error('Failed to save responses')
-    await Promise.all([payment.refetch(), route.refetch()])
-  }
-
   if (payment.isPending) return <StateMachineLoading title="Loading your case" />
   if (payment.isError) {
     return (
@@ -197,16 +180,10 @@ function FidrecStep({
     <FidrecOffer
       priceLabel={priceLabel}
       canCheckout={capability?.canCheckout === true}
-      reason={capability?.reason ?? null}
-      opensOn={capability?.opensOn ?? null}
       checkoutInProgress={capability?.checkoutInProgress === true}
       isStartingCheckout={isStartingCheckout}
       errorMessage={errorMessage}
       onBuy={() => void buy('fidrec_tier2_pack')}
-      onSaveRoute={saveRoute}
-      savedRoute={route.isError ? null : route.data}
-      draft={draft}
-      onDraftChange={setDraft}
     />
   )
 }

@@ -347,7 +347,33 @@ export function validateOutput(output: unknown, facts: SnapshotFacts, options: V
 }
 
 export function describeFailures(failures: readonly OutputFailure[]): string {
-  return failures.map((f) => `- ${f.check}: ${f.detail}`).join("\n");
+  // Elena, 27 Nov 2026: the retry is told what to do about a reference, not only which check failed.
+  return failures
+    .map((f) =>
+      f.check === "reference"
+        ? `- reference: your draft included a reference that is not in the confirmed facts (${f.detail}); rewrite without it`
+        : `- ${f.check}: ${f.detail}`
+    )
+    .join("\n");
+}
+
+export type ReferenceKind = "document" | "story" | "rule_clause" | "not_found";
+
+/**
+ * Where each rejected reference came from, for the review log (gate run 45867707804: the log named only the check).
+ * The kind is recorded, never the reference itself.
+ */
+export function referenceKinds(
+  rejected: readonly string[],
+  sources: { documents: string; story: string; ruleClauses: string },
+): ReferenceKind[] {
+  const holds = (text: string, ref: string) => normaliseRef(text).includes(ref);
+  return rejected.map((raw) => {
+    const ref = normaliseRef(raw);
+    if (holds(sources.documents, ref)) return "document";
+    if (holds(sources.story, ref)) return "story";
+    return holds(sources.ruleClauses, ref) ? "rule_clause" : "not_found";
+  });
 }
 
 // Fallback when the model keeps stating a fact the user marked "not sure", or kept without a document, as certain:
@@ -379,4 +405,50 @@ export function qualifyUnsupportedStatements(
     }
   }
   return out;
+}
+
+// "A pack is never reduced" (Elena, 27 Nov 2026): a reference the check will not print is described by where it comes
+// from, with her approved sentences. One with no source is not described: the AI is told to rewrite without it.
+export interface ReferenceSources {
+  /** The person's documents; `id` is the FIDReC pack's evidence number. */
+  documents: ReadonlyArray<{ id: string; label: string; type: string | null; text: string | null }>;
+  story: string;
+  /** The FIDReC pack is written about the complainant; the bank pack as the person. */
+  voice: "complainant" | "first_person";
+}
+
+// [the kind of document], as the complainant pack and the person's own letter name it.
+const REFERENCE_DOCUMENT_KINDS: Array<[RegExp, string, string]> = [
+  [/^BANK_(DISPUTED|SRF|EMAILS)|^TRANSACTIONS_DISPUTE|^bank_correspondence$/, "the institution’s letter", "your letter or email"],
+  [/^BANK_ACCOUNT_STATEMENT|^bank_statement$/, "the bank statement", "my bank statement"],
+  [/^CREDIT_CARD_STATEMENT|^card_statement$/, "the card statement", "my card statement"],
+  [/^POLICE_REPORT|^police_report$/, "the police report", "my police report"],
+  [/^PHISHING|^scam_message$/, "the scam message", "the scam message"],
+];
+
+export function describeReferenceSource(reference: string, sources: ReferenceSources): string | null {
+  const ref = normaliseRef(reference);
+  const holds = (text: string | null) => Boolean(text) && referencesMentioned(text!).includes(ref);
+  const own = sources.voice === "first_person";
+  const document = sources.documents.find((d) => holds(d.text));
+  if (document) {
+    const marked = document.label.startsWith("a document identified by the complainant");
+    const kind = marked ? null : REFERENCE_DOCUMENT_KINDS.find(([type]) => type.test(document.type ?? ""));
+    if (own) return `the reference shown in ${kind ? kind[2] : "my uploaded document"}`;
+    const named = kind ? kind[1] : marked ? document.label.replace(/^a /, "the ") : "an uploaded document";
+    return `the reference shown in ${named} (${document.id})`;
+  }
+  if (!holds(sources.story)) return null;
+  return own
+    ? "a reference I gave in my account, with no supporting document"
+    : "a reference given in the complainant’s account, with no supporting document";
+}
+
+/** Puts the description where the reference was. The sentence stays; after "reference number" it follows a comma. */
+export function replaceReference(text: string, reference: string, description: string): string {
+  const escaped = reference.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(new RegExp(`(?<![A-Za-z0-9/-])${escaped}(?![A-Za-z0-9/-])`, "gi"), (match, offset: number) => {
+    const labelled = /\b(?:report|reference|case|ref)(?:\s+(?:number|no\.?))?(?:\s+(?:of|is))?:?\s+$/i.test(text.slice(0, offset));
+    return labelled ? `, ${description}` : description;
+  }).replace(/[ \t]+,/g, ",");
 }

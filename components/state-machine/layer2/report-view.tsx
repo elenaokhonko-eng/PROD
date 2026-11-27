@@ -83,7 +83,7 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
       {Array.isArray(json.disputed_transactions) && json.disputed_transactions.length > 0 ? (
         <Section title="Disputed transactions">
           <div className="grid gap-3 md:hidden">
-            {json.disputed_transactions.slice(0, 5).map((row, rowIndex) => (
+            {json.disputed_transactions.map((row, rowIndex) => (
               <dl key={rowIndex} className="rounded-control border bg-background p-4 text-sm">
                 {Object.entries(row).map(([column, cell]) => (
                   <div key={column} className="grid gap-1 border-b py-2 first:pt-0 last:border-0 last:pb-0">
@@ -106,7 +106,7 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
                 </tr>
               </thead>
               <tbody>
-                {json.disputed_transactions.slice(0, 5).map((row, rowIndex) => (
+                {json.disputed_transactions.map((row, rowIndex) => (
                   <tr key={rowIndex} className="border-b last:border-0">
                     {Object.values(row).map((cell, cellIndex) => (
                       <td key={cellIndex} className="max-w-72 break-words py-2 pr-4 align-top">
@@ -118,11 +118,6 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
               </tbody>
             </table>
           </div>
-          {json.disputed_transactions.length > 5 ? (
-            <p className="mt-3 text-xs text-muted-foreground">
-              Showing first 5 of {json.disputed_transactions.length} transactions.
-            </p>
-          ) : null}
         </Section>
       ) : null}
 
