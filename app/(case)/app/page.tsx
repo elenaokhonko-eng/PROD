@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { getCurrentUser } from '@/lib/auth'
 import { RefreshWhileConfirming } from '@/components/journey/refresh-while-confirming'
-import { CONFIRMING_PAYMENT, isAwaitingStory, myCasesNotice, parsePack } from '@/lib/journey/pack-case'
+import { CONFIRMING_PAYMENT, isAwaitingStory, myCasesNotice, myCasesPackHref, parsePack } from '@/lib/journey/pack-case'
 import { linkNewAccount } from '@/lib/server/current-user'
 import { createUserClient } from '@/lib/supabase/server'
 
@@ -27,6 +27,8 @@ export default async function CasesPage({
 
   const params = await searchParams
   const wanted = parsePack(params.pack)
+  // Requirements 10.1: reached by a pack button, both choices lead to that pack's payment step first.
+  const addCaseHref = wanted ? myCasesPackHref(wanted, 'new') : '/app/case/new'
   const waiting = (cases ?? []).filter(isAwaitingStory).map((c) => c.id)
   const purchases = waiting.length
     ? await supabase.from('case_purchases').select('product_code').in('case_id', waiting).eq('payment_status', 'paid')
@@ -55,7 +57,7 @@ export default async function CasesPage({
           </p>
         </div>
         <Button asChild className="min-h-11 sm:self-auto">
-          <Link href="/app/case/new">
+          <Link href={addCaseHref}>
             <Plus className="size-4" aria-hidden="true" />
             Add a new case
           </Link>
@@ -74,7 +76,7 @@ export default async function CasesPage({
               <li key={caseItem.id}>
                 {/* CR-2: a case opened for a pack has no case page until its story is added. */}
                 <Link
-                  href={isAwaitingStory(caseItem) ? '/app/case/new' : `/app/case/${caseItem.id}/dashboard${wanted ? `?pack=${wanted}` : ''}`}
+                  href={wanted ? myCasesPackHref(wanted, caseItem.id) : isAwaitingStory(caseItem) ? '/app/case/new' : `/app/case/${caseItem.id}/dashboard`}
                   className="gb-card group flex min-h-40 flex-col p-5 outline-none transition-colors hover:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="flex items-start justify-between gap-4">
@@ -104,7 +106,7 @@ export default async function CasesPage({
             Start with your story. GuideBuoy does not send anything to your bank or any other organisation.
           </p>
           <Button asChild className="mt-6 min-h-11">
-            <Link href="/app/case/new">Add a new case</Link>
+            <Link href={addCaseHref}>Add a new case</Link>
           </Button>
         </section>
       )}

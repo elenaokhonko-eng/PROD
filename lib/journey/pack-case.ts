@@ -28,14 +28,23 @@ export function isAwaitingStory(row: { pack_first_at?: string | null; primary_na
   return Boolean(row.pack_first_at) && !row.primary_narrative?.trim()
 }
 
+// Requirements 10.1 (28 Nov): set on a case bought from "My cases", so the person goes on to the story after paying.
+export const CONTINUE_TO_STORY_KEY = 'continue_to_story'
+
+/** From "My cases" reached by a pack button: that pack's payment step for the chosen case, or for a new one. */
+export function myCasesPackHref(pack: PaidPack, caseId: string): string {
+  return `/app/pack/${pack}?case=${encodeURIComponent(caseId)}`
+}
+
 /**
- * Where such a case's page goes instead: back from Stripe to My cases, otherwise to the story page. Only the known
- * values are passed on.
+ * Where such a case's page goes instead: back from Stripe to My cases (or on to the story, for a person who came from
+ * My cases), otherwise to the story page. Only the known values are passed on.
  */
-export function storylessCaseDestination(params: { checkout?: unknown; product?: unknown }): string {
+export function storylessCaseDestination(params: { checkout?: unknown; product?: unknown }, continueToStory = false): string {
   const { checkout, product } = params
   const knownProduct = Object.values(PACK_PRODUCT).find((key) => key === product)
   if ((checkout === 'success' || checkout === 'cancel') && knownProduct) {
+    if (checkout === 'success' && continueToStory) return `/app/case/new?checkout=success&product=${knownProduct}`
     return `/app?checkout=${checkout}&product=${knownProduct}`
   }
   return '/app/case/new'

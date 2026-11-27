@@ -91,7 +91,7 @@ test('a case with no story returns from Stripe to My cases; a case with a story 
   assert.equal(storylessCaseDestination({ checkout: 'success', product: '//evil.example' }), '/app/case/new')
 
   const page = read('app/(case)/app/case/[id]/dashboard/page.tsx')
-  assert.match(page, /if \(isAwaitingStory\(caseData\)\) redirect\(storylessCaseDestination\(await searchParams\)\)/)
+  assert.match(page, /if \(isAwaitingStory\(caseData\)\) \{[\s\S]*redirect\(storylessCaseDestination\(await searchParams, /)
   // The Stripe addresses are the case's, built on the server and the same on every attempt: the Checkout Session's
   // idempotency key is the purchase, so an address that changed once the story arrived would be refused by Stripe.
   const checkout = read('app/api/payments/create-checkout-session/route.ts')
@@ -105,7 +105,8 @@ test('My cases always offers "Add a new case", and a case awaiting its story lea
   assert.equal(page.match(/Add a new case<\/Link>|Add a new case\n\s*<\/Link>/g)?.length, 2, 'the header button and the empty list')
   assert.doesNotMatch(page, /Start a new case/)
   // Elena, 27 Nov: with several cases, the pack being chosen travels in the address to the case picked.
-  assert.ok(page.includes("isAwaitingStory(caseItem) ? '/app/case/new' : `/app/case/${caseItem.id}/dashboard${wanted ? `?pack=${wanted}` : ''}`"))
+  // Requirements 10.1 (28 Nov): with a pack chosen, a case leads to that pack's payment step (pack-from-my-cases.test.ts).
+  assert.ok(page.includes('wanted ? myCasesPackHref(wanted, caseItem.id)'))
 })
 
 test('the in-dashboard story page is the story box only, with "Submit the story"', () => {

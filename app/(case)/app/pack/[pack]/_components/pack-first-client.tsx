@@ -12,15 +12,23 @@ import { FidrecOffer } from '@/components/state-machine/transition/fidrec-offer'
 import { useCreateCheckoutSession, type ProductKey } from '@/hooks/state-machine/transition/use-create-checkout-session'
 import { usePaymentStatus } from '@/hooks/state-machine/transition/use-payment-status'
 import type { PaidPack } from '@/lib/harbor/packs'
+import { CONTINUE_TO_STORY_KEY } from '@/lib/journey/pack-case'
 
 const OPEN_FAILED = 'We couldn’t open the payment step. Please try again; if it keeps happening, email info@guidebuoyai.sg.'
 // Just after sign-up the account can take a few seconds to be linked, so "not signed in" is retried quietly first.
 const ACCOUNT_LINK_RETRIES = 3
 const ACCOUNT_LINK_RETRY_MS = 2000
 
-type Props = { pack: PaidPack; available: boolean; priceLabel: string }
+type Props = {
+  pack: PaidPack
+  available: boolean
+  priceLabel: string
+  /** The existing case chosen on "My cases"; null opens (or reuses) the case waiting for its story. */
+  chosenCaseId?: string | null
+  continueToStory?: boolean
+}
 
-export function PackFirstClient({ pack, available, priceLabel }: Props) {
+export function PackFirstClient({ pack, available, priceLabel, chosenCaseId = null, continueToStory = false }: Props) {
   const router = useRouter()
   const { getToken } = useAuth()
   const createCheckout = useCreateCheckoutSession()
@@ -30,6 +38,18 @@ export function PackFirstClient({ pack, available, priceLabel }: Props) {
   const [redirecting, setRedirecting] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const startedAttempt = useRef<number | null>(null)
+
+  // Recorded on the case, not in the browser: where to go when Stripe sends the person back.
+  async function rememberWhereNext(id: string) {
+    const token = await getToken({ template: 'supabase', skipCache: true })
+    if (!token) throw new Error('Missing Supabase token')
+    const saved = await fetch(`/api/cases/${id}/responses`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ responses: [{ question_key: CONTINUE_TO_STORY_KEY, response_value: continueToStory ? 'yes' : '', response_type: 'text' }] }),
+    })
+    if (!saved.ok) throw new Error('Failed to save where to go next')
+  }
 
   async function buy(productKey: ProductKey, id: string | null = caseId) {
     if (!id) return
@@ -67,6 +87,12 @@ export function PackFirstClient({ pack, available, priceLabel }: Props) {
     setOpenError(null)
     void (async () => {
       try {
+        if (chosenCaseId) {
+          await rememberWhereNext(chosenCaseId)
+          setCaseId(chosenCaseId)
+          if (pack === 'bank') await buy('self_serve_report', chosenCaseId)
+          return
+        }
         const open = () =>
           fetch('/api/cases/pack-first', {
             method: 'POST',
@@ -85,9 +111,10 @@ export function PackFirstClient({ pack, available, priceLabel }: Props) {
           return
         }
         if (data.owned) {
-          router.replace('/app')
+          router.replace(continueToStory ? '/app/case/new' : '/app')
           return
         }
+        await rememberWhereNext(data.case_id)
         setCaseId(data.case_id)
         if (pack === 'bank') await buy('self_serve_report', data.case_id)
       } catch {

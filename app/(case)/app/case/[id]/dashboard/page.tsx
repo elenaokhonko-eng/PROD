@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import { createUserClient } from '@/lib/supabase/server'
 import { StateMachineErrorCard } from '@/components/state-machine/error-card'
-import { isAwaitingStory, storylessCaseDestination } from '@/lib/journey/pack-case'
+import { CONTINUE_TO_STORY_KEY, isAwaitingStory, storylessCaseDestination } from '@/lib/journey/pack-case'
 import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
 import DashboardClient from './_components/dashboard-client'
 
@@ -69,7 +69,10 @@ export default async function UnifiedCaseDashboard({
   }
 
   // CR-2: a case opened for a pack has no case page until its story is added. Back from Stripe means My cases.
-  if (isAwaitingStory(caseData)) redirect(storylessCaseDestination(await searchParams))
+  if (isAwaitingStory(caseData)) {
+    const { data: next } = await supabase.from('case_responses').select('response_value').eq('case_id', caseId).eq('question_key', CONTINUE_TO_STORY_KEY).maybeSingle()
+    redirect(storylessCaseDestination(await searchParams, next?.response_value === 'yes'))
+  }
 
   const { data: latestExtract } = await supabase
     .from('case_extract_runs')

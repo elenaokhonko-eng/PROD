@@ -53,5 +53,5 @@ test('pressing a pack already bought for the waiting case goes to My cases, not 
   assert.match(route, /readiness\.reason === 'already_purchased'/)
   assert.match(route, /case_id: caseId, owned/)
   const client = readFileSync('app/(case)/app/pack/[pack]/_components/pack-first-client.tsx', 'utf8')
-  assert.match(client, /if \(data\.owned\) \{\s+router\.replace\('\/app'\)/)
+  assert.match(client, /if \(data\.owned\) \{\s+router\.replace\(continueToStory \? '\/app\/case\/new' : '\/app'\)/)
 })
