@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { safeErrorText } from "../_shared/safe-error.ts";
+import { assertReadToTheEnd } from "../_shared/gemini-finish.ts";
 import {
   backoffMs,
   dailyBreaker,
@@ -391,6 +392,7 @@ File name: ${file_name}
   });
 
   const j = await geminiGenerateContentWithRetry({ endpoint, requestBody, onAttempt: args.onAttempt });
+  assertReadToTheEnd(j);
   const rawOutput = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
   const parsed = safeParseGeminiJson(String(rawOutput));
   const rawText = String(parsed.raw_text ?? rawOutput);
