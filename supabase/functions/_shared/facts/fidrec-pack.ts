@@ -5,6 +5,7 @@
 // regenerates once, and otherwise uses fixed wording. Shared by run_fidrec_pack_v1 and its tests.
 
 import { EVIDENCE_RULES, type EvidenceItem, isEvidenceItem } from "../evidence-minimums.ts";
+import { APPROVED } from "./approved-wording.ts";
 import { formatDate, formatMoney } from "./display.ts";
 import { DOCUMENT_CONFIDENCE_THRESHOLD } from "./extraction.ts";
 import { COMPLAINANT_ITEM_LABELS, DOCUMENT_LABELS, documentsShowing, type EvidenceFinding, evidenceLists } from "./free-sections.ts";
@@ -73,7 +74,7 @@ function parseDuties(value: unknown): FidrecDuty[] {
   if (!Array.isArray(value)) return [];
   const ids = (v: unknown) =>
     Array.isArray(v) ? [...new Set(v.filter((id): id is string => typeof id === "string").map((id) => id.trim().toUpperCase()))] : [];
-  return value.slice(0, 10).flatMap((item) => {
+  return value.flatMap((item) => {
     const row = (item ?? {}) as Record<string, unknown>;
     const text = typeof row.text === "string" ? row.text.trim() : "";
     return text ? [{ text, clause_ids: ids(row.clause_ids), evidence_ids: ids(row.evidence_ids) }] : [];
@@ -83,7 +84,7 @@ function parseDuties(value: unknown): FidrecDuty[] {
 function parseArguments(value: unknown): FidrecArgument[] | null {
   if (!Array.isArray(value)) return null;
   const out: FidrecArgument[] = [];
-  for (const item of value.slice(0, 12)) {
+  for (const item of value) {
     const row = (item ?? {}) as Record<string, unknown>;
     const text = typeof row.text === "string" ? row.text.trim() : "";
     if (!text) continue;
@@ -132,6 +133,22 @@ export const fidrecPackTexts = (prose: FidrecPackProse) => [
   ...prose.arguments_for_claimant.map((a) => a.text),
   ...prose.arguments_for_institution.map((a) => a.text),
 ];
+
+export const MAX_ARGUMENTS_PER_SIDE = 12;
+export const MAX_DUTIES = 10;
+
+/** Item 20: a longer list is rewritten by the AI, never cut. */
+export function listLengthFailures(prose: FidrecPackProse): OutputFailure[] {
+  const failures: OutputFailure[] = [];
+  for (const [name, list, max] of [
+    ["points for the complainant", prose.arguments_for_claimant, MAX_ARGUMENTS_PER_SIDE],
+    ["points for the institution", prose.arguments_for_institution, MAX_ARGUMENTS_PER_SIDE],
+    ["institution duties", prose.institution_duties, MAX_DUTIES],
+  ] as const) {
+    if (list.length > max) failures.push({ check: "length", detail: `${list.length} ${name}; write at most ${max}, keeping everything that matters` });
+  }
+  return failures;
+}
 
 /** Every argument cites at least one evidence ID, and only IDs from the index (design: arguments tied to evidence). */
 export function evidenceIdFailures(prose: FidrecPackProse, index: readonly EvidenceIndexEntry[]): OutputFailure[] {
@@ -365,6 +382,21 @@ export function documentExcerpts(index: readonly EvidenceIndexEntry[], documents
   });
 }
 
+/** Item 20: the evidence index says which documents were read only in part, or not at all. */
+export function evidenceIndexWithReadingNotes(
+  index: readonly EvidenceIndexEntry[],
+  excerpts: ReadonlyArray<{ id: string; excerpt: string }>,
+  documents: readonly CaseDocument[],
+): EvidenceIndexEntry[] {
+  return index.map((entry) => {
+    const text = documents.find((d) => d.id === entry.documentId)?.text?.trim();
+    if (!text) return entry;
+    const read = excerpts.find((e) => e.id === entry.id)?.excerpt.length ?? 0;
+    if (read >= text.length) return entry;
+    return { ...entry, label: `${entry.label}. ${read ? APPROVED.partlyRead : APPROVED.notRead}` };
+  });
+}
+
 export interface DocumentQuotables {
   dates: string[];
   amounts: number[];
@@ -570,7 +602,10 @@ export function fidrecChronology(facts: SnapshotFacts): Array<{ date?: string; e
   if (reply && reply.status !== "none" && reply.status !== "not_final") {
     items.push({ ...(reply.date ? { date: reply.date } : {}), event: reply.status === "final_reply" ? "The institution gave its final reply" : "The institution replied" });
   }
-  return items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
+  items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
+  // Item 21.
+  if (reply && (reply.status === "none" || reply.status === "not_final")) items.push({ event: APPROVED.noFinalReply });
+  return items;
 }
 
 /** The confirmed final reply the FIDReC deadline counts from, and the bank letter that states it, by evidence ID. */
@@ -629,7 +664,7 @@ export const SRF_DUTIES_NOTE =
   "This payment is likely not covered by the SRF (see 'How the rules may apply'). The duties below are listed because FIDReC can consider how the institution handled the case.";
 
 // Item 16 (wording approved by Elena, 27 Nov 2026): the duties section is there even when no clause applies.
-export const NO_CLAUSE_MATCHED_NOTE = "No rule clause was matched to the payments in this case.";
+export const NO_CLAUSE_MATCHED_NOTE = APPROVED.noClauseMatched;
 
 export function srfDutiesNote(assessment: SrfAssessment): string | null {
   const portions = assessment.portions;
@@ -686,7 +721,11 @@ export function assembleFidrecPack(args: {
   today?: string;
 }): FidrecPackReport {
   const { facts } = args;
-  const { shown, missing } = evidenceLists(facts, args.findings);
+  // Item 6 in the third person, with the evidence number.
+  const { shown, missing } = evidenceLists(facts, args.findings, {
+    voice: "complainant",
+    evidenceId: (documentId) => args.evidenceIndex.find((e) => e.documentId === documentId)?.id ?? null,
+  });
   const loss = confirmedValue<Money>(facts, "total_loss");
   const srf = assessSrf(srfFactsFromSnapshot(facts));
   return {

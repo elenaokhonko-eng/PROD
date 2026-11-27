@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { CaseDecisionRunRow } from '@/lib/types/decision'
 import { PAID_PACK_NOTICE } from '@/lib/legal/automated-output-notice'
 import type { ReportJson, ReportRow } from '@/lib/types/report'
+import { APPROVED } from '@/lib/facts'
 
 export interface ReportViewProps {
   report: ReportRow
@@ -27,6 +28,14 @@ export interface ReportViewProps {
 
 export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps) {
   const json: ReportJson = report.report_json ?? {}
+  // Items 14 and 18: a bank pack's section is there even when nothing is confirmed for it.
+  const bankPack = report.report_type === 'bank_pack_v1'
+  const empty = (title: string, sentence: string) =>
+    bankPack ? (
+      <Section title={title}>
+        <p className="text-sm">{sentence}</p>
+      </Section>
+    ) : null
   const createdAt = report.created_at
     ? new Date(report.created_at).toLocaleString(undefined, {
         dateStyle: 'medium',
@@ -78,7 +87,7 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
             ))}
           </ol>
         </Section>
-      ) : null}
+      ) : empty('Timeline', APPROVED.noDatedEvents)}
 
       {Array.isArray(json.disputed_transactions) && json.disputed_transactions.length > 0 ? (
         <Section title="Disputed transactions">
@@ -119,13 +128,15 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
             </table>
           </div>
         </Section>
-      ) : null}
+      ) : empty('Disputed transactions', APPROVED.noPayments)}
 
       {typeof json.total_loss === 'string' && json.total_loss ? (
         <p className="text-sm">
           <span className="font-medium">Amount lost: </span>
           {json.total_loss}
         </p>
+      ) : bankPack ? (
+        <p className="text-sm">{APPROVED.noTotal}</p>
       ) : null}
 
       {typeof json.rules_assessment === 'string' && json.rules_assessment ? (
@@ -155,7 +166,7 @@ export function ReportView({ report, onDownload, actionsSlot }: ReportViewProps)
             ))}
           </ul>
         </Section>
-      ) : null}
+      ) : empty('Evidence checklist', APPROVED.noDocuments)}
 
       {Array.isArray(json.disclaimers) && json.disclaimers.length > 0 ? (
         <Section title="Disclaimers">

@@ -8,9 +8,9 @@ import {
 import { safeErrorText } from "../_shared/safe-error.ts";
 import { dailyBreaker, OUTPUT_CAPS, recordModelUsage, type UsageClient, usageEnvironment } from "../_shared/model-usage.ts";
 import {
+  APPROVED,
   assessSrf,
   chatSummary,
-  FALLBACK_TITLE,
   type EvidenceFinding,
   evidenceListsText,
   type FactKey,
@@ -165,7 +165,6 @@ ${JSON.stringify(input, null, 2)}`;
     const result = await produceSummary({
       facts,
       options: checks,
-      sanitize: sanitizeSummary,
       generate: async (previousFailures) => {
         if (breaker.state === "open") {
           await recordModelUsage(usageClient, usageEnv, { ...meter, model: TIER0_MODEL, outcome: "blocked" });
@@ -205,12 +204,20 @@ ${JSON.stringify(input, null, 2)}`;
       prompt_version,
       release: typeof body.release === "string" ? body.release.slice(0, 40) : null,
     };
-    if (result.source === "fallback") console.warn(`Tier-0 summary version used: ${JSON.stringify(review)}`);
+    if (result.source === "fallback") console.warn(`Tier-0 evaluation not completed: ${JSON.stringify(review)}`);
     const { error: reviewErr } = await supabase.from("analytics_events").insert({
       event_name: result.source === "fallback" ? "free_evaluation_summary_version" : "free_evaluation_summary",
       event_data: review,
     });
     if (reviewErr) console.error(`Tier-0 review log failed: ${reviewErr.code ?? "unknown"}`);
+
+    // Items 8 and 9 (Elena, 27 Nov 2026): the summary version is never delivered. Nothing is saved; the person can try
+    // again, or, with today's budget used up, tomorrow.
+    if (result.source === "fallback") {
+      return result.fallbackReason === "budget"
+        ? json({ ok: false, reason: "usage_limit", error: APPROVED.evaluationCap }, 429)
+        : json({ ok: false, reason: "output_validation_failed", error: "The free evaluation could not be completed", checks: result.hardChecks.map((check) => ({ check })) }, 422);
+    }
 
     const lang = "en";
     const intake_id = null;
@@ -219,7 +226,7 @@ ${JSON.stringify(input, null, 2)}`;
       supabase,
       case_id,
       narrative_type: "tier0_summary",
-      title: result.source === "fallback" ? FALLBACK_TITLE : "Free evaluation summary",
+      title: "Free evaluation summary",
       text_content: result.summary,
       source_ref,
       version: 1,
@@ -278,25 +285,20 @@ ${JSON.stringify(input, null, 2)}`;
     });
     const srfWritten = true;
 
-    // "Report it now" (C4) while the bank or the police have not been told; removed once both have.
-    const reportNow = reportItNowText(facts);
-    if (reportNow) {
-      await upsertNarrative({
-        supabase,
-        case_id,
-        narrative_type: "tier0_report_now",
-        title: "Report it now",
-        text_content: reportNow,
-        source_ref,
-        version: 1,
-        language: lang,
-        audience: "user",
-        intake_id,
-        fact_snapshot_id,
-      });
-    } else {
-      await supabase.from("case_narratives").delete().eq("case_id", case_id).eq("narrative_type", "tier0_report_now");
-    }
+    // "Report it now" (C4): always there (item 11); it says so once the bank and the police have both been told.
+    await upsertNarrative({
+      supabase,
+      case_id,
+      narrative_type: "tier0_report_now",
+      title: "Report it now",
+      text_content: reportItNowText(facts),
+      source_ref,
+      version: 1,
+      language: lang,
+      audience: "user",
+      intake_id,
+      fact_snapshot_id,
+    });
 
     return json(
       {
@@ -574,30 +576,6 @@ function normalizeMissingFields(raw: string[], input: Tier0NormalizeInput): stri
   }
 
   return out;
-}
-
-const BANNED_SUMMARY_PATTERNS: RegExp[] = [
-  /\bat home\b/gi,
-  /\bhaving dinner\b/gi,
-  /\bwith family\b/gi,
-  /\bwith my family\b/gi,
-  /\bwith his family\b/gi,
-  /\bwith her family\b/gi,
-  /\bwith their family\b/gi,
-  /\bwhile at home\b/gi,
-  /\bwatching tv\b/gi,
-];
-
-function sanitizeSummary(summary: string): string {
-  let s = summary;
-  for (const re of BANNED_SUMMARY_PATTERNS) {
-    const next = s.replace(re, "");
-    if (next !== s) {
-      console.warn("Tier-0: removed banned contextual phrase from summary");
-      s = next;
-    }
-  }
-  return s.replace(/\s{2,}/g, " ").replace(/\s+([.,;:])/g, "$1").trim();
 }
 
 async function upsertNarrative(args: {

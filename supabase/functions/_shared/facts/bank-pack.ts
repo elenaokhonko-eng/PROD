@@ -4,9 +4,10 @@
 // prose goes through the same ladder as the free evaluation (summary-ladder.ts produceChecked): checked, repaired,
 // regenerated once, and otherwise replaced by fixed wording, never "failed". Shared by run_bank_pack_v1 and its tests.
 
+import { bankReplySentence } from "./approved-wording.ts";
 import { formatDate, formatFactValue, formatMoney } from "./display.ts";
 import { type EvidenceFinding, evidenceLists } from "./free-sections.ts";
-import type { FactKey, Instrument, Money, ReportedEvent, Transaction } from "./keys.ts";
+import type { BankReply, FactKey, Instrument, Money, ReportedEvent, Transaction } from "./keys.ts";
 import { assessSrf, srfAssessmentText, srfFactsFromSnapshot } from "./rules/srf.ts";
 import { buildTier0Input, SRF_VERDICT, TIER0_EXTRA_DATES, type Tier0Finding } from "./tier0.ts";
 import type { SnapshotFacts, ValidateOptions } from "./validate-output.ts";
@@ -152,7 +153,14 @@ export function bankPackTimeline(facts: SnapshotFacts): Array<{ date?: string; e
     const reported = confirmedValue<ReportedEvent>(facts, key);
     if (reported?.value === "yes") items.push({ ...(reported.date ? { date: reported.date } : {}), event });
   }
-  return items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
+  // Item 15: the bank's reply, sorted by its date, which the sentence itself states.
+  const reply = confirmedValue<BankReply>(facts, "bank_reply");
+  const replyItem = reply && reply.status !== "none" && reply.status !== "not_final"
+    ? { ...(reply.date ? { date: reply.date } : {}), event: bankReplySentence(reply.status === "final_reply", formatDate(reply.date)) }
+    : null;
+  if (replyItem) items.push(replyItem);
+  items.sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : a.date ? -1 : b.date ? 1 : 0));
+  return items.map((item) => (item === replyItem ? { event: item.event } : item));
 }
 
 // Part B walk-through (25 Nov). PB-10: dates read "3 Oct 2026", as everywhere else in the packs. PB-11: the payments

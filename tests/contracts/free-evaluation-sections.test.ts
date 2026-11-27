@@ -52,7 +52,7 @@ test('C4: "Report it now" appears only while the bank or the police have not bee
   assert.doesNotMatch(bankOnly, /police report online/)
   assert.match(bankOnly, /ScamShield Helpline on 1799/)
   assert.doesNotMatch(bankOnly.replace('1799', ''), /\d{4}/, 'no bank phone numbers that could go out of date')
-  assert.equal(reportItNowText({ reported_to_bank: { value: yes, label: 'confirmed' }, reported_to_police: { value: yes, label: 'confirmed' } }), null)
+  assert.equal(reportItNowText({ reported_to_bank: { value: yes, label: 'confirmed' }, reported_to_police: { value: yes, label: 'confirmed' } }), 'You have told your bank and the police.')
 })
 
 test('C3: each part of the loss is assessed under the rules that apply to it, with the terms explained', () => {

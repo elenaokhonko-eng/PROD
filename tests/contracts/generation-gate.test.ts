@@ -66,7 +66,7 @@ test('the story is withheld exactly when a story value was overruled (behaviour)
 test('the SRF assessment is server-only: the model gives no verdict and its text may not mention one (Elena, 5 Nov)', () => {
   assert.doesNotMatch(fn, /"srf_signals": \{/, 'the model output schema has no SRF signals')
   assert.match(fn, /text_content: srfAssessmentText\(assessSrf\(srfFactsFromSnapshot\(facts\)\)\)/)
-  assert.match(tier0, /forbidden: \[\{ pattern: SRF_VERDICT/)
+  assert.match(tier0, /\{ pattern: SRF_VERDICT/)
   assert.match(tier0, /secondPerson: true/)
   assert.match(fn, /const checks = \{ \.\.\.TIER0_CHECKS, documented: documentedFacts\(findings \?\? \[\]\) \};/)
   assert.match(fn, /options: checks,/)

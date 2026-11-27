@@ -24,7 +24,12 @@ import { logger } from "@/lib/logger"
 const log = logger.withContext({ module: "facts-reconcile" })
 
 const STORY_LIMIT = 20_000
-const DOCUMENT_LIMIT = 15_000
+// "All transactions must be pulled" (Elena, 27 Nov 2026): the whole of a long statement is read, and the answer has
+// room for every payment (about 100 tokens each). An answer that is still cut off fails the check rather than losing
+// payments quietly.
+const DOCUMENT_LIMIT = 100_000
+const DOCUMENT_OUTPUT_CAP = 8_192
+const DOCUMENT_TIMEOUT_MS = 90_000
 const MODEL_CONCURRENCY = 4
 // The confirm screen waits on this run, so each model call is bounded: 30 s and one retry, about two minutes at worst.
 const MODEL_TIMEOUT_MS = 30_000
@@ -243,9 +248,9 @@ export async function ensureReconciled(
     generateJson({
       prompt,
       schemaName,
-      timeoutMs: MODEL_TIMEOUT_MS,
+      timeoutMs: schemaName === "facts_document" ? DOCUMENT_TIMEOUT_MS : MODEL_TIMEOUT_MS,
       maxRetries: MODEL_RETRIES,
-      usage: { purpose: "fact_extraction", caseId, maxOutputTokens: OUTPUT_CAPS.fact_extraction },
+      usage: { purpose: "fact_extraction", caseId, maxOutputTokens: schemaName === "facts_document" ? DOCUMENT_OUTPUT_CAP : OUTPUT_CAPS.fact_extraction },
     }),
 ): Promise<ReconcileResult> {
   await assertNoRunningRun(service, caseId)

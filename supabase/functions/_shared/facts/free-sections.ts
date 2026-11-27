@@ -7,6 +7,7 @@ import { formatFactValue } from "./display.ts";
 import type { FindingValue } from "./reconcile.ts";
 import type { FactLabel, Resolution } from "./snapshot.ts";
 import { type EvidenceItem, isEvidenceItem } from "../evidence-minimums.ts";
+import { APPROVED, contradictionSentence, noDocumentSentence } from "./approved-wording.ts";
 
 export interface EvidenceFinding {
   factKey: FactKey;
@@ -110,8 +111,37 @@ export function evidenceListsText(facts: Facts, findings: readonly EvidenceFindi
   ].join("\n");
 }
 
+// A document that shows another value than the one the person confirmed is described, not hidden (item 6).
+function contradictions(
+  finding: EvidenceFinding,
+  key: FactKey,
+  confirmed: string,
+  voice: "you" | "complainant",
+  evidenceId: (documentId: string) => string | null,
+): string[] {
+  if (!finding.resolution || finding.resolution.kind === "agreed" || finding.resolution.kind === "acknowledged") return [];
+  const chosen = chosenValues(finding);
+  const out: string[] = [];
+  for (const other of finding.values.filter((v) => !chosen.includes(v))) {
+    const text = formatFactValue(key, other.value);
+    if (text === confirmed) continue;
+    for (const source of other.sources.filter((s) => s.sourceType === "document")) {
+      const name = documentNames([{ ...other, sources: [source] }])[0];
+      const documentId = typeof source.sourceRef.documentId === "string" ? source.sourceRef.documentId : "";
+      const id = evidenceId(documentId);
+      out.push(contradictionSentence(voice, confirmed, `${name[0].toUpperCase()}${name.slice(1)}${id ? ` (${id})` : ""}`, text));
+    }
+  }
+  return [...new Set(out)];
+}
+
 // The same two lists as items, for the paid packs' evidence checklist.
-export function evidenceLists(facts: Facts, findings: readonly EvidenceFinding[]): { shown: string[]; missing: string[] } {
+export function evidenceLists(
+  facts: Facts,
+  findings: readonly EvidenceFinding[],
+  options: { voice?: "you" | "complainant"; evidenceId?: (documentId: string) => string | null } = {},
+): { shown: string[]; missing: string[] } {
+  const { voice = "you", evidenceId = () => null } = options;
   const shown: string[] = [];
   const missing: string[] = [];
   for (const key of Object.keys(FACT_LABELS) as FactKey[]) {
@@ -126,18 +156,21 @@ export function evidenceLists(facts: Facts, findings: readonly EvidenceFinding[]
     const documents = finding ? documentNames(chosenValues(finding)) : [];
     const value = formatFactValue(key, fact.value);
     if (documents.length) shown.push(`${label}: ${value}. Shown by ${documents.join(", ")}.`);
-    else if (PROOF[key] && claimsSomething(key, fact.value)) missing.push(`${label}: ${value}. No document yet; for example ${PROOF[key]}.`);
+    else if (claimsSomething(key, fact.value)) {
+      missing.push(PROOF[key] ? `${label}: ${value}. No document yet; for example ${PROOF[key]}.` : noDocumentSentence(label, value));
+    }
+    if (finding) shown.push(...contradictions(finding, key, value, voice, evidenceId));
   }
   return { shown, missing };
 }
 
 // "Report it now" (C4): shown when the bank or the police have not been told. Generic and sourced; no bank's phone
 // number is listed, so none can be out of date.
-export function reportItNowText(facts: Facts): string | null {
+export function reportItNowText(facts: Facts): string {
   const told = (key: FactKey) => (facts[key]?.value as ReportedEvent | null | undefined)?.value === "yes";
   const bank = told("reported_to_bank");
   const police = told("reported_to_police");
-  if (bank && police) return null;
+  if (bank && police) return APPROVED.bothTold;
   const lines = ["If you haven't yet, these steps are worth doing today:"];
   if (!bank) {
     lines.push("- Call your bank's 24-hour fraud hotline. The number is on the back of your card and on your bank's official website. Ask them to freeze your accounts and cards, and write down the case reference they give you.");

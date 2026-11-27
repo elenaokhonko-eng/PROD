@@ -1,3 +1,4 @@
+import { APPROVED } from "@/lib/facts"
 import { PAID_PACK_NOTICE } from "@/lib/legal/automated-output-notice"
 import { PdfBuilder } from "@/lib/server/fidrec/build-case-pack-pdf"
 import type { ReportJson } from "@/lib/types/report"
@@ -20,17 +21,19 @@ export async function buildBankPackPdf(report: ReportJson, createdAt: string | n
     await builder.addSubHeading("Executive summary")
     await builder.addParagraph(report.executive_summary)
   }
-  if (Array.isArray(report.timeline) && report.timeline.length) {
-    await builder.addSubHeading("Timeline")
+  await builder.addSubHeading("Timeline")
+  if (!report.timeline?.length) await builder.addParagraph(APPROVED.noDatedEvents)
+  else {
     for (const item of report.timeline) await builder.addBullet(item.date ? `${item.date}: ${item.event}` : item.event)
   }
-  if (Array.isArray(report.disputed_transactions) && report.disputed_transactions.length) {
-    await builder.addSubHeading("Disputed transactions")
+  await builder.addSubHeading("Disputed transactions")
+  if (!report.disputed_transactions?.length) await builder.addParagraph(APPROVED.noPayments)
+  else {
     for (const row of report.disputed_transactions) {
       await builder.addBullet(Object.entries(row).map(([column, cell]) => `${column.replace(/_/g, " ")}: ${String(cell)}`).join("; "))
     }
   }
-  if (typeof report.total_loss === "string" && report.total_loss) await builder.addParagraph(`Amount lost: ${report.total_loss}`)
+  await builder.addParagraph(typeof report.total_loss === "string" && report.total_loss ? `Amount lost: ${report.total_loss}` : APPROVED.noTotal)
   if (typeof report.rules_assessment === "string" && report.rules_assessment) {
     await builder.addSubHeading("How the rules may apply")
     await builder.addParagraph(report.rules_assessment)
@@ -39,8 +42,9 @@ export async function buildBankPackPdf(report: ReportJson, createdAt: string | n
     await builder.addSubHeading("Requested resolution")
     await builder.addParagraph(report.requested_resolution)
   }
-  if (Array.isArray(report.evidence_checklist) && report.evidence_checklist.length) {
-    await builder.addSubHeading("Evidence checklist")
+  await builder.addSubHeading("Evidence checklist")
+  if (!report.evidence_checklist?.length) await builder.addParagraph(APPROVED.noDocuments)
+  else {
     for (const item of report.evidence_checklist) await builder.addBullet(`${item.present ? "Shown" : "Missing"}: ${item.label}`)
   }
   return builder.bytes()
