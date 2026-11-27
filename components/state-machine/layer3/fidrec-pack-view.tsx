@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PAID_PACK_NOTICE } from '@/lib/legal/automated-output-notice'
 import type { FidrecPackJson } from '@/lib/types/report'
 import { APPROVED } from '@/lib/facts'
+import { PaymentsTable } from '@/components/state-machine/facts/payments-table'
 
 export interface FidrecPackViewProps {
   pack: FidrecPackJson
@@ -59,11 +60,7 @@ export function FidrecPackView({ pack, createdAt, onDownload }: FidrecPackViewPr
 
       <Section title="Disputed transactions">
         {pack.disputed_transactions?.length ? (
-          <ul className="space-y-1 text-sm">
-            {pack.disputed_transactions.map((row, i) => (
-              <li key={i}>{Object.entries(row).map(([column, cell]) => `${column.replace(/_/g, ' ')}: ${String(cell)}`).join(' · ')}</li>
-            ))}
-          </ul>
+          <PaymentsTable rows={pack.disputed_transactions} />
         ) : (
           <p className="text-sm">{APPROVED.noPayments}</p>
         )}

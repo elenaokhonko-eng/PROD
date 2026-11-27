@@ -9,6 +9,7 @@ import {
   type CredentialsShared,
   type FactKey,
   type Institution,
+  type Instrument,
   type LossPortion,
   type Money,
   PHISHING_CHANNEL_OPTIONS,
@@ -111,6 +112,54 @@ function formatLoss(loss: TotalLoss): string {
     return `${formatMoney(loss)} in total: ${loss.portions.map((p) => `${p.account ? `${ACCOUNT_TEXT[p.account]} ` : ""}${formatMoney(p.amount)}`).join(", ")}`;
   }
   return loss.account ? `${ACCOUNT_TEXT[loss.account]}: ${formatMoney(loss)}` : formatMoney(loss);
+}
+
+// Elena, 27 Nov 2026: payments are shown in a table; summaries give only how many there are and their total.
+export function summariseTransactions(list: readonly Transaction[]): string {
+  const totals = new Map<string, number>();
+  for (const t of list) totals.set(t.amount.currency, (totals.get(t.amount.currency) ?? 0) + t.amount.amount);
+  const total = [...totals].map(([currency, amount]) =>
+    formatMoney({ amount: Math.round(amount * 100) / 100, currency, amountSgd: currency === "SGD" ? amount : null })).join(" and ");
+  return `${list.length} payment${list.length === 1 ? "" : "s"}, ${total} in total`;
+}
+
+/** A fact as a person reads it in a summary. The model, and the table, get every payment. */
+export function displayFactValue(key: FactKey, value: unknown): string {
+  return key === "transactions" && Array.isArray(value) && value.length
+    ? summariseTransactions(value as Transaction[])
+    : formatFactValue(key, value);
+}
+
+const METHOD_LABELS: Record<Instrument, string> = {
+  account_transfer: "Bank account payment",
+  sg_card: "Card payment",
+  ewallet: "E-wallet payment",
+  other: "Other payment",
+};
+
+export function transactionRows(list: readonly Transaction[]): Array<Record<string, string>> {
+  return list.map((t) => ({
+    Date: formatDate(t.date) ?? "Not known",
+    Amount: formatMoney(t.amount),
+    "Paid to": t.payee ?? "Not known",
+    Method: t.channel ?? (t.instrument ? METHOD_LABELS[t.instrument] : null) ?? "Not known",
+  }));
+}
+
+/** The free evaluation's payments table as stored, and read back. Null when no payment is confirmed. */
+export function paymentsTable(facts: Partial<Record<FactKey, { value: unknown; label: string }>>): string | null {
+  const fact = facts.transactions;
+  if (!fact || (fact.label !== "confirmed" && fact.label !== "claimant_only") || !Array.isArray(fact.value) || !fact.value.length) return null;
+  return JSON.stringify(transactionRows(fact.value as Transaction[]));
+}
+
+export function parsePaymentsTable(text: string): Array<Record<string, string>> | null {
+  try {
+    const rows = JSON.parse(text) as unknown;
+    return Array.isArray(rows) && rows.length ? (rows as Array<Record<string, string>>) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function formatFactValue(key: FactKey, value: unknown): string {
@@ -279,8 +328,8 @@ export function factsYouConfirmed(
       const text =
         fact.label === "not_sure" ? "Not sure"
           : fact.label === "not_known" ? "Not known"
-          : fact.label === "claimant_only" ? `${formatFactValue(key, fact.value)} (no supporting document provided)`
-          : formatFactValue(key, fact.value);
+          : fact.label === "claimant_only" ? `${displayFactValue(key, fact.value)} (no supporting document provided)`
+          : displayFactValue(key, fact.value);
       return { factKey: key, label: FACT_LABELS[key], text };
     });
 }

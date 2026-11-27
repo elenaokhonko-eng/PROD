@@ -28,9 +28,7 @@ export async function buildFidrecPackPdf(pack: FidrecPackJson, createdAt: string
   for (const item of pack.timeline ?? []) await builder.addBullet(item.date ? `${item.date}: ${item.event}` : item.event)
   await builder.addSubHeading("Disputed transactions")
   if (!pack.disputed_transactions?.length) await builder.addParagraph(APPROVED.noPayments)
-  for (const row of pack.disputed_transactions ?? []) {
-    await builder.addBullet(Object.entries(row).map(([column, cell]) => `${column.replace(/_/g, " ")}: ${String(cell)}`).join("; "))
-  }
+  await builder.addTable(pack.disputed_transactions ?? [])
   await builder.addParagraph(pack.total_loss ? `Amount lost: ${pack.total_loss}` : APPROVED.noTotal)
   await section("The complainant’s position", pack.claimant_position)
   await section("The institution’s position", pack.institution_position)

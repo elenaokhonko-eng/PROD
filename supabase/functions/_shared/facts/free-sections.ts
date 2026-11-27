@@ -3,7 +3,7 @@
 
 import type { FactKey, ReportedEvent } from "./keys.ts";
 import { FACT_LABELS } from "./keys.ts";
-import { formatFactValue } from "./display.ts";
+import { displayFactValue } from "./display.ts";
 import type { FindingValue } from "./reconcile.ts";
 import type { FactLabel, Resolution } from "./snapshot.ts";
 import { type EvidenceItem, isEvidenceItem } from "../evidence-minimums.ts";
@@ -111,6 +111,15 @@ export function evidenceListsText(facts: Facts, findings: readonly EvidenceFindi
   ].join("\n");
 }
 
+function isPartOf(some: unknown, all: unknown[]): boolean {
+  const id = (t: unknown) => {
+    const row = t as { date?: string | null; amount?: { amount?: number; currency?: string } };
+    return `${row.date}|${row.amount?.amount}|${row.amount?.currency}`;
+  };
+  const known = new Set(all.map(id));
+  return Array.isArray(some) && some.every((t) => known.has(id(t)));
+}
+
 // A document that shows another value than the one the person confirmed is described, not hidden (item 6).
 function contradictions(
   finding: EvidenceFinding,
@@ -123,8 +132,10 @@ function contradictions(
   const chosen = chosenValues(finding);
   const out: string[] = [];
   for (const other of finding.values.filter((v) => !chosen.includes(v))) {
-    const text = formatFactValue(key, other.value);
+    const text = displayFactValue(key, other.value);
     if (text === confirmed) continue;
+    // A statement showing some of the confirmed payments is part of them, not a different account of them.
+    if (key === "transactions" && chosen.length && isPartOf(other.value, chosen.flatMap((v) => v.value as unknown[]))) continue;
     for (const source of other.sources.filter((s) => s.sourceType === "document")) {
       const name = documentNames([{ ...other, sources: [source] }])[0];
       const documentId = typeof source.sourceRef.documentId === "string" ? source.sourceRef.documentId : "";
@@ -154,7 +165,7 @@ export function evidenceLists(
     }
     const finding = findings.find((f) => f.factKey === key);
     const documents = finding ? documentNames(chosenValues(finding)) : [];
-    const value = formatFactValue(key, fact.value);
+    const value = displayFactValue(key, fact.value);
     if (documents.length) shown.push(`${label}: ${value}. Shown by ${documents.join(", ")}.`);
     else if (claimsSomething(key, fact.value)) {
       missing.push(PROOF[key] ? `${label}: ${value}. No document yet; for example ${PROOF[key]}.` : noDocumentSentence(label, value));

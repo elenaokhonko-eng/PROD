@@ -1,5 +1,8 @@
 'use client'
 
+import { parsePaymentsTable } from '@/lib/facts'
+import { PaymentsTable } from '@/components/state-machine/facts/payments-table'
+
 /**
  * The free evaluation screen. State Machine node `S1-Tier0Draft`.
  *
@@ -39,7 +42,9 @@ export function Tier0DraftView({
   const { tier0_summary, tier0_evidence_checklist, tier0_srf_signal } = narratives
   // "Report it now" (C4) sits straight after the summary: it is what to do first.
   const reportNow = narratives.other.find((n) => n.narrative_type === 'tier0_report_now') ?? null
-  const other = narratives.other.filter((n) => n !== reportNow)
+  const payments = narratives.other.find((n) => n.narrative_type === 'tier0_transactions') ?? null
+  const paymentRows = payments ? parsePaymentsTable(payments.text_content) : null
+  const other = narratives.other.filter((n) => n !== reportNow && n !== payments)
   const caseId = tier0_summary?.case_id ?? null
 
   return (
@@ -114,6 +119,17 @@ export function Tier0DraftView({
           content={tier0_evidence_checklist.text_content}
           twoLists
         />
+      ) : null}
+
+      {payments && paymentRows ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{payments.title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PaymentsTable rows={paymentRows} />
+          </CardContent>
+        </Card>
       ) : null}
 
       {tier0_srf_signal ? (

@@ -23,6 +23,7 @@ import {
   TIER0_CHECKS,
   tier0System,
   reportItNowText,
+  paymentsTable,
   type SnapshotFacts,
   srfAssessmentText,
   srfFactsFromSnapshot,
@@ -268,6 +269,26 @@ ${JSON.stringify(input, null, 2)}`;
       intake_id,
       fact_snapshot_id,
     });
+
+    // The confirmed payments as a table (Elena, 27 Nov 2026); the other sections give their number and total.
+    const payments = paymentsTable(facts);
+    if (payments) {
+      await upsertNarrative({
+        supabase,
+        case_id,
+        narrative_type: "tier0_transactions",
+        title: "The payments you dispute",
+        text_content: payments,
+        source_ref,
+        version: 1,
+        language: lang,
+        audience: "user",
+        intake_id,
+        fact_snapshot_id,
+      });
+    } else {
+      await supabase.from("case_narratives").delete().eq("case_id", case_id).eq("narrative_type", "tier0_transactions");
+    }
 
     // Server-only SRF assessment from the confirmed facts and the cited rules; the model never produces one.
     await upsertNarrative({

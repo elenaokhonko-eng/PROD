@@ -127,6 +127,35 @@ export class PdfBuilder {
     }
   }
 
+  /** Rows under their column names, the header repeated on each page; long cells wrap, nothing is cut. */
+  async addTable(rows: ReadonlyArray<Record<string, string>>, size = 9) {
+    if (!rows.length) return
+    const columns = Object.keys(rows[0])
+    // The last two columns hold names and descriptions; dates and amounts need less.
+    const shares = columns.length === 4 ? [0.17, 0.18, 0.4, 0.25] : columns.map(() => 1 / columns.length)
+    const widths = shares.map((share) => share * TEXT_WIDTH)
+    const draw = async (cells: string[], weight: FontWeight) => {
+      const wrapped = await Promise.all(cells.map((cell, i) => wrapLine(cell, this.measure(size, weight), widths[i] - 6)))
+      let x = MARGIN
+      for (let i = 0; i < cells.length; i++) {
+        for (let line = 0; line < wrapped[i].length; line++) {
+          await this.fonts!.draw(this.page, wrapped[i][line], { x, y: this.y - line * LINE_HEIGHT, size, color: rgb(0, 0, 0), weight })
+        }
+        x += widths[i]
+      }
+      this.y -= Math.max(...wrapped.map((lines) => lines.length)) * LINE_HEIGHT
+    }
+    this.ensureSpace(LINE_HEIGHT * 3)
+    await draw(columns, "bold")
+    for (const row of rows) {
+      const before = this.page
+      this.ensureSpace(LINE_HEIGHT * 2)
+      if (this.page !== before) await draw(columns, "bold")
+      await draw(columns.map((column) => String(row[column] ?? "")), "regular")
+    }
+    this.y -= 4
+  }
+
   async bytes(): Promise<Uint8Array> {
     const doc = await this.doc
     return doc.save()

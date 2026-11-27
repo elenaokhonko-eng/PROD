@@ -28,11 +28,7 @@ export async function buildBankPackPdf(report: ReportJson, createdAt: string | n
   }
   await builder.addSubHeading("Disputed transactions")
   if (!report.disputed_transactions?.length) await builder.addParagraph(APPROVED.noPayments)
-  else {
-    for (const row of report.disputed_transactions) {
-      await builder.addBullet(Object.entries(row).map(([column, cell]) => `${column.replace(/_/g, " ")}: ${String(cell)}`).join("; "))
-    }
-  }
+  else await builder.addTable(report.disputed_transactions as Array<Record<string, string>>)
   await builder.addParagraph(typeof report.total_loss === "string" && report.total_loss ? `Amount lost: ${report.total_loss}` : APPROVED.noTotal)
   if (typeof report.rules_assessment === "string" && report.rules_assessment) {
     await builder.addSubHeading("How the rules may apply")

@@ -4,8 +4,8 @@ import {
   buildSnapshot,
   type CurrentFinding,
   type FactKey,
+  displayFactValue,
   factLabel,
-  formatFactValue,
   MULTI_SELECT_FACT_KEYS,
   openCount,
   relevantFindings,
@@ -116,7 +116,7 @@ export async function loadFactsView(
       status: f.status,
       resolution: f.resolution,
       values: f.values.map((v) => ({
-        display: formatFactValue(f.factKey, v.value),
+        display: displayFactValue(f.factKey, v.value),
         value: v.value,
         sources: v.sources.map((s) => ({
           sourceType: s.sourceType,

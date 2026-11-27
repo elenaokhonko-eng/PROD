@@ -1,3 +1,4 @@
+import { parsePaymentsTable } from "@/lib/facts"
 import { AUTOMATED_OUTPUT_NOTICE } from "@/lib/legal/automated-output-notice"
 import { PdfBuilder } from "@/lib/server/fidrec/build-case-pack-pdf"
 import type { CaseNarrativeRow } from "@/lib/types/narratives"
@@ -8,7 +9,7 @@ import type { CaseNarrativeRow } from "@/lib/types/narratives"
 
 export { AUTOMATED_OUTPUT_NOTICE }
 
-const ORDER = ["tier0_summary", "tier0_report_now", "tier0_evidence_checklist", "tier0_confirmed_facts", "tier0_srf_signal"]
+const ORDER = ["tier0_summary", "tier0_report_now", "tier0_evidence_checklist", "tier0_confirmed_facts", "tier0_transactions", "tier0_srf_signal"]
 
 export async function buildFreeEvaluationPdf(rows: readonly Pick<CaseNarrativeRow, "narrative_type" | "title" | "text_content" | "created_at">[]): Promise<Uint8Array> {
   const builder = new PdfBuilder()
@@ -23,7 +24,9 @@ export async function buildFreeEvaluationPdf(rows: readonly Pick<CaseNarrativeRo
     const row = rows.find((r) => r.narrative_type === type)
     if (!row?.text_content.trim()) continue
     await builder.addSubHeading(row.title ?? type)
-    await builder.addParagraph(row.text_content)
+    const table = type === "tier0_transactions" ? parsePaymentsTable(row.text_content) : null
+    if (table) await builder.addTable(table)
+    else await builder.addParagraph(row.text_content)
   }
   return builder.bytes()
 }

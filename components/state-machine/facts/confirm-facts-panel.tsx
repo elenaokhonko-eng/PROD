@@ -8,6 +8,8 @@
  * answered; the server enforces the same rule when the facts are frozen.
  */
 
+import { transactionRows, type Transaction } from '@/lib/facts'
+import { PaymentsTable } from '@/components/state-machine/facts/payments-table'
 import { useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -237,7 +239,12 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
             {agreed.map((f) => (
               <div key={f.id}>
                 <dt className="text-muted-foreground">{f.label}</dt>
-                <dd>{f.values[0]?.display ?? 'Not known'}</dd>
+                <dd>
+                  {f.values[0]?.display ?? 'Not known'}
+                  {f.factKey === 'transactions' && Array.isArray(f.values[0]?.value) ? (
+                    <PaymentsTable rows={transactionRows(f.values[0].value as Transaction[])} />
+                  ) : null}
+                </dd>
               </div>
             ))}
           </dl>
@@ -470,7 +477,7 @@ function FindingCard({
                 <label
                   key={box.id}
                   data-disputed={disputed || undefined}
-                  className={`relative flex cursor-pointer flex-col gap-1 rounded-md border p-3 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring ${selected ? 'border-primary bg-primary/10' : disputed ? 'border-2 border-amber-500 bg-amber-50 hover:border-primary/60 dark:bg-amber-950/30' : 'hover:border-primary/60'}`}
+                  className={`${finding.factKey === 'transactions' ? 'min-w-0 sm:col-span-2 ' : ''}relative flex cursor-pointer flex-col gap-1 rounded-md border p-3 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring ${selected ? 'border-primary bg-primary/10' : disputed ? 'border-2 border-amber-500 bg-amber-50 hover:border-primary/60 dark:bg-amber-950/30' : 'hover:border-primary/60'}`}
                 >
                   <input
                     type={inputType}
@@ -483,6 +490,10 @@ function FindingCard({
                     {box.label}
                     {selected && <span aria-hidden className="text-primary">✓</span>}
                   </span>
+                  {/* The payments behind the count and total, as a table (Elena, 27 Nov 2026). */}
+                  {finding.factKey === 'transactions' && !fixedList && Array.isArray(finding.values[Number(box.id)]?.value) ? (
+                    <PaymentsTable rows={transactionRows(finding.values[Number(box.id)].value as Transaction[])} />
+                  ) : null}
                   {disputed && <span className="text-xs font-medium text-amber-800 dark:text-amber-300">Found in your sources; doesn’t match the other answer</span>}
                   {box.sources.length > 0 && (
                     <ul className="space-y-1 text-muted-foreground">
