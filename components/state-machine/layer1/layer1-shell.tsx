@@ -48,6 +48,8 @@ export interface Layer1ShellProps {
   error?: Layer1ShellError | null
 
   intake?: {
+    /** A pack was bought: the form does not call itself free. */
+    paid?: boolean
     initialAnswers?: IntakeAnswers
     isSubmitting?: boolean
     submitError?: string | null
@@ -111,6 +113,7 @@ export function Layer1Shell({ node, error, intake, gapLoop, evidence, draft, con
       return (
         <div className="mx-auto max-w-2xl">
           <IntakeForm
+            paid={intake?.paid}
             initialAnswers={intake.initialAnswers}
             isSubmitting={intake.isSubmitting}
             errorMessage={intake.submitError ?? null}

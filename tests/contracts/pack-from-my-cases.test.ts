@@ -18,7 +18,8 @@ test('from My cases with a pack, both choices lead to that pack’s payment step
 
 test('the payment step takes the chosen case, never charges twice, and never starts a free evaluation instead', () => {
   const page = read('app/(case)/app/pack/[pack]/page.tsx')
-  assert.match(page, /already_purchased'\) redirect\(`\/app\/case\/\$\{chosen\.id\}\/dashboard`\)/)
+  // Which cases have nothing to pay is nothingToBuy (28 Nov), tested on its own.
+  assert.match(page, /if \(nothingToBuy\(pack, owned\)\) redirect\(`\/app\/case\/\$\{chosen\.id\}\/dashboard`\)/)
   assert.match(page, /\.eq\('user_id', user\.supabaseUuid\)/)
   assert.match(page, /if \(!chosenCase\) \{[\s\S]*packDestinationForCases/, 'the one-case and several-case rules apply only to a pack button')
   const client = read('app/(case)/app/pack/[pack]/_components/pack-first-client.tsx')

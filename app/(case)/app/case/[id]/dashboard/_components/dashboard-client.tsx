@@ -64,6 +64,7 @@ import {
 import type { ValidationAnswerValue } from '@/lib/types/validation'
 import { noteProblem } from '@/lib/report-problem'
 import { parsePack } from '@/lib/journey/pack-case'
+import { documentLimit } from '@/lib/upload-limits'
 
 type DashboardClientProps = {
   caseId: string
@@ -177,7 +178,15 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
     evidenceSkipped: evidenceSkippedQuery.data === true,
     confirmStepShown,
     fidrecWaiting: fidrecCheck?.available === false,
+    // A failed lookup must not block the case, so an error counts as answered.
+    intakeAnswered: intakeCompleted || intakeCompletionQuery.isError ? true : intakeCompletionQuery.data ?? null,
+    fidrecTimelineAnswered: Boolean(fidrecTimelineQuery.data),
   })
+  // Until it is known whether a pack's questions are still to be asked, neither they nor the facts are shown.
+  const checkingPackQuestions =
+    (node === 'L2-ConfirmBankFacts' || node === 'L3-ConfirmFidrecFacts') &&
+    (journeyQuery.isPending || intakeCompletionQuery.isPending || tier0DraftQuery.isPending)
+  const paidPack = ['self_serve_report', 'escalation_pack'].includes(paymentStatusQuery.data?.plan ?? '')
   useEffect(() => {
     if (node === 'S1-Tier0DraftPending') setConfirmStepShown(true)
   }, [node])
@@ -356,7 +365,13 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
 
   function handleUpload(files: File[]) {
     deleteEvidence.reset()
-    uploadEvidence.mutate({ caseId, files })
+    const held = (documentsQuery.data ?? []).filter((d) => d.processing_status !== 'failed').length
+    const bought = paymentStatusQuery.data?.capabilityBilling.capabilities
+    const limit = documentLimit({
+      allow_self_serve_report: bought?.report.entitled === true,
+      allow_escalation_pack: bought?.fidrecPack.entitled === true,
+    })
+    uploadEvidence.mutate({ caseId, files, held, limit })
   }
 
   function handleDelete(documentId: string) {
@@ -530,7 +545,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto max-w-5xl px-4 py-8" data-harbor-node={node} data-harbor-ready={stateReady ? 'true' : 'false'}>
-        {askedPack && ['S1-Journey', 'S1-IntakeForm', 'S1-GapLoop', 'S1-EvidenceUpload', 'S1-Tier0DraftPending'].includes(node) ? (
+        {askedPack && ['S1-Journey', 'S1-IntakeForm', 'S1-GapLoop', 'S1-EvidenceUpload', 'S1-Tier0DraftPending', 'L2-ConfirmBankFacts'].includes(node) ? (
           <div className="mb-8" data-asked-pack={askedPack}>
             {askedPack === 'fidrec' ? (
               showFidrecOffer ? fidrecOffer : null
@@ -569,10 +584,10 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
           // PB-19 (Part B walk-through, 25 Nov): checked before the free evaluation's steps, which showed for a moment
           // after paying until the purchase was visible.
           <PaymentSuccessLanding isConfirming />
-        ) : node === 'S1-IntakeForm' && journeyQuery.isPending ? (
+        ) : checkingPackQuestions || (node === 'S1-IntakeForm' && journeyQuery.isPending) ? (
           <StateMachineLoading title="Loading your case" />
         ) : node === 'S1-Journey' ? (
-          <JourneyQuestions isSaving={journeySaving} errorMessage={journeyError} onSave={(answers) => void handleJourneySave(answers)} />
+          <JourneyQuestions timeline={paidPack ? fidrecTimelineQuery.data ?? null : null} isSaving={journeySaving} errorMessage={journeyError} onSave={(answers) => void handleJourneySave(answers)} />
         ) : node === 'S1-Tier0DraftPending' ? (
           // Q2 option (a): the evidence list stays visible while the facts are confirmed.
           <div className="space-y-8">
@@ -616,6 +631,7 @@ export default function DashboardClient({ caseId, initialCaseSnapshot, priceLabe
             node={node}
             confirmFactsHref={`/app/case/${caseId}/facts?stage=free`}
             intake={{
+              paid: paidPack,
               isSubmitting: submitIntake.isPending,
               submitError: submitIntake.error?.message ?? null,
               onSubmit: handleIntakeSubmit,

@@ -101,6 +101,7 @@ export interface IntakeFormProps {
   submitLabel?: string
   errorMessage?: string | null
   onSubmit: (answers: IntakeAnswers) => void
+  paid?: boolean
 }
 
 export function IntakeForm({
@@ -109,6 +110,7 @@ export function IntakeForm({
   submitLabel = 'Continue',
   errorMessage,
   onSubmit,
+  paid = false,
 }: IntakeFormProps) {
   const [answers, setAnswers] = useState<IntakeAnswers>(initialAnswers ?? {})
 
@@ -127,7 +129,7 @@ export function IntakeForm({
       <CardHeader>
         <CardTitle>Tell us about your complaint</CardTitle>
         <CardDescription>
-          A few questions so we can understand the case. This is the free triage — no charge.
+          A few questions so we can understand the case.{paid ? '' : ' This is the free triage — no charge.'}
         </CardDescription>
       </CardHeader>
       <CardContent>

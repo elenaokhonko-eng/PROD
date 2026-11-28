@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth"
 import { getProfileCaseEditAccess } from "@/lib/case-documents/register-from-evidence-v1"
 import { createServiceClient } from "@/lib/supabase/service"
 import { isAllowedMime } from "@/lib/types/documents"
-import { documentLimit, MAX_PDF_PAGES, MAX_UPLOAD_BYTES, pdfPageCount, tooManyDocumentsMessage, UPLOAD_TOO_LARGE_MESSAGE, UPLOAD_TOO_MANY_PAGES_MESSAGE } from "@/lib/server/upload-limits"
+import { documentLimit, MAX_PDF_PAGES, MAX_UPLOAD_BYTES, pdfPageCount, tooManyDocumentsMessage, UPLOAD_TOO_LARGE_MESSAGE, UPLOAD_TOO_MANY_PAGES_MESSAGE } from "@/lib/upload-limits"
 import { recordFault } from "@/lib/server/fault-log"
 import { safeErrorText } from "@/lib/server/safe-error"
 import { HOURLY_LIMIT_MESSAGE, limitResponse, overIpModelLimit, overUploadLimit } from "@/lib/server/usage-limits"
@@ -52,6 +52,17 @@ async function duplicateOf(
     if (stored && sha256Of(await stored.arrayBuffer()) === hash) return row.filename as string
   }
   return null
+}
+
+// The documents the case holds: its uploads, less those that could not be read. 0 when the count cannot be taken
+// (the check before saving has already passed).
+async function documentsHeld(service: ReturnType<typeof createServiceClient>, caseId: string): Promise<number> {
+  const [uploads, failed] = await Promise.all([
+    service.from("evidence").select("id", { count: "exact", head: true }).eq("case_id", caseId),
+    service.from("case_documents").select("id", { count: "exact", head: true }).eq("case_id", caseId).eq("processing_status", "failed"),
+  ])
+  if (uploads.error || failed.error) return 0
+  return (uploads.count ?? 0) - (failed.count ?? 0)
 }
 
 function getContentLength(request: Request): number | null {
@@ -239,6 +250,17 @@ export async function POST(request: Request) {
         { error: quotaExceeded ? "Case evidence storage quota exceeded" : "Failed to save evidence metadata" },
         { status: quotaExceeded ? 413 : 500 },
       )
+    }
+
+    // Two uploads at once can both pass the count above, so it is taken again once this one is saved. The one that
+    // finds too many is removed again: the case never holds more than the limit.
+    const heldAfterSaving = await documentsHeld(supabaseService, caseId)
+    if (heldAfterSaving > limit.max) {
+      const { error: undoError } = await supabaseService.from("evidence").delete().eq("id", (evidence as { id: string }).id)
+      if (undoError) console.error("[evidence/upload] Over-limit upload not removed:", safeErrorText(undoError))
+      else await supabaseService.storage.from(STORAGE_BUCKET).remove([filePath])
+      await recordFault(supabaseService, "too_many", caseId)
+      return NextResponse.json({ error: tooManyDocumentsMessage(limit) }, { status: 409 })
     }
 
     return NextResponse.json({ evidence })

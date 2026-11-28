@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import { loadProductReadiness, productSwitchedOn } from '@/lib/billing/product-readiness'
-import { PACK_PRODUCT, packDestinationForCases, parsePack } from '@/lib/journey/pack-case'
+import { nothingToBuy, PACK_PRODUCT, packDestinationForCases, parsePack } from '@/lib/journey/pack-case'
 import { PRODUCT_CATALOGUE } from '@/lib/payments/product-catalogue'
 import { linkNewAccount } from '@/lib/server/current-user'
 import { createUserClient } from '@/lib/supabase/server'
@@ -37,9 +37,14 @@ export default async function PackFirstPage({
   if (chosenCase && chosenCase !== 'new') {
     chosen = (cases ?? []).find((c) => c.id === chosenCase) ?? null
     if (!chosen) redirect('/app')
-    const readiness = await loadProductReadiness(createServiceClient(), chosen.id, PACK_PRODUCT[pack])
-    // Already has this pack: to the case, with nothing more to pay.
-    if (readiness.reason === 'already_purchased') redirect(`/app/case/${chosen.id}/dashboard`)
+    const service = createServiceClient()
+    const [bank, fidrec] = await Promise.all([
+      loadProductReadiness(service, chosen.id, 'self_serve_report'),
+      loadProductReadiness(service, chosen.id, 'fidrec_tier2_pack'),
+    ])
+    const owned = { bankOwned: bank.reason === 'already_purchased', fidrecOwned: fidrec.reason === 'already_purchased' }
+    // Nothing more to pay: to the case. Where a waiting FIDReC pack needs the bank pack, the case itself offers it.
+    if (nothingToBuy(pack, owned)) redirect(`/app/case/${chosen.id}/dashboard`)
   }
 
   // A case with the FIDReC pack shows no bank offer (Elena, 27 Nov), so a bank button must not end on it.

@@ -102,11 +102,14 @@ export async function confirmFactsInDashboard(page: Page, caseId: string, stage:
 }
 
 // Synthetic journey: told the bank by phone, no written complaint yet, no reply, police report made, no FIDReC.
-export async function answerJourney(page: Page) {
+// After a FIDReC pack's timeline questionnaire, the complaint and reply questions are not asked again.
+export async function answerJourney(page: Page, { afterTimeline = false } = {}) {
   await expect(page.getByText('Where are you with your bank?')).toBeVisible({ timeout: 120_000 })
   await page.locator('#journey-bank-yes').check()
-  await page.locator('#journey-complaint-no').check()
-  await page.locator('#journey-reply-none').check()
+  if (!afterTimeline) {
+    await page.locator('#journey-complaint-no').check()
+    await page.locator('#journey-reply-none').check()
+  }
   await page.locator('#journey-police-yes').check()
   await page.locator('#journey-fidrec-no').check()
   await page.getByRole('button', { name: 'Continue' }).click()

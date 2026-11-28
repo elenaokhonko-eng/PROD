@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { PDFDocument } from 'pdf-lib'
 import { ALLOWED_MIME_TYPES } from '../../lib/types/documents'
-import { MAX_PDF_PAGES, MAX_UPLOAD_BYTES, pdfPageCount } from '../../lib/server/upload-limits'
+import { MAX_PDF_PAGES, MAX_UPLOAD_BYTES, pdfPageCount } from '../../lib/upload-limits'
 
-// Elena, 9 Nov: uploads are PDF, PNG or JPEG only (no SVG or HTML), at most 15 MB, and PDFs at most 30 pages.
+// Elena, 9 Nov: uploads are PDF, PNG or JPEG only (no SVG or HTML), at most 15 MB, and PDFs at most 30 pages (15 since 28 Nov).
 
 async function pdfWithPages(pages: number): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
@@ -44,5 +44,7 @@ test('an upload whose bytes match a document already in the case is refused befo
   assert.ok(check < route.indexOf('.storage.from(STORAGE_BUCKET).upload('), 'before the file is stored')
   assert.match(route, /status: 409/)
   const hook = readFileSync('hooks/state-machine/layer1/use-upload-evidence.ts', 'utf8')
-  assert.match(hook, /uploadResponse\.status === 409\) && uploadJson\?\.error\) \{\s*throw new UploadRefusedError/)
+  // The refusal is named with its file and shown after the other files have been sent (28 Nov).
+  assert.match(hook, /uploadResponse\.status === 409\) && uploadJson\?\.error\) \{[^}]*refusals\.push\(`\$\{file\.name\}: \$\{uploadJson\.error\}`\)\s*continue/)
+  assert.match(hook, /throw new UploadRefusedError\(refusals\.join/)
 })

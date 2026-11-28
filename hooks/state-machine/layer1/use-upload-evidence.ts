@@ -3,10 +3,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { qk } from '@/hooks/state-machine/query-keys'
 import type { EvidenceResponse } from '@/lib/types/documents'
+import { pdfPageCount, sortSelection, type DocumentLimit, type RefusedFile } from '@/lib/upload-limits'
 
 export interface UploadEvidenceInput {
   caseId: string
   files: File[]
+  /** Documents the case already holds, and how many it may hold, so a selection is checked before it is sent. */
+  held: number
+  limit: DocumentLimit
 }
 
 export interface UploadEvidenceResultItem {
@@ -47,14 +51,39 @@ export class UsageLimitError extends Error {}
 /** The server refused the file (type, size, pages); its reason is shown with the file's name (walkthrough, 9 Nov). */
 export class UploadRefusedError extends Error {}
 
+/** The chosen files that may be sent. A refused one is counted on the server, by fault only. */
+async function checkSelection(caseId: string, files: File[], held: number, limit: DocumentLimit) {
+  const measured = await Promise.all(
+    files.map(async (file) => ({
+      file,
+      name: file.name,
+      size: file.size,
+      pages: file.type === 'application/pdf' ? await pdfPageCount(new Uint8Array(await file.arrayBuffer())) : null,
+    })),
+  )
+  const sorted = sortSelection(measured, held, limit)
+  for (const { fault } of sorted.refused) {
+    if (!fault) continue
+    void fetch('/api/evidence/refusal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caseId, fault }),
+      keepalive: true,
+    }).catch(() => {})
+  }
+  return { send: sorted.send.map((entry) => entry.file), refused: sorted.refused }
+}
+
 export function useUploadEvidence() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ caseId, files }: UploadEvidenceInput): Promise<UploadEvidenceResultItem[]> => {
+    mutationFn: async ({ caseId, files, held, limit }: UploadEvidenceInput): Promise<UploadEvidenceResultItem[]> => {
       const results: UploadEvidenceResultItem[] = []
+      const { send, refused } = await checkSelection(caseId, files, held, limit)
+      const refusals = refused.map((entry: RefusedFile) => `${entry.name}: ${entry.message}`)
 
-      for (const file of files) {
+      for (const file of send) {
         const formData = new FormData()
         formData.append('caseId', caseId)
         formData.append('category', 'evidence')
@@ -72,7 +101,9 @@ export function useUploadEvidence() {
           if (uploadResponse.status === 429 && uploadJson?.error) throw new UsageLimitError(uploadJson.error)
           // 409: the same file is already in the case (PB-20).
           if ((uploadResponse.status === 413 || uploadResponse.status === 415 || uploadResponse.status === 409) && uploadJson?.error) {
-            throw new UploadRefusedError(`${file.name}: ${uploadJson.error}`)
+            // One refused file does not stop the rest of the selection.
+            refusals.push(`${file.name}: ${uploadJson.error}`)
+            continue
           }
           throw new Error(uploadJson?.error ?? 'Failed to upload evidence')
         }
@@ -113,9 +144,11 @@ export function useUploadEvidence() {
         })
       }
 
+      if (refusals.length) throw new UploadRefusedError(refusals.join('\n'))
       return results
     },
-    onSuccess: async (_data, variables) => {
+    // Settled, not success: when one file is refused the others were still added.
+    onSettled: async (_data, _error, variables) => {
       const caseId = variables.caseId
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: qk.case.documents(caseId) }),

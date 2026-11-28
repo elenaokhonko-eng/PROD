@@ -3,10 +3,12 @@ import { expect, test } from '../fixtures/harbor-test'
 import { createServiceClientFromEnvironment } from '../helpers/disposable-records'
 import {
   addPackEvidence,
+  answerJourney,
   completeFreeEvaluation,
   confirmFactsInDashboard,
   createLinkedAccount,
   deleteClerkUser,
+  fillIntake,
   payWithTestCard,
   startFreshCase,
   syntheticNarrative,
@@ -58,14 +60,16 @@ test.describe('paid pack journeys', () => {
     return data![0].id as string
   }
 
-  // After payment: back in My cases, then "Add a new case" (for FIDReC the questionnaire first) and the story, which
-  // leads to the pack's documents.
+  // After payment: back in My cases, then "Add a new case" (for FIDReC the questionnaire first), the story, the same
+  // questions as the free evaluation (28 Nov), and the pack's documents.
   async function addStoryAfterPaying(page: Page, caseId: string, pack: 'bank' | 'fidrec') {
     await page.getByRole('link', { name: 'Add a new case' }).first().click()
     if (pack === 'fidrec') await answerTimeline(page, FINAL_REPLY_TEN_DAYS_AGO)
     await page.locator('#story').fill(syntheticNarrative)
     await page.getByRole('button', { name: 'Submit the story' }).click()
     await page.waitForURL(new RegExp(`/app/case/${caseId}/dashboard$`), { timeout: 120_000 })
+    await answerJourney(page, { afterTimeline: pack === 'fidrec' })
+    await fillIntake(page, syntheticNarrative)
     await expect(page.locator(`[data-pack-evidence="${pack}"]`)).toBeVisible({ timeout: 120_000 })
   }
 

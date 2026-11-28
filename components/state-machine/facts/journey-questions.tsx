@@ -1,8 +1,9 @@
 'use client'
 
 /**
- * Journey questions (spec 4.1, design section 5): where the person is with their bank. Asked once after sign-in,
- * before the intake form. The answers are saved as `journey_*` case responses and take part in fact checking.
+ * Journey questions (spec 4.1, design section 5): where the person is with their bank. Asked once, before the intake
+ * form, in the free evaluation and in a pack bought without one. The answers are saved as `journey_*` case responses
+ * and take part in fact checking.
  */
 
 import { useState } from 'react'
@@ -13,11 +14,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { JOURNEY_KEYS } from '@/lib/facts'
+import type { FidrecTimeline } from '@/lib/journey/fidrec-timeline'
+import { journeyQuestionPlan } from '@/lib/journey/journey-plan'
 
 export interface JourneyQuestionsProps {
   isSaving?: boolean
   errorMessage?: string | null
   onSave: (answers: Record<string, string>) => void
+  /** A bought FIDReC pack's timeline, whose questions are not asked again. */
+  timeline?: FidrecTimeline | null
 }
 
 type Choice = { value: string; label: string }
@@ -77,8 +82,9 @@ function Field({ id, label, type = 'text', value, onChange }: { id: string; labe
   )
 }
 
-export function JourneyQuestions({ isSaving = false, errorMessage, onSave }: JourneyQuestionsProps) {
-  const [a, setA] = useState<Record<string, string>>({})
+export function JourneyQuestions({ isSaving = false, errorMessage, onSave, timeline = null }: JourneyQuestionsProps) {
+  const plan = journeyQuestionPlan(timeline)
+  const [a, setA] = useState<Record<string, string>>(plan.initial)
   const [institutions, setInstitutions] = useState<string[]>([])
   const [missing, setMissing] = useState(false)
   const set = (key: string) => (value: string) => {
@@ -86,7 +92,16 @@ export function JourneyQuestions({ isSaving = false, errorMessage, onSave }: Jou
     setA((prev) => ({ ...prev, [key]: value }))
   }
 
-  const required = [JOURNEY_KEYS.reportedToBank, JOURNEY_KEYS.writtenComplaint, JOURNEY_KEYS.bankReplyStatus, JOURNEY_KEYS.policeReport, JOURNEY_KEYS.fidrecFiled]
+  const required = [
+    JOURNEY_KEYS.reportedToBank,
+    ...(plan.askComplaint ? [JOURNEY_KEYS.writtenComplaint] : []),
+    ...(plan.askReply ? [JOURNEY_KEYS.bankReplyStatus] : []),
+    JOURNEY_KEYS.policeReport,
+    JOURNEY_KEYS.fidrecFiled,
+  ]
+  // Numbered as shown, so a question left out leaves no gap.
+  const numberOf = (key: string) => (required as string[]).indexOf(key) + 1
+  const replyIsFinal = plan.replyIsFinal || a[JOURNEY_KEYS.bankReplyStatus] === 'final_reply'
 
   function submit() {
     if (required.some((key) => !a[key])) {
@@ -110,7 +125,7 @@ export function JourneyQuestions({ isSaving = false, errorMessage, onSave }: Jou
       <CardContent>
         {/* No <form>: Radix controls inside one render unlabelled hidden inputs; Continue saves directly. */}
         <div className="space-y-6">
-          <Radios id="journey-bank" legend="1. Have you told your bank or payment provider?" choices={YES_NO} value={a[JOURNEY_KEYS.reportedToBank] ?? ''} onChange={set(JOURNEY_KEYS.reportedToBank)} />
+          <Radios id="journey-bank" legend={`${numberOf(JOURNEY_KEYS.reportedToBank)}. Have you told your bank or payment provider?`} choices={YES_NO} value={a[JOURNEY_KEYS.reportedToBank] ?? ''} onChange={set(JOURNEY_KEYS.reportedToBank)} />
           {a[JOURNEY_KEYS.reportedToBank] === 'yes' && (
             <div className="grid gap-3 sm:grid-cols-3">
               <Field id="journey-bank-date" label="When? (optional)" type="date" value={a[JOURNEY_KEYS.reportedToBankDate] ?? ''} onChange={set(JOURNEY_KEYS.reportedToBankDate)} />
@@ -119,16 +134,20 @@ export function JourneyQuestions({ isSaving = false, errorMessage, onSave }: Jou
             </div>
           )}
 
-          <Radios id="journey-complaint" legend="2. Have you sent them a full written complaint with your evidence?" choices={YES_NO_UNSURE} value={a[JOURNEY_KEYS.writtenComplaint] ?? ''} onChange={set(JOURNEY_KEYS.writtenComplaint)} />
+          {plan.askComplaint && (
+            <Radios id="journey-complaint" legend={`${numberOf(JOURNEY_KEYS.writtenComplaint)}. Have you sent them a full written complaint with your evidence?`} choices={YES_NO_UNSURE} value={a[JOURNEY_KEYS.writtenComplaint] ?? ''} onChange={set(JOURNEY_KEYS.writtenComplaint)} />
+          )}
           {a[JOURNEY_KEYS.writtenComplaint] === 'yes' && (
             <Field id="journey-complaint-date" label="When did you send it?" type="date" value={a[JOURNEY_KEYS.writtenComplaintDate] ?? ''} onChange={set(JOURNEY_KEYS.writtenComplaintDate)} />
           )}
 
-          <Radios id="journey-reply" legend="3. Have they replied?" choices={REPLY} value={a[JOURNEY_KEYS.bankReplyStatus] ?? ''} onChange={set(JOURNEY_KEYS.bankReplyStatus)} />
+          {plan.askReply && (
+            <Radios id="journey-reply" legend={`${numberOf(JOURNEY_KEYS.bankReplyStatus)}. Have they replied?`} choices={REPLY} value={a[JOURNEY_KEYS.bankReplyStatus] ?? ''} onChange={set(JOURNEY_KEYS.bankReplyStatus)} />
+          )}
           {a[JOURNEY_KEYS.bankReplyStatus] && a[JOURNEY_KEYS.bankReplyStatus] !== 'none' && (
             <Field id="journey-reply-date" label="Date of their reply" type="date" value={a[JOURNEY_KEYS.bankReplyDate] ?? ''} onChange={set(JOURNEY_KEYS.bankReplyDate)} />
           )}
-          {a[JOURNEY_KEYS.bankReplyStatus] === 'final_reply' && (
+          {replyIsFinal && (
             <div className="space-y-4">
               <Radios id="journey-outcome" legend="What did the final reply say?" choices={OUTCOME} value={a[JOURNEY_KEYS.bankReplyOutcome] ?? ''} onChange={set(JOURNEY_KEYS.bankReplyOutcome)} />
               <Radios id="journey-qualifies" legend="Does the letter say it is their final reply, and that you can contact FIDReC within six months?" choices={YES_NO_UNSURE} value={a[JOURNEY_KEYS.finalReplyQualifies] ?? ''} onChange={set(JOURNEY_KEYS.finalReplyQualifies)} />
@@ -136,7 +155,7 @@ export function JourneyQuestions({ isSaving = false, errorMessage, onSave }: Jou
             </div>
           )}
 
-          <Radios id="journey-police" legend="4. Have you made a police report?" choices={YES_NO} value={a[JOURNEY_KEYS.policeReport] ?? ''} onChange={set(JOURNEY_KEYS.policeReport)} />
+          <Radios id="journey-police" legend={`${numberOf(JOURNEY_KEYS.policeReport)}. Have you made a police report?`} choices={YES_NO} value={a[JOURNEY_KEYS.policeReport] ?? ''} onChange={set(JOURNEY_KEYS.policeReport)} />
           {a[JOURNEY_KEYS.policeReport] === 'yes' && (
             <div className="grid gap-3 sm:grid-cols-2">
               <Field id="journey-police-date" label="When? (optional)" type="date" value={a[JOURNEY_KEYS.policeReportDate] ?? ''} onChange={set(JOURNEY_KEYS.policeReportDate)} />
@@ -144,7 +163,7 @@ export function JourneyQuestions({ isSaving = false, errorMessage, onSave }: Jou
             </div>
           )}
 
-          <Radios id="journey-fidrec" legend="5. Have you already filed with FIDReC?" choices={YES_NO} value={a[JOURNEY_KEYS.fidrecFiled] ?? ''} onChange={set(JOURNEY_KEYS.fidrecFiled)} />
+          <Radios id="journey-fidrec" legend={`${numberOf(JOURNEY_KEYS.fidrecFiled)}. Have you already filed with FIDReC?`} choices={YES_NO} value={a[JOURNEY_KEYS.fidrecFiled] ?? ''} onChange={set(JOURNEY_KEYS.fidrecFiled)} />
           {a[JOURNEY_KEYS.fidrecFiled] === 'yes' && (
             <div className="grid gap-3 sm:grid-cols-2">
               <Field id="journey-fidrec-date" label="When? (optional)" type="date" value={a[JOURNEY_KEYS.fidrecDate] ?? ''} onChange={set(JOURNEY_KEYS.fidrecDate)} />
@@ -153,7 +172,7 @@ export function JourneyQuestions({ isSaving = false, errorMessage, onSave }: Jou
           )}
 
           <fieldset className="space-y-2">
-            <legend className="font-medium">6. Which of these are involved? (optional, choose any)</legend>
+            <legend className="font-medium">{required.length + 1}. Which of these are involved? (optional, choose any)</legend>
             {INSTITUTIONS.map((c) => (
               <div key={c.value} className="flex items-center gap-2">
                 <Checkbox
@@ -170,7 +189,7 @@ export function JourneyQuestions({ isSaving = false, errorMessage, onSave }: Jou
 
           {(missing || errorMessage) && (
             <p role="alert" className="text-sm text-destructive">
-              {missing ? 'Please answer questions 1 to 5. "Not sure" is fine where it is offered.' : errorMessage}
+              {missing ? `Please answer questions 1 to ${required.length}. "Not sure" is fine where it is offered.` : errorMessage}
             </p>
           )}
           <Button type="button" onClick={submit} disabled={isSaving}>{isSaving ? 'Saving…' : 'Continue'}</Button>

@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { CaseDocumentRow, DocumentProcessingStatus } from '@/lib/types/documents'
+import { MAX_PDF_PAGES } from '@/lib/upload-limits'
 import { cn } from '@/lib/utils'
 
 export interface EvidenceUploadPanelProps {
@@ -91,7 +92,7 @@ export function EvidenceUploadPanel({
         <CardTitle>Upload supporting evidence</CardTitle>
         <CardDescription>
           Bank or card statements, letters from your bank, a police report, or screenshots of the scam messages. PDF,
-          PNG or JPEG, up to 15 MB and 30 pages each.
+          PNG or JPEG, up to 15 MB and {MAX_PDF_PAGES} pages each.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -103,7 +104,7 @@ export function EvidenceUploadPanel({
             role="alert"
           >
             <p className="font-medium">The files could not be uploaded</p>
-            <p className="mt-1 text-muted-foreground">{errorMessage}</p>
+            <p className="mt-1 whitespace-pre-line text-muted-foreground">{errorMessage}</p>
           </div>
         ) : null}
 
@@ -176,7 +177,7 @@ export function EvidenceUploadPanel({
             onChange={handleChange}
             disabled={isUploading}
           />
-          <p className="mt-2 text-xs text-muted-foreground">PDF, PNG or JPEG, up to 15 MB and 30 pages each.</p>
+          <p className="mt-2 text-xs text-muted-foreground">PDF, PNG or JPEG, up to 15 MB and {MAX_PDF_PAGES} pages each.</p>
         </div>
 
         {documents.length > 0 ? (

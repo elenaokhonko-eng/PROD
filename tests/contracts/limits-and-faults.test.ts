@@ -2,19 +2,19 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { APPROVED } from '../../lib/facts'
-import { documentLimit, MAX_PDF_PAGES, tooManyDocumentsMessage, UPLOAD_TOO_MANY_PAGES_MESSAGE } from '../../lib/server/upload-limits'
+import { documentLimit, MAX_PDF_PAGES, tooManyDocumentsMessage, UPLOAD_TOO_MANY_PAGES_MESSAGE } from '../../lib/upload-limits'
 
 // Requirements 8.2 and 8.3 (approved by Elena, 27-28 Nov 2026).
 const read = (file: string) => readFileSync(file, 'utf8')
 
-test('8.2: 15 pages a file; 10 documents for the evaluation, 15 for the bank pack and, for now, the FIDReC pack', () => {
+test('8.2: 15 pages a file and 10 documents, for the evaluation and both packs (Elena, 28 Nov)', () => {
   assert.equal(MAX_PDF_PAGES, 15)
   assert.equal(UPLOAD_TOO_MANY_PAGES_MESSAGE, 'This file has more than 15 pages. Please upload only the pages that matter, as a separate file.')
   assert.deepEqual(documentLimit({}), { max: 10, of: 'evaluation' })
-  assert.deepEqual(documentLimit({ allow_self_serve_report: true }), { max: 15, of: 'pack' })
-  assert.deepEqual(documentLimit({ allow_escalation_pack: true }), { max: 15, of: 'pack' })
+  assert.deepEqual(documentLimit({ allow_self_serve_report: true }), { max: 10, of: 'pack' })
+  assert.deepEqual(documentLimit({ allow_escalation_pack: true }), { max: 10, of: 'pack' })
   assert.equal(tooManyDocumentsMessage({ max: 10, of: 'evaluation' }), 'You can add up to 10 documents for this evaluation.')
-  assert.equal(tooManyDocumentsMessage({ max: 15, of: 'pack' }), 'You can add up to 15 documents for this pack.')
+  assert.equal(tooManyDocumentsMessage({ max: 10, of: 'pack' }), 'You can add up to 10 documents for this pack.')
   const route = read('app/api/evidence/upload/route.ts')
   assert.ok(route.indexOf('tooManyDocumentsMessage(') > 0 && route.indexOf('tooManyDocumentsMessage(') < route.indexOf('.upload(filePath'), 'refused before anything is stored')
 })

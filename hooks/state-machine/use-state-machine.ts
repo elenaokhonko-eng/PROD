@@ -61,6 +61,10 @@ export interface StateMachineInput {
    * it instead of switching to the questions mid-action (G3b re-check, 11 Nov); the confirm step checks the facts.
    */
   confirmStepShown?: boolean
+  /** Whether the intake questions are answered; null while unknown. */
+  intakeAnswered?: boolean | null
+  /** Whether a bought FIDReC pack's timeline is saved. */
+  fidrecTimelineAnswered?: boolean
   /** CR-2: the bought FIDReC pack can't be generated on the saved timeline yet, so a bank pack isn't held behind it. */
   fidrecWaiting?: boolean
 }
@@ -96,10 +100,22 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
     evidenceSkipped = false,
     confirmStepShown = false,
     fidrecWaiting = false,
+    intakeAnswered = null,
+    fidrecTimelineAnswered,
   } = input
 
   if (isContactSubmitted) return 'L3-Confirmed'
   if (isContactSubmitting) return 'L3-Submitting'
+
+  // Elena, 28 Nov 2026: a pack bought without a free evaluation asks the same questions first.
+  const evaluated = Boolean(narratives?.tier0_summary || narratives?.tier0_evidence_checklist || narratives?.tier0_srf_signal)
+  const unasked: StateMachineNode | null = evaluated
+    ? null
+    : journeyAnswered === false
+      ? 'S1-Journey'
+      : intakeAnswered === false
+        ? 'S1-IntakeForm'
+        : null
 
   // Stage 2: each pack is its own entitlement. The FIDReC pack comes first when both are owned: confirm its facts,
   // then the pack; the bank pack follows. Pay first, then confirm (Elena, 13 Nov 2026).
@@ -107,7 +123,11 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   const bankOwned = bankPackOwned === true || (bankPackOwned === null && entitlementPlan === 'self_serve_report')
   // CR-2: a waiting FIDReC pack lets the bank pack through: it prepares the complaint the FIDReC pack waits for.
   if (fidrecOwned && !(fidrecWaiting && bankOwned && fidrecReport?.status !== 'COMPLETED')) {
-    if (fidrecReport?.status !== 'COMPLETED') return 'L3-ConfirmFidrecFacts'
+    if (fidrecReport?.status !== 'COMPLETED') {
+      // The timeline comes first, and a pack that is waiting says so.
+      if (fidrecTimelineAnswered !== false && !fidrecWaiting && unasked) return unasked
+      return 'L3-ConfirmFidrecFacts'
+    }
     if (bankOwned && report?.status !== 'COMPLETED') return 'L2-ConfirmBankFacts'
     return 'L3-Tier2Ready'
   }
@@ -116,7 +136,7 @@ export function useStateMachine(input: StateMachineInput): StateMachineNode {
   // (run_bank_pack_v1), so there is no report job to wait for.
   if (bankOwned) {
     if (report?.status === 'COMPLETED') return 'L3-FormFilling'
-    return 'L2-ConfirmBankFacts'
+    return unasked ?? 'L2-ConfirmBankFacts'
   }
 
   if (!narratives?.tier0_summary && !narratives?.tier0_evidence_checklist && !narratives?.tier0_srf_signal) {

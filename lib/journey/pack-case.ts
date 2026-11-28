@@ -37,6 +37,14 @@ export function myCasesPackHref(pack: PaidPack, caseId: string): string {
 }
 
 /**
+ * Whether a case chosen on "My cases" has nothing to pay for this pack (Elena, 28 Nov): it already has it, or it has
+ * the FIDReC pack. A case with the Bank dispute pack can still add the FIDReC pack. A free evaluation is not a pack.
+ */
+export function nothingToBuy(pack: PaidPack, { bankOwned, fidrecOwned }: { bankOwned: boolean; fidrecOwned: boolean }): boolean {
+  return fidrecOwned || (pack === 'bank' && bankOwned)
+}
+
+/**
  * Where such a case's page goes instead: back from Stripe to My cases (or on to the story, for a person who came from
  * My cases), otherwise to the story page. Only the known values are passed on.
  */
