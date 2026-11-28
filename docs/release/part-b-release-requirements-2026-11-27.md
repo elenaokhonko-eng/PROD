@@ -513,3 +513,20 @@ Elena asked for this gap to be fixed before staging.
 - The payment-loss guard stays until it is replaced. It is still in place.
 - Item 3 of 11.5 is changed: show both numbers and do not stop. **Built (3ef07ae).** Sentence: "This statement has [N] lines with a date and an amount. [M] payments were read from it. Please check the table below."
 - As built: one box for each bank or card statement, whether or not the numbers differ, with the file name above and the payments read from that file below. "1 line" and "1 payment was" for one. A file from which nothing at all was read also gets a box if it has such lines. Letters and police reports get none. For a scan or photo, the lines are counted in the AI's transcript.
+
+### 11.9 The 91 of 150 payments: query results and what was built
+
+Staging counts only. Part 1 of the statement: 3,035 tokens in, 6,022 out, 31 seconds (91 payments). Part 2: 2,331 in, 197 out, 3 seconds (59 payments). 91 payments were stored from the document. So part 2 was received and almost nothing was returned.
+
+**Built (c098c51):**
+- Every part says which part it is. Each later part also says what kind of document it is and repeats its heading lines. This closes item 2 of 11.5.
+- A part holds at most 60 payment lines (and 5,000 characters as before). 91 payments used 6,022 of the 8,192 answer tokens, so about 120 is the most one answer can take.
+- Parts are still read at the same time. The kind therefore comes from the file's own heading words, not from part 1's answer; where the heading does not say, the part is called "a document".
+- The e-wallet choice reads "An e-wallet or payment app (money was taken from it)" (approved) and records the e-wallet as an account the money was taken from. It saves a new value, so ticks made under the old wording are not read that way. This closes 11.7.
+
+**Not proven:** that the missing heading is why part 2 came back empty. No AI call has been made. The proof is the same file showing 150 on staging; the part sizes changed too, so that test does not say which of the two changes did it.
+
+**Limits:**
+- The 150-payment test file has no column titles. Its later parts gain its one heading line and the kind.
+- The e-wallet answer shows as an account the money was taken from. The SRF line about e-wallets still appears only when a payment or an amount lost is itself marked as e-wallet.
+- Existing cases are not read again: the prompt version was not changed.
