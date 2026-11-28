@@ -1,6 +1,6 @@
 # Part B release (#121): findings, fixes and final requirements
 
-Written 27 Nov 2026, 21:00 Singapore time, for Elena and the coding agent. Section 8 added at 22:15, section 9 at 23:45, section 10 at 01:00 on 28 Nov. It consolidates the Part B register, CR-2 and the decisions of 25 to 27 Nov. Where this file and an older one differ, this file is the requirement.
+Written 27 Nov 2026, 21:00 Singapore time, for Elena and the coding agent. Section 8 added at 22:15, section 9 at 23:45, section 10 at 01:00 on 28 Nov, section 11 later on 28 Nov. It consolidates the Part B register, CR-2 and the decisions of 25 to 27 Nov. Where this file and an older one differ, this file is the requirement.
 
 No case data: IDs, counts and synthetic test names only.
 
@@ -313,14 +313,14 @@ Limits are enforced at upload, before anything is stored or read. The same limit
 | | Documents | Pages per document |
 |---|---|---|
 | Free evaluation | 10 | 15 |
-| Bank dispute pack | 15 | 15 |
-| FIDReC pack | Elena's target is 50. For this release: the number proved in 8.1, and not above it | 15 |
+| Bank dispute pack | 10 (see 11.1) | 15 |
+| FIDReC pack | 10 (see 11.1). Target 50 with a later update | 15 |
 
 - The existing limits of 15 MB per file and the file types (PDF, PNG, JPEG) stay.
 - The page limit replaces today's 30 pages.
 - An image counts as one page.
 - A document already in a case when the limit changes is kept. The limit applies to new uploads.
-- **For Elena to confirm:** the FIDReC number for this release, once the agent has reported 8.1.
+- Decided on 28 Nov: 10 documents for all three (section 11.1).
 
 ### 8.3 Failure messages name the fault
 
@@ -460,3 +460,41 @@ This replaces the "several cases" row of section 4.2. The "exactly one case" row
 ### 10.5 A case above the payment limit
 
 **Found.** The same case had 354 payments. Nothing said it was above 150. The approved message (section 9.3) is not built yet. Build it with this batch.
+
+## 11. Elena's decisions of 28 Nov, after the overnight build
+
+### 11.1 Upload limits: decided and closed
+
+- 10 documents, 15 pages each, for the free evaluation, the Bank dispute pack and the FIDReC pack. This replaces the 15 for the packs in section 8.2.
+- This change request is closed.
+- With a later update: work out how to raise the number for the Bank dispute pack and the FIDReC pack. The target is 50. The FIDReC pack is expected to be the densest.
+- Of section 8.1, only the number that fits by size has been reported. Time per pack is to be measured on staging (11.6). Elena will test costs further on production.
+
+### 11.2 Wording variants: approved
+
+The singular and plural forms of the section 9.4 sentences, the forms naming card statements, police reports, bank letters or documents, and the mark in the "Not shown in a document" column are approved. Every number in them is counted from the person's own confirmed payments and documents. No number is fixed in the text.
+
+### 11.3 Choosing a case from "My cases" (adds to 10.1)
+
+- A case with the Bank dispute pack can be chosen to add the FIDReC pack. The person is asked to pay for the FIDReC pack.
+- A case with the FIDReC pack is not asked to pay.
+- A case with only the free evaluation has no pack.
+
+### 11.4 The same key questions in every path
+
+A Bank dispute pack or FIDReC pack can be bought without a free evaluation. Where there is no free evaluation on the case, the pack asks the free evaluation's questions before the facts. Where there is one, they are not asked again.
+
+### 11.5 Reading payments and the size of a FIDReC pack (reviewer's instructions, pasted by Elena)
+
+1. Elena runs the two queries for the affected staging case. Until then the fact-reading code is not changed.
+2. Whatever the cause, each part must carry the document's heading lines and say which part it is and what kind of document. **Not built.**
+3. The "fewer than a quarter" guard is replaced: payments read are compared with the payment lines in the file's own text, both numbers show on the confirm screen, and a difference stops. **Not built.** The sentence on the confirm screen needs Elena's approval.
+4. One real FIDReC pack is measured at about 90,000 characters and one at about 400,000: seconds, and whether it finishes inside the time limit. The release limit is whatever passes. **Not measured:** it needs a staging deploy.
+5. A proposal for writing the pack from per-document notes, for the update branch: `proposal-pack-from-document-notes.md`.
+
+Open point on item 3, raised by the agent: a line with a date and an amount is not always a payment (balances, deposits, fees), and a scanned file has no text of its own. An exact match would stop ordinary statements. What counts as a payment line has to be agreed before it is built.
+
+### 11.6 To check on staging
+
+- Time each step: reading each document, reading the facts, the free evaluation, each pack.
+- A fact taken from the last page of a 15-page file reaches the confirm screen, the free evaluation, the Bank dispute pack and the FIDReC pack (section 8.4).
