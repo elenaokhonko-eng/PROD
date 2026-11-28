@@ -506,3 +506,10 @@ Elena asked for this gap to be fixed before staging.
 - **Mobile operator: built (1896875).** The choice reads "the scam SMS came through it", so it records that the scam came by SMS. A different answer elsewhere shows on the confirm screen as a conflict.
 - **E-wallet: not built, waiting for Elena.** "Involved" does not say that money was taken from the e-wallet, and the rules and packs need that. Proposed wording for the choice, which she has not approved: "An e-wallet or payment app (money was taken from it)".
 - The bank and "something else" choices state no fact on their own.
+
+### 11.8 Decisions on the build report (28 Nov)
+
+- The three text changes (renumbered bank questions after the FIDReC timeline; no "free triage" sentence for a paid buyer; "15 pages each") are approved.
+- The payment-loss guard stays until it is replaced. It is still in place.
+- Item 3 of 11.5 is changed: show both numbers and do not stop. **Built (3ef07ae).** Sentence: "This statement has [N] lines with a date and an amount. [M] payments were read from it. Please check the table below."
+- As built: one box for each bank or card statement, whether or not the numbers differ, with the file name above and the payments read from that file below. "1 line" and "1 payment was" for one. A file from which nothing at all was read also gets a box if it has such lines. Letters and police reports get none. For a scan or photo, the lines are counted in the AI's transcript.
