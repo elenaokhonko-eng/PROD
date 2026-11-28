@@ -70,6 +70,8 @@ export interface ReconcileResult {
   runId: string
   findings: CurrentFinding[]
   documentsProcessing: number
+  // The text each document was read from, for the line counts on the confirm screen.
+  documents: Array<{ sourceKey: string; name: string; text: string }>
 }
 
 function toCurrent(row: StoredFindingRow): CurrentFinding {
@@ -260,6 +262,9 @@ export async function ensureReconciled(
 ): Promise<ReconcileResult> {
   await assertNoRunningRun(service, caseId)
   const { sources, answerFacts, inputHash, storyRevision, documentsProcessing } = await loadSources(service, caseId)
+  const documents = sources
+    .filter((s) => s.sourceType === "document")
+    .map((s) => ({ sourceKey: s.sourceKey, name: String(s.sourceRef.documentName ?? ""), text: s.text }))
 
   const { data: lastRun, error: lastRunError } = await service
     .from("case_fact_reconcile_runs")
@@ -276,7 +281,7 @@ export async function ensureReconciled(
   const sameExtraction = lastRun?.prompt_version === FACT_EXTRACTION_PROMPT_VERSION
   if (lastRun && sameExtraction && lastRun.input_hash === inputHash) {
     const rows = await loadCurrentFindings(service, caseId, lastRun.id as string)
-    return { runId: lastRun.id as string, findings: rows.map(toCurrent), documentsProcessing }
+    return { runId: lastRun.id as string, findings: rows.map(toCurrent), documentsProcessing, documents }
   }
 
   const model = getOpenAiModel()
@@ -397,7 +402,7 @@ export async function ensureReconciled(
     }
 
     await service.from("case_fact_reconcile_runs").update({ status: "completed", completed_at: now }).eq("id", runId)
-    return { runId, findings: (inserted as StoredFindingRow[]).map(toCurrent), documentsProcessing }
+    return { runId, findings: (inserted as StoredFindingRow[]).map(toCurrent), documentsProcessing, documents }
   } catch (error) {
     log.error("Fact reconciliation failed", { caseId, runId, error: error instanceof Error ? error.message : String(error) })
     await service

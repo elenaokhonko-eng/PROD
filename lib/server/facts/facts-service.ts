@@ -16,6 +16,7 @@ import {
   type Stage,
   validateFactValue,
 } from "@/lib/facts"
+import { statementChecks, type StatementCheck } from "./document-parts"
 import { ensureReconciled, type ExtractJson, FactsUnavailableError } from "./run-reconcile"
 
 export const STAGES: readonly Stage[] = ["free", "bank", "fidrec"]
@@ -49,6 +50,8 @@ export interface FactsView {
   // Answers that cannot all be true together, with the facts involved so the page can point at them; the facts
   // cannot be confirmed until one is changed (walkthrough 7 Nov).
   consistencyIssues: Array<{ message: string; factKeys: FactKey[] }>
+  // Each statement's line count against the payments read from it. For reading only: nothing waits on it.
+  statements: StatementCheck[]
 }
 
 function consistencyMessages(blocks: readonly SnapshotBlock[]): FactsView["consistencyIssues"] {
@@ -101,7 +104,13 @@ export async function loadFactsView(
   stage: Stage,
   extractJson?: ExtractJson,
 ): Promise<FactsView> {
-  const { runId, findings, documentsProcessing } = await ensureReconciled(service, caseId, extractJson)
+  const { runId, findings, documentsProcessing, documents } = await ensureReconciled(service, caseId, extractJson)
+  const { data: candidates, error: candidatesError } = await service
+    .from("case_fact_candidates")
+    .select("fact_key, value, source_ref")
+    .eq("run_id", runId)
+    .eq("source_type", "document")
+  if (candidatesError) throw new FactsUnavailableError("Failed to load candidates")
   const relevant = relevantFindings(findings, stage)
   const latest = await latestSnapshotFor(service, caseId, stage)
   const snapshot = buildSnapshot(findings, stage)
@@ -131,6 +140,7 @@ export async function loadFactsView(
     })),
     latestSnapshot: latest ? { id: latest.id, createdAt: latest.created_at, unchanged } : null,
     consistencyIssues: consistencyMessages(snapshot.blocks),
+    statements: statementChecks(documents, candidates ?? []),
   }
 }
 

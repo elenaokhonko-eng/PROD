@@ -10,6 +10,7 @@
 
 import { APPROVED, transactionRows, type Transaction } from '@/lib/facts'
 import { PaymentsTable } from '@/components/state-machine/facts/payments-table'
+import { StatementChecks } from '@/components/state-machine/facts/statement-checks'
 import { useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -236,6 +237,8 @@ export function ConfirmFactsPanel({ caseId, stage, onConfirmed, showIntro = true
           ))}
         </section>
       )}
+
+      <StatementChecks statements={view.statements} />
 
       {agreed.length > 0 && (
         <details className="rounded-lg border p-4">

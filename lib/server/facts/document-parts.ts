@@ -1,4 +1,4 @@
-import type { FactCandidate } from "@/lib/facts"
+import type { FactCandidate, Transaction } from "@/lib/facts"
 
 // A long document's facts are read in parts (requirements 9.2, 27 Nov 2026), so a long list of payments can't overflow
 // one answer and no text is cut off.
@@ -65,4 +65,32 @@ export const paymentRows = (text: string) => text.split("\n").filter((line) => D
 export const paymentsLost = (text: string, listed: number) => {
   const rows = paymentRows(text)
   return rows >= 10 && listed < rows / 4
+}
+
+export interface StatementCheck {
+  name: string
+  lines: number
+  payments: Transaction[]
+}
+
+const STATEMENT_TYPES = new Set(["bank_statement", "card_statement"])
+
+/**
+ * Each statement's lines against the payments read from it, for the person to compare (Elena, 28 Nov 2026). It shows
+ * both numbers whether or not they differ, and stops nothing. A file that gave no facts at all has no known kind, so
+ * it is shown when it has such lines: that is the reading most in need of a look.
+ */
+export function statementChecks(
+  documents: ReadonlyArray<{ sourceKey: string; name: string; text: string }>,
+  candidates: ReadonlyArray<{ fact_key: string; value: unknown; source_ref: unknown }>,
+): StatementCheck[] {
+  return documents.flatMap(({ sourceKey, name, text }) => {
+    const own = candidates.filter((c) => (c.source_ref as { sourceKey?: string } | null)?.sourceKey === sourceKey)
+    const kinds = own.map((c) => (c.source_ref as { documentType?: string }).documentType)
+    const unknown = own.length > 0 && own.every((c) => c.fact_key === "_source_scanned")
+    if (!unknown && !kinds.some((kind) => kind && STATEMENT_TYPES.has(kind))) return []
+    const payments = own.filter((c) => c.fact_key === "transactions").flatMap((c) => c.value as Transaction[])
+    const lines = paymentRows(text)
+    return lines || payments.length ? [{ name, lines, payments }] : []
+  })
 }
