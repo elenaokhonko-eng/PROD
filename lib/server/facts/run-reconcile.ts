@@ -23,13 +23,13 @@ import { logger } from "@/lib/logger"
 
 const log = logger.withContext({ module: "facts-reconcile" })
 
-import { mergeDocumentParts, paymentRows, paymentsLost, splitIntoParts } from "./document-parts"
+import { inBatches, mergeDocumentParts, paymentRows, paymentsLost, readDocumentParts } from "./document-parts"
 
 const STORY_LIMIT = 20_000
 // "All transactions must be pulled" (Elena, 27 Nov 2026): the whole of a long statement is read, and the answer has
 // room for every payment (about 100 tokens each). An answer that is still cut off fails the check rather than losing
 // payments quietly.
-// About two pages: even a page full of payments fits the answer.
+// About two pages, and never more than 60 payment lines (PART_PAYMENT_LINES), so the answer always fits.
 const DOCUMENT_PART_CHARS = 5_000
 const DOCUMENT_OUTPUT_CAP = 8_192
 const DOCUMENT_TIMEOUT_MS = 90_000
@@ -197,14 +197,6 @@ async function loadCurrentFindings(service: SupabaseClient, caseId: string, runI
   return (data ?? []) as StoredFindingRow[]
 }
 
-async function inBatches<T, R>(items: T[], size: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = []
-  for (let i = 0; i < items.length; i += size) {
-    results.push(...(await Promise.all(items.slice(i, i + size).map(fn))))
-  }
-  return results
-}
-
 // Another request is already checking this case (for example the user left the page and came back). Callers answer
 // "still checking" instead of starting a second run; a run older than RUNNING_STALE_MS is treated as abandoned.
 async function assertNoRunningRun(service: SupabaseClient, caseId: string) {
@@ -314,9 +306,12 @@ export async function ensureReconciled(
     const extracted = await inBatches(sources, MODEL_CONCURRENCY, async (source) => {
       const cached = reusable.get(source.sourceKey)
       if (cached) return cached
-      const parts = source.sourceType === "document" ? splitIntoParts(source.text, DOCUMENT_PART_CHARS) : [source.text]
-      const answers = await inBatches(parts, MODEL_CONCURRENCY, async (part) =>
-        (await extractJson(buildFactExtractionPrompt(source.sourceType, part), `facts_${source.sourceType}`)) as Record<string, unknown>)
+      const read = async (text: string) =>
+        (await extractJson(buildFactExtractionPrompt(source.sourceType, text), `facts_${source.sourceType}`)) as Record<string, unknown>
+      const { parts, answers } =
+        source.sourceType === "document"
+          ? await readDocumentParts(source.text, DOCUMENT_PART_CHARS, MODEL_CONCURRENCY, read)
+          : { parts: [source.text], answers: [await read(source.text)] }
       // The first part says what kind of document it is; later pages are read as that kind.
       const kind = answers[0]?.document_type
       const parsed = mergeDocumentParts(answers.map((raw, i) => {

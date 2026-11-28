@@ -138,12 +138,13 @@ export function answerCandidates(rows: readonly AnswerRow[]): { candidates: Fact
     add("bank_reply", reply, [JOURNEY_KEYS.bankReplyStatus, JOURNEY_KEYS.bankReplyDate, JOURNEY_KEYS.bankReplyOutcome, JOURNEY_KEYS.finalReplyQualifies]);
   }
 
-  // "Which of these are involved?" (28 Nov 2026): the mobile operator choice reads "the scam SMS came through it",
-  // which states the channel the SRF's mobile operator duties turn on. A different channel elsewhere is a conflict
-  // the person settles. The bank, e-wallet and "something else" choices state no fact on their own.
-  if (value(JOURNEY_KEYS.institutionTypes)?.split(",").includes("telco")) {
-    add("phishing_channel", "sms", [JOURNEY_KEYS.institutionTypes]);
-  }
+  // "Which of these are involved?" (28 Nov 2026): two choices state a fact. The mobile operator one reads "the scam
+  // SMS came through it", the channel the SRF's mobile operator duties turn on. The e-wallet one reads "money was taken
+  // from it"; its older value, "ewallet", only said an e-wallet was involved and states nothing. A different value
+  // elsewhere is a conflict the person settles. The bank and "something else" choices state no fact on their own.
+  const involved = value(JOURNEY_KEYS.institutionTypes)?.split(",") ?? [];
+  if (involved.includes("telco")) add("phishing_channel", "sms", [JOURNEY_KEYS.institutionTypes]);
+  if (involved.includes("ewallet_source")) add("account_types", ["ewallet"], [JOURNEY_KEYS.institutionTypes]);
 
   // The FIDReC route question, asked before the FIDReC pack is bought (fidrec-offer.tsx). Readiness reads these keys
   // to allow the purchase; as facts they let the generation's route check (decision 7) agree with what was asked.

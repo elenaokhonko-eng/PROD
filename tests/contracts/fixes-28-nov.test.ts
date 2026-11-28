@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
+import { readDocumentParts } from '../../lib/server/facts/document-parts'
 import { describeFailures, dutyFailures, evidenceIdFailures, isHardCheck, produceChecked, type FidrecPackProse } from '../../lib/facts'
 
 // Faults found on 28 Nov 2026. Synthetic values only.
@@ -38,10 +39,22 @@ test('the free evaluation PDF includes the payments table', () => {
   assert.match(read('app/api/cases/[caseId]/free-evaluation/pdf/route.ts'), /"tier0_transactions"/)
 })
 
-test('the pieces of a long document are read at the same time', () => {
-  const runner = read('lib/server/facts/run-reconcile.ts')
-  assert.doesNotMatch(runner, /const first = await read\(parts\[0\]\)/)
-  assert.match(runner, /const answers = await inBatches\(parts, MODEL_CONCURRENCY/)
+// The reading of parts moved into readDocumentParts (28 Nov, requirements 11.9); the rule is checked by running it.
+test('the pieces of a long document are read at the same time', async () => {
+  let started = 0
+  let release = () => {}
+  const held = new Promise<void>((resolve) => (release = resolve))
+  const text = Array.from({ length: 200 }, (_, i) => `2026-10-01 Synthetic payment ${i} 10.25`).join('\n')
+  const reading = readDocumentParts(text, 5_000, 4, async () => {
+    started += 1
+    await held
+    return {}
+  })
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(started, 4, 'four parts are under way before any has answered')
+  release()
+  await reading
+  assert.match(read('lib/server/facts/run-reconcile.ts'), /readDocumentParts\(source\.text, DOCUMENT_PART_CHARS, MODEL_CONCURRENCY/)
 })
 
 test('the gate test writes the FIDReC case’s questionnaire answers itself', () => {

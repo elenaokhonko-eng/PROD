@@ -43,7 +43,8 @@ test('facts are read in parts: nothing is cut, and payments from every part are 
   assert.equal((merged.find((c) => c.factKey === 'transactions')!.value as unknown[]).length, 3)
   assert.equal(merged.filter((c) => c.factKey === 'institution_names').length, 1)
   const runner = read('lib/server/facts/run-reconcile.ts')
-  assert.match(runner, /splitIntoParts\(/)
+  // The splitting moved into the parts reader (28 Nov).
+  assert.match(runner, /readDocumentParts\(/)
   assert.doesNotMatch(runner, /text\.slice\(0, DOCUMENT_LIMIT\)/)
 })
 

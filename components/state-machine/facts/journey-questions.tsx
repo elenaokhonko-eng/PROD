@@ -52,7 +52,8 @@ const CHANNELS: Choice[] = [
 ]
 const INSTITUTIONS: Choice[] = [
   { value: 'bank', label: 'A bank' },
-  { value: 'ewallet', label: 'An e-wallet or payment app' },
+  // A new value with the new wording (28 Nov): an older 'ewallet' tick only said an e-wallet was involved.
+  { value: 'ewallet_source', label: 'An e-wallet or payment app (money was taken from it)' },
   { value: 'telco', label: 'A mobile operator (the scam SMS came through it)' },
   { value: 'other', label: 'Something else' },
 ]
