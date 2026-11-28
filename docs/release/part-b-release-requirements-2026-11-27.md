@@ -498,3 +498,11 @@ Open point on item 3, raised by the agent: a line with a date and an amount is n
 
 - Time each step: reading each document, reading the facts, the free evaluation, each pack.
 - A fact taken from the last page of a 15-page file reaches the confirm screen, the free evaluation, the Bank dispute pack and the FIDReC pack (section 8.4).
+
+### 11.7 "Which of these are involved?"
+
+Elena asked for this gap to be fixed before staging.
+
+- **Mobile operator: built (1896875).** The choice reads "the scam SMS came through it", so it records that the scam came by SMS. A different answer elsewhere shows on the confirm screen as a conflict.
+- **E-wallet: not built, waiting for Elena.** "Involved" does not say that money was taken from the e-wallet, and the rules and packs need that. Proposed wording for the choice, which she has not approved: "An e-wallet or payment app (money was taken from it)".
+- The bank and "something else" choices state no fact on their own.
